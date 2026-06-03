@@ -23,7 +23,7 @@ fn test_triage_collection_windows() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if !text.contains("\"output_count\":1,") {
-                //panic!("missing SOFTWARE registry??");
+                panic!("missing SOFTWARE registry??");
             }
         }
     }
@@ -52,7 +52,7 @@ fn test_triage_collection_firefox_windows() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if text.contains("\"total_output_files\":0,") {
-                //panic!("missing edge??");
+                panic!("missing edge??");
             }
         }
     }
@@ -81,7 +81,7 @@ fn test_triage_collection_linux() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if text.contains("\"total_output_files\":0,") {
-                // panic!("missing journals??");
+                panic!("missing journals??");
             }
         }
     }

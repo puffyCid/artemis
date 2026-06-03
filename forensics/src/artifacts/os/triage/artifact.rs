@@ -8,7 +8,8 @@ use crate::{
         metadata::{GlobInfo, get_metadata, get_timestamps, glob_paths},
         ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
     },
-    structs::{artifacts::triage::TriageOptions, toml::Output},
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::artifacts::triage::TriageOptions,
     utils::regex_options::{create_regex, regex_check},
 };
 use log::{error, warn};
@@ -22,9 +23,13 @@ use walkdir::WalkDir;
 use zip::ZipWriter;
 
 /// Triage a system by acquiring files
-pub(crate) fn triage(output: &mut Output, options: &[TriageOptions]) -> Result<(), TriageError> {
-    let zip_output = format!("{}/{}", output.directory, output.name);
-    if let Err(err) = create_dir_all(&zip_output) {
+pub(crate) fn triage(
+    manager: &mut OutputManager,
+    options: &Vec<TriageOptions>,
+) -> Result<(), TriageError> {
+    let full_path = manager.config.directory.join(&manager.config.name);
+    let zip_output = full_path.to_str().unwrap_or_default();
+    if let Err(err) = create_dir_all(zip_output) {
         error!("[triage] Could not create output directory: {err:?}");
         return Err(TriageError::Output);
     }
@@ -55,9 +60,16 @@ pub(crate) fn triage(output: &mut Output, options: &[TriageOptions]) -> Result<(
         warn!("[triage] Failed to finish zipping file: {err:?}");
     }
 
-    // Track files we have acquired
-    for entry in report {
-        output.output_files.push(entry.full_path);
+    let mut records = match serialize_records_to_stream(report) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("[triage] Could not serialize triage report: {err:?}");
+            return Err(TriageError::Output);
+        }
+    };
+    let artifact_name = "triage";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("[triage] Could not write triage report: {err:?}");
     }
 
     Ok(())
@@ -352,7 +364,11 @@ mod tests {
             reader::TriageReader,
         },
         filesystem::metadata::GlobInfo,
-        structs::{artifacts::triage::TriageOptions, toml::Output},
+        output2::{
+            config::{OutputConfig, OutputDestination, OutputFormat},
+            manager::OutputManager,
+        },
+        structs::artifacts::triage::TriageOptions,
         utils::regex_options::create_regex,
     };
     use std::{
@@ -361,21 +377,22 @@ mod tests {
     };
     use zip::ZipWriter;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Csv,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
-        }
+        };
+        OutputManager::new(config).unwrap()
     }
 
     #[test]
     fn test_triage() {
-        let mut output = output_options("triage_test", "local", "./tmp", false);
+        let mut output = output_options("triage_test", "./tmp", false);
         let options = vec![TriageOptions {
             name: String::from("Linux Journal files"),
             path: String::from("/var/log/journal/"),
@@ -389,7 +406,7 @@ mod tests {
 
     #[test]
     fn test_triage_linux() {
-        let mut output = output_options("triage_test", "local", "./tmp", false);
+        let mut output = output_options("triage_test", "./tmp", false);
         let options = vec![TriageOptions {
             name: String::from("Linux Journal files"),
             path: String::from("/var/log/journal/"),
@@ -403,7 +420,7 @@ mod tests {
 
     #[test]
     fn test_triage_linux_recursive() {
-        let mut output = output_options("triage_test_recursive", "local", "./tmp", false);
+        let mut output = output_options("triage_test_recursive", "./tmp", false);
         let options = vec![TriageOptions {
             name: String::from("Linux Journal files"),
             path: String::from("/var/log/journal/"),
@@ -428,10 +445,10 @@ mod tests {
             recreate_directories: false,
         };
 
-        let out = output_options("acquire_files", "local", "./tmp", false);
-        let zip_output = format!("{}/{}", out.directory, out.name);
+        let out = output_options("acquire_files", "./tmp", false);
+        let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
-        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip_file = File::create(format!("{}/files.zip", zip_output.to_str().unwrap())).unwrap();
 
         let zip = ZipWriter::new(zip_file);
         let mut acq = TriageReader {
@@ -454,11 +471,11 @@ mod tests {
             is_directory: false,
             is_symlink: false,
         };
-        let out = output_options("walk_filesystem", "local", "./tmp", false);
+        let out = output_options("walk_filesystem", "./tmp", false);
 
-        let zip_output = format!("{}/{}", out.directory, out.name);
+        let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
-        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip_file = File::create(format!("{}/files.zip", zip_output.to_str().unwrap())).unwrap();
 
         let zip = ZipWriter::new(zip_file);
         let mut acq = TriageReader {
@@ -484,11 +501,11 @@ mod tests {
             is_directory: false,
             is_symlink: false,
         };
-        let out = output_options("walk_filesystem", "local", "./tmp", false);
+        let out = output_options("walk_filesystem", "./tmp", false);
 
-        let zip_output = format!("{}/{}", out.directory, out.name);
+        let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
-        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip_file = File::create(format!("{}/files.zip", zip_output.to_str().unwrap())).unwrap();
 
         let zip = ZipWriter::new(zip_file);
         let mut acq = TriageReader {
@@ -509,11 +526,11 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/files.toml");
 
-        let out = output_options("read_file", "local", "./tmp", false);
+        let out = output_options("read_file", "./tmp", false);
 
-        let zip_output = format!("{}/{}", out.directory, out.name);
+        let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
-        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip_file = File::create(format!("{}/files.zip", zip_output.to_str().unwrap())).unwrap();
 
         let zip = ZipWriter::new(zip_file);
         let mut acq = TriageReader {
@@ -544,12 +561,12 @@ mod tests {
     fn test_read_file_ntfs() {
         use crate::artifacts::os::triage::artifact::read_file_ntfs;
 
-        let out = output_options("read_file_ntfs", "local", "./tmp", false);
+        let out = output_options("read_file_ntfs", "./tmp", false);
         let path = "C:\\Windows\\System32\\config\\SOFTWARE";
 
-        let zip_output = format!("{}/{}", out.directory, out.name);
+        let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
-        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip_file = File::create(format!("{}/files.zip", zip_output.to_str().unwrap())).unwrap();
         let zip = ZipWriter::new(zip_file);
 
         let mut acq = TriageReader {
@@ -567,7 +584,7 @@ mod tests {
     fn test_read_file_ntfs_ads() {
         use crate::artifacts::os::triage::artifact::read_file_ntfs;
 
-        let out = output_options("read_file_ntfs_ads", "local", "./tmp", false);
+        let out = output_options("read_file_ntfs_ads", "./tmp", false);
         let path = "C:\\$Secure:$SDS";
 
         let zip_output = format!("{}/{}", out.directory, out.name);
