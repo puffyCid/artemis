@@ -590,7 +590,7 @@ mod tests {
 
         let zip_output = out.config.directory.join(&out.config.name);
         create_dir_all(&zip_output).unwrap();
-        let zip_file = File::create(format!("{zip_output}/files.zip")).unwrap();
+        let zip_file = File::create(format!("{}/files.zip", zip_output.to_str().unwrap())).unwrap();
         let zip = ZipWriter::new(zip_file);
 
         let mut acq = TriageReader {
