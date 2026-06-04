@@ -20,7 +20,7 @@ pub(crate) fn execute_script(
     manager: &mut OutputManager,
     script: &JSScript,
 ) -> Result<(), RuntimeError> {
-    decode_script(manager, &script.name, &script.script, &[])
+    decode_script(manager, script, &[])
 }
 
 /// Execute raw JavaScript code
@@ -46,11 +46,10 @@ pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
 /// Base64 decode the Javascript string and execute using Boa runtime and output the returned value
 fn decode_script(
     manager: &mut OutputManager,
-    script_name: &str,
-    encoded_script: &str,
+    options: &JSScript,
     args: &[String],
 ) -> Result<(), RuntimeError> {
-    let script_result = base64_decode_standard(encoded_script);
+    let script_result = base64_decode_standard(&options.script);
     let script_bytes = match script_result {
         Ok(result) => result,
         Err(err) => {
@@ -85,7 +84,7 @@ fn decode_script(
         return Ok(());
     }
 
-    output_data(script_value, script_name, manager)
+    output_data(script_value, options, manager)
 }
 
 /// A `BoaJS` runtime we use to filter data
@@ -101,7 +100,7 @@ pub(crate) fn create_filter_runtime(script: &str) -> Result<JsFilterRuntime, Run
 /// Output our script data based the configured `OutputManager`
 pub(crate) fn output_data(
     entries: Value,
-    script_name: &str,
+    options: &JSScript,
     manager: &mut OutputManager,
 ) -> Result<(), RuntimeError> {
     let records = match Record::from_value(entries) {
@@ -114,18 +113,22 @@ pub(crate) fn output_data(
 
     match records {
         Record::Array(record_array) => {
-            if let Err(err) =
-                manager.write_artifact(script_name, &"", &mut VecRecordStream::new(record_array))
-            {
+            if let Err(err) = manager.write_artifact(
+                &options.name,
+                options,
+                &mut VecRecordStream::new(record_array),
+            ) {
                 println!("[runtime] Could not write record from data: {err:?}");
                 return Err(RuntimeError::Output);
             }
         }
         // All other values are treat as a `SingleRecordStream`
         _ => {
-            if let Err(err) =
-                manager.write_artifact(script_name, &"", &mut SingleRecordStream::new(records))
-            {
+            if let Err(err) = manager.write_artifact(
+                &options.name,
+                options,
+                &mut SingleRecordStream::new(records),
+            ) {
                 error!("[runtime] Could not write record from data: {err:?}");
                 return Err(RuntimeError::Output);
             }
@@ -169,10 +172,13 @@ mod tests {
 
     #[test]
     fn test_decode_script() {
-        let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
         let mut output = output_options("runtime_test", "./tmp", false, OutputFormat::Json);
 
-        decode_script(&mut output, "hello world", test, &[]).unwrap();
+        let script = JSScript {
+            name: String::from("hello world"),
+            script: String::from("Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs="),
+        };
+        decode_script(&mut output, &script, &[]).unwrap();
     }
 
     #[test]
@@ -183,11 +189,10 @@ mod tests {
 
     #[test]
     fn test_execute_script() {
-        let test = "Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs=";
         let mut output = output_options("runtime_test", "./tmp", false, OutputFormat::Jsonl);
         let script = JSScript {
             name: String::from("hello world"),
-            script: test.to_string(),
+            script: String::from("Y29uc29sZS5sb2coIkhlbGxvIGJvYSEiKTs="),
         };
         execute_script(&mut output, &script).unwrap();
     }
@@ -203,23 +208,27 @@ mod tests {
         let buffer = read_file(&test_location.display().to_string()).unwrap();
 
         let mut output = output_options("runtime_test", "./tmp", false, OutputFormat::Jsonl);
-
-        decode_script(
-            &mut output,
-            "homebrew_packages",
-            from_utf8(&buffer).unwrap(),
-            &[],
-        )
-        .unwrap();
+        let script = JSScript {
+            name: String::from("hello world"),
+            script: from_utf8(&buffer).unwrap().to_string(),
+        };
+        decode_script(&mut output, &script, &[]).unwrap();
     }
 
     #[test]
     fn test_output_data() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Jsonl);
 
-        let name = "test";
         let data = json!([{"test":"test"},{"test":"test"}]);
-        let status = output_data(data, name, &mut output).unwrap();
+        let status = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -227,9 +236,16 @@ mod tests {
     fn test_output_data_mix_array() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Jsonl);
 
-        let name = "test";
         let data = json!([{"test":"test"},123, false]);
-        let status = output_data(data, name, &mut output).unwrap();
+        let status = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -237,9 +253,16 @@ mod tests {
     fn test_output_data_json_format_mix_array() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Json);
 
-        let name = "test";
         let data = json!([{"test":"test"},123, false]);
-        let status = output_data(data, name, &mut output).unwrap();
+        let status = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -247,9 +270,16 @@ mod tests {
     fn test_output_data_text_format_mix_array() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Text);
 
-        let name = "test";
         let data = json!([{"test":"test"},123, false]);
-        let err = output_data(data, name, &mut output).unwrap_err();
+        let err = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap_err();
         assert!(matches!(err, RuntimeError::Output));
     }
 
@@ -257,9 +287,16 @@ mod tests {
     fn test_output_data_text_format() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Text);
 
-        let name = "test";
         let data = json!(["test", "hello world!", 123, true]);
-        let status = output_data(data, name, &mut output).unwrap();
+        let status = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -267,9 +304,16 @@ mod tests {
     fn test_output_data_text_format_string() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Text);
 
-        let name = "test";
         let data = json!("a very simple string of text");
-        let status = output_data(data, name, &mut output).unwrap();
+        let status = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -277,9 +321,16 @@ mod tests {
     fn test_output_data_json_format_string() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Json);
 
-        let name = "test";
         let data = json!("a very simple string of text");
-        let status = output_data(data, name, &mut output).unwrap();
+        let status = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap();
         assert_eq!(status, ());
     }
 
@@ -287,9 +338,16 @@ mod tests {
     fn test_output_data_csv_format_mix_array() {
         let mut output = output_options("output_test", "./tmp", false, OutputFormat::Csv);
 
-        let name = "test";
         let data = json!([{"test":"test"},123, false]);
-        let err = output_data(data, name, &mut output).unwrap_err();
+        let err = output_data(
+            data,
+            &JSScript {
+                name: String::from("test"),
+                script: String::new(),
+            },
+            &mut output,
+        )
+        .unwrap_err();
         assert!(matches!(err, RuntimeError::Output));
     }
 }

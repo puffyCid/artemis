@@ -19,11 +19,11 @@ use super::{
     },
 };
 use crate::{
-    output2::{config::OutputConfig, manager::OutputManager},
+    output2::{config::OutputConfig, manager::OutputManager, marker::MarkerTracker},
     structs::toml::ArtemisToml,
-    utils::marker::skip_artifact,
 };
 use log::{error, info, warn};
+use serde::Serialize;
 
 #[cfg(feature = "boa")]
 use crate::runtime::run::execute_script;
@@ -47,17 +47,10 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
-        // If marker file is enabled, check if we should skip this artifact
-        if collector.marker.is_some()
-            && skip_artifact(collector.marker.as_ref().unwrap(), artifacts)
-        {
-            continue;
-        }
-
         //let filter = artifacts.filter.unwrap_or(false);
         let artifact = artifacts.artifact_name.as_str();
         match artifact {
-            "loginitems" => {
+            "loginitems" if !skip(&artifacts.loginitems, &collector.marker, artifact) => {
                 let options = match &artifacts.loginitems {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -71,7 +64,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "emond" => {
+            "emond" if !skip(&artifacts.emond, &collector.marker, artifact) => {
                 let options = match &artifacts.emond {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -85,7 +78,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "fseventsd" => {
+            "fseventsd" if !skip(&artifacts.fseventsd, &collector.marker, artifact) => {
                 let options = match &artifacts.fseventsd {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -99,7 +92,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "launchd" => {
+            "launchd" if !skip(&artifacts.launchd, &collector.marker, artifact) => {
                 let options = match &artifacts.launchd {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -113,7 +106,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "files" => {
+            "files" if !skip(&artifacts.files, &collector.marker, artifact) => {
                 let options = match &artifacts.files {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -128,7 +121,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "users-macos" => {
+            "users-macos" if !skip(&artifacts.users_macos, &collector.marker, artifact) => {
                 let options = match &artifacts.users_macos {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -142,7 +135,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "groups-macos" => {
+            "groups-macos" if !skip(&artifacts.groups_macos, &collector.marker, artifact) => {
                 let options = match &artifacts.groups_macos {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -156,7 +149,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "processes" => {
+            "processes" if !skip(&artifacts.processes, &collector.marker, artifact) => {
                 let options = match &artifacts.processes {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -171,7 +164,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "systeminfo" => {
+            "systeminfo" if !skip(&Some(""), &collector.marker, artifact) => {
                 let results = systeminfo(&mut manager);
                 match results {
                     Ok(_) => info!("Collected systeminfo"),
@@ -181,7 +174,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "execpolicy" => {
+            "execpolicy" if !skip(&artifacts.execpolicy, &collector.marker, artifact) => {
                 let options = match &artifacts.execpolicy {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -195,7 +188,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "unifiedlogs" => {
+            "unifiedlogs" if !skip(&artifacts.unifiedlogs, &collector.marker, artifact) => {
                 let options = match &artifacts.unifiedlogs {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -210,7 +203,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "sudologs-macos" => {
+            "sudologs-macos" if !skip(&artifacts.sudologs_macos, &collector.marker, artifact) => {
                 let options = match &artifacts.sudologs_macos {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -225,7 +218,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "spotlight" => {
+            "spotlight" if !skip(&artifacts.spotlight, &collector.marker, artifact) => {
                 let options = match &artifacts.spotlight {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -240,7 +233,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             #[cfg(feature = "boa")]
-            "script" => {
+            "script" if !skip(&artifacts.script, &collector.marker, artifact) => {
                 let script_data = &artifacts.script;
                 let script = match script_data {
                     Some(result) => result,
@@ -257,7 +250,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             // Linux
-            "journal" => {
+            "journal" if !skip(&artifacts.journal, &collector.marker, artifact) => {
                 let options = match &artifacts.journal {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -272,7 +265,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "logons" => {
+            "logons" if !skip(&artifacts.logons, &collector.marker, artifact) => {
                 let options = match &artifacts.logons {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -287,7 +280,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "sudologs-linux" => {
+            "sudologs-linux" if !skip(&artifacts.sudologs_linux, &collector.marker, artifact) => {
                 let options = match &artifacts.sudologs_linux {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -302,7 +295,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "rawfiles-ext4" => {
+            "rawfiles-ext4" if !skip(&artifacts.rawfiles_ext4, &collector.marker, artifact) => {
                 let options = match &artifacts.rawfiles_ext4 {
                     Some(result_data) => result_data,
                     _ => continue,
@@ -318,7 +311,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             // Windows
-            "prefetch" => {
+            "prefetch" if !skip(&artifacts.prefetch, &collector.marker, artifact) => {
                 let options = match &artifacts.prefetch {
                     Some(result) => result,
                     None => continue,
@@ -332,7 +325,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "eventlogs" => {
+            "eventlogs" if !skip(&artifacts.eventlogs, &collector.marker, artifact) => {
                 let options = match &artifacts.eventlogs {
                     Some(result) => result,
                     None => continue,
@@ -346,7 +339,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "rawfiles" => {
+            "rawfiles" if !skip(&artifacts.rawfiles, &collector.marker, artifact) => {
                 let options = match &artifacts.rawfiles {
                     Some(result) => result,
                     None => continue,
@@ -360,7 +353,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "shimdb" => {
+            "shimdb" if !skip(&artifacts.shimdb, &collector.marker, artifact) => {
                 let options = match &artifacts.shimdb {
                     Some(result) => result,
                     None => continue,
@@ -374,7 +367,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "registry" => {
+            "registry" if !skip(&artifacts.registry, &collector.marker, artifact) => {
                 let options = match &artifacts.registry {
                     Some(result) => result,
                     None => continue,
@@ -388,7 +381,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "userassist" => {
+            "userassist" if !skip(&artifacts.userassist, &collector.marker, artifact) => {
                 let options = match &artifacts.userassist {
                     Some(result) => result,
                     None => continue,
@@ -402,7 +395,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "shimcache" => {
+            "shimcache" if !skip(&artifacts.shimcache, &collector.marker, artifact) => {
                 let options = match &artifacts.shimcache {
                     Some(result) => result,
                     None => continue,
@@ -416,7 +409,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "shellbags" => {
+            "shellbags" if !skip(&artifacts.shellbags, &collector.marker, artifact) => {
                 let options = match &artifacts.shellbags {
                     Some(result) => result,
                     None => continue,
@@ -430,7 +423,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "amcache" => {
+            "amcache" if !skip(&artifacts.amcache, &collector.marker, artifact) => {
                 let options = match &artifacts.amcache {
                     Some(result) => result,
                     None => continue,
@@ -444,7 +437,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "shortcuts" => {
+            "shortcuts" if !skip(&artifacts.shortcuts, &collector.marker, artifact) => {
                 let options = match &artifacts.shortcuts {
                     Some(result) => result,
                     None => continue,
@@ -458,7 +451,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "usnjrnl" => {
+            "usnjrnl" if !skip(&artifacts.usnjrnl, &collector.marker, artifact) => {
                 let options = match &artifacts.usnjrnl {
                     Some(result) => result,
                     None => continue,
@@ -472,7 +465,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "bits" => {
+            "bits" if !skip(&artifacts.bits, &collector.marker, artifact) => {
                 let options = match &artifacts.bits {
                     Some(result) => result,
                     None => continue,
@@ -486,7 +479,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "srum" => {
+            "srum" if !skip(&artifacts.srum, &collector.marker, artifact) => {
                 let options = match &artifacts.srum {
                     Some(result) => result,
                     None => continue,
@@ -500,7 +493,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "search" => {
+            "search" if !skip(&artifacts.search, &collector.marker, artifact) => {
                 let options = match &artifacts.search {
                     Some(result) => result,
                     None => continue,
@@ -514,7 +507,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "users-windows" => {
+            "users-windows" if !skip(&artifacts.users_windows, &collector.marker, artifact) => {
                 let options = match &artifacts.users_windows {
                     Some(result) => result,
                     None => continue,
@@ -528,7 +521,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "tasks" => {
+            "tasks" if !skip(&artifacts.tasks, &collector.marker, artifact) => {
                 let options = match &artifacts.tasks {
                     Some(result) => result,
                     None => continue,
@@ -542,7 +535,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "services" => {
+            "services" if !skip(&artifacts.services, &collector.marker, artifact) => {
                 let options = match &artifacts.services {
                     Some(result) => result,
                     None => continue,
@@ -556,7 +549,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "jumplists" => {
+            "jumplists" if !skip(&artifacts.jumplists, &collector.marker, artifact) => {
                 let options = match &artifacts.jumplists {
                     Some(result) => result,
                     None => continue,
@@ -570,7 +563,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "recyclebin" => {
+            "recyclebin" if !skip(&artifacts.recyclebin, &collector.marker, artifact) => {
                 let options = match &artifacts.recyclebin {
                     Some(result) => result,
                     None => continue,
@@ -584,7 +577,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "wmipersist" => {
+            "wmipersist" if !skip(&artifacts.wmipersist, &collector.marker, artifact) => {
                 let options = match &artifacts.wmipersist {
                     Some(result) => result,
                     None => continue,
@@ -598,7 +591,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "outlook" => {
+            "outlook" if !skip(&artifacts.outlook, &collector.marker, artifact) => {
                 let options = match &artifacts.outlook {
                     Some(result) => result,
                     None => continue,
@@ -612,7 +605,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "mft" => {
+            "mft" if !skip(&artifacts.mft, &collector.marker, artifact) => {
                 let options = match &artifacts.mft {
                     Some(result) => result,
                     None => continue,
@@ -626,7 +619,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "connections" => {
+            "connections" if !skip(&Some(""), &collector.marker, artifact) => {
                 let results = list_connections(&mut manager);
                 match results {
                     Ok(_) => info!("Collected connections"),
@@ -636,7 +629,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     }
                 }
             }
-            "triage" => {
+            "triage" if !skip(&artifacts.triage, &collector.marker, artifact) => {
                 let options = match &artifacts.triage {
                     Some(result) => result,
                     None => continue,
@@ -651,9 +644,16 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             _ => warn!(
-                "[forensics] Unsupported artifact: {}",
+                "[forensics] Unsupported artifact: {}. Or the artifact was skipped due to marker file",
                 artifacts.artifact_name
             ),
+        }
+        if collector
+            .marker
+            .as_ref()
+            .is_some_and(|m| m.update_runs(&manager.artifact_runs).is_err())
+        {
+            error!("[forensics] Could not update marker file");
         }
     }
 
@@ -661,6 +661,22 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
         error!("[forensics] Could not finalize collection: {err:?}");
     }
     Ok(())
+}
+
+/// If marker file is enabled, check if we should skip this artifact
+fn skip<T: Serialize>(
+    options: &Option<T>,
+    marker: &Option<MarkerTracker>,
+    artifact_name: &str,
+) -> bool {
+    if let Some(opt) = options
+        && marker
+            .as_ref()
+            .is_some_and(|m| m.should_skip(artifact_name, opt).is_ok_and(|b| b))
+    {
+        return true;
+    }
+    false
 }
 
 #[cfg(test)]

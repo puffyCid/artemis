@@ -4,6 +4,7 @@ use crate::{
         helper::{string_arg, value_arg},
         run::output_data,
     },
+    structs::artifacts::runtime::script::JSScript,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
@@ -35,8 +36,12 @@ pub(crate) fn js_output_results(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
+    let script_dump = JSScript {
+        name: output_name,
+        script: String::new(),
+    };
 
-    let status = output_data(data, &output_name, &mut manager);
+    let status = output_data(data, &script_dump, &mut manager);
     if status.is_err() {
         error!("[runtime] Failed could not output script data");
         let issue = String::from("Failed could not output script data");
@@ -74,7 +79,12 @@ pub(crate) fn js_raw_dump(
         }
     };
 
-    let status = output_data(data, &output_name, &mut manager);
+    let script_dump = JSScript {
+        name: output_name,
+        script: String::new(),
+    };
+
+    let status = output_data(data, &script_dump, &mut manager);
     if status.is_err() {
         error!("[runtime] Failed could not output raw script data");
         let issue = String::from("Failed could not output raw script data");
