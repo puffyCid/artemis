@@ -644,7 +644,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 }
             }
             _ => warn!(
-                "[forensics] Unsupported artifact: {}",
+                "[forensics] Unsupported artifact: {}. Or the artifact was skipped due to marker file",
                 artifacts.artifact_name
             ),
         }
