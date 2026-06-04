@@ -42,7 +42,7 @@ pub struct OutputConfig {
     pub collection_id: u64,
     /// Folder to store the output data. The `name` folder will be created here
     pub directory: PathBuf,
-    /// Output type: local, aws, gcp, azure, or api
+    /// Output location: local, aws, gcp, azure, or api
     pub destination: OutputDestination,
     /// Output format: json, jsonl, or csv
     pub format: OutputFormat,
