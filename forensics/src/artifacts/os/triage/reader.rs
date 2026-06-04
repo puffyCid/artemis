@@ -177,7 +177,7 @@ mod tests {
     use crate::{
         artifacts::os::triage::{error::TriageError, reader::TriageReader},
         filesystem::metadata::glob_paths,
-        structs::toml::Output,
+        structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
     use std::{
         fs::{File, create_dir_all},
@@ -186,14 +186,14 @@ mod tests {
     };
     use zip::ZipWriter;
 
-    fn output_options(name: &str, output: &str, directory: &str, compress: bool) -> Output {
-        Output {
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {
+        OutputConfig {
             name: name.to_string(),
-            directory: directory.to_string(),
-            format: String::from("jsonl"),
+            directory: directory.to_string().into(),
+            format: OutputFormat::Jsonl,
             compress,
             endpoint_id: String::from("abcd"),
-            output: output.to_string(),
+            destination: OutputDestination::Local,
             ..Default::default()
         }
     }
@@ -203,9 +203,14 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/quick.toml");
 
-        let output = output_options("triage_test", "local", "./tmp", false);
+        let output = output_options("triage_test", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
-        let file = File::create(format!("{}/{}.zip", output.directory, output.name)).unwrap();
+        let file = File::create(format!(
+            "{}/{}.zip",
+            output.directory.to_str().unwrap(),
+            output.name
+        ))
+        .unwrap();
         let zip = ZipWriter::new(file);
         let reader = File::open(test_location.to_str().unwrap()).unwrap();
         let buf = BufReader::new(reader);
@@ -223,10 +228,15 @@ mod tests {
     fn test_acquire_multiple_files_recreate_paths() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/*/*.toml");
-        let output = output_options("triage_test_multiple_files", "local", "./tmp", false);
+        let output = output_options("triage_test_multiple_files", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
         let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
-        let file = File::create(format!("{}/{}.zip", output.directory, output.name)).unwrap();
+        let file = File::create(format!(
+            "{}/{}.zip",
+            output.directory.to_str().unwrap(),
+            output.name
+        ))
+        .unwrap();
 
         let zip = ZipWriter::new(file);
         let mut acq = TriageReader {
@@ -254,9 +264,14 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/quick.toml");
 
-        let output = output_options("triage_test_filename_only", "local", "./tmp", false);
+        let output = output_options("triage_test_filename_only", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
-        let file = File::create(format!("{}/{}.zip", output.directory, output.name)).unwrap();
+        let file = File::create(format!(
+            "{}/{}.zip",
+            output.directory.to_str().unwrap(),
+            output.name
+        ))
+        .unwrap();
         let zip = ZipWriter::new(file);
         let reader = File::open(test_location.to_str().unwrap()).unwrap();
         let buf = BufReader::new(reader);
@@ -290,9 +305,14 @@ mod tests {
         use crate::filesystem::ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser};
 
         let path = "C:\\Windows\\System32\\config\\SOFTWARE";
-        let output = output_options("triage_ntfs_acquire_file", "local", "./tmp", false);
+        let output = output_options("triage_ntfs_acquire_file", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
-        let file = File::create(format!("{}/{}.zip", output.directory, output.name)).unwrap();
+        let file = File::create(format!(
+            "{}/{}.zip",
+            output.directory.to_str().unwrap(),
+            output.name
+        ))
+        .unwrap();
 
         let zip = ZipWriter::new(file);
         let mut acq: TriageReader<File, File> = TriageReader {
