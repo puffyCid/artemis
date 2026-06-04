@@ -147,13 +147,16 @@ fn output_fsevents(
 }
 
 #[cfg(test)]
-#[cfg(target_os = "macos")]
+//#[cfg(target_os = "macos")]
 mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
         output2::manager::OutputManager,
-        structs::artifacts::os::macos::FseventsOptions,
+        structs::{
+            artifacts::os::macos::FseventsOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
+        },
         utils::compression::decompress::decompress_gzip,
     };
     use std::path::PathBuf;

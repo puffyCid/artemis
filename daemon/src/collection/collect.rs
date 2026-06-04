@@ -206,7 +206,7 @@ mod tests {
                 .body_includes("my important key");
             then.status(200)
                 .header("content-type", "application/json")
-                .json_body(json!({ "collection": "CltvdXRwdXRdCm5hbWUgPSAibGludXhfY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQp0aW1lbGluZSA9IGZhbHNlCmVuZHBvaW50X2lkID0gImFiZGMiCmNvbGxlY3Rpb25faWQgPSAxCm91dHB1dCA9ICJsb2NhbCIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJwcm9jZXNzZXMiClthcnRpZmFjdHMucHJvY2Vzc2VzXQptZDUgPSBmYWxzZQpzaGExID0gZmFsc2UKc2hhMjU2ID0gZmFsc2UKbWV0YWRhdGEgPSBmYWxzZQoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInN5c3RlbWluZm8iCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic2hlbGxfaGlzdG9yeSIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJjcm9uIg==", "endpoint_invalid": false, "collection_id": 1, "collection_timeout": 20 }));
+                .json_body(json!({ "collection": "CltvdXRwdXRdCm5hbWUgPSAibGludXhfY29sbGVjdGlvbiIKZGlyZWN0b3J5ID0gIi4vdG1wIgpmb3JtYXQgPSAianNvbiIKY29tcHJlc3MgPSBmYWxzZQp0aW1lbGluZSA9IGZhbHNlCmVuZHBvaW50X2lkID0gImFiZGMiCmNvbGxlY3Rpb25faWQgPSAxCmRlc3RpbmF0aW9uID0gImxvY2FsIgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gInByb2Nlc3NlcyIKW2FydGlmYWN0cy5wcm9jZXNzZXNdCm1kNSA9IGZhbHNlCnNoYTEgPSBmYWxzZQpzaGEyNTYgPSBmYWxzZQptZXRhZGF0YSA9IGZhbHNlCgpbW2FydGlmYWN0c11dCmFydGlmYWN0X25hbWUgPSAic3lzdGVtaW5mbyIKCltbYXJ0aWZhY3RzXV0KYXJ0aWZhY3RfbmFtZSA9ICJzaGVsbF9oaXN0b3J5IgoKW1thcnRpZmFjdHNdXQphcnRpZmFjdF9uYW1lID0gImNyb24i", "endpoint_invalid": false, "collection_id": 1, "collection_timeout": 20 }));
         });
 
         let server_config = server(test_location.to_str().unwrap(), Some("./tmp/artemis")).unwrap();
