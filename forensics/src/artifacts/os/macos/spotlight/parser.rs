@@ -57,12 +57,9 @@ pub(crate) fn grab_spotlight(
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::macos::spotlight::parser::grab_spotlight,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        artifacts::os::macos::spotlight::parser::grab_spotlight, output2::manager::OutputManager,
         structs::artifacts::os::macos::SpotlightOptions,
     };
     use std::path::PathBuf;

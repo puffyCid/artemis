@@ -77,13 +77,8 @@ pub(crate) fn grab_usnjrnl_path(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_usnjrnl, grab_usnjrnl_path};
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::windows::UsnJrnlOptions,
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::UsnJrnlOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

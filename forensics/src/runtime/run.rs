@@ -141,11 +141,9 @@ pub(crate) fn output_data(
 #[cfg(test)]
 mod tests {
     use super::{decode_script, execute_script, raw_script};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         runtime::{error::RuntimeError, run::output_data},
         structs::artifacts::runtime::script::JSScript,
     };

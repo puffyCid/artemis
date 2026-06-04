@@ -136,12 +136,9 @@ mod tests {
     use super::{
         nom_take_until_bytes, nom_take_until_string, nom_take_while_bytes, nom_take_while_string,
     };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        runtime::run::execute_script,
+        output2::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
     use std::path::PathBuf;

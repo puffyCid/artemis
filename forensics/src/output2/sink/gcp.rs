@@ -1,6 +1,5 @@
 use crate::{
     output2::{
-        config::OutputConfig,
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -8,6 +7,7 @@ use crate::{
             output_sink::{LogOutput, OutputSink},
         },
     },
+    structs::toml::OutputConfig,
     utils::{encoding::base64_decode_standard, time::time_now, uuid::generate_uuid},
 };
 use flate2::{Compression, write::GzEncoder};
@@ -388,9 +388,9 @@ impl OutputSink for GcpSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
     use crate::output2::error::OutputError;
     use crate::output2::sink::gcp::{GcpSink, UploadStatus};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::Method::{POST, PUT};
     use httpmock::MockServer;
     use serde_json::json;

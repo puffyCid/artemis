@@ -1,6 +1,5 @@
 use crate::{
     output2::{
-        config::OutputConfig,
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -8,6 +7,7 @@ use crate::{
             output_sink::{LogOutput, OutputSink},
         },
     },
+    structs::toml::OutputConfig,
     utils::{encoding::base64_decode_standard, uuid::generate_uuid},
 };
 use flate2::{Compression, write::GzEncoder};
@@ -343,12 +343,12 @@ impl AwsSink {
 #[cfg(test)]
 mod tests {
     use crate::output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
         context::CollectionContext,
         error::OutputError,
         report::CollectionReport,
         sink::{aws::AwsSink, output_sink::OutputSink},
     };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::{
         Method::{POST, PUT},
         MockServer,

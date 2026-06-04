@@ -125,13 +125,8 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
 #[cfg(test)]
 mod tests {
     use super::{parse_spotlight, parse_spotlight_reader, setup_spotlight_reader};
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::macos::SpotlightOptions,
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{output2::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {

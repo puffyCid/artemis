@@ -19,11 +19,11 @@ pub(crate) fn filelisting(
 mod tests {
     use crate::{
         artifacts::os::files::artifact::filelisting,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::files::FileOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::files::FileOptions,
     };
     use std::path::PathBuf;
 

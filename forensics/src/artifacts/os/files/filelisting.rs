@@ -16,10 +16,10 @@ use crate::artifacts::os::windows::pe::parser::parse_pe_file;
 use crate::filesystem::files::hash_file;
 use crate::filesystem::metadata::get_metadata;
 use crate::filesystem::metadata::get_timestamps;
-use crate::output2::config::OutputFormat;
 use crate::output2::manager::OutputManager;
 use crate::output2::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::files::FileOptions;
+use crate::structs::toml::OutputFormat;
 use crate::utils::regex_options::{create_regex, regex_check};
 use common::files::FileInfo;
 use common::files::Hashes;
@@ -344,9 +344,9 @@ mod tests {
         executable_metadata, file_metadata, file_output, get_filelist, user_regex,
     };
     use crate::artifacts::os::systeminfo::info::PlatformType;
-    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
     use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::files::FileOptions;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use common::files::FileInfo;
     use std::path::PathBuf;
     use walkdir::WalkDir;

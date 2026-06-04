@@ -1,9 +1,9 @@
-use crate::output2::{
-    config::{OutputConfig, OutputFormat},
-    encoder::{
+use crate::{
+    output2::encoder::{
         artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
         text::TextEncoder, timeline::TimelineEncoder,
     },
+    structs::toml::{OutputConfig, OutputFormat},
 };
 
 /// Create an `Encoder` to output forensic data
@@ -19,13 +19,11 @@ pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::{OutputConfig, OutputFormat},
-        encoder::{
-            artifact_encoder::Encoder, csv::CsvEncoder, factory::build_encoder, json::JsonEncoder,
-            jsonl::JsonlEncoder, text::TextEncoder,
-        },
+    use crate::output2::encoder::{
+        artifact_encoder::Encoder, csv::CsvEncoder, factory::build_encoder, json::JsonEncoder,
+        jsonl::JsonlEncoder, text::TextEncoder,
     };
+    use crate::structs::toml::{OutputConfig, OutputFormat};
 
     #[test]
     fn test_build_encoder() {

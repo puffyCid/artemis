@@ -229,9 +229,9 @@ mod tests {
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
     use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::artifacts::os::systeminfo::info::get_platform_enum;
-    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
     use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::processes::ProcessOptions;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use common::system::Processes;
     use std::path::PathBuf;
     use sysinfo::{ProcessesToUpdate, System};

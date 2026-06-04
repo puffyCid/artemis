@@ -32,9 +32,9 @@ pub(crate) fn list_connections(manager: &mut OutputManager) -> Result<(), Connec
 #[cfg(test)]
 mod tests {
     use super::list_connections;
-    use crate::output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
-        manager::OutputManager,
+    use crate::{
+        output2::manager::OutputManager,
+        structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
     use std::path::PathBuf;
 

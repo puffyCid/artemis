@@ -3,7 +3,7 @@ use forensics::{
     core::artemis_collection,
     structs::{
         artifacts::os::windows::AmcacheOptions,
-        toml::{ArtemisToml, Artifacts, Output},
+        toml::{ArtemisToml, Artifacts, OutputConfig, OutputDestination, OutputFormat},
     },
 };
 use std::path::PathBuf;
@@ -22,15 +22,14 @@ fn bench_amcache(c: &mut Criterion) {
                 alt_file: Some(test_location.to_string_lossy().to_string()),
             };
 
-            let out = Output {
+            let out = OutputConfig {
                 name: String::from("amcache_benchmark"),
                 endpoint_id: String::from("benchmark_amcache"),
                 collection_id: 0,
-                directory: String::from("./tmp"),
-                output: String::from("local"),
-                format: String::from("jsonl"),
+                directory: PathBuf::from("./tmp"),
+                destination: OutputDestination::Local,
+                format: OutputFormat::Jsonl,
                 compress: false,
-                timeline: false,
                 ..Default::default()
             };
 

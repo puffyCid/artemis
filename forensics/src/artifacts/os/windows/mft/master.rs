@@ -608,11 +608,9 @@ fn output_mft(
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
-        manager::OutputManager,
-    };
+    use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::windows::MftOptions;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

@@ -119,12 +119,12 @@ pub(crate) fn js_query_sqlite(
 #[cfg(test)]
 mod tests {
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         runtime::run::execute_script,
-        structs::artifacts::runtime::script::JSScript,
+        structs::{
+            artifacts::runtime::script::JSScript,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
+        },
     };
     use std::path::PathBuf;
 

@@ -247,12 +247,9 @@ mod tests {
     use super::{
         Params, parse_default_system_hives, parse_registry, parse_registry_file, parse_user_hives,
     };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::windows::registry::parser::user_regex,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        artifacts::os::windows::registry::parser::user_regex, output2::manager::OutputManager,
         structs::artifacts::os::windows::RegistryOptions,
     };
     use regex::Regex;

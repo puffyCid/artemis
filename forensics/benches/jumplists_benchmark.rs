@@ -3,7 +3,7 @@ use forensics::{
     core::artemis_collection,
     structs::{
         artifacts::os::windows::JumplistsOptions,
-        toml::{ArtemisToml, Artifacts, Output},
+        toml::{ArtemisToml, Artifacts, OutputConfig, OutputDestination, OutputFormat},
     },
 };
 use std::path::PathBuf;
@@ -24,15 +24,14 @@ fn bench_custom_jumplists(c: &mut Criterion) {
                 alt_dir: Some(test_location.display().to_string()),
             };
 
-            let out = Output {
+            let out = OutputConfig {
                 name: String::from("jumplist_benchmark"),
                 endpoint_id: String::from("benchmark_jumplists"),
                 collection_id: 0,
-                directory: String::from("./tmp"),
-                output: String::from("local"),
-                format: String::from("jsonl"),
+                directory: PathBuf::from("./tmp"),
+                destination: OutputDestination::Local,
+                format: OutputFormat::Jsonl,
                 compress: false,
-                timeline: false,
                 ..Default::default()
             };
 
@@ -62,15 +61,14 @@ fn bench_automatic_jumplists(c: &mut Criterion) {
                 alt_dir: Some(test_location.display().to_string()),
             };
 
-            let out = Output {
+            let out = OutputConfig {
                 name: String::from("jumplist_benchmark"),
                 endpoint_id: String::from("benchmark_jumplists"),
                 collection_id: 0,
-                directory: String::from("./tmp"),
-                output: String::from("local"),
-                format: String::from("jsonl"),
+                directory: PathBuf::from("./tmp"),
+                destination: OutputDestination::Local,
+                format: OutputFormat::Jsonl,
                 compress: false,
-                timeline: false,
                 ..Default::default()
             };
             let data = ArtemisToml {

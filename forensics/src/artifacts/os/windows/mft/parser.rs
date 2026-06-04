@@ -36,13 +36,8 @@ pub(crate) fn grab_mft(options: &MftOptions, manager: &mut OutputManager) -> Res
 #[cfg(target_os = "windows")]
 mod tests {
     use super::grab_mft;
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::windows::MftOptions,
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::MftOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

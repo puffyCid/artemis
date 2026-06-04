@@ -1,75 +1,8 @@
-use crate::{output2::error::OutputError, structs::toml::Output};
-use serde::{Deserialize, Serialize};
+use crate::{
+    output2::error::OutputError,
+    structs::toml::{Output, OutputConfig, OutputDestination, OutputFormat},
+};
 use std::path::PathBuf;
-
-/// Output configuration for output workflow
-///
-/// `OutputConfig` describes how artifact results should be encoded, written,
-/// filtered, and logged.
-#[derive(Debug, Deserialize, Serialize, Default)]
-pub(crate) struct OutputConfig {
-    /// Name for output folder
-    pub name: String,
-    /// Endpoint ID for the target system
-    pub endpoint_id: String,
-    /// Collection ID for the Artemis execution
-    pub collection_id: u64,
-    /// Folder to store the output data. The `name` folder will be created here
-    pub directory: PathBuf,
-    /// Output type: local, aws, gcp, azure, or api
-    pub destination: OutputDestination,
-    /// Output format: json, jsonl, or csv
-    pub format: OutputFormat,
-    /// Whether to compress the results with gzip. The local output type is then compressed with zip
-    pub compress: bool,
-    /// Filter out results with time before start time
-    pub start_time_filter: Option<String>,
-    /// Filter out results with time after end time
-    pub end_time_filter: Option<String>,
-    /// Apply a filter script before outputting data
-    pub filter_name: Option<String>,
-    /// Run parsed data through provided filter script
-    pub filter_script: Option<String>,
-    /// URL for remote uploads
-    pub url: Option<String>,
-    /// API used for remote uploads
-    pub api_key: Option<String>,
-    /// Set logging setting. Default is `warn`. Options include: error, warn, info, debug
-    pub logging: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Copy, Clone)]
-#[serde(rename_all = "lowercase")]
-pub(crate) enum OutputFormat {
-    Json,
-    #[default]
-    Jsonl,
-    Csv,
-    Timeline,
-    /// Plaintext output for `BoaJS` runtime data
-    Text,
-}
-
-/// Determine where our data should be sent
-#[derive(Debug, Deserialize, Serialize, Default, PartialEq, Copy, Clone)]
-#[serde(rename_all = "lowercase")]
-pub(crate) enum OutputDestination {
-    /// Local filesystem
-    #[default]
-    Local,
-    /// Upload to an API server
-    #[cfg(feature = "api")]
-    Api,
-    /// Upload to AWS bucket
-    #[cfg(feature = "aws")]
-    Aws,
-    /// Upload to Azure bucket
-    #[cfg(feature = "azure")]
-    Azure,
-    /// Upload to GCP bucket
-    #[cfg(feature = "gcp")]
-    Gcp,
-}
 
 impl TryFrom<Output> for OutputConfig {
     type Error = OutputError;
@@ -148,13 +81,8 @@ impl OutputDestination {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            error::OutputError,
-        },
-        structs::toml::Output,
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{output2::error::OutputError, structs::toml::Output};
 
     #[test]
     fn test_output_config() {

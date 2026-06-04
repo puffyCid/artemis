@@ -452,6 +452,7 @@ pub(crate) fn get_ads_names(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::RawFilelist;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::ntfs::{
             attributes::{
@@ -461,10 +462,7 @@ mod tests {
             parser::ntfs_filelist,
         },
         filesystem::ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::windows::RawFilesOptions,
     };
     use common::files::Hashes;

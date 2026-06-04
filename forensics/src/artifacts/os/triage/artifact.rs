@@ -359,16 +359,14 @@ fn get_ntfs_ads_zip_path(path: &str, attribute: &str, create_paths: bool) -> Str
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::triage::{
             artifact::{acquire_files, get_ntfs_ads_zip_path, read_file, triage, walk_filesystem},
             reader::TriageReader,
         },
         filesystem::metadata::GlobInfo,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::triage::TriageOptions,
         utils::regex_options::create_regex,
     };

@@ -104,11 +104,11 @@ mod tests {
         ext4_filelist, journals, logons, sudo_logs_linux,
     };
     use crate::artifacts::os::systeminfo::info::get_info_metadata;
-    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
     use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::linux::{
         Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
     };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

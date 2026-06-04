@@ -32,7 +32,7 @@ impl ArtemisToml {
     /// Parse the Artemis TOML collector file
     pub(crate) fn parse_artemis_toml(toml_data: &[u8]) -> Result<ArtemisToml, ArtemisError> {
         let toml_results = toml::from_slice(toml_data);
-        let mut artemis_collector: ArtemisToml = match toml_results {
+        let artemis_collector: ArtemisToml = match toml_results {
             Ok(results) => results,
             Err(err) => {
                 error!("[forensics] Artemis failed to parse TOML data. Error: {err:?}");
@@ -40,15 +40,17 @@ impl ArtemisToml {
             }
         };
 
-        // Format is always lowercase
-        artemis_collector.output.format = artemis_collector.output.format.to_lowercase();
         Ok(artemis_collector)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{filesystem::files::read_file, utils::artemis_toml::ArtemisToml};
+    use crate::{
+        filesystem::files::read_file,
+        structs::toml::{OutputDestination, OutputFormat},
+        utils::artemis_toml::ArtemisToml,
+    };
     use httpmock::{Method::GET, MockServer};
     use std::path::PathBuf;
 
@@ -62,9 +64,9 @@ mod tests {
         let result = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
         assert_eq!(result.output.compress, true);
         assert_eq!(result.output.name, "macos_collection");
-        assert_eq!(result.output.directory, "./tmp");
-        assert_eq!(result.output.format, "jsonl");
-        assert_eq!(result.output.output, "local");
+        assert_eq!(result.output.directory.to_str().unwrap(), "./tmp");
+        assert_eq!(result.output.format, OutputFormat::Jsonl);
+        assert_eq!(result.output.destination, OutputDestination::Local);
 
         assert_eq!(result.artifacts[0].artifact_name, "processes");
         assert_eq!(result.artifacts[0].processes.as_ref().unwrap().md5, true);
@@ -125,8 +127,8 @@ mod tests {
         let result = ArtemisToml::parse_artemis_toml(&buffer).unwrap();
         assert_eq!(result.output.compress, false);
         assert_eq!(result.output.name, "macos_collection");
-        assert_eq!(result.output.directory, "./tmp");
-        assert_eq!(result.output.format, "local");
+        assert_eq!(result.output.directory.to_str().unwrap(), "./tmp");
+        assert_eq!(result.output.destination, OutputDestination::Local);
 
         assert_eq!(result.artifacts[0].artifact_name, "processes");
     }

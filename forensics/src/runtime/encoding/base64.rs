@@ -36,12 +36,9 @@ pub(crate) fn js_base64_encode(
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        runtime::run::execute_script,
+        output2::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
     use std::path::PathBuf;

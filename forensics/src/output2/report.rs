@@ -1,11 +1,8 @@
 use crate::{
     artifacts::os::systeminfo::info::get_info,
     filesystem::files::hash_file_data,
-    output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
-        context::CollectionContext,
-        error::OutputResult,
-    },
+    output2::{context::CollectionContext, error::OutputResult},
+    structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     utils::time::{time_now, unixepoch_to_iso},
 };
 use common::{files::Hashes, system::SystemInfo};
@@ -145,10 +142,10 @@ pub(crate) fn hash_artifact_options<T: Serialize>(options: &T) -> OutputResult<S
 #[cfg(test)]
 mod tests {
     use crate::output2::{
-        config::{OutputConfig, OutputFormat},
         context::CollectionContext,
         report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
     };
+    use crate::structs::toml::{OutputConfig, OutputFormat};
     use serde_json::Value;
     use std::path::PathBuf;
 

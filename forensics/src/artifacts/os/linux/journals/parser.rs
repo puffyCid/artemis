@@ -83,11 +83,11 @@ mod tests {
     use super::grab_journal;
     use crate::{
         artifacts::os::linux::journals::parser::grab_journal_file,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::linux::JournalOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::linux::JournalOptions,
     };
     use std::path::PathBuf;
 

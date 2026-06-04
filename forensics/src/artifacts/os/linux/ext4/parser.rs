@@ -314,11 +314,11 @@ mod tests {
         artifacts::os::linux::ext4::parser::{
             Ext4Params, ext4_filelisting, ext4_output, filesystem_regex, get_root, walk_ext4,
         },
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::linux::Ext4Options,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::linux::Ext4Options,
         utils::regex_options::create_regex,
     };
     use ext4_fs::{
