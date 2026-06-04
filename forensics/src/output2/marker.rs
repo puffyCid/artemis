@@ -13,8 +13,8 @@ use std::{
 };
 
 /// Determine if an artifact was recently collected
-#[derive(Debug, Deserialize)]
-pub(crate) struct MarkerTracker {
+#[derive(Debug, Deserialize, Serialize)]
+pub struct MarkerTracker {
     /// Path to save the marker file to
     path: PathBuf,
     /// Name of marker file
@@ -31,7 +31,6 @@ impl MarkerTracker {
         artifact_options: &T,
     ) -> OutputResult<bool> {
         let hash = hash_artifact_options(artifact_options)?;
-
         let runs = self.read_runs()?;
 
         let now = time_now();

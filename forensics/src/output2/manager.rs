@@ -30,7 +30,7 @@ pub(crate) struct OutputManager {
     /// Array of artifacts from Artemis collection
     artifacts: Vec<String>,
     /// Array of artifacts collected from the Artemis execution
-    artifact_runs: Vec<ArtifactRunReport>,
+    pub(crate) artifact_runs: Vec<ArtifactRunReport>,
 }
 
 impl OutputManager {
