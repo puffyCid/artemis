@@ -35,7 +35,7 @@ fn test_qcow_parser() {
         collection_id: 0,
         directory: PathBuf::from("./tmp"),
         destination: OutputDestination::Local,
-        format: OutputFormat::Json,
+        format: OutputFormat::Jsonl,
         compress: false,
         ..Default::default()
     };
