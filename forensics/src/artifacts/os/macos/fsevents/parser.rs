@@ -152,11 +152,11 @@ mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::macos::FseventsOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::macos::FseventsOptions,
         utils::compression::decompress::decompress_gzip,
     };
     use std::path::PathBuf;

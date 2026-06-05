@@ -290,8 +290,8 @@ mod tests {
     use crate::artifacts::os::windows::tasks::parser::{
         grab_task_job, grab_task_xml, job_info, xml_info,
     };
-    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
     use crate::output2::manager::OutputManager;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::tasks::parser::drive_tasks,
         structs::artifacts::os::windows::TasksOptions,

@@ -91,14 +91,16 @@ pub(crate) trait ArtifactEncoder {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::OutputConfig,
-        context::CollectionContext,
-        encoder::{
-            artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
-            text::TextEncoder,
+    use crate::{
+        output2::{
+            context::CollectionContext,
+            encoder::{
+                artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
+                text::TextEncoder,
+            },
+            record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
         },
-        record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
+        structs::toml::OutputConfig,
     };
     use serde_json::{Value, json};
     use std::{io::Cursor, path::PathBuf};

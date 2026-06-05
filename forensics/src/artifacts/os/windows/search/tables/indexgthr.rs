@@ -161,16 +161,14 @@ pub(crate) fn parse_index_gthr_path(
 #[cfg(test)]
 mod tests {
     use super::{parse_index_gthr, parse_index_gthr_path};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::{
             ese::{helper::get_page_data, tables::table_info},
             search::ese::{search_catalog, search_pages},
         },
         filesystem::files::is_file,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::windows::SearchOptions,
     };
     use std::{collections::HashMap, path::PathBuf};

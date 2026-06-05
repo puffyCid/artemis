@@ -101,13 +101,15 @@ fn json_value_kind(value: &Value) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::OutputConfig,
-        context::CollectionContext,
-        error::OutputError,
-        filter::js::{JsFilterRecordStream, json_value_kind},
-        manager::OutputManager,
-        record::{JsonRecord, Record, RecordStreamKind, SingleRecordStream, VecRecordStream},
+    use crate::{
+        output2::{
+            context::CollectionContext,
+            error::OutputError,
+            filter::js::{JsFilterRecordStream, json_value_kind},
+            manager::OutputManager,
+            record::{JsonRecord, Record, RecordStreamKind, SingleRecordStream, VecRecordStream},
+        },
+        structs::toml::OutputConfig,
     };
     use serde_json::{Map, Value};
     use std::path::PathBuf;

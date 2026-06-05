@@ -411,11 +411,11 @@ mod tests {
             objects::header::{ObjectHeader, ObjectType},
         },
         filesystem::files::file_reader,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::linux::JournalOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::linux::JournalOptions,
     };
     use common::linux::{Facility, Priority};
     use std::{io::Read, path::PathBuf};

@@ -198,12 +198,9 @@ fn iterate_logs(
 #[cfg(target_os = "macos")]
 mod tests {
     use super::grab_logs;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::macos::UnifiedLogsOptions,
+        output2::manager::OutputManager, structs::artifacts::os::macos::UnifiedLogsOptions,
     };
     use std::path::PathBuf;
 

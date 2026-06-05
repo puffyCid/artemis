@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::systeminfo::info::get_info_metadata,
-    output2::config::OutputConfig,
+    structs::toml::OutputConfig,
     utils::{
         time::{time_now, unixepoch_to_iso},
         uuid::generate_uuid,
@@ -103,8 +103,8 @@ impl CollectionContext {
 #[cfg(test)]
 mod tests {
     use crate::{
-        output2::{config::OutputConfig, context::CollectionContext},
-        structs::toml::Output,
+        output2::context::CollectionContext,
+        structs::toml::{Output, OutputConfig},
     };
     use std::path::PathBuf;
 

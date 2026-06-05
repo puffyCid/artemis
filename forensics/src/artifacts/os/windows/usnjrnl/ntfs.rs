@@ -316,13 +316,11 @@ fn output_usnjnl(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{get_data, parse_usnjrnl_data};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
         filesystem::metadata::glob_paths,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::windows::UsnJrnlOptions,
     };
     use common::windows::UsnJrnlEntry;

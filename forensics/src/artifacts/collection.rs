@@ -19,7 +19,7 @@ use super::{
     },
 };
 use crate::{
-    output2::{config::OutputConfig, manager::OutputManager, marker::MarkerTracker},
+    output2::{manager::OutputManager, marker::MarkerTracker},
     structs::toml::ArtemisToml,
 };
 use log::{error, info, warn};
@@ -30,14 +30,7 @@ use crate::runtime::run::execute_script;
 
 /// Parse the TOML collector and get artifacts
 pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError> {
-    let config = match OutputConfig::try_from(collector.output.clone()) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("[forensics] Could not setup output config: {err:?}");
-            return Err(CollectionError::Output);
-        }
-    };
-    let mut manager = match OutputManager::new(config) {
+    let mut manager = match OutputManager::new(collector.output) {
         Ok(result) => result,
         Err(err) => {
             error!("[forensics] Could not setup output manager: {err:?}");

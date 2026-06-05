@@ -1,12 +1,12 @@
 use crate::{
     output2::{
-        config::OutputConfig,
         error::{OutputError, OutputResult},
         sink::{
             output_handle::{OutputHandle, OutputLocation},
             output_sink::{LogOutput, OutputSink},
         },
     },
+    structs::toml::OutputConfig,
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
@@ -213,10 +213,8 @@ impl OutputSink for AzureSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
-        sink::azure::AzureSink,
-    };
+    use crate::output2::sink::azure::AzureSink;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::{Method::PUT, MockServer};
     use std::path::PathBuf;
 

@@ -479,13 +479,8 @@ fn output_messages(
 #[cfg(test)]
 mod tests {
     use super::grab_outlook;
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::windows::OutlookOptions,
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::OutlookOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

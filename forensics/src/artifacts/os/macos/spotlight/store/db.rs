@@ -276,16 +276,14 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], StoreHeader> {
 #[cfg(test)]
 mod tests {
     use super::{get_blocks, parse_header, parse_store, parse_store_blocks};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::macos::spotlight::dbstr::meta::get_spotlight_meta,
         filesystem::{
             files::{file_reader, read_file},
             metadata::glob_paths,
         },
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::macos::SpotlightOptions,
     };
     use std::path::PathBuf;

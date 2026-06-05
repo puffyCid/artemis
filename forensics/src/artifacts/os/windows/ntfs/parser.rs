@@ -26,8 +26,8 @@ use crate::{
         files::file_extension,
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
     },
-    output2::{config::OutputFormat, manager::OutputManager, record::serialize_records_to_stream},
-    structs::artifacts::os::windows::RawFilesOptions,
+    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    structs::{artifacts::os::windows::RawFilesOptions, toml::OutputFormat},
     utils::{
         regex_options::{create_regex, regex_check},
         strings::strings_contains,
@@ -298,15 +298,13 @@ fn raw_output(entries: Vec<RawFilelist>, manager: &mut OutputManager, options: &
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::ntfs::parser::{
             Hashes, Params, ntfs_filelist, raw_output, user_regex, walk_ntfs,
         },
         filesystem::ntfs::setup::setup_ntfs_parser,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::windows::RawFilesOptions,
     };
     use regex::Regex;

@@ -1,10 +1,10 @@
 use crate::{
-    output2::{config::OutputConfig, manager::OutputManager},
+    output2::manager::OutputManager,
     runtime::{
         helper::{string_arg, value_arg},
         run::output_data,
     },
-    structs::artifacts::runtime::script::JSScript,
+    structs::{artifacts::runtime::script::JSScript, toml::OutputConfig},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use log::error;
@@ -96,12 +96,9 @@ pub(crate) fn js_raw_dump(
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        runtime::run::execute_script,
+        output2::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
     use std::{

@@ -218,13 +218,8 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
 #[cfg(test)]
 mod tests {
     use super::{parse_search_sqlite, parse_search_sqlite_path};
-    use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::windows::SearchOptions,
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::SearchOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

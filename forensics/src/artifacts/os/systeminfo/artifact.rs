@@ -33,13 +33,8 @@ pub(crate) fn systeminfo(manager: &mut OutputManager) -> Result<(), SystemInfoEr
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        artifacts::os::systeminfo::artifact::systeminfo,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-    };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::{artifacts::os::systeminfo::artifact::systeminfo, output2::manager::OutputManager};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {

@@ -5,7 +5,7 @@ pub(crate) type OutputResult<T> = Result<T, OutputError>;
 
 /// Errors produced by output workflow
 #[derive(Debug)]
-pub(crate) enum OutputError {
+pub enum OutputError {
     /// Got unsupported output format
     UnsupportedFormat(String),
     /// Got unsupported destination value

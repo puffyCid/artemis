@@ -7,7 +7,7 @@ compress = true
 timeline = false
 endpoint_id = "abdc"
 collection_id = 1
-output = "local"
+destination = "local"
 filter_name = "apps_info_plists"
 # This script will take the files artifact below and filter it to only return Info.plist files
 # We could expand this even further by then using the plist parser on the Info.plist path and include that parsed data too

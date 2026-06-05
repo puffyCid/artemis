@@ -1,12 +1,14 @@
-use crate::output2::{
-    config::{OutputConfig, OutputDestination},
-    error::OutputResult,
-    report::CollectionReport,
-    sink::{
-        local::LocalSink,
-        output_handle::OutputHandle,
-        output_sink::{LogOutput, OutputSink},
+use crate::{
+    output2::{
+        error::OutputResult,
+        report::CollectionReport,
+        sink::{
+            local::LocalSink,
+            output_handle::OutputHandle,
+            output_sink::{LogOutput, OutputSink},
+        },
     },
+    structs::toml::{OutputConfig, OutputDestination},
 };
 
 #[cfg(feature = "api")]
@@ -131,10 +133,10 @@ pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
 #[cfg(test)]
 mod tests {
     use crate::output2::{
-        config::{OutputConfig, OutputFormat},
         manager::OutputManager,
         record::{JsonRecord, Record, VecRecordStream},
     };
+    use crate::structs::toml::{OutputConfig, OutputFormat};
     use log::error;
     use serde_json::json;
     use std::path::PathBuf;

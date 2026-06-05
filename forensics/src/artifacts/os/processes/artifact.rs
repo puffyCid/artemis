@@ -17,12 +17,9 @@ pub(crate) fn processes(
 
 #[cfg(test)]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::processes::artifact::processes,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        artifacts::os::processes::artifact::processes, output2::manager::OutputManager,
         structs::artifacts::os::processes::ProcessOptions,
     };
     use std::path::PathBuf;

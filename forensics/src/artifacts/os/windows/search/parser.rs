@@ -96,9 +96,9 @@ mod tests {
     use super::grab_search;
     use super::grab_search_path;
     use crate::filesystem::files::is_file;
-    use crate::output2::config::{OutputConfig, OutputDestination, OutputFormat};
     use crate::output2::manager::OutputManager;
     use crate::structs::artifacts::os::windows::SearchOptions;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

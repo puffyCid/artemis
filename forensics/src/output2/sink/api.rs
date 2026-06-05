@@ -1,12 +1,12 @@
 use crate::{
     output2::{
-        config::OutputConfig,
         error::{OutputError, OutputResult},
         sink::{
             output_handle::{OutputHandle, OutputLocation},
             output_sink::{LogOutput, OutputSink},
         },
     },
+    structs::toml::OutputConfig,
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
@@ -193,11 +193,8 @@ impl OutputSink for ApiSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
-        error::OutputError,
-        sink::api::ApiSink,
-    };
+    use crate::output2::{error::OutputError, sink::api::ApiSink};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::{Method::POST, MockServer};
     use serde_json::json;
     use std::path::PathBuf;

@@ -61,12 +61,9 @@ pub(crate) fn grab_srum_path(path: &str, table: &str) -> Result<Value, SrumError
 #[cfg(target_os = "windows")]
 mod tests {
     use super::grab_srum;
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::windows::srum::parser::grab_srum_path,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        artifacts::os::windows::srum::parser::grab_srum_path, output2::manager::OutputManager,
         structs::artifacts::os::windows::SrumOptions,
     };
     use std::path::PathBuf;

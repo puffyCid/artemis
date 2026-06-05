@@ -197,11 +197,11 @@ mod tests {
     use crate::{
         artifacts::os::linux::journals::journal::parse_journal_file,
         filesystem::files::file_reader,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::linux::JournalOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::linux::JournalOptions,
     };
     use std::path::PathBuf;
 

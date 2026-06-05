@@ -130,11 +130,11 @@ fn read_disk(
 mod tests {
     use crate::{
         artifacts::os::linux::ext4::{disks::qcow_ext4, parser::Ext4Params},
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
+        output2::manager::OutputManager,
+        structs::{
+            artifacts::os::linux::Ext4Options,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
         },
-        structs::artifacts::os::linux::Ext4Options,
         utils::regex_options::create_regex,
     };
     use ext4_fs::structs::Ext4Hash;

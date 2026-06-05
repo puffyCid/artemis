@@ -6,7 +6,7 @@ compress = false
 timeline = false
 endpoint_id = "2b7f40fd-cd02-47da-87da-9966fa5d8159"
 collection_id = 1
-output = "local"
+destination = "local"
 
 [[artifacts]]
 artifact_name = "triage"

@@ -94,10 +94,10 @@ pub fn artemis_collection(collection: ArtemisToml) -> Result<(), TomlError> {
 #[cfg(test)]
 mod tests {
     use super::{parse_toml_data, parse_toml_file};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         core::{ArtemisToml, artemis_collection},
         filesystem::files::read_file,
-        structs::toml::Output,
     };
     use std::path::PathBuf;
 
@@ -171,12 +171,12 @@ mod tests {
     #[test]
     fn test_bad_parse_toml_file() {
         let collection = ArtemisToml {
-            output: Output {
+            output: OutputConfig {
                 name: String::from("core"),
-                directory: String::from("tmp"),
-                format: String::from("json"),
+                directory: PathBuf::from("./tmp"),
+                format: OutputFormat::Json,
                 endpoint_id: String::from("abcd"),
-                output: String::from("local"),
+                destination: OutputDestination::Local,
                 ..Default::default()
             },
             marker: None,

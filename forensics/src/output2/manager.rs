@@ -1,14 +1,16 @@
-use crate::output2::{
-    config::OutputConfig,
-    context::CollectionContext,
-    encoder::{artifact_encoder::Encoder, factory::build_encoder},
-    error::OutputResult,
-    record::RecordStream,
-    report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
-    sink::{
-        factory::{Sink, build_sink},
-        output_handle::OutputHandle,
+use crate::{
+    output2::{
+        context::CollectionContext,
+        encoder::{artifact_encoder::Encoder, factory::build_encoder},
+        error::OutputResult,
+        record::RecordStream,
+        report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
+        sink::{
+            factory::{Sink, build_sink},
+            output_handle::OutputHandle,
+        },
     },
+    structs::toml::OutputConfig,
 };
 use log::LevelFilter;
 use serde::Serialize;
@@ -207,10 +209,10 @@ fn log_level(level: Option<&str>) -> LevelFilter {
 #[cfg(test)]
 mod tests {
     use crate::output2::{
-        config::{OutputConfig, OutputDestination, OutputFormat},
         manager::OutputManager,
         record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
     };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::{
         Method::{POST, PUT},
         MockServer,

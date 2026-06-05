@@ -600,16 +600,14 @@ pub(crate) fn mft(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::artifacts::{
             amcache, bits, eventlogs, jumplists, mft, prefetch, raw_filelist, recycle_bin,
             registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
             userassist, users_windows, usnjrnl, wmi_persist,
         },
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::windows::{
             AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
             PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,

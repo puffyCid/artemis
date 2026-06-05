@@ -375,13 +375,11 @@ mod tests {
         get_document_ids, get_properties, parse_search, parse_search_path, process_search,
         search_catalog, search_pages,
     };
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::ese::{helper::get_page_data, tables::table_info},
         filesystem::files::is_file,
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::windows::SearchOptions,
     };
     use std::path::PathBuf;

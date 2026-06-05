@@ -282,15 +282,13 @@ pub(crate) fn spotlight(
 #[cfg(test)]
 #[cfg(target_os = "macos")]
 mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::macos::artifacts::{
             emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
             sudo_logs_macos, unifiedlogs, users_macos,
         },
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
+        output2::manager::OutputManager,
         structs::artifacts::os::macos::{
             EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
             MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,

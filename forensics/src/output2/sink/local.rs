@@ -1,7 +1,6 @@
 use crate::{
     filesystem::files::list_files,
     output2::{
-        config::OutputConfig,
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -9,6 +8,7 @@ use crate::{
             output_sink::{LogOutput, OutputSink},
         },
     },
+    structs::toml::OutputConfig,
     utils::{compression::compress::compress_output_zip, uuid::generate_uuid},
 };
 use flate2::{Compression, write::GzEncoder};
@@ -158,10 +158,10 @@ impl OutputSink for LocalSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
-        config::OutputConfig,
-        sink::{local::LocalSink, output_handle::OutputType, output_sink::OutputSink},
+    use crate::output2::sink::{
+        local::LocalSink, output_handle::OutputType, output_sink::OutputSink,
     };
+    use crate::structs::toml::OutputConfig;
     use std::{io::Write, path::PathBuf};
 
     #[test]

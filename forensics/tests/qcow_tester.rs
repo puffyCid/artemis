@@ -3,7 +3,7 @@ use forensics::{
     core::artemis_collection,
     structs::{
         artifacts::os::linux::Ext4Options,
-        toml::{ArtemisToml, Artifacts, Output},
+        toml::{ArtemisToml, Artifacts, Output, OutputConfig, OutputDestination, OutputFormat},
     },
 };
 use glob::glob;
@@ -29,15 +29,14 @@ fn test_qcow_parser() {
         filename_regex: None,
     };
 
-    let out = Output {
+    let out = OutputConfig {
         name: String::from("qcow_collection"),
         endpoint_id: String::from("ci"),
         collection_id: 0,
-        directory: String::from("./tmp"),
-        output: String::from("local"),
-        format: String::from("jsonl"),
+        directory: PathBuf::from("./tmp"),
+        destination: OutputDestination::Local,
+        format: OutputFormat::Jsonl,
         compress: false,
-        timeline: false,
         ..Default::default()
     };
 

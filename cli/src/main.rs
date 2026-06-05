@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
 use crate::collector::system::run_collector;
 use base64::{Engine, engine::general_purpose};
 use clap::Parser;
 use collector::system::Commands;
-use forensics::structs::toml::Output;
+use forensics::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
 use log::info;
 mod collector;
 
@@ -79,12 +81,12 @@ fn parse_args(args: &Args) {
             }
         }
     } else if let Some(command) = &args.command {
-        let out = Output {
+        let out = OutputConfig {
             name: String::from("local_collector"),
             endpoint_id: String::from("local"),
-            directory: String::from("./tmp"),
-            output: String::from("local"),
-            format: String::from("json"),
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
             ..Default::default()
         };
         run_collector(command, out)

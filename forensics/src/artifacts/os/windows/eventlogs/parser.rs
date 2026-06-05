@@ -446,12 +446,9 @@ fn output_logs(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::{
-            config::{OutputConfig, OutputDestination, OutputFormat},
-            manager::OutputManager,
-        },
-        structs::artifacts::os::windows::EventLogsOptions,
+        output2::manager::OutputManager, structs::artifacts::os::windows::EventLogsOptions,
     };
     use std::{fs::read_dir, path::PathBuf};
 

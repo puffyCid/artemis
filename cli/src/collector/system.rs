@@ -20,7 +20,7 @@ use forensics::{
                 UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
             },
         },
-        toml::{ArtemisToml, Artifacts, Output},
+        toml::{ArtemisToml, Artifacts, OutputConfig, OutputFormat},
     },
 };
 
@@ -49,7 +49,7 @@ pub(crate) enum Commands {
 }
 
 /// Run the collector and parse specified artifacts
-pub(crate) fn run_collector(command: &Commands, output: Output) {
+pub(crate) fn run_collector(command: &Commands, output: OutputConfig) {
     let mut collector = ArtemisToml {
         output,
         marker: None,
@@ -72,24 +72,33 @@ pub(crate) fn run_collector(command: &Commands, output: Output) {
             let arti = artifact.as_ref().unwrap();
             collector.artifacts.push(setup_artifact(arti));
             collector.output.compress = *compress;
-            collector.output.start_time = start.clone();
-            collector.output.end_time = end.clone();
+            collector.output.start_time_filter = start.clone();
+            collector.output.end_time_filter = end.clone();
 
             if !format.is_empty() {
-                collector.output.format = format.to_string().to_lowercase();
+                collector.output.format = format_choice(format);
             }
             if !output_dir.is_empty() {
-                collector.output.directory = output_dir.to_string();
+                collector.output.directory = output_dir.to_string().into();
             }
 
             println!(
-                "[artemis] Writing output to: {}",
+                "[artemis] Writing output to: {:?}",
                 collector.output.directory
             );
         }
     }
 
     artemis_collection(collector).expect("Failed to run collector due bad arguments")
+}
+
+fn format_choice(format: &str) -> OutputFormat {
+    match format.to_ascii_lowercase().as_str() {
+        "json" => OutputFormat::Json,
+        "csv" => OutputFormat::Csv,
+        "timeline" => OutputFormat::Timeline,
+        _ => OutputFormat::Jsonl,
+    }
 }
 
 /// Setup any artifact options
@@ -501,18 +510,19 @@ mod tests {
         Registry, Services, Shellbags, Shimcache, Shimdb, Spotlight, Srum, SudologsLinux,
         SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos, UsersWindows,
     };
-    use forensics::structs::toml::Output;
-    fn output() -> Output {
-        let out = Output {
-            name: String::from("local_collector"),
-            endpoint_id: String::from("local"),
-            directory: String::from("./tmp"),
-            output: String::from("local"),
-            format: String::from("json"),
-            ..Default::default()
-        };
+    use forensics::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use std::path::PathBuf;
 
-        out
+    fn output() -> OutputConfig {
+        OutputConfig {
+            name: String::from("local_collector"),
+            directory: PathBuf::from("./tmp"),
+            format: OutputFormat::Jsonl,
+            compress: false,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        }
     }
 
     #[test]
