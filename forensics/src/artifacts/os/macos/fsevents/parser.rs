@@ -147,7 +147,7 @@ fn output_fsevents(
 }
 
 #[cfg(test)]
-//#[cfg(target_os = "macos")]
+#[cfg(target_os = "macos")]
 mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{

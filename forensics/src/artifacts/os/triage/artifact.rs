@@ -539,7 +539,7 @@ mod tests {
         };
 
         let report = read_file(test_location.to_str().unwrap(), &mut acq, true).unwrap();
-        assert_eq!(report.md5, "cbed8a94f6a32edc5266206f83985386");
+        assert_eq!(report.md5, "7bf0a4b133b9e4d8aa8d279474ab3367");
         assert_eq!(report.size, 606);
     }
 

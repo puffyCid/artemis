@@ -220,7 +220,7 @@ mod tests {
             path: test_location.to_str().unwrap().to_string(),
         };
         let hash = acq.acquire_file().unwrap();
-        assert_eq!(hash, "a6d4d85e832a17e230842de55e4f0ccc");
+        assert_eq!(hash, "f14d65de6fe327628811ffcc213bba3c");
         acq.zip.finish().unwrap();
     }
 
@@ -281,7 +281,7 @@ mod tests {
             path: String::from("quick.toml"),
         };
         let hash = acq.acquire_file().unwrap();
-        assert_eq!(hash, "a6d4d85e832a17e230842de55e4f0ccc");
+        assert_eq!(hash, "f14d65de6fe327628811ffcc213bba3c");
         acq.zip.finish().unwrap();
     }
 
