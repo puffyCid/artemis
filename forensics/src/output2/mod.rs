@@ -1,4 +1,3 @@
-pub(crate) mod config;
 mod context;
 mod encoder;
 mod error;
