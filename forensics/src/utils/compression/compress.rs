@@ -1,30 +1,12 @@
 use super::error::CompressionError;
 use crate::filesystem::files::file_reader;
-use flate2::{Compression, write::GzEncoder};
 use log::{error, warn};
 use std::{
     fs::File,
-    io::{Read, Write, copy},
+    io::{Read, copy},
 };
 use walkdir::WalkDir;
 use zip::{ZipWriter, write::SimpleFileOptions};
-
-/// Compress provided bytes with GZIP
-pub(crate) fn compress_gzip_bytes(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
-    let mut gz = GzEncoder::new(Vec::new(), Compression::default());
-    let _ = gz.write_all(data);
-    let finish_status = gz.finish();
-
-    let data = match finish_status {
-        Ok(results) => results,
-        Err(err) => {
-            error!("[compression] Could not finish gzip compressing data: {err:?}");
-            return Err(CompressionError::GzipFinish);
-        }
-    };
-
-    Ok(data)
-}
 
 /// Compress the output directory to a zip file
 pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(), CompressionError> {
@@ -116,18 +98,8 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        filesystem::files::read_file,
-        utils::compression::compress::{compress_gzip_bytes, compress_output_zip},
-    };
+    use crate::{filesystem::files::read_file, utils::compression::compress::compress_output_zip};
     use std::{fs::remove_file, path::PathBuf};
-
-    #[test]
-    fn test_compress_gzip_bytes() {
-        let data = "compressme";
-        let results = compress_gzip_bytes(&data.as_bytes()).unwrap();
-        assert_eq!(results.len(), 30)
-    }
 
     #[test]
     fn test_compress_output_zip() {

@@ -5,12 +5,8 @@ pub enum ArtemisError {
     BadToml,
     Regex,
     Env,
-    CreateDirectory,
-    LogFile,
-    Local,
     #[cfg(feature = "network")]
     Remote,
-    Cleanup,
     ReadXml,
     UtfType,
     #[cfg(feature = "yarax")]
@@ -31,12 +27,8 @@ impl fmt::Display for ArtemisError {
             ArtemisError::BadToml => write!(f, "Failed to parse TOML data"),
             ArtemisError::Regex => write!(f, "Invalid regex provided"),
             ArtemisError::Env => write!(f, "Could not get environment variable"),
-            ArtemisError::CreateDirectory => write!(f, "Could not create directory(ies)"),
-            ArtemisError::LogFile => write!(f, "Could not create log file"),
-            ArtemisError::Local => write!(f, "Failed output data to local directory"),
             #[cfg(feature = "network")]
             ArtemisError::Remote => write!(f, "Failed output data to remote URL"),
-            ArtemisError::Cleanup => write!(f, "Failed to delete artemis output files"),
             ArtemisError::ReadXml => write!(f, "Failed to read XML"),
             ArtemisError::UtfType => write!(f, "Failed to determine UTF XML type"),
             #[cfg(feature = "yarax")]

@@ -1,31 +1,7 @@
 use crate::{
     output2::error::OutputError,
-    structs::toml::{Output, OutputConfig, OutputDestination, OutputFormat},
+    structs::toml::{OutputDestination, OutputFormat},
 };
-use std::path::PathBuf;
-
-impl TryFrom<Output> for OutputConfig {
-    type Error = OutputError;
-    /// Convert legacy `Output` structure to modern `OutputConfig` structure
-    fn try_from(value: Output) -> Result<Self, Self::Error> {
-        Ok(Self {
-            name: value.name,
-            endpoint_id: value.endpoint_id,
-            collection_id: value.collection_id,
-            directory: PathBuf::from(value.directory),
-            destination: OutputDestination::parse(&value.output)?,
-            format: OutputFormat::parse(&value.format)?,
-            compress: value.compress,
-            start_time_filter: value.start_time,
-            end_time_filter: value.end_time,
-            filter_name: value.filter_name,
-            filter_script: value.filter_script,
-            url: value.url,
-            api_key: value.api_key,
-            logging: value.logging,
-        })
-    }
-}
 
 impl OutputFormat {
     /// Parse format string to format enum value
@@ -82,18 +58,17 @@ impl OutputDestination {
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::error::OutputError, structs::toml::Output};
+    use std::path::PathBuf;
 
     #[test]
     fn test_output_config() {
-        let out = Output {
+        let out = OutputConfig {
             name: String::from("test"),
             endpoint_id: String::from("test"),
             collection_id: 123,
-            directory: String::from("test"),
-            output: String::from("local"),
-            format: String::from("json"),
-            log_file: String::from("test"),
+            directory: PathBuf::from("test"),
+            format: OutputFormat::Jsonl,
+            destination: OutputDestination::Local,
             ..Default::default()
         };
 
@@ -106,14 +81,13 @@ mod tests {
     #[test]
     #[cfg(feature = "aws")]
     fn test_output_config_jsonl() {
-        let out = Output {
+        let out = OutputConfig {
             name: String::from("test"),
             endpoint_id: String::from("test"),
             collection_id: 123,
-            directory: String::from("test"),
-            output: String::from("aws"),
-            format: String::from("jsonl"),
-            log_file: String::from("test"),
+            directory: PathBuf::from("test"),
+            format: OutputFormat::Jsonl,
+            destination: OutputDestination::Aws,
             ..Default::default()
         };
 
@@ -126,14 +100,13 @@ mod tests {
     #[test]
     #[cfg(feature = "azure")]
     fn test_output_config_csv() {
-        let out = Output {
+        let out = OutputConfig {
             name: String::from("test"),
             endpoint_id: String::from("test"),
             collection_id: 123,
-            directory: String::from("test"),
-            output: String::from("azure"),
-            format: String::from("csv"),
-            log_file: String::from("test"),
+            directory: PathBuf::from("test"),
+            format: OutputFormat::Jsonl,
+            destination: OutputDestination::Azure,
             ..Default::default()
         };
 
@@ -141,23 +114,5 @@ mod tests {
         assert_eq!(out_ng.name, "test");
         assert_eq!(out_ng.format, OutputFormat::Csv);
         assert_eq!(out_ng.destination, OutputDestination::Azure);
-    }
-
-    #[test]
-    #[cfg(feature = "azure")]
-    fn test_output_config_bad_format() {
-        let out = Output {
-            name: String::from("test"),
-            endpoint_id: String::from("test"),
-            collection_id: 123,
-            directory: String::from("test"),
-            output: String::from("azure"),
-            format: String::from("test"),
-            log_file: String::from("test"),
-            ..Default::default()
-        };
-
-        let err = OutputConfig::try_from(out).unwrap_err();
-        assert!(matches!(err, OutputError::UnsupportedFormat(value) if value == "test"))
     }
 }
