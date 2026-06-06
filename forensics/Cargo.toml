@@ -37,7 +37,7 @@ walkdir = "2.5.0"
 home = "0.5.12"
 simplelog = "0.12.2"
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
-quick-xml = { version = "0.39.3", default-features = false, features = [
+quick-xml = { version = "0.40.1", default-features = false, features = [
     "escape-html",
 ] }
 xml2json-rs = "1.0.1"
@@ -47,13 +47,13 @@ evtx = { version = "0.11.2", default-features = false, features = [
 ntfs = "0.4.0"
 pelite = "0.10.0"
 elf = "0.8.0"
-ruzstd = "0.8.2"
-lz4_flex = "0.13.0"
+ruzstd = "0.8.3"
+lz4_flex = "0.13.1"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 macos-unifiedlogs = "0.6.0"
 plist = "1.9.0"
-aes = "0.9.0"
-cbc = "0.2.0"
+aes = "0.9.1"
+cbc = "0.2.1"
 csv = "1.4.0"
 common = { path = "../common" }
 timeline = { path = "../timeline" }
@@ -67,7 +67,7 @@ calf = "0.2.1"
 
 # Optional Stuff
 url = { version = "2.5.8", optional = true }
-yara-x = { version = "1.16.0", optional = true, default-features = false, features = [
+yara-x = { version = "1.17.0", optional = true, default-features = false, features = [
     "constant-folding",
     "exact-atoms",
     "fast-regexp",
@@ -81,14 +81,13 @@ yara-x = { version = "1.16.0", optional = true, default-features = false, featur
     "pe-module",
     "string-module",
     "time-module",
-    "linkme",
 ] }
 
 # AWS Support
 rusty-s3 = { version = "0.9.1", optional = true }
 
 # GCP Support
-jsonwebtoken = { version = "10.3.0", optional = true, features = ["aws_lc_rs"] }
+jsonwebtoken = { version = "10.4.0", optional = true, features = ["aws_lc_rs"] }
 
 # JS API
 boa_engine = { version = "0.21.1", default-features = false, optional = true }
