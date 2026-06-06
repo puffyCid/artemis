@@ -590,6 +590,7 @@ mod tests {
         };
 
         let mut manage = OutputManager::new(config).unwrap();
+        manage.filter = true;
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
@@ -663,6 +664,7 @@ mod tests {
         };
 
         let mut manage = OutputManager::new(config).unwrap();
+        manage.filter = true;
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());

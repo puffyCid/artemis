@@ -163,6 +163,7 @@ mod tests {
         ]);
 
         let mut manager = OutputManager::new(config).unwrap();
+        manager.filter = true;
         let err = manager
             .write_artifact("test", &String::from("test"), &mut records)
             .unwrap_err();
