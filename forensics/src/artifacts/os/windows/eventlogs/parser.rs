@@ -16,7 +16,7 @@ use super::{
 };
 use crate::{
     filesystem::files::{file_extension, list_files, read_file},
-    output2::{
+    output::{
         manager::OutputManager,
         record::{
             SingleRecordStream, VecRecordStream, serialize_records_to_stream, serialize_to_record,
@@ -448,7 +448,7 @@ mod tests {
     use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::manager::OutputManager, structs::artifacts::os::windows::EventLogsOptions,
+        output::manager::OutputManager, structs::artifacts::os::windows::EventLogsOptions,
     };
     use std::{fs::read_dir, path::PathBuf};
 

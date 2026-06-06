@@ -1,7 +1,7 @@
 use crate::artifacts::os::linux::error::LinuxArtifactError;
 use crate::artifacts::os::linux::ext4::parser::ext4_filelisting;
-use crate::output2::manager::OutputManager;
-use crate::output2::record::serialize_records_to_stream;
+use crate::output::manager::OutputManager;
+use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::linux::{
     Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
 };
@@ -104,7 +104,7 @@ mod tests {
         ext4_filelist, journals, logons, sudo_logs_linux,
     };
     use crate::artifacts::os::systeminfo::info::get_info_metadata;
-    use crate::output2::manager::OutputManager;
+    use crate::output::manager::OutputManager;
     use crate::structs::artifacts::os::linux::{
         Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
     };

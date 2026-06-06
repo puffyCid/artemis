@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     artifacts::os::macos::spotlight::{dbstr::meta::SpotlightMeta, error::SpotlightError},
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::SpotlightOptions,
     utils::{
         nom_helper::{Endian, nom_unsigned_four_bytes},
@@ -283,7 +283,7 @@ mod tests {
             files::{file_reader, read_file},
             metadata::glob_paths,
         },
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::macos::SpotlightOptions,
     };
     use std::path::PathBuf;

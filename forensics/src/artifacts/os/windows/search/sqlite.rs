@@ -1,6 +1,6 @@
 use super::{error::SearchError, ese::SearchEntry};
 use crate::{
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::SearchOptions,
 };
 use log::{error, warn};
@@ -219,7 +219,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
 mod tests {
     use super::{parse_search_sqlite, parse_search_sqlite_path};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::SearchOptions};
+    use crate::{output::manager::OutputManager, structs::artifacts::os::windows::SearchOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         context::CollectionContext,
         error::{OutputError, OutputResult},
         record::{JsonRecord, Record, RecordStream, RecordStreamKind},
@@ -102,7 +102,7 @@ fn json_value_kind(value: &Value) -> &str {
 #[cfg(test)]
 mod tests {
     use crate::{
-        output2::{
+        output::{
             context::CollectionContext,
             error::OutputError,
             filter::js::{JsFilterRecordStream, json_value_kind},

@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -342,7 +342,7 @@ impl AwsSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
+    use crate::output::{
         context::CollectionContext,
         error::OutputError,
         report::CollectionReport,

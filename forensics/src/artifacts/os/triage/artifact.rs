@@ -8,7 +8,7 @@ use crate::{
         metadata::{GlobInfo, get_metadata, get_timestamps, glob_paths},
         ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
     },
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::triage::TriageOptions,
     utils::regex_options::{create_regex, regex_check},
 };
@@ -366,7 +366,7 @@ mod tests {
             reader::TriageReader,
         },
         filesystem::metadata::GlobInfo,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::triage::TriageOptions,
         utils::regex_options::create_regex,
     };

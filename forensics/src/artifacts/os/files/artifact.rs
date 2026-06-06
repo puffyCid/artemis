@@ -1,5 +1,5 @@
 use super::{error::FileError, filelisting::get_filelist};
-use crate::{output2::manager::OutputManager, structs::artifacts::os::files::FileOptions};
+use crate::{output::manager::OutputManager, structs::artifacts::os::files::FileOptions};
 use log::error;
 
 /// Get a filelisting based on provided options
@@ -19,7 +19,7 @@ pub(crate) fn filelisting(
 mod tests {
     use crate::{
         artifacts::os::files::artifact::filelisting,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::files::FileOptions,
             toml::{OutputConfig, OutputDestination, OutputFormat},

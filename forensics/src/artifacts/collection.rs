@@ -19,7 +19,7 @@ use super::{
     },
 };
 use crate::{
-    output2::{manager::OutputManager, marker::MarkerTracker},
+    output::{manager::OutputManager, marker::MarkerTracker},
     structs::toml::ArtemisToml,
 };
 use log::{error, info, warn};

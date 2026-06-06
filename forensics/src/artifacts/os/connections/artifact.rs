@@ -1,5 +1,5 @@
 use super::error::ConnectionsError;
-use crate::output2::{manager::OutputManager, record::serialize_records_to_stream};
+use crate::output::{manager::OutputManager, record::serialize_records_to_stream};
 use log::error;
 use lumination::connections::connections;
 
@@ -33,7 +33,7 @@ pub(crate) fn list_connections(manager: &mut OutputManager) -> Result<(), Connec
 mod tests {
     use super::list_connections;
     use crate::{
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
     use std::path::PathBuf;

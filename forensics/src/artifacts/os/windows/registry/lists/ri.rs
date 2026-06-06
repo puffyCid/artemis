@@ -1,6 +1,6 @@
 use super::li::LeafItem;
 use crate::{
-    artifacts::os::windows::registry::parser::Params, output2::manager::OutputManager,
+    artifacts::os::windows::registry::parser::Params, output::manager::OutputManager,
     structs::artifacts::os::windows::RegistryOptions,
 };
 pub(crate) type RefItem = LeafItem;

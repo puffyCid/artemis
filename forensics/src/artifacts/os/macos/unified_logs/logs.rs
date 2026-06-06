@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::macos::error::MacArtifactError,
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::UnifiedLogsOptions,
 };
 use log::error;
@@ -200,7 +200,7 @@ mod tests {
     use super::grab_logs;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::manager::OutputManager, structs::artifacts::os::macos::UnifiedLogsOptions,
+        output::manager::OutputManager, structs::artifacts::os::macos::UnifiedLogsOptions,
     };
     use std::path::PathBuf;
 

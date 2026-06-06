@@ -26,7 +26,7 @@ use crate::{
         files::file_extension,
         ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
     },
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::{artifacts::os::windows::RawFilesOptions, toml::OutputFormat},
     utils::{
         regex_options::{create_regex, regex_check},
@@ -304,7 +304,7 @@ mod tests {
             Hashes, Params, ntfs_filelist, raw_output, user_regex, walk_ntfs,
         },
         filesystem::ntfs::setup::setup_ntfs_parser,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::windows::RawFilesOptions,
     };
     use regex::Regex;

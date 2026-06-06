@@ -4,7 +4,7 @@ use super::{
     parser::Params,
 };
 use crate::{
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::windows::RegistryOptions,
     utils::nom_helper::{Endian, nom_signed_four_bytes},
 };

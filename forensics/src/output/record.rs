@@ -1,4 +1,4 @@
-use crate::output2::error::{OutputError, OutputResult};
+use crate::output::error::{OutputError, OutputResult};
 use serde::Serialize;
 use serde_json::{Map, Number, Value};
 use std::vec::IntoIter;
@@ -284,7 +284,7 @@ pub(crate) fn serialize_records_to_stream<T: Serialize>(
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
+    use crate::output::{
         error::OutputError,
         record::{
             JsonRecord, Record, RecordStream, VecRecordStream, serialize_records_to_stream,

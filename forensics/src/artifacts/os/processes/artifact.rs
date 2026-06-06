@@ -1,5 +1,5 @@
 use super::{error::ProcessError, process::proc_list};
-use crate::{output2::manager::OutputManager, structs::artifacts::os::processes::ProcessOptions};
+use crate::{output::manager::OutputManager, structs::artifacts::os::processes::ProcessOptions};
 use log::warn;
 
 /// Collect a process listing from a system
@@ -19,7 +19,7 @@ pub(crate) fn processes(
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::processes::artifact::processes, output2::manager::OutputManager,
+        artifacts::os::processes::artifact::processes, output::manager::OutputManager,
         structs::artifacts::os::processes::ProcessOptions,
     };
     use std::path::PathBuf;

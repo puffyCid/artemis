@@ -4,7 +4,7 @@ use crate::{
         cell::{CellType, get_cell_type, is_allocated},
         keys::nk::NameKey,
     },
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::windows::RegistryOptions,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
 };

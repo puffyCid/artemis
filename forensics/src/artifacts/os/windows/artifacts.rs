@@ -9,8 +9,8 @@ use super::{
     tasks::parser::grab_tasks, userassist::parser::grab_userassist, usnjrnl::parser::grab_usnjrnl,
     wmi::parser::grab_wmi_persist,
 };
-use crate::output2::manager::OutputManager;
-use crate::output2::record::serialize_records_to_stream;
+use crate::output::manager::OutputManager;
+use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions, OutlookOptions,
     PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
@@ -607,7 +607,7 @@ mod tests {
             registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
             userassist, users_windows, usnjrnl, wmi_persist,
         },
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::windows::{
             AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
             PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,

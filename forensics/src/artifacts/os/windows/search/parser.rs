@@ -21,7 +21,7 @@ use super::{
     sqlite::{parse_search_sqlite, parse_search_sqlite_path},
 };
 use crate::{
-    filesystem::files::is_file, output2::manager::OutputManager,
+    filesystem::files::is_file, output::manager::OutputManager,
     structs::artifacts::os::windows::SearchOptions, utils::environment::get_systemdrive,
 };
 use log::error;
@@ -96,7 +96,7 @@ mod tests {
     use super::grab_search;
     use super::grab_search_path;
     use crate::filesystem::files::is_file;
-    use crate::output2::manager::OutputManager;
+    use crate::output::manager::OutputManager;
     use crate::structs::artifacts::os::windows::SearchOptions;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;

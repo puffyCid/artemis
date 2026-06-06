@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         context::CollectionContext,
         encoder::{artifact_encoder::Encoder, factory::build_encoder},
         error::OutputResult,
@@ -17,7 +17,7 @@ use serde::Serialize;
 use simplelog::{Config, WriteLogger};
 
 #[cfg(feature = "boa")]
-use crate::output2::filter::js::JsFilterRecordStream;
+use crate::output::filter::js::JsFilterRecordStream;
 
 /// A structure that supports outputting forensic data based on `OutputConfig`
 pub(crate) struct OutputManager {
@@ -210,7 +210,7 @@ fn log_level(level: Option<&str>) -> LevelFilter {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
+    use crate::output::{
         manager::OutputManager,
         record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
     };

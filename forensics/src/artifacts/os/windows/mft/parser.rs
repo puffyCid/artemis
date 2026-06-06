@@ -8,7 +8,7 @@
  */
 use super::{error::MftError, master::parse_mft};
 use crate::{
-    output2::manager::OutputManager, structs::artifacts::os::windows::MftOptions,
+    output::manager::OutputManager, structs::artifacts::os::windows::MftOptions,
     utils::environment::get_systemdrive,
 };
 
@@ -37,7 +37,7 @@ pub(crate) fn grab_mft(options: &MftOptions, manager: &mut OutputManager) -> Res
 mod tests {
     use super::grab_mft;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::MftOptions};
+    use crate::{output::manager::OutputManager, structs::artifacts::os::windows::MftOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

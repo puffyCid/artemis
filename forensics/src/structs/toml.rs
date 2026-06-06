@@ -6,7 +6,7 @@ use super::artifacts::os::macos::{
     MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
 use super::artifacts::os::windows::{MftOptions, OutlookOptions};
-use crate::output2::marker::MarkerTracker;
+use crate::output::marker::MarkerTracker;
 use crate::structs::artifacts::os::linux::Ext4Options;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,

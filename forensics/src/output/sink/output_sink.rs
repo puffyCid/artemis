@@ -1,4 +1,4 @@
-use crate::output2::{
+use crate::output::{
     error::OutputResult, report::CollectionReport, sink::output_handle::OutputHandle,
 };
 use std::{fs::File, io::Write, path::PathBuf};

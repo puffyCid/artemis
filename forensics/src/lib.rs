@@ -74,7 +74,7 @@ pub mod artifacts;
 pub mod core;
 mod error;
 mod filesystem;
-mod output2;
+mod output;
 #[cfg(feature = "boa")]
 mod runtime;
 pub mod structs;

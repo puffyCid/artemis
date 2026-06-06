@@ -17,7 +17,7 @@ use super::{
 };
 use crate::{
     artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::windows::UsnJrnlOptions,
     utils::environment::get_systemdrive,
 };
@@ -78,7 +78,7 @@ pub(crate) fn grab_usnjrnl_path(
 mod tests {
     use super::{grab_usnjrnl, grab_usnjrnl_path};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::UsnJrnlOptions};
+    use crate::{output::manager::OutputManager, structs::artifacts::os::windows::UsnJrnlOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

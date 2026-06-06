@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         error::OutputResult,
         report::CollectionReport,
         sink::{
@@ -12,13 +12,13 @@ use crate::{
 };
 
 #[cfg(feature = "api")]
-use crate::output2::sink::api::ApiSink;
+use crate::output::sink::api::ApiSink;
 #[cfg(feature = "aws")]
-use crate::output2::sink::aws::AwsSink;
+use crate::output::sink::aws::AwsSink;
 #[cfg(feature = "azure")]
-use crate::output2::sink::azure::AzureSink;
+use crate::output::sink::azure::AzureSink;
 #[cfg(feature = "gcp")]
-use crate::output2::sink::gcp::GcpSink;
+use crate::output::sink::gcp::GcpSink;
 
 /// Selected destination for encoded output.
 ///
@@ -132,7 +132,7 @@ pub(crate) fn build_sink(config: &OutputConfig) -> OutputResult<Sink> {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
+    use crate::output::{
         manager::OutputManager,
         record::{JsonRecord, Record, VecRecordStream},
     };

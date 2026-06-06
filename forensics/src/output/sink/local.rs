@@ -1,6 +1,6 @@
 use crate::{
     filesystem::files::list_files,
-    output2::{
+    output::{
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -158,7 +158,7 @@ impl OutputSink for LocalSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::sink::{
+    use crate::output::sink::{
         local::LocalSink, output_handle::OutputType, output_sink::OutputSink,
     };
     use crate::structs::toml::OutputConfig;

@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -388,8 +388,8 @@ impl OutputSink for GcpSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::error::OutputError;
-    use crate::output2::sink::gcp::{GcpSink, UploadStatus};
+    use crate::output::error::OutputError;
+    use crate::output::sink::gcp::{GcpSink, UploadStatus};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::Method::{POST, PUT};
     use httpmock::MockServer;

@@ -21,7 +21,7 @@ use crate::{
         directory::is_directory,
         files::{is_file, list_files, list_files_directories},
     },
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::linux::JournalOptions,
 };
 use common::linux::Journal;
@@ -83,7 +83,7 @@ mod tests {
     use super::grab_journal;
     use crate::{
         artifacts::os::linux::journals::parser::grab_journal_file,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::linux::JournalOptions,
             toml::{OutputConfig, OutputDestination, OutputFormat},

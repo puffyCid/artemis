@@ -47,7 +47,7 @@ mod tests {
     use std::path::PathBuf;
 
     use crate::{
-        output2::manager::OutputManager, runtime::run::execute_script,
+        output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
 

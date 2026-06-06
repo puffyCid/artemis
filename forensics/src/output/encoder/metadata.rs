@@ -1,4 +1,4 @@
-use crate::output2::context::ArtifactContext;
+use crate::output::context::ArtifactContext;
 use serde_json::{Value, json};
 
 /// Ensure a small amount of metadata is added to each `Record` entry

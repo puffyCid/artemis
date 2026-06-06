@@ -161,7 +161,7 @@ async fn send(builder: RequestBuilder) -> JsResult<JsValue> {
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
         utils::{

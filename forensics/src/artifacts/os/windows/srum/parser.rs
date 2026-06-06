@@ -18,7 +18,7 @@ use super::{
     resource::{get_srum, parse_srum},
 };
 use crate::{
-    output2::manager::OutputManager, structs::artifacts::os::windows::SrumOptions,
+    output::manager::OutputManager, structs::artifacts::os::windows::SrumOptions,
     utils::environment::get_systemdrive,
 };
 use log::error;
@@ -63,7 +63,7 @@ mod tests {
     use super::grab_srum;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::windows::srum::parser::grab_srum_path, output2::manager::OutputManager,
+        artifacts::os::windows::srum::parser::grab_srum_path, output::manager::OutputManager,
         structs::artifacts::os::windows::SrumOptions,
     };
     use std::path::PathBuf;

@@ -117,7 +117,7 @@ impl JsBufReader {
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::manager::OutputManager, runtime::run::execute_script,
+        output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
     use std::path::PathBuf;

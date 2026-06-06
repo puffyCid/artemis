@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         error::{OutputError, OutputResult},
         sink::{
             output_handle::{OutputHandle, OutputLocation},
@@ -174,7 +174,7 @@ impl OutputSink for AzureSink {
 
     fn write_report(
         &mut self,
-        report: &crate::output2::report::CollectionReport,
+        report: &crate::output::report::CollectionReport,
     ) -> OutputResult<super::output_handle::OutputHandle> {
         let filename = format!("report_{}.json", generate_uuid());
         let upload_report = self.object_path(&filename);
@@ -213,7 +213,7 @@ impl OutputSink for AzureSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::sink::azure::AzureSink;
+    use crate::output::sink::azure::AzureSink;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::{Method::PUT, MockServer};
     use std::path::PathBuf;

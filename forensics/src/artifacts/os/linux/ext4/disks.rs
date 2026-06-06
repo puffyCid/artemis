@@ -4,7 +4,7 @@ use crate::{
         parser::{Ext4Params, ext4_output, get_root, walk_ext4},
     },
     filesystem::disks::qcow::qcow_reader,
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::linux::Ext4Options,
 };
 use calf::{
@@ -130,7 +130,7 @@ fn read_disk(
 mod tests {
     use crate::{
         artifacts::os::linux::ext4::{disks::qcow_ext4, parser::Ext4Params},
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::linux::Ext4Options,
             toml::{OutputConfig, OutputDestination, OutputFormat},

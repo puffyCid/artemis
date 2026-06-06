@@ -15,7 +15,7 @@
  * `https://github.com/ydkhatri/mac_apt`
  */
 use super::{error::SpotlightError, light::parse_spotlight};
-use crate::{output2::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
+use crate::{output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
 use log::error;
 
 /// Dump the Spotlight database. Requires root
@@ -59,7 +59,7 @@ pub(crate) fn grab_spotlight(
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::macos::spotlight::parser::grab_spotlight, output2::manager::OutputManager,
+        artifacts::os::macos::spotlight::parser::grab_spotlight, output::manager::OutputManager,
         structs::artifacts::os::macos::SpotlightOptions,
     };
     use std::path::PathBuf;

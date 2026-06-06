@@ -7,7 +7,7 @@ use super::{
     },
 };
 use crate::{
-    filesystem::files::file_reader, output2::manager::OutputManager,
+    filesystem::files::file_reader, output::manager::OutputManager,
     structs::artifacts::os::linux::JournalOptions,
 };
 use common::linux::Journal;
@@ -197,7 +197,7 @@ mod tests {
     use crate::{
         artifacts::os::linux::journals::journal::parse_journal_file,
         filesystem::files::file_reader,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::linux::JournalOptions,
             toml::{OutputConfig, OutputDestination, OutputFormat},
