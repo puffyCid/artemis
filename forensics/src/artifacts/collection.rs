@@ -40,7 +40,9 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
-        //let filter = artifacts.filter.unwrap_or(false);
+        if let Some(filter) = artifacts.filter {
+            manager.filter = filter;
+        }
         let artifact = artifacts.artifact_name.as_str();
         match artifact {
             "loginitems" if !skip(&artifacts.loginitems, &collector.marker, artifact) => {
