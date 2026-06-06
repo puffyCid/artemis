@@ -159,7 +159,9 @@ impl OutputManager {
         // If boa is enabled and we have a filter script
         // Filter records before writing them to Sink
         #[cfg(feature = "boa")]
-        if self.filter && let Some(script) = &self.config.filter_script {
+        if self.filter
+            && let Some(script) = &self.config.filter_script
+        {
             // User should give us a name. But if we do not have one
             // Use `UnknownFilterScript` as default
             let filter_name = self
