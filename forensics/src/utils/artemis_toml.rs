@@ -97,9 +97,9 @@ mod tests {
     #[test]
     #[cfg(feature = "network")]
     fn test_remote_toml_github() {
-        // let value = ArtemisToml::remote_artemis_toml("https://raw.githubusercontent.com/puffyCid/artemis/refs/heads/main/forensics/tests/test_data/linux.toml").unwrap();
-        // assert_eq!(value.output.name, "linux_collection");
-        //assert_eq!(value.artifacts.len(), 3);
+        let value = ArtemisToml::remote_artemis_toml("https://raw.githubusercontent.com/puffyCid/artemis/refs/heads/main/forensics/tests/test_data/linux.toml").unwrap();
+        assert_eq!(value.output.name, "linux_collection");
+        assert_eq!(value.artifacts.len(), 3);
     }
 
     #[test]

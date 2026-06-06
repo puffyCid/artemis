@@ -3,7 +3,7 @@ use forensics::{
     core::artemis_collection,
     structs::{
         artifacts::os::linux::Ext4Options,
-        toml::{ArtemisToml, Artifacts, Output, OutputConfig, OutputDestination, OutputFormat},
+        toml::{ArtemisToml, Artifacts, OutputConfig, OutputDestination, OutputFormat},
     },
 };
 use glob::glob;

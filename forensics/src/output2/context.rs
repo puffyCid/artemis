@@ -102,26 +102,18 @@ impl CollectionContext {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        output2::context::CollectionContext,
-        structs::toml::{Output, OutputConfig},
-    };
+    use crate::{output2::context::CollectionContext, structs::toml::OutputConfig};
     use std::path::PathBuf;
 
     #[test]
     fn test_output_context() {
-        let out = Output::default();
-        let out_ng = OutputConfig::try_from(out).unwrap();
+        let out = OutputConfig::default();
 
-        let context = CollectionContext::new(&out_ng, PathBuf::from("./tmp"));
+        let context = CollectionContext::new(&out, PathBuf::from("./tmp"));
         assert_eq!(context.collection_name, "");
         assert!(!context.start_time.is_empty());
 
-        let artifact = context.artifact(
-            "processes",
-            &out_ng.start_time_filter,
-            &out_ng.end_time_filter,
-        );
+        let artifact = context.artifact("processes", &out.start_time_filter, &out.end_time_filter);
         assert_eq!(artifact.collection_name, "");
         assert_eq!(artifact.artifact_name, "processes");
     }

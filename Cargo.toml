@@ -25,21 +25,21 @@ description = "A cross platform forensic parser"
 
 [workspace.dependencies]
 serde = { version = "1.0.228", features = ["derive"] }
-log = "0.4.29"
-serde_json = "1.0.149"
+log = "0.4.32"
+serde_json = "1.0.150"
 toml = "1.1.2"
 base64 = "0.22.1"
-tokio = { version = "1.52.2", features = ["full"] }
+tokio = { version = "1.52.3", features = ["full"] }
 flate2 = "1.1.9"
 glob = "0.3.3"
-reqwest = { version = "0.13.3", features = [
+reqwest = { version = "0.13.4", features = [
     "json",
     "blocking",
     "multipart",
     "form",
 ] }
-sysinfo = "0.39.0"
-uuid = { version = "1.23.1", features = ["v4"] }
-rusqlite = { version = "0.39.0", features = ["bundled", "serde_json"] }
+sysinfo = "0.39.3"
+uuid = { version = "1.23.2", features = ["v4"] }
+rusqlite = { version = "0.40.0", features = ["bundled", "serde_json"] }
 fastrand = { version = "2.4.1", default-features = false, features = ["std"] }
-chrono = "0.4.44"
+chrono = "0.4.45"

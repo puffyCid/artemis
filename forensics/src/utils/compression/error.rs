@@ -8,7 +8,6 @@ pub enum CompressionError {
     Lz4Decompress,
     XzDecompress,
     CompressCreate,
-    GzipFinish,
     XpressNoMoreData,
     XpressBadOffset,
     XpressBadPrefix,
@@ -38,7 +37,6 @@ impl fmt::Display for CompressionError {
             CompressionError::Lz4Decompress => write!(f, "Could not decompress lz4 data"),
             CompressionError::XzDecompress => write!(f, "Could not decompress xz data"),
             CompressionError::CompressCreate => write!(f, "Could not create file for compression"),
-            CompressionError::GzipFinish => write!(f, "Could not complete gzip compression"),
             #[cfg(target_os = "windows")]
             CompressionError::HuffmanCompression => {
                 write!(f, "Failed to decompress huffman compressed data")
