@@ -32,7 +32,10 @@ fn main() {
     // Cargo sets an env var for every enabled feature (e.g., CARGO_FEATURE_MY_FEATURE)
     for (key, _) in std::env::vars() {
         if let Some(feature) = key.strip_prefix("CARGO_FEATURE_") {
-            features.push(feature.to_lowercase());
+            if feature.to_ascii_lowercase() == "default" {
+                continue;
+            }
+            features.push(feature.to_ascii_lowercase());
         }
     }
     // Pass the list to main code as a compile-time env var

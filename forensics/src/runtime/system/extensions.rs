@@ -4,7 +4,7 @@ use super::{
     cpu::js_cpu,
     disks::js_disks,
     memory::js_memory,
-    output::{js_output_results, js_raw_dump},
+    output::js_output,
     processes::js_get_processes,
     systeminfo::{
         js_get_systeminfo, js_hostname, js_kernel_version, js_os_version, js_platform, js_uptime,
@@ -39,15 +39,9 @@ pub(crate) fn system_functions(context: &mut Context) {
     );
 
     let _ = context.register_global_callable(
-        JsString::from("js_output_results"),
+        JsString::from("js_output"),
         3,
-        NativeFunction::from_fn_ptr(js_output_results),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_raw_dump"),
-        3,
-        NativeFunction::from_fn_ptr(js_raw_dump),
+        NativeFunction::from_fn_ptr(js_output),
     );
 
     let _ = context.register_global_callable(
