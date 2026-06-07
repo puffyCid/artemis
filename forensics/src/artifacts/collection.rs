@@ -233,6 +233,8 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result) => result,
                     _ => continue,
                 };
+                // Script artifacts are not allowed to use filter scripts
+                manager.filter = false;
                 // Use the more descriptive script name as our artifact name
                 artifacts.artifact_name = script.name.clone();
                 let results = execute_script(&mut manager, script);
