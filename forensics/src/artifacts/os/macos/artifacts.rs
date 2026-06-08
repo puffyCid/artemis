@@ -11,7 +11,7 @@ use super::{
     unified_logs::logs::grab_logs,
 };
 use crate::{
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::{
         EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
         MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
@@ -288,7 +288,7 @@ mod tests {
             emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
             sudo_logs_macos, unifiedlogs, users_macos,
         },
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::macos::{
             EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
             MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,

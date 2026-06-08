@@ -6,7 +6,7 @@ use super::{
 use crate::{
     artifacts::os::macos::spotlight::store::db::get_blocks,
     filesystem::{files::file_reader, metadata::glob_paths},
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::macos::SpotlightOptions,
 };
 use common::macos::SpotlightEntries;
@@ -126,7 +126,7 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
 mod tests {
     use super::{parse_spotlight, parse_spotlight_reader, setup_spotlight_reader};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
+    use crate::{output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {

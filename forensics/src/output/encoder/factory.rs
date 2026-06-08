@@ -1,5 +1,5 @@
 use crate::{
-    output2::encoder::{
+    output::encoder::{
         artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
         text::TextEncoder, timeline::TimelineEncoder,
     },
@@ -19,7 +19,7 @@ pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::encoder::{
+    use crate::output::encoder::{
         artifact_encoder::Encoder, csv::CsvEncoder, factory::build_encoder, json::JsonEncoder,
         jsonl::JsonlEncoder, text::TextEncoder,
     };

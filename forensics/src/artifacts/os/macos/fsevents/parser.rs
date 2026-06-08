@@ -12,7 +12,7 @@
 use super::{error::FsEventsError, fsevent::fsevents_data};
 use crate::{
     filesystem::files::list_files,
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::FseventsOptions,
     utils::compression::decompress::decompress_gzip,
 };
@@ -152,7 +152,7 @@ mod tests {
     use super::{fseventsd, grab_fseventsd, parse_fsevents};
     use crate::{
         artifacts::os::macos::fsevents::parser::{get_fseventsd, grab_fsventsd_file},
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::macos::FseventsOptions,
             toml::{OutputConfig, OutputDestination, OutputFormat},

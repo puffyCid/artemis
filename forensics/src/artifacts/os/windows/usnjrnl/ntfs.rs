@@ -7,7 +7,7 @@ use crate::{
         files::{file_extension, read_file},
         ntfs::{raw_files::read_attribute, setup::setup_ntfs_parser},
     },
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
 use common::windows::UsnJrnlEntry;
@@ -320,7 +320,7 @@ mod tests {
     use crate::{
         artifacts::os::windows::usnjrnl::ntfs::{get_usnjrnl_alt_path, get_usnjrnl_path_stream},
         filesystem::metadata::glob_paths,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::windows::UsnJrnlOptions,
     };
     use common::windows::UsnJrnlEntry;

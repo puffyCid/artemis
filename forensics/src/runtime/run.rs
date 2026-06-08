@@ -3,7 +3,7 @@ use super::{
     setup::{run_async_script, run_script},
 };
 use crate::{
-    output2::{
+    output::{
         manager::OutputManager,
         record::{Record, SingleRecordStream, VecRecordStream},
     },
@@ -143,7 +143,7 @@ mod tests {
     use super::{decode_script, execute_script, raw_script};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         runtime::{error::RuntimeError, run::output_data},
         structs::artifacts::runtime::script::JSScript,
     };

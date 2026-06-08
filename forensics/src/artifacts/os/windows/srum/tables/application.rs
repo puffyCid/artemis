@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::windows::srum::error::SrumError,
-    output2::record::{VecRecordStream, serialize_records_to_stream},
+    output::record::{VecRecordStream, serialize_records_to_stream},
     utils::time::filetime_to_iso,
 };
 use common::windows::{AppTimelineInfo, AppVfu, ApplicationInfo, TableDump};
@@ -441,7 +441,7 @@ mod tests {
     use super::{parse_app_timeline, parse_application, parse_vfu_provider};
     use crate::{
         artifacts::os::windows::srum::{resource::get_srum_ese, tables::index::parse_id_lookup},
-        output2::record::RecordStream,
+        output::record::RecordStream,
     };
 
     #[test]

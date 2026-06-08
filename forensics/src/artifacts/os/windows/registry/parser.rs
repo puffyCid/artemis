@@ -26,7 +26,7 @@ use crate::{
         raw_files::{get_user_registry_files, raw_read_by_file_ref},
         setup::setup_ntfs_parser,
     },
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::RegistryOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
@@ -249,7 +249,7 @@ mod tests {
     };
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::windows::registry::parser::user_regex, output2::manager::OutputManager,
+        artifacts::os::windows::registry::parser::user_regex, output::manager::OutputManager,
         structs::artifacts::os::windows::RegistryOptions,
     };
     use regex::Regex;

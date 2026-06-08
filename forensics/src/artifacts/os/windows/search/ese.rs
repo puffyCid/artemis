@@ -9,7 +9,7 @@ use crate::{
         helper::{get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data},
         tables::{TableInfo, table_info},
     },
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::windows::SearchOptions,
 };
 use common::windows::TableDump;
@@ -379,7 +379,7 @@ mod tests {
     use crate::{
         artifacts::os::windows::ese::{helper::get_page_data, tables::table_info},
         filesystem::files::is_file,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::windows::SearchOptions,
     };
     use std::path::PathBuf;

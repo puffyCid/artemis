@@ -6,7 +6,7 @@ use crate::{
         raw_files::{raw_read_by_file_ref, raw_read_file},
         setup::NtfsParser,
     },
-    output2::manager::OutputManager,
+    output::manager::OutputManager,
     structs::artifacts::os::windows::RegistryOptions,
 };
 use common::windows::RegistryData;

@@ -462,7 +462,7 @@ mod tests {
             parser::ntfs_filelist,
         },
         filesystem::ntfs::{sector_reader::SectorReader, setup::setup_ntfs_parser},
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::windows::RawFilesOptions,
     };
     use common::files::Hashes;

@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         error::{OutputError, OutputResult},
         sink::{
             output_handle::{OutputHandle, OutputLocation},
@@ -133,8 +133,8 @@ impl OutputSink for ApiSink {
         mime_type: &str,
         encode: &mut dyn FnMut(
             &mut dyn std::io::prelude::Write,
-        ) -> crate::output2::error::OutputResult<usize>,
-    ) -> crate::output2::error::OutputResult<super::output_handle::OutputHandle> {
+        ) -> crate::output::error::OutputResult<usize>,
+    ) -> crate::output::error::OutputResult<super::output_handle::OutputHandle> {
         let mut gzip = GzEncoder::new(Vec::new(), Compression::default());
         let record_count = encode(&mut gzip)?;
         let data = gzip.finish()?;
@@ -155,8 +155,8 @@ impl OutputSink for ApiSink {
 
     fn write_report(
         &mut self,
-        report: &crate::output2::report::CollectionReport,
-    ) -> crate::output2::error::OutputResult<super::output_handle::OutputHandle> {
+        report: &crate::output::report::CollectionReport,
+    ) -> crate::output::error::OutputResult<super::output_handle::OutputHandle> {
         let data = serde_json::to_vec(report)?;
         let filename = format!("report_{}.json", generate_uuid());
 
@@ -168,7 +168,7 @@ impl OutputSink for ApiSink {
 
     fn create_log_file(
         &mut self,
-    ) -> crate::output2::error::OutputResult<super::output_sink::LogOutput> {
+    ) -> crate::output::error::OutputResult<super::output_sink::LogOutput> {
         create_dir_all(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
         let log_name = self.log_filename();
         let path = self.log_file.join(log_name);
@@ -193,7 +193,7 @@ impl OutputSink for ApiSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{error::OutputError, sink::api::ApiSink};
+    use crate::output::{error::OutputError, sink::api::ApiSink};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use httpmock::{Method::POST, MockServer};
     use serde_json::json;

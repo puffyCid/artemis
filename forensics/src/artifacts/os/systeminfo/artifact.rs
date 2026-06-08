@@ -1,7 +1,7 @@
 use super::info::get_info;
 use crate::{
     artifacts::os::systeminfo::error::SystemInfoError,
-    output2::{
+    output::{
         manager::OutputManager,
         record::{SingleRecordStream, serialize_to_record},
     },
@@ -34,7 +34,7 @@ pub(crate) fn systeminfo(manager: &mut OutputManager) -> Result<(), SystemInfoEr
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{artifacts::os::systeminfo::artifact::systeminfo, output2::manager::OutputManager};
+    use crate::{artifacts::os::systeminfo::artifact::systeminfo, output::manager::OutputManager};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputConfig {

@@ -14,7 +14,7 @@ use crate::{
         files::get_file_size,
         ntfs::{attributes::get_raw_file_size, reader::read_bytes},
     },
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::MftOptions,
     utils::nom_helper::nom_data,
 };
@@ -608,7 +608,7 @@ fn output_mft(
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::manager::OutputManager;
+    use crate::output::manager::OutputManager;
     use crate::structs::artifacts::os::windows::MftOptions;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;

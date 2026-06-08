@@ -6,8 +6,8 @@ use super::executable::elf_metadata;
 use super::pe::pe_metadata;
 use super::{error::ProcessError, macho::macho_metadata};
 use crate::artifacts::os::systeminfo::info::get_platform_enum;
-use crate::output2::manager::OutputManager;
-use crate::output2::record::serialize_records_to_stream;
+use crate::output::manager::OutputManager;
+use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::processes::ProcessOptions;
 use crate::{
     artifacts::os::systeminfo::info::PlatformType,
@@ -229,7 +229,7 @@ mod tests {
     use crate::artifacts::os::processes::process::{proc_info, proc_list};
     use crate::artifacts::os::systeminfo::info::PlatformType;
     use crate::artifacts::os::systeminfo::info::get_platform_enum;
-    use crate::output2::manager::OutputManager;
+    use crate::output::manager::OutputManager;
     use crate::structs::artifacts::os::processes::ProcessOptions;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use common::system::Processes;

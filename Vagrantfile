@@ -17,6 +17,8 @@ Vagrant.configure("2") do |config|
     config_vm.nic_model_type = "virtio"
     config_vm.cpu_mode = 'host-passthrough'
     config_vm.graphics_type = 'none'
+    config_vm.graphics_type = "spice"    
+    config_vm.video_type = "qxl"
   end
 
   config.vm.define "centos" do |centos|
@@ -76,6 +78,24 @@ Vagrant.configure("2") do |config|
     openbsd.vm.provider :libvirt do |obsd_libvirt|
       # FORCE VGA output to match your Packer build's default OS layout
       obsd_libvirt.graphics_type = 'vnc' 
+    end
+  end
+
+  config.vm.define "archlinux" do |archlinux|
+    # Only the compiled musl artemis binary directory is exposed
+    # Our Vagrantfile is not exposed to the box
+    archlinux.vm.synced_folder "./target/x86_64-unknown-linux-musl/release", "/vagrant",
+      type: "rsync",
+      rsync__rsync_path: "sudo rsync",
+      rsync__exclude: ["target/", ".platforms/", "Vagrantfile"]
+    archlinux.vm.box = "artemis-archlinux"
+
+    # Must update firewall to allow mounting of project code
+    # sudo firewall-cmd --zone=libvirt --add-service=nfs
+    # sudo firewall-cmd --zone=libvirt --add-service=mountd
+    # sudo firewall-cmd --zone=libvirt --add-service=rpc-bind
+    archlinux.vm.provider :libvirt do |archlinux_vm|
+      archlinux_vm.qemu_use_agent = true
     end
   end
 end

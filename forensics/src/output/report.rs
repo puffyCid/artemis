@@ -1,7 +1,7 @@
 use crate::{
     artifacts::os::systeminfo::info::get_info,
     filesystem::files::hash_file_data,
-    output2::{context::CollectionContext, error::OutputResult},
+    output::{context::CollectionContext, error::OutputResult},
     structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     utils::time::{time_now, unixepoch_to_iso},
 };
@@ -141,7 +141,7 @@ pub(crate) fn hash_artifact_options<T: Serialize>(options: &T) -> OutputResult<S
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
+    use crate::output::{
         context::CollectionContext,
         report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
     };

@@ -119,7 +119,7 @@ pub(crate) fn js_query_sqlite(
 #[cfg(test)]
 mod tests {
     use crate::{
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         runtime::run::execute_script,
         structs::{
             artifacts::runtime::script::JSScript,

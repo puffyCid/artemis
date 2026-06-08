@@ -102,7 +102,7 @@ impl CollectionContext {
 
 #[cfg(test)]
 mod tests {
-    use crate::{output2::context::CollectionContext, structs::toml::OutputConfig};
+    use crate::{output::context::CollectionContext, structs::toml::OutputConfig};
     use std::path::PathBuf;
 
     #[test]

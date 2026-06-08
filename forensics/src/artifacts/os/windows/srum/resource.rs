@@ -15,7 +15,7 @@ use crate::{
         },
         srum::tables::index::parse_id_lookup,
     },
-    output2::{
+    output::{
         manager::OutputManager,
         record::{Record, RecordStream},
     },
@@ -161,7 +161,7 @@ pub(crate) fn get_srum_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
 mod tests {
     use super::{get_srum, get_srum_ese, parse_srum};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::SrumOptions};
+    use crate::{output::manager::OutputManager, structs::artifacts::os::windows::SrumOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

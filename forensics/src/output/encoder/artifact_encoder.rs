@@ -1,4 +1,4 @@
-use crate::output2::{
+use crate::output::{
     context::ArtifactContext,
     encoder::{
         csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder, text::TextEncoder,
@@ -92,7 +92,7 @@ pub(crate) trait ArtifactEncoder {
 #[cfg(test)]
 mod tests {
     use crate::{
-        output2::{
+        output::{
             context::CollectionContext,
             encoder::{
                 artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,

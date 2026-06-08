@@ -20,7 +20,7 @@ use crate::{
         files::{get_filename, list_files},
         metadata::{get_timestamps, glob_paths},
     },
-    output2::{
+    output::{
         manager::OutputManager,
         record::{VecRecordStream, serialize_records_to_stream},
     },
@@ -290,7 +290,7 @@ mod tests {
     use crate::artifacts::os::windows::tasks::parser::{
         grab_task_job, grab_task_xml, job_info, xml_info,
     };
-    use crate::output2::manager::OutputManager;
+    use crate::output::manager::OutputManager;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::tasks::parser::drive_tasks,

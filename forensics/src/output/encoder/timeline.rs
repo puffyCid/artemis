@@ -1,4 +1,4 @@
-use crate::output2::{
+use crate::output::{
     context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
     error::{OutputError, OutputResult},

@@ -1,21 +1,21 @@
-use crate::output2::{
+use crate::output::{
     context::ArtifactContext,
     encoder::{artifact_encoder::ArtifactEncoder, metadata::append_metadata},
     error::OutputResult,
-    record::RecordStream,
+    record::{RecordStream, RecordStreamKind},
 };
 use std::io::Write;
 
-/// Encoder for JSONL files
+/// Encoder for JSON files
 #[derive(Debug, PartialEq)]
-pub(crate) struct JsonlEncoder;
+pub(crate) struct JsonEncoder;
 
-impl ArtifactEncoder for JsonlEncoder {
+impl ArtifactEncoder for JsonEncoder {
     fn mime_type(&self) -> &str {
-        "application/jsonl"
+        "application/json"
     }
     fn extension(&self) -> &str {
-        "jsonl"
+        "json"
     }
     fn encode(
         &self,
@@ -25,13 +25,22 @@ impl ArtifactEncoder for JsonlEncoder {
     ) -> OutputResult<usize> {
         let mut count = 0;
 
+        if records.stream_kind() == RecordStreamKind::Array {
+            writer.write_all(b"[")?;
+        }
+
         while let Some(record) = records.next_record()? {
+            if count > 0 {
+                writer.write_all(b",")?;
+            }
             let mut value = record.into_value()?;
             append_metadata(&mut value, context);
             serde_json::to_writer(&mut *writer, &value)?;
-            writer.write_all(b"\n")?;
 
             count += 1;
+        }
+        if records.stream_kind() == RecordStreamKind::Array {
+            writer.write_all(b"]")?;
         }
 
         Ok(count)

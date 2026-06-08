@@ -16,7 +16,7 @@ use crate::{
         systeminfo::info::get_disks,
     },
     filesystem::files::file_extension,
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::linux::Ext4Options,
     utils::{
         regex_options::{create_regex, regex_check},
@@ -314,7 +314,7 @@ mod tests {
         artifacts::os::linux::ext4::parser::{
             Ext4Params, ext4_filelisting, ext4_output, filesystem_regex, get_root, walk_ext4,
         },
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::linux::Ext4Options,
             toml::{OutputConfig, OutputDestination, OutputFormat},

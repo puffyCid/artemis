@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         context::CollectionContext,
         encoder::{artifact_encoder::Encoder, factory::build_encoder},
         error::OutputResult,
@@ -17,7 +17,7 @@ use serde::Serialize;
 use simplelog::{Config, WriteLogger};
 
 #[cfg(feature = "boa")]
-use crate::output2::filter::js::JsFilterRecordStream;
+use crate::output::filter::js::JsFilterRecordStream;
 
 /// A structure that supports outputting forensic data based on `OutputConfig`
 pub(crate) struct OutputManager {
@@ -33,6 +33,7 @@ pub(crate) struct OutputManager {
     artifacts: Vec<String>,
     /// Array of artifacts collected from the Artemis execution
     pub(crate) artifact_runs: Vec<ArtifactRunReport>,
+    pub(crate) filter: bool,
 }
 
 impl OutputManager {
@@ -58,6 +59,7 @@ impl OutputManager {
             sink,
             artifacts: Vec::new(),
             artifact_runs: Vec::new(),
+            filter: false,
         })
     }
 
@@ -157,7 +159,9 @@ impl OutputManager {
         // If boa is enabled and we have a filter script
         // Filter records before writing them to Sink
         #[cfg(feature = "boa")]
-        if let Some(script) = &self.config.filter_script {
+        if self.filter
+            && let Some(script) = &self.config.filter_script
+        {
             // User should give us a name. But if we do not have one
             // Use `UnknownFilterScript` as default
             let filter_name = self
@@ -208,7 +212,7 @@ fn log_level(level: Option<&str>) -> LevelFilter {
 
 #[cfg(test)]
 mod tests {
-    use crate::output2::{
+    use crate::output::{
         manager::OutputManager,
         record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
     };
@@ -586,6 +590,7 @@ mod tests {
         };
 
         let mut manage = OutputManager::new(config).unwrap();
+        manage.filter = true;
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
@@ -659,6 +664,7 @@ mod tests {
         };
 
         let mut manage = OutputManager::new(config).unwrap();
+        manage.filter = true;
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());

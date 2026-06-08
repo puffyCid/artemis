@@ -4,7 +4,7 @@ use crate::{
         parser::Params,
     },
     filesystem::files::get_filename,
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::RegistryOptions,
     utils::{
         nom_helper::{

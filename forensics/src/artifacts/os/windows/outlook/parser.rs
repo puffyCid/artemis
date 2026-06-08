@@ -23,7 +23,7 @@ use super::{
 use crate::{
     artifacts::os::systeminfo::info::get_platform,
     filesystem::{metadata::glob_paths, ntfs::setup::setup_ntfs_parser},
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::OutlookOptions,
     utils::{environment::get_systemdrive, time::compare_timestamps},
 };
@@ -480,7 +480,7 @@ fn output_messages(
 mod tests {
     use super::grab_outlook;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{output2::manager::OutputManager, structs::artifacts::os::windows::OutlookOptions};
+    use crate::{output::manager::OutputManager, structs::artifacts::os::windows::OutlookOptions};
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {

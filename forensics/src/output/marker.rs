@@ -1,5 +1,5 @@
 use crate::{
-    output2::{
+    output::{
         error::{OutputError, OutputResult},
         report::{ArtifactRunReport, hash_artifact_options},
     },
@@ -93,7 +93,7 @@ impl MarkerTracker {
 #[cfg(test)]
 mod tests {
     use crate::{
-        output2::{
+        output::{
             marker::MarkerTracker,
             report::{ArtifactRunReport, hash_artifact_options},
         },

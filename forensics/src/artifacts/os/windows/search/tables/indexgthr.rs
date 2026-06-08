@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::windows::search::{error::SearchError, ese::SearchEntry},
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::SearchOptions,
     utils::{
         encoding::base64_decode_standard,
@@ -168,7 +168,7 @@ mod tests {
             search::ese::{search_catalog, search_pages},
         },
         filesystem::files::is_file,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::artifacts::os::windows::SearchOptions,
     };
     use std::{collections::HashMap, path::PathBuf};

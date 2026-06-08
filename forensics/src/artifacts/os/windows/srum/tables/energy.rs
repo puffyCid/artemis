@@ -1,6 +1,6 @@
 use crate::{
     artifacts::os::windows::srum::error::SrumError,
-    output2::record::{VecRecordStream, serialize_records_to_stream},
+    output::record::{VecRecordStream, serialize_records_to_stream},
     utils::time::filetime_to_iso,
 };
 use common::windows::{EnergyInfo, EnergyUsage, TableDump};

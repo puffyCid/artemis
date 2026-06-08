@@ -19,7 +19,7 @@ use super::{
     },
 };
 use crate::{
-    output2::{manager::OutputManager, marker::MarkerTracker},
+    output::{manager::OutputManager, marker::MarkerTracker},
     structs::toml::ArtemisToml,
 };
 use log::{error, info, warn};
@@ -40,7 +40,8 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
 
     // Loop through all supported artifacts
     for artifacts in &mut collector.artifacts {
-        //let filter = artifacts.filter.unwrap_or(false);
+        manager.filter = artifacts.filter.unwrap_or(false);
+
         let artifact = artifacts.artifact_name.as_str();
         match artifact {
             "loginitems" if !skip(&artifacts.loginitems, &collector.marker, artifact) => {
@@ -232,6 +233,8 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Some(result) => result,
                     _ => continue,
                 };
+                // Script artifacts are not allowed to use filter scripts
+                manager.filter = false;
                 // Use the more descriptive script name as our artifact name
                 artifacts.artifact_name = script.name.clone();
                 let results = execute_script(&mut manager, script);

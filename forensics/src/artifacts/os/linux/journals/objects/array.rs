@@ -3,7 +3,7 @@ use super::{
     header::{ObjectHeader, ObjectType},
 };
 use crate::{
-    output2::{manager::OutputManager, record::serialize_records_to_stream},
+    output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::linux::JournalOptions,
     utils::{
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
@@ -411,7 +411,7 @@ mod tests {
             objects::header::{ObjectHeader, ObjectType},
         },
         filesystem::files::file_reader,
-        output2::manager::OutputManager,
+        output::manager::OutputManager,
         structs::{
             artifacts::os::linux::JournalOptions,
             toml::{OutputConfig, OutputDestination, OutputFormat},
