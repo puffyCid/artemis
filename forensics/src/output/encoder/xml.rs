@@ -11,7 +11,7 @@ use quick_xml::{
 use serde_json::{Map, Value};
 use std::io::Write;
 
-/// Encoder for XML files
+/// Encodes artifact records as a single XML document with a records root element
 #[derive(Debug, PartialEq)]
 pub(crate) struct XmlEncoder;
 
@@ -58,7 +58,7 @@ fn end_element<W: Write>(writer: &mut Writer<W>, name: &str) -> OutputResult<()>
     Ok(writer.write_event(Event::End(BytesEnd::new(name)))?)
 }
 
-/// Write the XML element value
+/// Write a JSON value to its XML representation
 fn write_value<W: Write>(writer: &mut Writer<W>, name: &str, value: &Value) -> OutputResult<()> {
     let name = sanitize_element_name(name);
     match value {
@@ -71,7 +71,7 @@ fn write_value<W: Write>(writer: &mut Writer<W>, name: &str, value: &Value) -> O
     }
 }
 
-/// Ensure element name meets XML requirements
+/// Convert an arbitrary JSON key into a proper XML element name
 fn sanitize_element_name(name: &str) -> String {
     let mut element_name = String::new();
     for (index, character) in name.chars().enumerate() {
@@ -90,7 +90,7 @@ fn sanitize_element_name(name: &str) -> String {
         element_name = String::from("field");
     }
 
-    // Element names cannot start with "XML"
+    // Names beginning with "xml", in any case combination, are reserved by XML specification
     if element_name.to_ascii_lowercase().starts_with("xml") {
         element_name.insert(0, '_');
     }
@@ -98,17 +98,17 @@ fn sanitize_element_name(name: &str) -> String {
     element_name
 }
 
-/// Ensure XML name starts with approved starting character
+/// Return whether a character is allowed as the first character in this encoder's XML names
 fn is_xml_name_start(ch: char) -> bool {
     ch == '_' || ch.is_ascii_alphabetic()
 }
 
-/// Ensure element character is valid for XML
+/// Return whether a character is allowed after the first character in this encoder's XML names
 fn is_xml_name_char(ch: char) -> bool {
     is_xml_name_start(ch) || ch.is_ascii_digit() || ch == '-' || ch == '.'
 }
 
-/// Write objects to XML
+/// Write a JSON object as an XML element with one child element per field
 fn write_object<W: Write>(
     writer: &mut Writer<W>,
     name: &str,
@@ -124,12 +124,12 @@ fn write_object<W: Write>(
     Ok(())
 }
 
-/// Write array to XML
+/// Write a JSON array as repeated child elements using the array field name
 fn write_array<W: Write>(writer: &mut Writer<W>, name: &str, values: &[Value]) -> OutputResult<()> {
     start_element(writer, name)?;
 
     for value in values {
-        write_value(writer, name, value)?;
+        write_value(writer, "item", value)?;
     }
 
     end_element(writer, name)?;
@@ -137,7 +137,7 @@ fn write_array<W: Write>(writer: &mut Writer<W>, name: &str, values: &[Value]) -
     Ok(())
 }
 
-/// Write text values to XML
+/// Write a scalar JSON value as escaped XML text content
 fn write_text_element<W: Write>(
     writer: &mut Writer<W>,
     name: &str,
@@ -151,17 +151,13 @@ fn write_text_element<W: Write>(
     Ok(())
 }
 
-/// Write empty XML value
+/// Write JSON null as an empty XML element
 fn write_empty_element<W: Write>(writer: &mut Writer<W>, name: &str) -> OutputResult<()> {
     Ok(writer.write_event(Event::Empty(BytesStart::new(name)))?)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{io::Cursor, path::PathBuf};
-
-    use serde_json::json;
-
     use crate::{
         output::{
             context::CollectionContext,
@@ -170,6 +166,8 @@ mod tests {
         },
         structs::toml::OutputConfig,
     };
+    use serde_json::json;
+    use std::{io::Cursor, path::PathBuf};
 
     #[test]
     fn test_xml_encoder() {
@@ -209,7 +207,7 @@ mod tests {
         assert!(xml.contains("<path>/tmp/one.txt</path>"));
         assert!(xml.contains("<size>1234</size>"));
         assert!(xml.contains("<is_file>true</is_file>"));
-        assert!(xml.contains("<tags><tags>one</tags><tags>maybe</tags></tags>"));
+        assert!(xml.contains("<tags><item>one</item><item>maybe</item></tags>"));
         assert!(xml.contains("<nested><key>rust</key></nested>"));
         assert!(xml.contains("<collection_metadata>"));
         assert!(xml.contains("<artifact_name>files</artifact_name>"));
