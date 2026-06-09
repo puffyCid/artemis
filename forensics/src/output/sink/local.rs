@@ -83,6 +83,7 @@ impl LocalSink {
                 && !entry.ends_with(".csv")
                 && !entry.ends_with(".jsonl")
                 && !entry.ends_with(".zip")
+                && !entry.ends_with(".xml")
             {
                 continue;
             }

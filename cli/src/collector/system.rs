@@ -30,7 +30,7 @@ pub(crate) enum Commands {
     Acquire {
         #[command(subcommand)]
         artifact: Option<CommandArgs>,
-        /// Output format. JSON, JSONL, CSV, or Timeline.
+        /// Output format. JSON, JSONL, CSV, XML, or Timeline.
         #[arg(long, default_value_t = String::from("JSONL"))]
         format: String,
         /// Optional output directory for storing results
@@ -97,6 +97,7 @@ fn format_choice(format: &str) -> OutputFormat {
         "json" => OutputFormat::Json,
         "csv" => OutputFormat::Csv,
         "timeline" => OutputFormat::Timeline,
+        "xml" => OutputFormat::Xml,
         _ => OutputFormat::Jsonl,
     }
 }

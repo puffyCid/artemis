@@ -2,7 +2,7 @@ use crate::output::{
     context::ArtifactContext,
     encoder::{
         csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder, text::TextEncoder,
-        timeline::TimelineEncoder,
+        timeline::TimelineEncoder, xml::XmlEncoder,
     },
     error::OutputResult,
     record::RecordStream,
@@ -24,6 +24,8 @@ pub(crate) enum Encoder {
     Timeline(TimelineEncoder),
     /// Plaintext encoder
     Text(TextEncoder),
+    /// XML encoder
+    Xml(XmlEncoder),
 }
 
 impl Encoder {
@@ -35,6 +37,7 @@ impl Encoder {
             Self::Jsonl(encoder) => encoder.extension(),
             Self::Timeline(encoder) => encoder.extension(),
             Self::Text(encoder) => encoder.extension(),
+            Self::Xml(encoder) => encoder.extension(),
         }
     }
 
@@ -48,6 +51,7 @@ impl Encoder {
             Self::Jsonl(encoder) => encoder.mime_type(),
             Self::Timeline(encoder) => encoder.mime_type(),
             Self::Text(encoder) => encoder.mime_type(),
+            Self::Xml(encoder) => encoder.mime_type(),
         }
     }
 
@@ -66,6 +70,7 @@ impl Encoder {
             Self::Jsonl(encoder) => encoder.encode(records, writer, context),
             Self::Timeline(encoder) => encoder.encode(records, writer, context),
             Self::Text(encoder) => encoder.encode(records, writer, context),
+            Self::Xml(encoder) => encoder.encode(records, writer, context),
         }
     }
 }

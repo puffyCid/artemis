@@ -763,4 +763,65 @@ mod tests {
         assert_eq!(report["artifact_runs"][0]["record_count"], 5);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
     }
+
+    #[test]
+    fn test_output_manager_xml() {
+        let name = String::from("manager_collection");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Xml,
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+
+        manage
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
+            .unwrap();
+
+        manage.write_failed_artifact("made_up_artifact", &String::from("test"));
+
+        manage.finalize().unwrap();
+
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection"));
+        assert!(output_dir.exists());
+
+        let mut xml_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("files_") && name.ends_with(".xml") {
+                xml_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+                log_files.push(path);
+            }
+        }
+        assert!(!xml_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+        let xml_data = read_to_string(&xml_files[0]).unwrap();
+        assert!(xml_data.contains("<path>/tmp/one.txt</path>"));
+    }
 }
