@@ -74,6 +74,7 @@ pub enum OutputFormat {
     Timeline,
     /// Plaintext output for `BoaJS` runtime data
     Text,
+    Xml,
 }
 
 /// Determine where our data should be sent

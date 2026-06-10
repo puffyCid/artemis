@@ -6,3 +6,4 @@ mod jsonl;
 mod metadata;
 mod text;
 mod timeline;
+mod xml;
