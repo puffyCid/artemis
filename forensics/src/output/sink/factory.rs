@@ -75,6 +75,8 @@ impl Sink {
     ) -> OutputResult<StreamTarget> {
         match self {
             Self::Local(sink) => Ok(sink.stream_artifact(artifact_name, extension)),
+
+            #[cfg(any(feature = "gcp", feature = "aws", feature = "azure", feature = "api"))]
             _ => Err(OutputError::Config(String::from(
                 "streamed output only supports local destination",
             ))),

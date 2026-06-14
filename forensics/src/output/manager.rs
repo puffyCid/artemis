@@ -5,7 +5,7 @@ use crate::{
             artifact_encoder::{Encoder, EncoderMode, StreamWriter},
             factory::build_encoder,
         },
-        error::{OutputError, OutputResult},
+        error::OutputResult,
         record::RecordStream,
         report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
         sink::{

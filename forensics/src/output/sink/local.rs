@@ -44,17 +44,20 @@ impl LocalSink {
 
     pub(crate) fn stream_artifact(&self, artifact_name: &str, extension: &str) -> StreamTarget {
         let uuid = generate_uuid();
-        let filename = format!("{artifact_name}_{uuid}.{extension}");
+        let name = Self::safe_artifact_filename(artifact_name);
+        let filename = format!("{name}_{uuid}.{extension}");
         StreamTarget::new(self.output_directory.join(filename))
     }
 
     /// Builds a unique output path for an artifact file
     fn output_path(&self, artifact_name: &str, extension: &str) -> PathBuf {
         let uuid = generate_uuid();
+        let name = Self::safe_artifact_filename(artifact_name);
+
         let filename = if self.compress {
-            format!("{artifact_name}_{uuid}.{extension}.gz")
+            format!("{name}_{uuid}.{extension}.gz")
         } else {
-            format!("{artifact_name}_{uuid}.{extension}")
+            format!("{name}_{uuid}.{extension}")
         };
 
         self.output_directory.join(filename)
@@ -64,6 +67,25 @@ impl LocalSink {
     fn log_path(&self) -> PathBuf {
         let log = format!("artemis_{}_{}.log", self.collection_id, generate_uuid());
         self.output_directory.join(log)
+    }
+
+    fn safe_artifact_filename(artifact_name: &str) -> String {
+        let mut santize = artifact_name
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect::<String>();
+
+        if santize.is_empty() {
+            santize = String::from("artifact")
+        }
+
+        santize
     }
 
     /// Zips the completed local output directory and removes loose output files
@@ -195,5 +217,17 @@ mod tests {
         assert_eq!(handle.extension, "jsonl");
 
         sink.finalize().unwrap();
+    }
+
+    #[test]
+    fn test_safe_artifact_filename() {
+        assert_eq!(LocalSink::safe_artifact_filename("eventlogs"), "eventlogs");
+        assert_eq!(
+            LocalSink::safe_artifact_filename("../eventlogs"),
+            "___eventlogs"
+        );
+        assert_eq!(LocalSink::safe_artifact_filename("foo/bar"), "foo_bar");
+        assert_eq!(LocalSink::safe_artifact_filename(""), "artifact");
+        assert_eq!(LocalSink::safe_artifact_filename("C:\\test"), "C__test");
     }
 }
