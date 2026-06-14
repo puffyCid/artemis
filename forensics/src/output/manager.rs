@@ -274,14 +274,16 @@ impl OutputManager {
             self.artifacts.push(artifact_name.to_string());
         }
 
-        if let Some(active) = self.active_stream.as_mut() {
-            if active.artifact_name != artifact_name {
-                return Err(OutputError::Encode(format!(
-                    "stream output for '{}' is still open; finish it before writing '{}'",
-                    active.artifact_name, artifact_name
-                )));
-            }
+        let options_hash = hash_artifact_options(artifact_options)?;
+        let should_finish = self.active_stream.as_ref().is_some_and(|act| {
+            act.artifact_name != artifact_name || act.artifact_options_hash != options_hash
+        });
 
+        if should_finish {
+            self.finish_stream()?;
+        }
+
+        if let Some(active) = self.active_stream.as_mut() {
             let count = active.writer.write_records(records, artifact_context)?;
             active.record_count += count;
             return Ok(());
