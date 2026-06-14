@@ -91,7 +91,7 @@ impl LocalSink {
                 && !entry.ends_with(".jsonl")
                 && !entry.ends_with(".zip")
                 && !entry.ends_with(".xml")
-                && !entry.ends_with("parquet")
+                && !entry.ends_with(".parquet")
             {
                 continue;
             }

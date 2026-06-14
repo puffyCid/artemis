@@ -270,10 +270,6 @@ impl OutputManager {
         records: &mut dyn RecordStream,
         artifact_context: &ArtifactContext,
     ) -> OutputResult<()> {
-        if !self.artifacts.iter().any(|name| name == artifact_name) {
-            self.artifacts.push(artifact_name.to_string());
-        }
-
         let options_hash = hash_artifact_options(artifact_options)?;
         let should_finish = self.active_stream.as_ref().is_some_and(|act| {
             act.artifact_name != artifact_name || act.artifact_options_hash != options_hash
@@ -300,12 +296,15 @@ impl OutputManager {
 
         self.active_stream = Some(ActiveStream {
             artifact_name: artifact_name.to_string(),
-            artifact_options_hash: hash_artifact_options(artifact_options).unwrap_or_default(),
+            artifact_options_hash: options_hash,
             artifact_options: serde_json::to_value(artifact_options).unwrap_or_default(),
             output_file,
             record_count: open.record_count,
             writer: open.writer,
         });
+        if !self.artifacts.iter().any(|name| name == artifact_name) {
+            self.artifacts.push(artifact_name.to_string());
+        }
         Ok(())
     }
 
