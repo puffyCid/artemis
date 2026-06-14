@@ -39,16 +39,28 @@ impl StreamTarget {
     }
 }
 
+/// A `Record` may be encoded into different formats
+///
+/// Each format either writes the data in multiple chunks to the `Sink`
+/// or streams to a single file on disk using the `LocalSink`
 pub(crate) enum StreamWriter {
+    /// Stream the output to a single parquet file on disk
     Parquet(ParquetWriter),
 }
 
+/// A generic stream writer that outputs data to
+/// a file on disk
 pub(crate) struct EncoderStreamWriter {
+    /// Writer that writes results to a file on disk
     pub(crate) writer: StreamWriter,
+    /// Number of records written
     pub(crate) record_count: usize,
 }
 
 impl StreamWriter {
+    /// Write `Record` values to disk using the `StreamWriter`
+    ///
+    /// Returns number of records written
     pub(crate) fn write_records(
         &mut self,
         records: &mut dyn RecordStream,
@@ -59,6 +71,7 @@ impl StreamWriter {
         }
     }
 
+    /// Finish streaming the `Record` values to disk
     pub(crate) fn finish(self) -> OutputResult<()> {
         match self {
             Self::Parquet(writer) => writer.finish(),
@@ -138,6 +151,9 @@ impl Encoder {
         }
     }
 
+    /// Encodes a `RecordStream` into `EncoderStreamWriter` tp stream results to disk
+    ///
+    /// Returns a `EncoderStreamWriter`
     pub(crate) fn encode_stream(
         &self,
         target: StreamTarget,
@@ -153,6 +169,10 @@ impl Encoder {
         }
     }
 
+    /// Returns the current encoding method based on encoder type
+    ///
+    /// `Chunked` is most common and will encode to multiple files
+    /// `Streamed` is used to stream results to a single file on disk
     pub(crate) fn encoder_mode(&self) -> EncoderMode {
         match self {
             Encoder::Json(_)
