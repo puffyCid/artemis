@@ -292,10 +292,14 @@ impl ColumnKind {
         match value {
             Value::Bool(_) => Self::Bool,
             Value::Number(number) => {
-                if number.is_i64() || number.as_u64().is_some_and(|n| n <= i64::MAX as u64) {
+                if number.is_i64() {
                     Self::Int64
-                } else {
+                } else if number.as_u64().is_some_and(|n| n <= i64::MAX as u64) {
+                    Self::Int64
+                } else if number.is_f64() {
                     Self::Double
+                } else {
+                    Self::Utf8
                 }
             }
             Value::Null => Self::Utf8,
@@ -505,7 +509,7 @@ fn write_column(writer: &mut SerializedColumnWriter<'_>, column: ColumnBatch) ->
         }
         _ => {
             return Err(OutputError::Encode(String::from(
-                "parquet column type did match schema",
+                "parquet column type did not match schema",
             )));
         }
     }

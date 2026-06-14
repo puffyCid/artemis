@@ -1,7 +1,7 @@
 use crate::{
     output::{
         encoder::artifact_encoder::StreamTarget,
-        error::{OutputError, OutputResult},
+        error::OutputResult,
         report::CollectionReport,
         sink::{
             local::LocalSink,
@@ -20,6 +20,9 @@ use crate::output::sink::aws::AwsSink;
 use crate::output::sink::azure::AzureSink;
 #[cfg(feature = "gcp")]
 use crate::output::sink::gcp::GcpSink;
+
+#[cfg(any(feature = "gcp", feature = "aws", feature = "azure", feature = "api"))]
+use crate::output::error::OutputError;
 
 /// Selected destination for encoded output.
 ///

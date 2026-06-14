@@ -25,12 +25,15 @@ pub(crate) enum EncoderMode {
     Streamed,
 }
 
+/// Target file to stream results too
 #[derive(Debug)]
 pub(crate) struct StreamTarget {
+    /// Full path to stream data to
     pub(crate) path: PathBuf,
 }
 
 impl StreamTarget {
+    /// Return a new `StreamTarget` based on provided provided file path
     pub(crate) fn new(path: PathBuf) -> Self {
         Self { path }
     }
