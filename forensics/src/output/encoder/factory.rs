@@ -1,7 +1,7 @@
 use crate::{
     output::encoder::{
         artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
-        text::TextEncoder, timeline::TimelineEncoder, xml::XmlEncoder,
+        parquet::ParquetEncoder, text::TextEncoder, timeline::TimelineEncoder, xml::XmlEncoder,
     },
     structs::toml::{OutputConfig, OutputFormat},
 };
@@ -15,6 +15,7 @@ pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
         OutputFormat::Timeline => Encoder::Timeline(TimelineEncoder),
         OutputFormat::Text => Encoder::Text(TextEncoder),
         OutputFormat::Xml => Encoder::Xml(XmlEncoder),
+        OutputFormat::Parquet => Encoder::Parquet(ParquetEncoder),
     }
 }
 

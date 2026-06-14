@@ -1,6 +1,7 @@
 use crate::{
     filesystem::files::list_files,
     output::{
+        encoder::artifact_encoder::StreamTarget,
         error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
@@ -39,6 +40,12 @@ impl LocalSink {
             collection_id: config.collection_id,
             compress: config.compress,
         })
+    }
+
+    pub(crate) fn stream_artifact(&self, artifact_name: &str, extension: &str) -> StreamTarget {
+        let uuid = generate_uuid();
+        let filename = format!("{artifact_name}_{uuid}.{extension}");
+        StreamTarget::new(self.output_directory.join(filename))
     }
 
     /// Builds a unique output path for an artifact file
@@ -102,7 +109,7 @@ impl OutputSink for LocalSink {
         artifact_name: &str,
         extension: &str,
         _mime_type: &str,
-        encode: &mut dyn FnMut(&mut dyn std::io::Write) -> OutputResult<usize>,
+        encode: &mut dyn FnMut(&mut dyn Write) -> OutputResult<usize>,
     ) -> OutputResult<OutputHandle> {
         let output_path = self.output_path(artifact_name, extension);
         let file =

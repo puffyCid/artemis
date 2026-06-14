@@ -1,13 +1,67 @@
 use crate::output::{
     context::ArtifactContext,
     encoder::{
-        csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder, text::TextEncoder,
-        timeline::TimelineEncoder, xml::XmlEncoder,
+        csv::CsvEncoder,
+        json::JsonEncoder,
+        jsonl::JsonlEncoder,
+        parquet::{ParquetEncoder, ParquetWriter},
+        text::TextEncoder,
+        timeline::TimelineEncoder,
+        xml::XmlEncoder,
     },
-    error::OutputResult,
+    error::{OutputError, OutputResult},
     record::RecordStream,
 };
-use std::io::Write;
+use std::{io::Write, path::PathBuf};
+
+/// Describes how the encoder will write artifact records
+#[derive(Debug, PartialEq)]
+pub(crate) enum EncoderMode {
+    /// Artifact records are written in chunks. Each artifact records is written to a separate file
+    /// For example, EventLogs are written in chunks to multiple JSONL files
+    Chunked,
+    /// Artifact records are streamed into a single file
+    /// For example, EventLogs are streamed into a single Parquet file
+    Streamed,
+}
+
+#[derive(Debug)]
+pub(crate) struct StreamTarget {
+    pub(crate) path: PathBuf,
+}
+
+impl StreamTarget {
+    pub(crate) fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+}
+
+pub(crate) enum StreamWriter {
+    Parquet(ParquetWriter),
+}
+
+pub(crate) struct EncoderStreamWriter {
+    pub(crate) writer: StreamWriter,
+    pub(crate) record_count: usize,
+}
+
+impl StreamWriter {
+    pub(crate) fn write_records(
+        &mut self,
+        records: &mut dyn RecordStream,
+        context: &ArtifactContext,
+    ) -> OutputResult<usize> {
+        match self {
+            Self::Parquet(writer) => writer.write_records(records, context),
+        }
+    }
+
+    pub(crate) fn finish(self) -> OutputResult<()> {
+        match self {
+            Self::Parquet(writer) => writer.finish(),
+        }
+    }
+}
 
 /// A `Record` may be encoded into different formats
 ///
@@ -26,6 +80,8 @@ pub(crate) enum Encoder {
     Text(TextEncoder),
     /// XML encoder
     Xml(XmlEncoder),
+    /// Parquet encoder
+    Parquet(ParquetEncoder),
 }
 
 impl Encoder {
@@ -38,6 +94,7 @@ impl Encoder {
             Self::Timeline(encoder) => encoder.extension(),
             Self::Text(encoder) => encoder.extension(),
             Self::Xml(encoder) => encoder.extension(),
+            Self::Parquet(encoder) => encoder.extension(),
         }
     }
 
@@ -52,6 +109,7 @@ impl Encoder {
             Self::Timeline(encoder) => encoder.mime_type(),
             Self::Text(encoder) => encoder.mime_type(),
             Self::Xml(encoder) => encoder.mime_type(),
+            Self::Parquet(encoder) => encoder.mime_type(),
         }
     }
 
@@ -71,11 +129,41 @@ impl Encoder {
             Self::Timeline(encoder) => encoder.encode(records, writer, context),
             Self::Text(encoder) => encoder.encode(records, writer, context),
             Self::Xml(encoder) => encoder.encode(records, writer, context),
+            Self::Parquet(_) => Err(OutputError::Encode(String::from(
+                "parquet output is streamed; use 'encode_stream' instead",
+            ))),
+        }
+    }
+
+    pub(crate) fn encode_stream(
+        &self,
+        target: StreamTarget,
+        records: &mut dyn RecordStream,
+        context: &ArtifactContext,
+    ) -> OutputResult<EncoderStreamWriter> {
+        match self {
+            Self::Parquet(encoder) => encoder.encode_stream(target, records, context),
+            _ => Err(OutputError::Encode(format!(
+                "{} output is chunked and does not support streamed writers",
+                self.extension()
+            ))),
+        }
+    }
+
+    pub(crate) fn encoder_mode(&self) -> EncoderMode {
+        match self {
+            Encoder::Json(_)
+            | Encoder::Text(_)
+            | Encoder::Jsonl(_)
+            | Encoder::Timeline(_)
+            | Encoder::Csv(_)
+            | Encoder::Xml(_) => EncoderMode::Chunked,
+            Encoder::Parquet(_) => EncoderMode::Streamed,
         }
     }
 }
 
-/// Common interface for artifact encoders
+/// Common interface for chunked artifact encoders
 pub(crate) trait ArtifactEncoder {
     /// Returns the extension for the output format
     fn extension(&self) -> &str;
@@ -92,6 +180,24 @@ pub(crate) trait ArtifactEncoder {
         writer: &mut dyn Write,
         context: &ArtifactContext,
     ) -> OutputResult<usize>;
+}
+
+pub(crate) trait StreamArtifactEncoder {
+    /// Returns the extension for the output format
+    fn extension(&self) -> &str;
+    /// Returns ths MIME type for output format.
+    ///
+    /// Used for remote uploads
+    fn mime_type(&self) -> &str;
+    /// Encodes a `RecordStream` into select streaming output format
+    ///
+    /// Returns a writer to stream data to disk
+    fn encode_stream(
+        &self,
+        target: StreamTarget,
+        records: &mut dyn RecordStream,
+        context: &ArtifactContext,
+    ) -> OutputResult<EncoderStreamWriter>;
 }
 
 #[cfg(test)]

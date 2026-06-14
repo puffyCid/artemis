@@ -1,6 +1,7 @@
 use crate::{
     output::{
-        error::OutputResult,
+        encoder::artifact_encoder::StreamTarget,
+        error::{OutputError, OutputResult},
         report::CollectionReport,
         sink::{
             local::LocalSink,
@@ -64,6 +65,19 @@ impl Sink {
             Self::Azure(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
             #[cfg(feature = "api")]
             Self::Api(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+        }
+    }
+
+    pub(crate) fn stream_artifact(
+        &self,
+        artifact_name: &str,
+        extension: &str,
+    ) -> OutputResult<StreamTarget> {
+        match self {
+            Self::Local(sink) => Ok(sink.stream_artifact(artifact_name, extension)),
+            _ => Err(OutputError::Config(String::from(
+                "streamed output only supports local destination",
+            ))),
         }
     }
 

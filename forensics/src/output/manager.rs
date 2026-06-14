@@ -1,8 +1,11 @@
 use crate::{
     output::{
-        context::CollectionContext,
-        encoder::{artifact_encoder::Encoder, factory::build_encoder},
-        error::OutputResult,
+        context::{ArtifactContext, CollectionContext},
+        encoder::{
+            artifact_encoder::{Encoder, EncoderMode, StreamWriter},
+            factory::build_encoder,
+        },
+        error::{OutputError, OutputResult},
         record::RecordStream,
         report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
         sink::{
@@ -14,6 +17,7 @@ use crate::{
 };
 use log::LevelFilter;
 use serde::Serialize;
+use serde_json::Value;
 use simplelog::{Config, WriteLogger};
 
 #[cfg(feature = "boa")]
@@ -34,6 +38,16 @@ pub(crate) struct OutputManager {
     /// Array of artifacts collected from the Artemis execution
     pub(crate) artifact_runs: Vec<ArtifactRunReport>,
     pub(crate) filter: bool,
+    active_stream: Option<ActiveStream>,
+}
+
+struct ActiveStream {
+    artifact_name: String,
+    artifact_options_hash: String,
+    artifact_options: Value,
+    output_file: String,
+    record_count: usize,
+    writer: StreamWriter,
 }
 
 impl OutputManager {
@@ -60,6 +74,7 @@ impl OutputManager {
             artifacts: Vec::new(),
             artifact_runs: Vec::new(),
             filter: false,
+            active_stream: None,
         })
     }
 
@@ -70,19 +85,24 @@ impl OutputManager {
         artifact_options: &T,
         records: &mut dyn RecordStream,
     ) -> OutputResult<()> {
-        let handle = self.write(artifact_name, records)?;
+        match self.encoder.encoder_mode() {
+            EncoderMode::Chunked => {
+                let handle = self.write(artifact_name, records)?;
 
-        if !self.artifacts.iter().any(|name| name == artifact_name) {
-            self.artifacts.push(artifact_name.to_string());
+                if !self.artifacts.iter().any(|name| name == artifact_name) {
+                    self.artifacts.push(artifact_name.to_string());
+                }
+                self.record_completed_artifact_output(
+                    artifact_name,
+                    artifact_options,
+                    handle.location_string(),
+                    handle.record_count,
+                );
+
+                Ok(())
+            }
+            EncoderMode::Streamed => self.write_stream(artifact_name, artifact_options, records),
         }
-        self.record_completed_artifact_output(
-            artifact_name,
-            artifact_options,
-            handle.location_string(),
-            handle.record_count,
-        );
-
-        Ok(())
     }
 
     /// Write a failed artifact run
@@ -105,6 +125,7 @@ impl OutputManager {
 
     /// Complete a Artemis collection execution
     pub(crate) fn finalize(mut self) -> OutputResult<()> {
+        self.finish_stream()?;
         let report = CollectionReport::new(
             &self.config,
             &self.context,
@@ -196,6 +217,144 @@ impl OutputManager {
             self.encoder.mime_type(),
             &mut |writer| self.encoder.encode(records, writer, &artifact_context),
         )
+    }
+
+    fn write_stream<T: Serialize>(
+        &mut self,
+        artifact_name: &str,
+        artifact_options: &T,
+        records: &mut dyn RecordStream,
+    ) -> OutputResult<()> {
+        let artifact_context = self.context.artifact(
+            artifact_name,
+            &self.config.start_time_filter,
+            &self.config.end_time_filter,
+        );
+
+        // If boa is enabled and we have a filter script
+        // Filter records before writing them to Sink
+        #[cfg(feature = "boa")]
+        if self.filter
+            && let Some(script) = &self.config.filter_script
+        {
+            // User should give us a name. But if we do not have one
+            // Use `UnknownFilterScript` as default
+            let filter_name = self
+                .config
+                .filter_name
+                .as_deref()
+                .unwrap_or("UnknownFilterScript");
+            let mut filtered_records = JsFilterRecordStream::new(
+                records,
+                script,
+                artifact_name,
+                filter_name,
+                &self.context,
+            )?;
+
+            return self.write_stream_records(
+                artifact_name,
+                artifact_options,
+                &mut filtered_records,
+                &artifact_context,
+            );
+        }
+
+        self.write_stream_records(artifact_name, artifact_options, records, &artifact_context)
+    }
+
+    fn write_stream_records<T: Serialize>(
+        &mut self,
+        artifact_name: &str,
+        artifact_options: &T,
+        records: &mut dyn RecordStream,
+        artifact_context: &ArtifactContext,
+    ) -> OutputResult<()> {
+        if !self.artifacts.iter().any(|name| name == artifact_name) {
+            self.artifacts.push(artifact_name.to_string());
+        }
+
+        if let Some(active) = self.active_stream.as_mut() {
+            if active.artifact_name != artifact_name {
+                return Err(OutputError::Encode(format!(
+                    "stream output for '{}' is still open; finish it before writing '{}'",
+                    active.artifact_name, artifact_name
+                )));
+            }
+
+            let count = active.writer.write_records(records, artifact_context)?;
+            active.record_count += count;
+            return Ok(());
+        }
+
+        let target = self
+            .sink
+            .stream_artifact(artifact_name, self.encoder.extension())?;
+
+        let output_file = target.path.display().to_string();
+        let open = self
+            .encoder
+            .encode_stream(target, records, artifact_context)?;
+
+        self.active_stream = Some(ActiveStream {
+            artifact_name: artifact_name.to_string(),
+            artifact_options_hash: hash_artifact_options(artifact_options).unwrap_or_default(),
+            artifact_options: serde_json::to_value(artifact_options).unwrap_or_default(),
+            output_file,
+            record_count: open.record_count,
+            writer: open.writer,
+        });
+        Ok(())
+    }
+
+    fn finish_stream(&mut self) -> OutputResult<()> {
+        let Some(output) = self.active_stream.take() else {
+            return Ok(());
+        };
+        let ActiveStream {
+            artifact_name,
+            artifact_options_hash,
+            artifact_options,
+            output_file,
+            record_count,
+            writer,
+        } = output;
+
+        writer.finish()?;
+        self.record_complete_stream(
+            artifact_name,
+            artifact_options_hash,
+            artifact_options,
+            output_file,
+            record_count,
+        );
+        Ok(())
+    }
+
+    fn record_complete_stream(
+        &mut self,
+        artifact_name: String,
+        artifact_option_hash: String,
+        artifact_options: Value,
+        output_file: String,
+        record_count: usize,
+    ) {
+        if let Some(run) = self.artifact_runs.iter_mut().find(|run| {
+            run.name == artifact_name && run.artifact_options_hash == artifact_option_hash
+        }) {
+            run.add_output_file(output_file, record_count);
+            return;
+        }
+
+        let mut run = ArtifactRunReport::new(
+            &artifact_name,
+            &artifact_options,
+            vec![output_file],
+            record_count,
+            "completed",
+        );
+        run.artifact_options_hash = artifact_option_hash;
+        self.artifact_runs.push(run);
     }
 }
 
