@@ -46,6 +46,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<EncoderStreamWriter> {
+        // Add metadata to our records
         let rows = read_json_rows(records, context)?;
 
         if rows.is_empty() {
@@ -54,6 +55,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
             )));
         }
 
+        // Based on the parsed data try to create a parquet schema
         let schema = ParquetSchema::infer(&rows);
         let message_type = schema.message_type();
 
@@ -64,6 +66,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
                 .build(),
         );
 
+        // Create the writer to the parquet file
         let file =
             File::create(&target.path).map_err(|err| OutputError::io_path(&target.path, err))?;
         let writer =
@@ -74,6 +77,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
             writer,
         };
 
+        // Write the first batch of rows
         parquet_writer.write_row_group(&rows)?;
 
         Ok(EncoderStreamWriter {
@@ -83,6 +87,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
     }
 }
 
+/// Read `Record` JSON values into rows
 fn read_json_rows(
     records: &mut dyn RecordStream,
     context: &ArtifactContext,
@@ -111,13 +116,21 @@ fn read_json_rows(
     Ok(rows)
 }
 
+/// Data we need to create a parquet writer
+#[derive(Debug)]
 pub(crate) struct ParquetWriter {
+    /// Full path to the streamed output file
     target: StreamTarget,
+    /// The parquet schema
     schema: ParquetSchema,
+    /// Writer to the parquet file
     writer: SerializedFileWriter<File>,
 }
 
 impl ParquetWriter {
+    /// Write `Record` values to disk using the `StreamWriter`
+    ///
+    /// Returns number of records written
     pub(crate) fn write_records(
         &mut self,
         records: &mut dyn RecordStream,
@@ -133,6 +146,7 @@ impl ParquetWriter {
         Ok(rows.len())
     }
 
+    /// Finish streaming the `Record` values to disk
     pub(crate) fn finish(self) -> OutputResult<()> {
         self.writer.close().map_err(|err| {
             OutputError::Encode(format!(
@@ -144,6 +158,7 @@ impl ParquetWriter {
         Ok(())
     }
 
+    /// Write the rows to the parquet file
     fn write_row_group(&mut self, rows: &[Map<String, Value>]) -> OutputResult<()> {
         let columns = build_columns(&self.schema, rows);
 
@@ -165,12 +180,17 @@ impl ParquetWriter {
     }
 }
 
+/// The parquet schema implementation
+#[derive(Debug)]
 struct ParquetSchema {
+    /// Column info for our parquet file
     columns: Vec<ColumnSpec>,
+    /// Field tracker
     known_fields: HashSet<String>,
 }
 
 impl ParquetSchema {
+    /// Try to implement a parquet schema based on artifact keys and values
     fn infer(rows: &[Map<String, Value>]) -> Self {
         let mut order = Vec::new();
         let mut kinds: HashMap<String, ColumnKind> = HashMap::new();
@@ -216,6 +236,7 @@ impl ParquetSchema {
         }
     }
 
+    /// Determine schema message type
     fn message_type(&self) -> String {
         let mut message = String::from("message artemis {\n");
         for column in &self.columns {
@@ -235,6 +256,7 @@ impl ParquetSchema {
         message
     }
 
+    /// Make sure each schema field is unique
     fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
         let base = Self::sanitize_field_name(source);
         let mut candidate = base.clone();
@@ -249,6 +271,7 @@ impl ParquetSchema {
         candidate
     }
 
+    /// Ensure field names use authorized characters
     fn sanitize_field_name(source: &str) -> String {
         let mut name = source
             .chars()
@@ -273,13 +296,15 @@ impl ParquetSchema {
     }
 }
 
+/// Data associated with our parquet columns
+#[derive(Debug)]
 struct ColumnSpec {
     source_name: Option<String>,
     parquet_name: String,
     kind: ColumnKind,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum ColumnKind {
     Bool,
     Int64,
@@ -517,6 +542,230 @@ fn write_column(writer: &mut SerializedColumnWriter<'_>, column: ColumnBatch) ->
     Ok(())
 }
 
+/// Convert `ParquetError` to `OutputError`
 fn parquet_error(err: ParquetError) -> OutputError {
     OutputError::Encode(format!("parquet error: {err}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParquetEncoder;
+    use crate::{
+        output::{
+            context::CollectionContext,
+            encoder::artifact_encoder::StreamArtifactEncoder,
+            encoder::artifact_encoder::StreamTarget,
+            record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
+        },
+        structs::toml::OutputConfig,
+    };
+    use parquet::file::reader::{FileReader, SerializedFileReader};
+    use serde_json::{Value, json};
+    use std::{fs::File, path::PathBuf};
+
+    fn test_context() -> crate::output::context::ArtifactContext {
+        let output = OutputConfig::default();
+
+        CollectionContext::new(&output, PathBuf::from("./tmp/parquet_test.log")).artifact(
+            "test",
+            &output.start_time_filter,
+            &output.end_time_filter,
+        )
+    }
+
+    fn target(name: &str) -> StreamTarget {
+        let path = PathBuf::from("./tmp").join(format!("{name}.parquet"));
+        let _ = std::fs::create_dir_all("./tmp");
+        let _ = std::fs::remove_file(&path);
+
+        StreamTarget::new(path)
+    }
+
+    fn json_record(value: Value) -> Record {
+        Record::Json(JsonRecord::new(value.as_object().unwrap().clone()))
+    }
+
+    fn parquet_metadata(path: &PathBuf) -> parquet::file::metadata::ParquetMetaData {
+        let file = File::open(path).unwrap();
+        let reader = SerializedFileReader::new(file).unwrap();
+        reader.metadata().clone()
+    }
+
+    fn column_names(metadata: &parquet::file::metadata::ParquetMetaData) -> Vec<String> {
+        metadata
+            .file_metadata()
+            .schema_descr()
+            .columns()
+            .iter()
+            .map(|column| column.name().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn test_parquet_encode_stream() {
+        let path = PathBuf::from("./tmp/parquet_encode_stream.parquet");
+        let target = target("parquet_encode_stream");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+
+        let mut records = VecRecordStream::new(vec![
+            json_record(json!({"path": "/tmp/one", "size": 1})),
+            json_record(json!({"path": "/tmp/two", "size": 2})),
+        ]);
+
+        let opened = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap();
+
+        assert_eq!(opened.record_count, 2);
+        opened.writer.finish().unwrap();
+
+        let metadata = parquet_metadata(&path);
+        assert_eq!(metadata.file_metadata().num_rows(), 2);
+        assert_eq!(metadata.num_row_groups(), 1);
+    }
+
+    #[test]
+    fn test_parquet_write_records_second_chunk() {
+        let path = PathBuf::from("./tmp/parquet_second_chunk.parquet");
+        let target = target("parquet_second_chunk");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one",
+            "size": 1
+        }))]);
+
+        let mut opened = encoder.encode_stream(target, &mut first, &context).unwrap();
+
+        let mut second = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/two",
+            "size": 2
+        }))]);
+
+        let count = opened.writer.write_records(&mut second, &context).unwrap();
+        assert_eq!(count, 1);
+
+        opened.writer.finish().unwrap();
+
+        let metadata = parquet_metadata(&path);
+        assert_eq!(metadata.file_metadata().num_rows(), 2);
+        assert_eq!(metadata.num_row_groups(), 2);
+    }
+
+    #[test]
+    fn test_parquet_empty_first_chunk_error() {
+        let target = target("parquet_empty_first_chunk");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+        let mut records = VecRecordStream::new(Vec::new());
+
+        let err = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap_err();
+
+        assert!(err.to_string().contains("cannot create parquet schema"));
+    }
+
+    #[test]
+    fn test_parquet_empty_later_chunk_ok() {
+        let path = PathBuf::from("./tmp/parquet_empty_later_chunk.parquet");
+        let target = target("parquet_empty_later_chunk");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one",
+            "size": 1
+        }))]);
+
+        let mut opened = encoder.encode_stream(target, &mut first, &context).unwrap();
+
+        let mut empty = VecRecordStream::new(Vec::new());
+        let count = opened.writer.write_records(&mut empty, &context).unwrap();
+        assert_eq!(count, 0);
+
+        opened.writer.finish().unwrap();
+
+        let metadata = parquet_metadata(&path);
+        assert_eq!(metadata.file_metadata().num_rows(), 1);
+        assert_eq!(metadata.num_row_groups(), 1);
+    }
+
+    #[test]
+    fn test_parquet_unsupported_record() {
+        let target = target("parquet_unsupported_record");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+
+        let mut records = VecRecordStream::new(vec![Record::Scalar(ScalarRecord::Text(
+            String::from("not json"),
+        ))]);
+
+        let err = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap_err();
+
+        assert!(err.to_string().contains("parquet"));
+        assert!(err.to_string().contains("text"));
+    }
+
+    #[test]
+    fn test_parquet_large_u64_is_utf8() {
+        let path = PathBuf::from("./tmp/parquet_large_u64.parquet");
+        let target = target("parquet_large_u64");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+
+        let mut records = VecRecordStream::new(vec![json_record(json!({
+            "value": u64::MAX
+        }))]);
+
+        let opened = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap();
+
+        opened.writer.finish().unwrap();
+
+        let metadata = parquet_metadata(&path);
+        let schema = metadata.file_metadata().schema_descr();
+        let column = schema
+            .columns()
+            .iter()
+            .find(|column| column.name() == "value")
+            .unwrap();
+
+        assert_eq!(column.physical_type(), parquet::basic::Type::BYTE_ARRAY);
+    }
+
+    #[test]
+    fn test_parquet_late_fields_extra_json_schema() {
+        let path = PathBuf::from("./tmp/parquet_late_fields.parquet");
+        let target = target("parquet_late_fields");
+        let context = test_context();
+        let encoder = ParquetEncoder;
+
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one"
+        }))]);
+
+        let mut opened = encoder.encode_stream(target, &mut first, &context).unwrap();
+
+        let mut second = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/two",
+            "late_field": "value"
+        }))]);
+
+        opened.writer.write_records(&mut second, &context).unwrap();
+        opened.writer.finish().unwrap();
+
+        let metadata = parquet_metadata(&path);
+        let names = column_names(&metadata);
+
+        assert!(names.iter().any(|name| name == "path"));
+        assert!(names.iter().any(|name| name == "_extra_json"));
+        assert!(!names.iter().any(|name| name == "late_field"));
+        assert_eq!(metadata.file_metadata().num_rows(), 2);
+    }
 }

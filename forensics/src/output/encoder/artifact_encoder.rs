@@ -18,38 +18,40 @@ use std::{io::Write, path::PathBuf};
 #[derive(Debug, PartialEq)]
 pub(crate) enum EncoderMode {
     /// Artifact records are written in chunks. Each artifact records is written to a separate file
+    ///
     /// For example, EventLogs are written in chunks to multiple JSONL files
     Chunked,
     /// Artifact records are streamed into a single file
+    ///
     /// For example, EventLogs are streamed into a single Parquet file
     Streamed,
 }
 
-/// Target file to stream results too
+/// Target file for streamed output
 #[derive(Debug)]
 pub(crate) struct StreamTarget {
-    /// Full path to stream data to
+    /// Full path to the streamed output file
     pub(crate) path: PathBuf,
 }
 
 impl StreamTarget {
-    /// Return a new `StreamTarget` based on provided provided file path
+    /// Creates a new `StreamTarget` from a file path
     pub(crate) fn new(path: PathBuf) -> Self {
         Self { path }
     }
 }
 
-/// A `Record` may be encoded into different formats
-///
-/// Each format either writes the data in multiple chunks to the `Sink`
-/// or streams to a single file on disk using the `LocalSink`
+/// Active writer for a streamed output format
+#[derive(Debug)]
 pub(crate) enum StreamWriter {
     /// Stream the output to a single parquet file on disk
     Parquet(ParquetWriter),
 }
 
-/// A generic stream writer that outputs data to
-/// a file on disk
+/// Writer returned after opening a streamed encoder
+///
+/// `record_count` is the number of records written while opening the stream
+#[derive(Debug)]
 pub(crate) struct EncoderStreamWriter {
     /// Writer that writes results to a file on disk
     pub(crate) writer: StreamWriter,
@@ -151,9 +153,7 @@ impl Encoder {
         }
     }
 
-    /// Encodes a `RecordStream` into `EncoderStreamWriter` tp stream results to disk
-    ///
-    /// Returns a `EncoderStreamWriter`
+    /// Opens a streamed output writer and writes the first record chunk
     pub(crate) fn encode_stream(
         &self,
         target: StreamTarget,
@@ -169,10 +169,7 @@ impl Encoder {
         }
     }
 
-    /// Returns the current encoding method based on encoder type
-    ///
-    /// `Chunked` is most common and will encode to multiple files
-    /// `Streamed` is used to stream results to a single file on disk
+    /// Returns whether this encoder writes chunked files or a streamed file
     pub(crate) fn encoder_mode(&self) -> EncoderMode {
         match self {
             Encoder::Json(_)
@@ -205,6 +202,7 @@ pub(crate) trait ArtifactEncoder {
     ) -> OutputResult<usize>;
 }
 
+/// Common interface for streamed artifact encoders
 pub(crate) trait StreamArtifactEncoder {
     /// Returns the extension for the output format
     fn extension(&self) -> &str;
@@ -229,10 +227,15 @@ mod tests {
         output::{
             context::CollectionContext,
             encoder::{
-                artifact_encoder::Encoder, csv::CsvEncoder, json::JsonEncoder, jsonl::JsonlEncoder,
+                artifact_encoder::{Encoder, StreamTarget},
+                csv::CsvEncoder,
+                json::JsonEncoder,
+                jsonl::JsonlEncoder,
+                parquet::ParquetEncoder,
                 text::TextEncoder,
             },
-            record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
+            error::OutputError,
+            record::{JsonRecord, Record, ScalarRecord, SingleRecordStream, VecRecordStream},
         },
         structs::toml::OutputConfig,
     };
@@ -349,5 +352,45 @@ mod tests {
 
         let output = String::from_utf8(writer.into_inner()).unwrap();
         assert_eq!(output, "[\"one\",2,true,3.14]\n");
+    }
+
+    #[test]
+    fn test_stream_encoder_parquet() {
+        let test = json!({"test":"value"});
+        let output = OutputConfig::default();
+        let context = &CollectionContext::new(&output, PathBuf::from("./tmp")).artifact(
+            "test",
+            &output.start_time_filter,
+            &output.end_time_filter,
+        );
+        let path = PathBuf::from("./tmp/parquet_encoder");
+        let target = StreamTarget::new(path);
+        let mut mem_writer = Cursor::new(Vec::new());
+
+        let par_encoder = Encoder::Parquet(ParquetEncoder);
+        let err = par_encoder
+            .encode(
+                &mut SingleRecordStream::new(Record::Json(JsonRecord::new(
+                    test.as_object().unwrap().clone(),
+                ))),
+                &mut mem_writer,
+                context,
+            )
+            .unwrap_err();
+        assert!(
+            matches!(err, OutputError::Encode(value) if value == "parquet output is streamed; use 'encode_stream' instead")
+        );
+        let writer = par_encoder
+            .encode_stream(
+                target,
+                &mut SingleRecordStream::new(Record::Json(JsonRecord::new(
+                    test.as_object().unwrap().clone(),
+                ))),
+                context,
+            )
+            .unwrap();
+
+        assert_eq!(writer.record_count, 1);
+        writer.writer.finish().unwrap();
     }
 }
