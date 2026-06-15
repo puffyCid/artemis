@@ -17,7 +17,7 @@ use std::{io::Write, path::PathBuf};
 /// Describes how the encoder will write artifact records
 #[derive(Debug, PartialEq)]
 pub(crate) enum EncoderMode {
-    /// Artifact records are written in chunks. Each artifact records is written to a separate file
+    /// Artifact records are written in chunks. Each chunk is written to a separate file
     ///
     /// For example, `EventLogs` are written in chunks to multiple JSONL files
     Chunked,

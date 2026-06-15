@@ -15,7 +15,7 @@ use parquet::{
     data_type::ByteArray,
     errors::ParquetError,
     file::{
-        properties::WriterProperties,
+        properties::{EnabledStatistics, WriterProperties},
         writer::{SerializedColumnWriter, SerializedFileWriter},
     },
     schema::parser::parse_message_type,
@@ -63,6 +63,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
         let props = Arc::new(
             WriterProperties::builder()
                 .set_compression(Compression::SNAPPY)
+                .set_statistics_enabled(EnabledStatistics::None)
                 .build(),
         );
 
@@ -378,7 +379,7 @@ enum ColumnBatch {
     },
 }
 
-/// Assemble columns for the parquet file
+/// Builds parquet column batches for the provided rows
 fn build_columns(schema: &ParquetSchema, rows: &[Map<String, Value>]) -> Vec<ColumnBatch> {
     schema
         .columns
@@ -535,7 +536,7 @@ fn value_as_string(value: &Value) -> Option<String> {
     }
 }
 
-/// If later values are identified on the JSON `Record` append them to our `extra_json` column
+/// Serializes fields not present in the inferred schema into the `_extra_json` column
 fn extra_json(schema: &ParquetSchema, row: &Map<String, Value>) -> Option<String> {
     let mut extra = Map::new();
     for (key, value) in row {
