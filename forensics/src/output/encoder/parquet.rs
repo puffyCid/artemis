@@ -46,7 +46,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<EncoderStreamWriter> {
-        // Add metadata to our records
+        // Convert first record chunk into parquet rows and append collection metadata
         let rows = read_json_rows(records, context)?;
 
         if rows.is_empty() {
@@ -55,7 +55,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
             )));
         }
 
-        // Based on the parsed data try to create a parquet schema
+        // Infer the parquet schema from the first non-empty record chunk
         let schema = ParquetSchema::infer(&rows);
         let message_type = schema.message_type();
 
@@ -66,7 +66,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
                 .build(),
         );
 
-        // Create the writer to the parquet file
+        // Open the parquet file writer using the inferred schema
         let file =
             File::create(&target.path).map_err(|err| OutputError::io_path(&target.path, err))?;
         let writer =
@@ -77,7 +77,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
             writer,
         };
 
-        // Write the first batch of rows
+        // Write the first chunk as the first parquet row group
         parquet_writer.write_row_group(&rows)?;
 
         Ok(EncoderStreamWriter {
@@ -87,7 +87,9 @@ impl StreamArtifactEncoder for ParquetEncoder {
     }
 }
 
-/// Read `Record` JSON values into rows
+/// Converts JSON record values into parquet rows.
+///
+/// Parquet output currently supports only JSON object records.
 fn read_json_rows(
     records: &mut dyn RecordStream,
     context: &ArtifactContext,
@@ -116,7 +118,7 @@ fn read_json_rows(
     Ok(rows)
 }
 
-/// Data we need to create a parquet writer
+/// Active parquet writer for one streamed artifact output
 #[derive(Debug)]
 pub(crate) struct ParquetWriter {
     /// Full path to the streamed output file
@@ -128,9 +130,7 @@ pub(crate) struct ParquetWriter {
 }
 
 impl ParquetWriter {
-    /// Write `Record` values to disk using the `StreamWriter`
-    ///
-    /// Returns number of records written
+    /// Writes the next record chunk as a parquet row group
     pub(crate) fn write_records(
         &mut self,
         records: &mut dyn RecordStream,
@@ -158,7 +158,7 @@ impl ParquetWriter {
         Ok(())
     }
 
-    /// Write the rows to the parquet file
+    /// Writes rows to the parquet file as one row group
     fn write_row_group(&mut self, rows: &[Map<String, Value>]) -> OutputResult<()> {
         let columns = build_columns(&self.schema, rows);
 
@@ -180,17 +180,17 @@ impl ParquetWriter {
     }
 }
 
-/// The parquet schema implementation
+/// Schema inferred for a streamed parquet artifact
 #[derive(Debug)]
 struct ParquetSchema {
-    /// Column info for our parquet file
+    /// Ordered parquet columns
     columns: Vec<ColumnSpec>,
-    /// Field tracker
+    /// Source field names included in the inferred schema
     known_fields: HashSet<String>,
 }
 
 impl ParquetSchema {
-    /// Try to implement a parquet schema based on artifact keys and values
+    /// Infers a parquet schema from the first chunk of artifact rows
     fn infer(rows: &[Map<String, Value>]) -> Self {
         let mut order = Vec::new();
         let mut kinds: HashMap<String, ColumnKind> = HashMap::new();
@@ -236,7 +236,7 @@ impl ParquetSchema {
         }
     }
 
-    /// Determine schema message type
+    /// Builds the parquet message type string
     fn message_type(&self) -> String {
         let mut message = String::from("message artemis {\n");
         for column in &self.columns {
@@ -256,7 +256,7 @@ impl ParquetSchema {
         message
     }
 
-    /// Make sure each schema field is unique
+    /// Converts a source field name into a unique parquet column name
     fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
         let base = Self::sanitize_field_name(source);
         let mut candidate = base.clone();
@@ -299,11 +299,15 @@ impl ParquetSchema {
 /// Data associated with our parquet columns
 #[derive(Debug)]
 struct ColumnSpec {
+    /// Source key of our parquet column name
     source_name: Option<String>,
+    /// The unique parquet column name
     parquet_name: String,
+    /// Column type
     kind: ColumnKind,
 }
 
+/// Common Column value types
 #[derive(Copy, Clone, Debug)]
 enum ColumnKind {
     Bool,
@@ -313,6 +317,7 @@ enum ColumnKind {
 }
 
 impl ColumnKind {
+    /// Convert JSON value to `ColumnKind`
     fn from_value(value: &Value) -> Self {
         match value {
             Value::Bool(_) => Self::Bool,
@@ -332,6 +337,11 @@ impl ColumnKind {
         }
     }
 
+    /// Attempt to merge column types if a key-value has more than one type
+    ///
+    /// Example: `{"value": 1}` and later `{"value": 2.5}`
+    ///
+    /// The column type becomes `ColumnKind::Double`
     fn merge(self, other: Self) -> Self {
         match (self, other) {
             (Self::Utf8, _) | (_, Self::Utf8) => Self::Utf8,
@@ -343,25 +353,35 @@ impl ColumnKind {
     }
 }
 
+/// Data for each column type
 enum ColumnBatch {
     Bool {
+        /// Array of booleans
         values: Vec<bool>,
-        def_levels: Vec<i16>,
+        /// Definition level for the parquet row
+        definition_levels: Vec<i16>,
     },
     Int64 {
+        /// Array of integers
         values: Vec<i64>,
-        def_levels: Vec<i16>,
+        /// Definition level for the parquet row
+        definition_levels: Vec<i16>,
     },
     Double {
+        /// Array of floats
         values: Vec<f64>,
-        def_levels: Vec<i16>,
+        /// Definition level for the parquet row
+        definition_levels: Vec<i16>,
     },
     Utf8 {
+        /// Array of `ByteArray`
         values: Vec<ByteArray>,
-        def_levels: Vec<i16>,
+        /// Definition level for the parquet row
+        definition_levels: Vec<i16>,
     },
 }
 
+/// Assemble columns for the parquet file
 fn build_columns(schema: &ParquetSchema, rows: &[Map<String, Value>]) -> Vec<ColumnBatch> {
     schema
         .columns
@@ -370,6 +390,7 @@ fn build_columns(schema: &ParquetSchema, rows: &[Map<String, Value>]) -> Vec<Col
         .collect()
 }
 
+/// Assemble each column value
 fn build_column(
     schema: &ParquetSchema,
     column: &ColumnSpec,
@@ -383,9 +404,10 @@ fn build_column(
     }
 }
 
+/// Construct boolean column
 fn bool_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
     let mut values = Vec::new();
-    let mut def_levels = Vec::with_capacity(rows.len());
+    let mut definition_levels = Vec::with_capacity(rows.len());
     for row in rows {
         let value = column
             .source_name
@@ -395,19 +417,23 @@ fn bool_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch 
 
         if let Some(val) = value {
             values.push(val);
-            def_levels.push(1);
+            definition_levels.push(1);
             continue;
         }
 
-        def_levels.push(0);
+        definition_levels.push(0);
     }
 
-    ColumnBatch::Bool { values, def_levels }
+    ColumnBatch::Bool {
+        values,
+        definition_levels,
+    }
 }
 
+/// Construct integer column
 fn i64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
     let mut values = Vec::new();
-    let mut def_levels = Vec::with_capacity(rows.len());
+    let mut definition_levels = Vec::with_capacity(rows.len());
     for row in rows {
         let value = column
             .source_name
@@ -417,16 +443,20 @@ fn i64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
 
         if let Some(val) = value {
             values.push(val);
-            def_levels.push(1);
+            definition_levels.push(1);
             continue;
         }
 
-        def_levels.push(0);
+        definition_levels.push(0);
     }
 
-    ColumnBatch::Int64 { values, def_levels }
+    ColumnBatch::Int64 {
+        values,
+        definition_levels,
+    }
 }
 
+/// Attempt to convert JSON value to integer
 fn value_as_i64(value: &Value) -> Option<i64> {
     let number = value.as_number()?;
     if let Some(val) = number.as_i64() {
@@ -437,9 +467,10 @@ fn value_as_i64(value: &Value) -> Option<i64> {
     i64::try_from(value).ok()
 }
 
+/// Construct float column
 fn f64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
     let mut values = Vec::new();
-    let mut def_levels = Vec::with_capacity(rows.len());
+    let mut definition_levels = Vec::with_capacity(rows.len());
     for row in rows {
         let value = column
             .source_name
@@ -449,23 +480,27 @@ fn f64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
 
         if let Some(val) = value {
             values.push(val);
-            def_levels.push(1);
+            definition_levels.push(1);
             continue;
         }
 
-        def_levels.push(0);
+        definition_levels.push(0);
     }
 
-    ColumnBatch::Double { values, def_levels }
+    ColumnBatch::Double {
+        values,
+        definition_levels,
+    }
 }
 
+/// Construct string column
 fn utf8_column(
     schema: &ParquetSchema,
     column: &ColumnSpec,
     rows: &[Map<String, Value>],
 ) -> ColumnBatch {
     let mut values = Vec::new();
-    let mut def_levels = Vec::with_capacity(rows.len());
+    let mut definition_levels = Vec::with_capacity(rows.len());
     for row in rows {
         let value = match &column.source_name {
             Some(name) => row.get(name).and_then(value_as_string),
@@ -474,16 +509,20 @@ fn utf8_column(
 
         if let Some(val) = value {
             values.push(ByteArray::from(val.as_str()));
-            def_levels.push(1);
+            definition_levels.push(1);
             continue;
         }
 
-        def_levels.push(0);
+        definition_levels.push(0);
     }
 
-    ColumnBatch::Utf8 { values, def_levels }
+    ColumnBatch::Utf8 {
+        values,
+        definition_levels,
+    }
 }
 
+/// Attempt to convert JSON value to string
 fn value_as_string(value: &Value) -> Option<String> {
     match value {
         Value::Null => None,
@@ -495,6 +534,7 @@ fn value_as_string(value: &Value) -> Option<String> {
     }
 }
 
+/// If later values are identified on the JSON `Record` append them to our `extra_json` column
 fn extra_json(schema: &ParquetSchema, row: &Map<String, Value>) -> Option<String> {
     let mut extra = Map::new();
     for (key, value) in row {
@@ -510,26 +550,51 @@ fn extra_json(schema: &ParquetSchema, row: &Map<String, Value>) -> Option<String
     serde_json::to_string(&Value::Object(extra)).ok()
 }
 
+/// Write the column to the parquet file
 fn write_column(writer: &mut SerializedColumnWriter<'_>, column: ColumnBatch) -> OutputResult<()> {
     match (writer.untyped(), column) {
-        (ColumnWriter::BoolColumnWriter(write), ColumnBatch::Bool { values, def_levels }) => {
+        (
+            ColumnWriter::BoolColumnWriter(write),
+            ColumnBatch::Bool {
+                values,
+                definition_levels,
+            },
+        ) => {
             write
-                .write_batch(&values, Some(&def_levels), None)
+                .write_batch(&values, Some(&definition_levels), None)
                 .map_err(parquet_error)?;
         }
-        (ColumnWriter::Int64ColumnWriter(write), ColumnBatch::Int64 { values, def_levels }) => {
+        (
+            ColumnWriter::Int64ColumnWriter(write),
+            ColumnBatch::Int64 {
+                values,
+                definition_levels,
+            },
+        ) => {
             write
-                .write_batch(&values, Some(&def_levels), None)
+                .write_batch(&values, Some(&definition_levels), None)
                 .map_err(parquet_error)?;
         }
-        (ColumnWriter::DoubleColumnWriter(write), ColumnBatch::Double { values, def_levels }) => {
+        (
+            ColumnWriter::DoubleColumnWriter(write),
+            ColumnBatch::Double {
+                values,
+                definition_levels,
+            },
+        ) => {
             write
-                .write_batch(&values, Some(&def_levels), None)
+                .write_batch(&values, Some(&definition_levels), None)
                 .map_err(parquet_error)?;
         }
-        (ColumnWriter::ByteArrayColumnWriter(write), ColumnBatch::Utf8 { values, def_levels }) => {
+        (
+            ColumnWriter::ByteArrayColumnWriter(write),
+            ColumnBatch::Utf8 {
+                values,
+                definition_levels,
+            },
+        ) => {
             write
-                .write_batch(&values, Some(&def_levels), None)
+                .write_batch(&values, Some(&definition_levels), None)
                 .map_err(parquet_error)?;
         }
         _ => {
