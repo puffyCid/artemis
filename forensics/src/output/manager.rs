@@ -125,6 +125,7 @@ impl OutputManager {
 
     /// Complete a Artemis collection execution
     pub(crate) fn finalize(mut self) -> OutputResult<()> {
+        // Complete any active writer stream
         self.finish_stream()?;
         let report = CollectionReport::new(
             &self.config,
@@ -219,6 +220,9 @@ impl OutputManager {
         )
     }
 
+    /// Write artifact records to our configured destination `Sink`
+    ///
+    /// This writer streams the data to a single on disk
     fn write_stream<T: Serialize>(
         &mut self,
         artifact_name: &str,
@@ -263,6 +267,7 @@ impl OutputManager {
         self.write_stream_records(artifact_name, artifact_options, records, &artifact_context)
     }
 
+    /// Write records to single file on disk
     fn write_stream_records<T: Serialize>(
         &mut self,
         artifact_name: &str,
@@ -308,6 +313,7 @@ impl OutputManager {
         Ok(())
     }
 
+    /// Complete streaming to file on disk
     fn finish_stream(&mut self) -> OutputResult<()> {
         let Some(output) = self.active_stream.take() else {
             return Ok(());
@@ -332,6 +338,7 @@ impl OutputManager {
         Ok(())
     }
 
+    /// Update our artifact run report every time we complete writing records to disk
     fn record_complete_stream(
         &mut self,
         artifact_name: String,
