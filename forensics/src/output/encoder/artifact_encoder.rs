@@ -19,11 +19,11 @@ use std::{io::Write, path::PathBuf};
 pub(crate) enum EncoderMode {
     /// Artifact records are written in chunks. Each artifact records is written to a separate file
     ///
-    /// For example, EventLogs are written in chunks to multiple JSONL files
+    /// For example, `EventLogs` are written in chunks to multiple JSONL files
     Chunked,
     /// Artifact records are streamed into a single file
     ///
-    /// For example, EventLogs are streamed into a single Parquet file
+    /// For example, `EventLogs` are streamed into a single Parquet file
     Streamed,
 }
 

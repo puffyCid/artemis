@@ -146,7 +146,7 @@ impl ParquetWriter {
         Ok(rows.len())
     }
 
-    /// Finish streaming the `Record` values to disk
+    /// Finalizes the parquet file
     pub(crate) fn finish(self) -> OutputResult<()> {
         self.writer.close().map_err(|err| {
             OutputError::Encode(format!(
@@ -271,7 +271,7 @@ impl ParquetSchema {
         candidate
     }
 
-    /// Ensure field names use authorized characters
+    /// Replaces unsupported parquet column-name characters with underscores
     fn sanitize_field_name(source: &str) -> String {
         let mut name = source
             .chars()
@@ -296,10 +296,10 @@ impl ParquetSchema {
     }
 }
 
-/// Data associated with our parquet columns
+/// Metadata for one parquet column
 #[derive(Debug)]
 struct ColumnSpec {
-    /// Source key of our parquet column name
+    /// Source JSON field name for the column
     source_name: Option<String>,
     /// The unique parquet column name
     parquet_name: String,
@@ -307,7 +307,7 @@ struct ColumnSpec {
     kind: ColumnKind,
 }
 
-/// Common Column value types
+/// Supported parquet column value types
 #[derive(Copy, Clone, Debug)]
 enum ColumnKind {
     Bool,
@@ -322,9 +322,7 @@ impl ColumnKind {
         match value {
             Value::Bool(_) => Self::Bool,
             Value::Number(number) => {
-                if number.is_i64() {
-                    Self::Int64
-                } else if number.as_u64().is_some_and(|n| n <= i64::MAX as u64) {
+                if number.is_i64() || number.as_u64().is_some_and(|n| i64::try_from(n).is_ok()) {
                     Self::Int64
                 } else if number.is_f64() {
                     Self::Double
@@ -332,12 +330,11 @@ impl ColumnKind {
                     Self::Utf8
                 }
             }
-            Value::Null => Self::Utf8,
-            Value::Array(_) | Value::Object(_) | Value::String(_) => Self::Utf8,
+            Value::Null | Value::Array(_) | Value::Object(_) | Value::String(_) => Self::Utf8,
         }
     }
 
-    /// Attempt to merge column types if a key-value has more than one type
+    /// Merges inferred column types when a field has mixed value types in the schema chunk
     ///
     /// Example: `{"value": 1}` and later `{"value": 2.5}`
     ///
@@ -353,30 +350,30 @@ impl ColumnKind {
     }
 }
 
-/// Data for each column type
+/// Column values and definition levels prepared for parquet writing
 enum ColumnBatch {
     Bool {
         /// Array of booleans
         values: Vec<bool>,
-        /// Definition level for the parquet row
+        /// Per-row definition levels; 1 means present, 0 means null or missing.
         definition_levels: Vec<i16>,
     },
     Int64 {
         /// Array of integers
         values: Vec<i64>,
-        /// Definition level for the parquet row
+        /// Per-row definition levels; 1 means present, 0 means null or missing.
         definition_levels: Vec<i16>,
     },
     Double {
         /// Array of floats
         values: Vec<f64>,
-        /// Definition level for the parquet row
+        /// Per-row definition levels; 1 means present, 0 means null or missing.
         definition_levels: Vec<i16>,
     },
     Utf8 {
         /// Array of `ByteArray`
         values: Vec<ByteArray>,
-        /// Definition level for the parquet row
+        /// Per-row definition levels; 1 means present, 0 means null or missing.
         definition_levels: Vec<i16>,
     },
 }
@@ -421,6 +418,7 @@ fn bool_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch 
             continue;
         }
 
+        // Missing values will become null
         definition_levels.push(0);
     }
 
@@ -447,6 +445,7 @@ fn i64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
             continue;
         }
 
+        // Missing values will become null
         definition_levels.push(0);
     }
 
@@ -484,6 +483,7 @@ fn f64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
             continue;
         }
 
+        // Missing values will become null
         definition_levels.push(0);
     }
 
@@ -513,6 +513,7 @@ fn utf8_column(
             continue;
         }
 
+        // Missing values will become null
         definition_levels.push(0);
     }
 

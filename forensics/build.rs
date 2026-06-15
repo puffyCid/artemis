@@ -32,7 +32,7 @@ fn main() {
     // Cargo sets an env var for every enabled feature (e.g., CARGO_FEATURE_MY_FEATURE)
     for (key, _) in std::env::vars() {
         if let Some(feature) = key.strip_prefix("CARGO_FEATURE_") {
-            if feature.to_ascii_lowercase() == "default" {
+            if feature.eq_ignore_ascii_case("default") {
                 continue;
             }
             features.push(feature.to_ascii_lowercase());

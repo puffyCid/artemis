@@ -98,6 +98,7 @@ fn format_choice(format: &str) -> OutputFormat {
         "csv" => OutputFormat::Csv,
         "timeline" => OutputFormat::Timeline,
         "xml" => OutputFormat::Xml,
+        "parquet" => OutputFormat::Parquet,
         _ => OutputFormat::Jsonl,
     }
 }

@@ -82,7 +82,7 @@ impl LocalSink {
             .collect::<String>();
 
         if santize.is_empty() {
-            santize = String::from("artifact")
+            santize = String::from("artifact");
         }
 
         santize
