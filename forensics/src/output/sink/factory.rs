@@ -71,6 +71,7 @@ impl Sink {
         }
     }
 
+    /// Stream artifact results to destination
     pub(crate) fn stream_artifact(
         &self,
         artifact_name: &str,
