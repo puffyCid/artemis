@@ -49,6 +49,12 @@ impl StreamArtifactEncoder for ParquetEncoder {
         // Convert first record chunk into parquet rows and append collection metadata
         let rows = read_json_rows(records, context)?;
 
+        if rows.is_empty() {
+            return Err(OutputError::Encode(String::from(
+                "cannot create parquet schema from empty data",
+            )));
+        }
+
         // Infer the parquet schema from the first non-empty record chunk
         let schema = ParquetSchema::infer(&rows);
         let message_type = schema.message_type();
@@ -721,22 +727,12 @@ mod tests {
         let context = test_context();
         let encoder = ParquetEncoder;
         let mut records = VecRecordStream::new(Vec::new());
-        let opened = encoder
+
+        let err = encoder
             .encode_stream(target, &mut records, &context)
-            .unwrap();
+            .unwrap_err();
 
-        opened.writer.finish().unwrap();
-        let path = PathBuf::from("./tmp/parquet_empty_first_chunk.parquet");
-
-        let metadata = parquet_metadata(&path);
-        let schema = metadata.file_metadata().schema_descr();
-        let column = schema
-            .columns()
-            .iter()
-            .find(|column| column.name() == "_extra_json")
-            .unwrap();
-
-        assert_eq!(column.physical_type(), parquet::basic::Type::BYTE_ARRAY);
+        assert!(err.to_string().contains("cannot create parquet schema"));
     }
 
     #[test]
