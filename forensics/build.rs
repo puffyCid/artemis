@@ -1,10 +1,10 @@
 use std::process::Command;
-use vergen::{BuildBuilder, Emitter, RustcBuilder};
+use vergen::{Build, Emitter, Rustc};
 
 // Include some additional compile time info in our binary
 fn main() {
-    let build = BuildBuilder::all_build().unwrap();
-    let rustc = RustcBuilder::all_rustc().unwrap();
+    let build = Build::all_build();
+    let rustc = Rustc::all_rustc();
 
     Emitter::default()
         .add_instructions(&build)

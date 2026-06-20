@@ -39,7 +39,7 @@ reqwest = { version = "0.13.4", features = [
     "form",
 ] }
 sysinfo = "0.39.3"
-uuid = { version = "1.23.2", features = ["v4"] }
-rusqlite = { version = "0.40.0", features = ["bundled", "serde_json"] }
+uuid = { version = "1.23.3", features = ["v4"] }
+rusqlite = { version = "0.40.1", features = ["bundled", "serde_json"] }
 fastrand = { version = "2.4.1", default-features = false, features = ["std"] }
 chrono = "0.4.45"

@@ -249,7 +249,7 @@ impl AwsSink {
                 OutputError::Sink(format!("failed to get AWS XML start: {err:?}"))
             })?;
 
-            let session = CreateMultipartUpload::parse_response(xml_session).map_err(|err| {
+            let session = CreateMultipartUpload::parse_response(&xml_session).map_err(|err| {
                 OutputError::Sink(format!("failed to parse AWS XML session: {err:?}"))
             })?;
 
