@@ -1,5 +1,6 @@
 use crate::{
     output::{
+        encoder::artifact_encoder::StreamTarget,
         error::OutputResult,
         report::CollectionReport,
         sink::{
@@ -19,6 +20,9 @@ use crate::output::sink::aws::AwsSink;
 use crate::output::sink::azure::AzureSink;
 #[cfg(feature = "gcp")]
 use crate::output::sink::gcp::GcpSink;
+
+#[cfg(any(feature = "gcp", feature = "aws", feature = "azure", feature = "api"))]
+use crate::output::error::OutputError;
 
 /// Selected destination for encoded output.
 ///
@@ -64,6 +68,22 @@ impl Sink {
             Self::Azure(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
             #[cfg(feature = "api")]
             Self::Api(sink) => sink.write_artifact(artifact_name, extension, mime_type, encode),
+        }
+    }
+
+    /// Stream artifact results to destination
+    pub(crate) fn stream_artifact(
+        &self,
+        artifact_name: &str,
+        extension: &str,
+    ) -> OutputResult<StreamTarget> {
+        match self {
+            Self::Local(sink) => Ok(sink.stream_artifact(artifact_name, extension)),
+
+            #[cfg(any(feature = "gcp", feature = "aws", feature = "azure", feature = "api"))]
+            _ => Err(OutputError::Config(String::from(
+                "streamed output only supports local destination",
+            ))),
         }
     }
 

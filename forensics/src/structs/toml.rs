@@ -75,6 +75,7 @@ pub enum OutputFormat {
     /// Plaintext output for `BoaJS` runtime data
     Text,
     Xml,
+    Parquet,
 }
 
 /// Determine where our data should be sent

@@ -118,7 +118,7 @@ pub(crate) fn output_data(
                 options,
                 &mut VecRecordStream::new(record_array),
             ) {
-                println!("[runtime] Could not write record from data: {err:?}");
+                error!("[runtime] Could not write record from data: {err:?}");
                 return Err(RuntimeError::Output);
             }
         }

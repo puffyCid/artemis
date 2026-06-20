@@ -47,6 +47,11 @@ pub(crate) fn js_output(
         let issue = String::from("Failed could not output script data");
         return Err(JsError::from_opaque(js_string!(issue).into()));
     }
+    if let Err(err) = manager.finalize() {
+        error!("[runtime] Could not complete record from data: {err:?}");
+        let issue = format!("Could not complete record from data: {err:?}");
+        return Err(JsError::from_opaque(js_string!(issue).into()));
+    }
     let sucess = true;
     Ok(JsValue::new(sucess))
 }
