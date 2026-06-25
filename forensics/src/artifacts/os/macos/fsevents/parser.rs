@@ -17,7 +17,7 @@ use crate::{
     utils::compression::decompress::decompress_gzip,
 };
 use common::macos::FsEvents;
-use log::error;
+use tracing::error;
 
 /// Parse `FsEvent` files. Check for `/System/Volumes/Data/.fseventsd/` and `/.fseventsd` paths
 pub(crate) fn grab_fseventsd(
@@ -103,7 +103,7 @@ fn fseventsd(directory: &str) -> Result<Vec<String>, FsEventsError> {
     let fsevent_files = match files_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[fsevents] Could not list FsEvents files: {err:?}");
+            error!("Could not list FsEvents files: {err:?}");
             return Err(FsEventsError::Files);
         }
     };

@@ -1,6 +1,6 @@
 use super::error::PlistError;
-use log::error;
 use plist::{Dictionary, Value};
+use tracing::error;
 
 /// Parse a `plist` from given path and return a Value (any `plist` value)
 pub(crate) fn parse_plist_file(path: &str) -> Result<Value, PlistError> {
@@ -8,7 +8,7 @@ pub(crate) fn parse_plist_file(path: &str) -> Result<Value, PlistError> {
     match plist_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[plist] Could not read plist file {path}: {err:?}");
+            error!("Could not read plist file {path}: {err:?}");
             Err(PlistError::File)
         }
     }
@@ -22,7 +22,7 @@ pub(crate) fn parse_plist_file_dict(path: &str) -> Result<Dictionary, PlistError
     match plist_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[plist] Could not read plist file {path}: {err:?}");
+            error!("Could not read plist file {path}: {err:?}");
             Err(PlistError::File)
         }
     }
@@ -34,7 +34,7 @@ pub(crate) fn parse_plist_data(data: &[u8]) -> Result<Value, PlistError> {
     match plist_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[plist] Could not parse plist data: {err:?}");
+            error!("Could not parse plist data: {err:?}");
             Err(PlistError::File)
         }
     }

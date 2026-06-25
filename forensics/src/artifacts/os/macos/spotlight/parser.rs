@@ -16,7 +16,7 @@
  */
 use super::{error::SpotlightError, light::parse_spotlight};
 use crate::{output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
-use log::error;
+use tracing::error;
 
 /// Dump the Spotlight database. Requires root
 pub(crate) fn grab_spotlight(
@@ -48,7 +48,7 @@ pub(crate) fn grab_spotlight(
 
     for glob in paths {
         if let Err(err) = parse_spotlight(&glob, manager, options) {
-            error!["[spotlight] Could not parse spotlight for '{glob}': {err:?}"];
+            error!["Could not parse spotlight for '{glob}': {err:?}"];
         }
     }
 

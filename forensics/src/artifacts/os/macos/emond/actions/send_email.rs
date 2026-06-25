@@ -1,7 +1,7 @@
 use crate::artifacts::os::macos::plist::property_list::get_string;
 use common::macos::SendEmail;
-use log::warn;
 use plist::Dictionary;
+use tracing::warn;
 
 /// Parse Send mail `Emond` action
 pub(crate) fn parse_action_send_email(action_dictionary: &Dictionary) -> SendEmail {
@@ -29,7 +29,7 @@ pub(crate) fn parse_action_send_email(action_dictionary: &Dictionary) -> SendEma
             let arg_array = if let Some(results) = action_value.as_array() {
                 results
             } else {
-                warn!("[emond] Failed to parse Send Email Action array: {action_value:?}",);
+                warn!("Failed to parse Send Email Action array: {action_value:?}",);
                 continue;
             };
 
@@ -39,7 +39,7 @@ pub(crate) fn parse_action_send_email(action_dictionary: &Dictionary) -> SendEma
                     .push(get_string(args).unwrap_or_default());
             }
         } else if key != "type" {
-            warn!("[emond] Unknown Log Action key: {key}. Value: {action_value:?}");
+            warn!("Unknown Log Action key: {key}. Value: {action_value:?}");
         }
     }
     email_data

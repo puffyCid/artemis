@@ -17,8 +17,8 @@ use crate::{
     structs::artifacts::os::macos::EmondOptions,
 };
 use common::macos::EmondData;
-use log::{error, warn};
 use plist::Value;
+use tracing::{error, warn};
 
 /// Parse Emond rules on macOS
 pub(crate) fn grab_emond(options: &EmondOptions) -> Result<Vec<EmondData>, PlistError> {
@@ -39,7 +39,7 @@ pub(crate) fn grab_emond(options: &EmondOptions) -> Result<Vec<EmondData>, Plist
 fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
     let emond_plist_path = "/etc/emond.d/emond.plist";
     if !is_file(emond_plist_path) {
-        warn!("[emond] No emond.plist file found. Emond removed starting on macOS Ventura");
+        warn!("No emond.plist file found. Emond removed starting on macOS Ventura");
         return Ok(Vec::new());
     }
 
@@ -47,7 +47,7 @@ fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
     let emond_plist = match emond_plist_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[emond] Failed to parse Emond Config PLIST file: {err:?}");
+            error!("Failed to parse Emond Config PLIST file: {err:?}");
             return Ok(Vec::new());
         }
     };

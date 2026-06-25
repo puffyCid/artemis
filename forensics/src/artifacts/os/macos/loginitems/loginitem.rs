@@ -3,7 +3,7 @@ use super::plist::get_bookmarks;
 use crate::artifacts::os::macos::plist::property_list::parse_plist_file_dict;
 use crate::filesystem::files::list_files;
 use common::macos::LoginItemsData;
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Parse User `LoginItems` from provided path
 pub(crate) fn parse_loginitems(path: &str) -> Result<Vec<LoginItemsData>, LoginItemError> {
@@ -11,7 +11,7 @@ pub(crate) fn parse_loginitems(path: &str) -> Result<Vec<LoginItemsData>, LoginI
     let items = match get_bookmarks(path) {
         Ok(data) => data,
         Err(err) => {
-            error!("[loginitem] Failed to read plist {path}: {err:?}");
+            error!("Failed to read plist {path}: {err:?}");
             return Err(LoginItemError::Plist);
         }
     };
@@ -27,7 +27,7 @@ pub(crate) fn loginitems_bundled_apps_path(
     let files = match files_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[loginitems] Failed to read LoginItem bundled App directory: {err:?}");
+            error!("Failed to read LoginItem bundled App directory: {err:?}");
             return Err(LoginItemError::Path);
         }
     };
@@ -55,7 +55,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                     if let Some(app_id) = value.into_string() {
                         loginitems_data.app_id = app_id;
                     } else {
-                        warn!("[loginitems] No app id associated with bundled");
+                        warn!("No app id associated with bundled");
                     }
 
                     loginitems_data.app_binary = key;
@@ -64,7 +64,7 @@ pub(crate) fn loginitems_bundled_apps_path(
                 }
             }
             Err(err) => {
-                warn!("[loginitems] Failed to parse plist: {file} {err:?}");
+                warn!("Failed to parse plist: {file} {err:?}");
             }
         }
     }

@@ -1,7 +1,7 @@
 use crate::artifacts::os::macos::plist::property_list::{get_dictionary, get_string};
 use common::macos::Log;
-use log::warn;
 use plist::Dictionary;
+use tracing::warn;
 
 /// Parse the Log Action `Emond` Rule
 pub(crate) fn parse_action_log(action_dictionary: &Dictionary) -> Log {
@@ -25,7 +25,7 @@ pub(crate) fn parse_action_log(action_dictionary: &Dictionary) -> Log {
         } else if key == "facility" {
             log_data.facility = get_string(action_value).unwrap_or_default();
         } else if key != "type" {
-            warn!("[emond] Unknown Log Action key: {key}. Value: {action_value:?}");
+            warn!("Unknown Log Action key: {key}. Value: {action_value:?}");
         }
     }
     log_data

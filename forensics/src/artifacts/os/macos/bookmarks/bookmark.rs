@@ -7,9 +7,9 @@ use crate::utils::{
     time::cocoatime_to_iso,
 };
 use common::macos::{BookmarkData, CreationFlags, TargetFlags, VolumeFlags};
-use log::warn;
 use nom::{bytes::complete::take, number::complete::be_f64};
 use std::fmt::Debug;
+use tracing::warn;
 
 #[derive(Debug)]
 pub(crate) struct BookmarkHeader {
@@ -187,7 +187,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                     // Now we have data for actual bookmark data
                     standard_data_vec = std_data_vec;
                 }
-                Err(err) => warn!("[bookmarks] Failed to get bookmark standard data: {err:?}"),
+                Err(err) => warn!("Failed to get bookmark standard data: {err:?}"),
             }
         }
 
@@ -202,13 +202,13 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                         }
                         bookmark_data.target_flags = get_target_flags(&flags);
                     }
-                    Err(err) => warn!("[bookmarks] Failed to parse Target Flags: {err:?}"),
+                    Err(err) => warn!("Failed to parse Target Flags: {err:?}"),
                 }
             } else if standard_data.record_type == target_creation_date {
                 let creation = match bookmark_data_type_date(&record_data) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse Target File created timestamp: {err:?}");
+                        warn!("Failed to parse Target File created timestamp: {err:?}");
                         continue;
                     }
                 };
@@ -225,7 +225,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 bookmark_data.volume_size = match nom_signed_eight_bytes(&record_data, Endian::Le) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse Volume size: {err:?}");
+                        warn!("Failed to parse Volume size: {err:?}");
                         continue;
                     }
                 };
@@ -233,7 +233,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let creation = match bookmark_data_type_date(&record_data) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse Volume Creation timestamp: {err:?}");
+                        warn!("Failed to parse Volume Creation timestamp: {err:?}");
                         continue;
                     }
                 };
@@ -242,7 +242,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let flags_data = bookmark_target_flags(&record_data);
                 match flags_data {
                     Ok((_, flags)) => bookmark_data.volume_flags = get_volume_flags(&flags),
-                    Err(err) => warn!("[bookmarks] Failed to parse Volume Flags: {err:?}"),
+                    Err(err) => warn!("Failed to parse Volume Flags: {err:?}"),
                 }
             } else if standard_data.record_type == volume_root
                 && standard_data.data_type == bool_true
@@ -278,7 +278,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 bookmark_data.folder_index = match nom_signed_four_bytes(&record_data, Endian::Le) {
                     Ok((_, result)) => result as i64,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse bookmark folder index: {err:?}");
+                        warn!("Failed to parse bookmark folder index: {err:?}");
                         continue;
                     }
                 };
@@ -289,7 +289,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse bookmark folder index: {err:?}");
+                        warn!("Failed to parse bookmark folder index: {err:?}");
                         continue;
                     }
                 };
@@ -297,7 +297,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 bookmark_data.uid = match nom_signed_four_bytes(&record_data, Endian::Le) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse bookmark Creator UID: {err:?}");
+                        warn!("Failed to parse bookmark Creator UID: {err:?}");
                         continue;
                     }
                 };
@@ -307,7 +307,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let value = match nom_signed_four_bytes(&record_data, Endian::Le) {
                     Ok((_, options)) => options,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse volume bookmark: {err:?}");
+                        warn!("Failed to parse volume bookmark: {err:?}");
                         continue;
                     }
                 };
@@ -323,14 +323,14 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let options = match nom_signed_four_bytes(&record_data, Endian::Le) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse bookmark Creation options: {err:?}");
+                        warn!("Failed to parse bookmark Creation options: {err:?}");
                         continue;
                     }
                 };
                 bookmark_data.creation_options = get_creation_flags(options);
             } else {
                 warn!(
-                    "[bookmarks] Unknown Record Type: {} and Data type: {}",
+                    "Unknown Record Type: {} and Data type: {}",
                     standard_data.record_type, standard_data.data_type
                 );
             }
@@ -348,7 +348,7 @@ pub(crate) fn parse_bookmark_data(data: &[u8]) -> nom::IResult<&[u8], BookmarkDa
                 let cnid = match nom_signed_eight_bytes(&standard_data.record_data, Endian::Le) {
                     Ok((_, cnid)) => cnid,
                     Err(err) => {
-                        warn!("[bookmarks] Failed to parse cnid data: {err:?}");
+                        warn!("Failed to parse cnid data: {err:?}");
                         continue;
                     }
                 };

@@ -3,7 +3,6 @@ use crate::{
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::UnifiedLogsOptions,
 };
-use log::error;
 use macos_unifiedlogs::{
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
@@ -13,6 +12,7 @@ use macos_unifiedlogs::{
     unified_log::UnifiedLogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
+use tracing::error;
 
 /// Use the provided strings, shared strings, timesync data to parse the Unified Log data at provided path.
 pub(crate) fn grab_logs(
@@ -116,14 +116,14 @@ fn parse_trace_file(
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
-                error!("[unifiedlogs] Failed to serialize remaining unifiedlogs: {err:?}");
+                error!("Failed to serialize remaining unifiedlogs: {err:?}");
                 continue;
             }
         };
 
         let artifact_name = "unifiedlogs";
         if let Err(err) = manager.write_artifact(artifact_name, params, &mut records) {
-            error!("[unifiedlogs] Failed to output remaining unifiedlogs: {err:?}");
+            error!("Failed to output remaining unifiedlogs: {err:?}");
             continue;
         }
 
@@ -181,14 +181,14 @@ fn iterate_logs(
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
-                error!("[unifiedlogs] Failed to serialize unifiedlogs: {err:?}");
+                error!("Failed to serialize unifiedlogs: {err:?}");
                 continue;
             }
         };
 
         let artifact_name = "unifiedlogs";
         if let Err(err) = manager.write_artifact(artifact_name, params, &mut records) {
-            error!("[unifiedlogs] Failed to output unifiedlogs: {err:?}");
+            error!("Failed to output unifiedlogs: {err:?}");
         }
     }
     Ok(())

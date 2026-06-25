@@ -18,7 +18,7 @@ use crate::{
         UnifiedLogsOptions,
     },
 };
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Parse macOS `LoginItems`
 pub(crate) fn loginitems(
@@ -29,7 +29,7 @@ pub(crate) fn loginitems(
     let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to parse loginitems: {err:?}");
+            error!("Failed to parse loginitems: {err:?}");
             return Err(MacArtifactError::LoginItem);
         }
     };
@@ -40,14 +40,14 @@ pub(crate) fn loginitems(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize loginitems: {err:?}");
+            error!("Failed to serialize loginitems: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "loginitems";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output loginitems: {err:?}");
+        error!("Failed to output loginitems: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -63,7 +63,7 @@ pub(crate) fn emond(
     let entries = match results {
         Ok(result) => result,
         Err(err) => {
-            warn!("[forensics] Failed to parse emond rules: {err:?}");
+            warn!("Failed to parse emond rules: {err:?}");
             return Err(MacArtifactError::Emond);
         }
     };
@@ -75,14 +75,14 @@ pub(crate) fn emond(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to serialize emond: {err:?}");
+            error!("Failed to serialize emond: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "emond";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output emond: {err:?}");
+        error!("Failed to output emond: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -101,14 +101,14 @@ pub(crate) fn users_macos(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to serialize users: {err:?}");
+            error!("Failed to serialize users: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "users-macos";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output users: {err:?}");
+        error!("Failed to output users: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -127,14 +127,14 @@ pub(crate) fn groups_macos(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to serialize groups: {err:?}");
+            error!("Failed to serialize groups: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "groups-macos";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output groups: {err:?}");
+        error!("Failed to output groups: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -147,7 +147,7 @@ pub(crate) fn fseventsd(
     options: &FseventsOptions,
 ) -> Result<(), MacArtifactError> {
     if let Err(err) = grab_fseventsd(options, manager) {
-        warn!("[forensics] Failed to parse fseventsd: {err:?}");
+        warn!("Failed to parse fseventsd: {err:?}");
         return Err(MacArtifactError::FsEventsd);
     }
 
@@ -163,7 +163,7 @@ pub(crate) fn launchd(
     let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to parse launchd: {err:?}");
+            error!("Failed to parse launchd: {err:?}");
             return Err(MacArtifactError::Launchd);
         }
     };
@@ -175,14 +175,14 @@ pub(crate) fn launchd(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to serialize launchd: {err:?}");
+            error!("Failed to serialize launchd: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "launchd";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output launchd: {err:?}");
+        error!("Failed to output launchd: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -206,7 +206,7 @@ pub(crate) fn execpolicy(
     let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to query execpolicy: {err:?}");
+            error!("Failed to query execpolicy: {err:?}");
             return Err(MacArtifactError::ExecPolicy);
         }
     };
@@ -217,14 +217,14 @@ pub(crate) fn execpolicy(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to serialize execpolicy: {err:?}");
+            error!("Failed to serialize execpolicy: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "execpolicy";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output execpolicy: {err:?}");
+        error!("Failed to output execpolicy: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -240,7 +240,7 @@ pub(crate) fn sudo_logs_macos(
     let entries = match artifact_result {
         Ok(results) => results,
         Err(err) => {
-            warn!("[forensics] Failed to get sudo log data: {err:?}");
+            warn!("Failed to get sudo log data: {err:?}");
             return Err(MacArtifactError::SudoLog);
         }
     };
@@ -252,14 +252,14 @@ pub(crate) fn sudo_logs_macos(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Failed to serialize sudo log data: {err:?}");
+            error!("Failed to serialize sudo log data: {err:?}");
             return Err(MacArtifactError::Serialize);
         }
     };
 
     let artifact_name = "sudologs-macos";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output sudo logs: {err:?}");
+        error!("Failed to output sudo logs: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -272,7 +272,7 @@ pub(crate) fn spotlight(
     options: &SpotlightOptions,
 ) -> Result<(), MacArtifactError> {
     if let Err(err) = grab_spotlight(options, manager) {
-        warn!("[forensics] Failed to get spotlight data: {err:?}");
+        warn!("Failed to get spotlight data: {err:?}");
         return Err(MacArtifactError::Spotlight);
     }
 
