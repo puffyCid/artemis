@@ -35,7 +35,7 @@ fn test_shortcuts_parser() {
 
         if output_file.contains("\\shortcuts_")
             && output_file.ends_with(".jsonl")
-            && !output_file.contains("/artemis_")
+            && !output_file.contains("\\artemis_")
         {
             validate_output(value);
         }

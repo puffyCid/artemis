@@ -34,7 +34,7 @@ fn test_shimdb_parser() {
 
         if output_file.contains("\\shimdb_")
             && output_file.ends_with(".jsonl")
-            && !output_file.contains("/artemis_")
+            && !output_file.contains("\\artemis_")
         {
             validate_output(value);
         }

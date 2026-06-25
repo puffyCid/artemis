@@ -34,7 +34,7 @@ fn test_wmipersist_parser() {
 
         if output_file.contains("\\wmipersist_")
             && output_file.ends_with(".jsonl")
-            && !output_file.contains("/artemis_")
+            && !output_file.contains("\\artemis_")
         {
             validate_output(value);
         }

@@ -33,7 +33,7 @@ fn test_tasks_parser() {
 
         if output_file.contains("\\tasks_")
             && output_file.ends_with(".jsonl")
-            && !output_file.contains("/artemis_")
+            && !output_file.contains("\\artemis_")
         {
             validate_output(value);
         }

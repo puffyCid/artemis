@@ -34,7 +34,7 @@ fn test_usnjrnl_parser() {
 
         if output_file.contains("\\usnjrnl_")
             && output_file.ends_with(".jsonl")
-            && !output_file.contains("/artemis_")
+            && !output_file.contains("\\artemis_")
         {
             validate_output(value);
         }

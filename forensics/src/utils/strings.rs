@@ -281,7 +281,7 @@ mod tests {
         ];
         assert_eq!(
             extract_ascii_utf16_string(&test_data),
-            "Failed to get UTF8 string:\n"
+            "[strings] Failed to get UTF8 string:\n"
         )
     }
 
