@@ -63,11 +63,15 @@ lumination = "0.2.0"
 snap = "1.1.1"
 ext4-fs = "0.2.0"
 calf = "0.3.0"
-
+parquet = { version = "59.0.0", default-features = false, features = [
+    "json",
+    "snap",
+    "simdutf8",
+] }
 
 # Optional Stuff
 url = { version = "2.5.8", optional = true }
-yara-x = { version = "1.18.0", optional = true, default-features = false, features = [
+yara-x = { version = "1.19.0", optional = true, default-features = false, features = [
     "constant-folding",
     "exact-atoms",
     "fast-regexp",
@@ -96,11 +100,6 @@ boa_runtime = { version = "0.21.1", default-features = false, optional = true }
 futures-concurrency = { version = "7.7.1", default-features = false, optional = true }
 futures-lite = { version = "2.6.1", default-features = false, optional = true }
 
-parquet = { version = "59.0.0", default-features = false, features = [
-    "json",
-    "snap",
-    "simdutf8",
-] }
 
 # Windows API Dependencies
 [target.'cfg(target_os = "windows")'.dependencies]
