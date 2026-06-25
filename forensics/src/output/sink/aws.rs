@@ -128,12 +128,12 @@ impl AwsSink {
                 }
                 Ok(response) => {
                     log::error!(
-                        "[forensics] Non-OK response for upload on attempt {attempt}: {:?}",
+                        "Non-OK response for upload on attempt {attempt}: {:?}",
                         response.text()
                     );
                 }
                 Err(err) => {
-                    log::error!("[forensics] Failed to upload on attempt {attempt}: {err:?}");
+                    log::error!("Failed to upload on attempt {attempt}: {err:?}");
                 }
             }
         }
@@ -163,19 +163,17 @@ impl AwsSink {
                         .contains("Internal Error")
                     {
                         error!(
-                            "[forensics] OK response on final upload but the response contained an error for attempt {attempt}"
+                            "OK response on final upload but the response contained an error for attempt {attempt}"
                         );
                         continue;
                     }
                     return Ok(());
                 }
                 Ok(response) => {
-                    warn!(
-                        "[forensics] Non-OK response on attempt {attempt} for final upload : {response:?}"
-                    );
+                    warn!("Non-OK response on attempt {attempt} for final upload : {response:?}");
                 }
                 Err(err) => {
-                    error!("[forensics] Final upload failed on attempt {attempt}: {err:?}");
+                    error!("Final upload failed on attempt {attempt}: {err:?}");
                 }
             }
         }
@@ -240,7 +238,7 @@ impl AwsSink {
 
             if response.status() != StatusCode::OK {
                 warn!(
-                    "[forensics] Non-200 AWS response on upload start. Attempt {attempt}: {:?}",
+                    "Non-200 AWS response on upload start. Attempt {attempt}: {:?}",
                     response.status()
                 );
                 continue;

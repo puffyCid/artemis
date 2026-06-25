@@ -3,12 +3,12 @@ use crate::{
     utils::{encoding::base64_encode_standard, strings::extract_ascii_utf16_string},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::error;
 use rusqlite::{
     Connection, OpenFlags,
     types::{FromSql, FromSqlError, ValueRef},
 };
 use serde_json::json;
+use tracing::error;
 
 /// Query a sqlite file
 pub(crate) fn js_query_sqlite(
@@ -28,7 +28,7 @@ pub(crate) fn js_query_sqlite(
     let conn = match connection {
         Ok(connect) => connect,
         Err(err) => {
-            error!("[runtime] Failed to open sqlite file {path}: {err:?}");
+            error!("Failed to open sqlite file {path}: {err:?}");
             let issue = format!("Failed to open sqlite file {path}: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
@@ -38,7 +38,7 @@ pub(crate) fn js_query_sqlite(
     let mut stmt = match statement {
         Ok(query) => query,
         Err(err) => {
-            error!("[runtime] Failed to compose query {err:?}");
+            error!("Failed to compose query {err:?}");
             let issue = format!("Failed to compose query {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
@@ -50,7 +50,7 @@ pub(crate) fn js_query_sqlite(
     let mut query_data = match query_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Failed to query sqlite {path} {err:?}");
+            error!("Failed to query sqlite {path} {err:?}");
             let issue = format!("Failed to query sqlite {path} {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
@@ -71,9 +71,7 @@ pub(crate) fn js_query_sqlite(
             let column_data = match column_value_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!(
-                        "[runtime] Could not get value for column {column_name} for {path}: {err:?}"
-                    );
+                    error!("Could not get value for column {column_name} for {path}: {err:?}");
                     continue;
                 }
             };
@@ -99,7 +97,7 @@ pub(crate) fn js_query_sqlite(
                         Ok(result) => result,
                         Err(err) => {
                             error!(
-                                "[runtime] Could not serialize data from column {column_name} from {path}: {err:?}"
+                                "Could not serialize data from column {column_name} from {path}: {err:?}"
                             );
                             continue;
                         }

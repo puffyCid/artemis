@@ -53,7 +53,7 @@ impl MarkerTracker {
         let mut runs = match self.read_runs() {
             Ok(results) => results,
             Err(err) => {
-                error!("[forensics] Could not read marker file {err:?}. Overwriting it");
+                error!("Could not read marker file {err:?}. Overwriting it");
                 Vec::new()
             }
         };

@@ -97,7 +97,7 @@ impl EntryArray {
 
                 let artifact_name = "journal";
                 if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-                    error!("[forensics] Failed to output journal: {err:?}");
+                    error!("Failed to output journal: {err:?}");
                 }
                 // Now empty the vec
                 entry_array.entries = Vec::new();
@@ -120,7 +120,7 @@ impl EntryArray {
 
         let artifact_name = "journal";
         if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-            error!("[forensics] Failed to output journal: {err:?}");
+            error!("Failed to output journal: {err:?}");
         }
         Ok((input, entry_array.next_entry_array_offset))
     }

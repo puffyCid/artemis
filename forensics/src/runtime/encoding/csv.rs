@@ -36,7 +36,7 @@ pub(crate) fn js_read_csv(
         }
         if value.len() != headers.len() {
             warn!(
-                "[forensics] Headers and csv row do not match. Headers: {}. Row: {}",
+                "Headers and csv row do not match. Headers: {}. Row: {}",
                 headers.len(),
                 value.len()
             );

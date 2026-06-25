@@ -9,10 +9,10 @@ use crate::{
 use boa_engine::{
     Context, JsError, JsResult, JsValue, NativeFunction, js_string, object::builtins::JsPromise,
 };
-use log::{error, warn};
 use serde::Serialize;
 use std::path::Path;
 use tokio::fs::read_dir;
+use tracing::{error, warn};
 
 #[derive(Serialize, Debug)]
 pub(crate) struct JsFileInfo {
@@ -42,7 +42,7 @@ pub(crate) fn js_read_dir(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
     if !is_directory(&path) {
-        error!("[runtime] Path is not a directory");
+        error!("Path is not a directory");
         return Err(JsError::from_opaque(js_string!("Not a directory").into()));
     }
 
@@ -82,14 +82,14 @@ async fn async_read_dir(path: String) -> JsResult<JsValue> {
         let timestamps = match get_timestamps(&full_path) {
             Ok(result) => result,
             Err(err) => {
-                warn!("[runtime] Failed to get timestamps for {path}: {err:?}");
+                warn!("Failed to get timestamps for {path}: {err:?}");
                 continue;
             }
         };
         let meta = match get_metadata(&full_path) {
             Ok(result) => result,
             Err(err) => {
-                warn!("[runtime] Failed to get metadata for {path}: {err:?}");
+                warn!("Failed to get metadata for {path}: {err:?}");
                 continue;
             }
         };

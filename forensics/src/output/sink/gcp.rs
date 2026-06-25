@@ -157,22 +157,19 @@ impl GcpSink {
                     && let Ok(status) = serde_json::from_slice::<UploadResponse>(&bytes)
                 {
                     info!(
-                        "[forensics] Uploaded GCP object {} at {}",
+                        "Uploaded GCP object {} at {}",
                         status.name, status.time_created
                     );
                 }
                 return Ok(());
             }
             Ok(response) => {
-                error!(
-                    "[forensics] Non-OK response from GCP upload: {:?}",
-                    response.text()
-                );
+                error!("Non-OK response from GCP upload: {:?}", response.text());
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
             Err(err) => {
-                error!("[forensics] Failed to upload to GCP: {err:?}");
+                error!("Failed to upload to GCP: {err:?}");
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
@@ -264,12 +261,12 @@ impl GcpSink {
                         }
                         Ok(response) => {
                             warn!(
-                                "[forensics] GCP resume issue on attempt {attempt}: {:?}",
+                                "GCP resume issue on attempt {attempt}: {:?}",
                                 response.text()
                             );
                         }
                         Err(err) => {
-                            warn!("[forensics] GCP resume failed on attempt {attempt}: {err:?}");
+                            warn!("GCP resume failed on attempt {attempt}: {err:?}");
                         }
                     }
                 }

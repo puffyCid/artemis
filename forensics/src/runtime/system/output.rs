@@ -7,7 +7,7 @@ use crate::{
     structs::{artifacts::runtime::script::JSScript, toml::OutputConfig},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::error;
+use tracing::error;
 
 pub(crate) fn js_output(
     _this: &JsValue,
@@ -22,7 +22,7 @@ pub(crate) fn js_output(
     let config: OutputConfig = match output_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[runtime] Failed deserialize output config format: {err:?}");
+            error!("Failed deserialize output config format: {err:?}");
             let issue = format!("Failed deserialize output config format: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
@@ -31,7 +31,7 @@ pub(crate) fn js_output(
     let mut manager = match OutputManager::new(config) {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Failed to create OutputManager: {err:?}");
+            error!("Failed to create OutputManager: {err:?}");
             let issue = format!("Failed to create OutputManager: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
@@ -43,12 +43,12 @@ pub(crate) fn js_output(
 
     let status = output_data(data, &script_dump, &mut manager);
     if status.is_err() {
-        error!("[runtime] Failed could not output script data");
+        error!("Failed could not output script data");
         let issue = String::from("Failed could not output script data");
         return Err(JsError::from_opaque(js_string!(issue).into()));
     }
     if let Err(err) = manager.finalize() {
-        error!("[runtime] Could not complete record from data: {err:?}");
+        error!("Could not complete record from data: {err:?}");
         let issue = format!("Could not complete record from data: {err:?}");
         return Err(JsError::from_opaque(js_string!(issue).into()));
     }

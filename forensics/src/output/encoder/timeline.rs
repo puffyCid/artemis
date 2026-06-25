@@ -40,7 +40,7 @@ impl ArtifactEncoder for TimelineEncoder {
                 &context.end_time_filter,
             ) {
                 debug!(
-                    "[forensics] Skipping '{}' record during timeline encoding. Unexpected artifact format.",
+                    "Skipping '{}' record during timeline encoding. Unexpected artifact format.",
                     context.artifact_name
                 );
                 continue;

@@ -3,7 +3,7 @@ use crate::{
     structs::artifacts::os::linux::LinuxSudoOptions,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::error;
+use tracing::error;
 
 /// Get `Sudo log` data
 pub(crate) fn js_get_sudologs_linux(
@@ -23,7 +23,7 @@ pub(crate) fn js_get_sudologs_linux(
     let sudo = match sudo_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[runtime] Failed to get sudo log data: {err:?}");
+            error!("Failed to get sudo log data: {err:?}");
             let issue = format!("Failed to get sudo log data: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }

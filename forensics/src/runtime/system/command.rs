@@ -3,9 +3,9 @@ use crate::{
     utils::strings::extract_utf8_string,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::warn;
 use serde::Serialize;
 use std::process::Command;
+use tracing::warn;
 
 #[derive(Serialize)]
 pub(crate) struct CommandResult {
@@ -30,7 +30,7 @@ pub(crate) fn js_command(
         }
     }
 
-    warn!("[runtime] Executing {command} with args: {comm_args:?}");
+    warn!("Executing {command} with args: {comm_args:?}");
 
     let mut comm = Command::new(command);
     comm.args(comm_args);

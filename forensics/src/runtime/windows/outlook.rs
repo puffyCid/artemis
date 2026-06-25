@@ -9,8 +9,8 @@ use crate::{
     runtime::helper::{bigint_arg, boolean_arg, string_arg, value_arg},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::error;
 use std::io::BufReader;
+use tracing::error;
 
 pub(crate) fn js_root_folder(
     _this: &JsValue,
@@ -401,7 +401,7 @@ pub(crate) fn js_read_messages(
                 let mut emails = match reader.read_message(Some(&ntfs_file), &message_table, None) {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[runtime] Failed to read message {err:?}");
+                        error!("Failed to read message {err:?}");
                         continue;
                     }
                 };
@@ -456,7 +456,7 @@ pub(crate) fn js_read_messages(
                 let mut emails = match reader.read_message(None, &message_table, None) {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[runtime] Failed to read message {err:?}");
+                        error!("Failed to read message {err:?}");
                         continue;
                     }
                 };

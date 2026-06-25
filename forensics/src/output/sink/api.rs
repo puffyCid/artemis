@@ -100,12 +100,9 @@ impl ApiSink {
 
             match result {
                 Ok(response) if response.status() == StatusCode::OK => return Ok(()),
-                Ok(response) => warn!(
-                    "[forensics] Non-OK response from server: {:?}",
-                    response.status()
-                ),
+                Ok(response) => warn!("Non-OK response from server: {:?}", response.status()),
                 Err(err) => {
-                    error!("[forensics] Failed to upload data to API. Error: {err:?}");
+                    error!("Failed to upload data to API. Error: {err:?}");
                 }
             }
             let jitter = fastrand::usize(..11);

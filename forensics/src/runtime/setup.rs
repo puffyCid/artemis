@@ -19,10 +19,10 @@ use boa_engine::{
 use boa_runtime::Console;
 use futures_concurrency::future::FutureGroup;
 use futures_lite::{StreamExt, future};
-use log::{error, warn};
 use serde_json::Value;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 use tokio::task;
+use tracing::{error, warn};
 
 #[cfg(feature = "network")]
 use super::http::extensions::http_functions;
@@ -34,7 +34,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     let console = Console::init(&mut context);
     let status = context.register_global_property(Console::NAME, console, Attribute::all());
     if let Err(err) = status {
-        error!("[runtime] Could not register console property: {err:?}");
+        error!("Could not register console property: {err:?}");
         return Err(RuntimeError::ExecuteScript);
     }
 
@@ -44,7 +44,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
         let status =
             context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
         if let Err(err) = status {
-            error!("[runtime] Could not register static args property: {err:?}");
+            error!("Could not register static args property: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     }
@@ -54,7 +54,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not execute script: {err:?}");
+            error!("Could not execute script: {err:?}");
             // A script should never halt execution
             return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
         }
@@ -76,7 +76,7 @@ pub(crate) fn run_script(script: &str, args: &[String]) -> Result<Value, Runtime
         return Ok(value);
     }
     error!(
-        "[runtime] Could not serialize script value: {:?}",
+        "Could not serialize script value: {:?}",
         result.to_json(&mut context)
     );
     Err(RuntimeError::ScriptResult)
@@ -105,7 +105,7 @@ impl Queue {
         let jobs = std::mem::take(&mut *self.promise_jobs.borrow_mut());
         for job in jobs {
             if let Err(err) = job.call(context) {
-                error!("[runtime] Failed drain async jobs: {err:?}");
+                error!("Failed drain async jobs: {err:?}");
             }
         }
     }
@@ -122,7 +122,7 @@ impl JobExecutor for Queue {
         {
             Ok(result) => result,
             Err(err) => {
-                error!("[runtime] Failed to run job: {err:?}");
+                error!("Failed to run job: {err:?}");
                 let issue = format!("Failed to run job: {err:?}");
 
                 return Err(JsError::from_opaque(js_string!(issue).into()));
@@ -152,7 +152,7 @@ impl JobExecutor for Queue {
             // tasks once to see if any of them finished, and run the pending microtasks
             // otherwise.
             if let Some(Err(err)) = future::poll_once(group.next()).await.flatten() {
-                error!("[runtime] Failed to queue async job: {err:?}");
+                error!("Failed to queue async job: {err:?}");
             };
 
             self.drain_jobs(&mut context.borrow_mut());
@@ -166,7 +166,7 @@ impl JobExecutor for Queue {
             Job::AsyncJob(job) => self.async_jobs.borrow_mut().push_back(job),
             Job::TimeoutJob(job) => self.timeout_jobs.borrow_mut().push_back(job),
             Job::GenericJob(job) => self.generic_jobs.borrow_mut().push_back(job),
-            _ => warn!("[runtime] Unsupported job {job:?}"),
+            _ => warn!("Unsupported job {job:?}"),
         }
     }
 }
@@ -177,7 +177,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     let mut context = match ContextBuilder::new().job_executor(Rc::new(queue)).build() {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not create async context: {err:?}");
+            error!("Could not create async context: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     };
@@ -185,7 +185,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     let console = Console::init(&mut context);
     let status = context.register_global_property(Console::NAME, console, Attribute::all());
     if let Err(err) = status {
-        error!("[runtime] Could not register console property: {err:?}");
+        error!("Could not register console property: {err:?}");
         return Err(RuntimeError::ExecuteScript);
     }
 
@@ -195,7 +195,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         let status =
             context.register_global_property(js_str!("STATIC_ARGS"), value, Attribute::all());
         if let Err(err) = status {
-            error!("[runtime] Could not register static args property: {err:?}");
+            error!("Could not register static args property: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     }
@@ -205,7 +205,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
     let result = match context.eval(Source::from_bytes(script.as_bytes())) {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not execute script: {err:?}");
+            error!("Could not execute script: {err:?}");
             // A script should never halt execution
             return Ok(serde_json::to_value(format!("{err:?}")).unwrap_or_default());
         }
@@ -227,7 +227,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
                     return Ok(value);
                 }
                 error!(
-                    "[runtime] Could not serialize async promise script value: {:?}",
+                    "Could not serialize async promise script value: {:?}",
                     result.to_json(&mut context)
                 );
                 return Err(RuntimeError::ScriptResult);
@@ -239,7 +239,7 @@ pub(crate) fn run_async_script(script: &str, args: &[String]) -> Result<Value, R
         return Ok(value);
     }
     error!(
-        "[runtime] Could not serialize async script value: {:?}",
+        "Could not serialize async script value: {:?}",
         result.to_json(&mut context)
     );
     Err(RuntimeError::ScriptResult)
@@ -253,7 +253,7 @@ impl JsFilterRuntime {
             .job_executor(Rc::new(queue))
             .build()
             .map_err(|err| {
-                error!("[runtime] Could not create JavaScript filter context: {err:?}");
+                error!("Could not create JavaScript filter context: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
@@ -263,7 +263,7 @@ impl JsFilterRuntime {
         context
             .eval(Source::from_bytes(script.as_bytes()))
             .map_err(|err| {
-                error!("[runtime] Could not evaluate JavaScript filter script: {err:?}");
+                error!("Could not evaluate JavaScript filter script: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
@@ -271,12 +271,12 @@ impl JsFilterRuntime {
             .global_object()
             .get(JsString::from("main"), &mut context)
             .map_err(|err| {
-                error!("[runtime] Could not get JavaScript filter entrypoint: {err:?}");
+                error!("Could not get JavaScript filter entrypoint: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
         if !entrypoint.is_callable() {
-            error!("[runtime] JavaScript filter script must define function `main()`");
+            error!("JavaScript filter script must define function `main()`");
             return Err(RuntimeError::ExecuteScript);
         }
 
@@ -294,23 +294,23 @@ impl JsFilterRuntime {
             .global_object()
             .get(JsString::from("main"), &mut self.context)
             .map_err(|err| {
-                error!("[runtime] Could not get JavaScript filter entrypoint: {err:?}");
+                error!("Could not get JavaScript filter entrypoint: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
         // Validate one more time. We validate the entrypoint is callable when we initialize JsFilterRuntime
         let Some(entrypoint) = entrypoint.as_callable() else {
-            error!("[runtime] JavaScript filter entrypoint `main()` is not callable");
+            error!("JavaScript filter entrypoint `main()` is not callable");
             return Err(RuntimeError::ExecuteScript);
         };
 
         let record_arg = JsValue::from_json(&record, &mut self.context).map_err(|err| {
-            error!("[runtime] Could not convert filter record to JavaScript: {err:?}");
+            error!("Could not convert filter record to JavaScript: {err:?}");
             RuntimeError::ExecuteScript
         })?;
 
         let context_arg = JsValue::from_json(filter_conext, &mut self.context).map_err(|err| {
-            error!("[runtime] Could not convert filter context to JavaScript: {err:?}");
+            error!("Could not convert filter context to JavaScript: {err:?}");
             RuntimeError::ExecuteScript
         })?;
 
@@ -322,7 +322,7 @@ impl JsFilterRuntime {
                 &mut self.context,
             )
             .map_err(|err| {
-                error!("[runtime] JavaScript filter entrypoint failed: {err:?}");
+                error!("JavaScript filter entrypoint failed: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
@@ -337,17 +337,17 @@ impl JsFilterRuntime {
 
         if result.is_promise() {
             let Some(promise) = result.as_promise() else {
-                error!("[runtime] JavaScript filter result was promise-like but not awaitable");
+                error!("JavaScript filter result was promise-like but not awaitable");
                 return Err(RuntimeError::ScriptResult);
             };
 
             self.context.run_jobs().map_err(|err| {
-                error!("[runtime] JavaScript filter could no run job: {err:?}");
+                error!("JavaScript filter could no run job: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
             let resolved = promise.await_blocking(&mut self.context).map_err(|err| {
-                error!("[runtime] JavaScript filter promise failed: {err:?}");
+                error!("JavaScript filter promise failed: {err:?}");
                 RuntimeError::ExecuteScript
             })?;
 
@@ -364,7 +364,7 @@ fn register_console(context: &mut Context) -> Result<(), RuntimeError> {
     context
         .register_global_property(Console::NAME, console, Attribute::all())
         .map_err(|err| {
-            error!("[runtime] Could not register console property: {err:?}");
+            error!("Could not register console property: {err:?}");
             RuntimeError::ExecuteScript
         })?;
     Ok(())
@@ -379,11 +379,11 @@ fn js_value_to_json(value: JsValue, context: &mut Context) -> Result<Value, Runt
     value
         .to_json(context)
         .map_err(|err| {
-            error!("[runtime] Could not convert JavaScript value to JSON: {err:?}");
+            error!("Could not convert JavaScript value to JSON: {err:?}");
             RuntimeError::ScriptResult
         })?
         .ok_or_else(|| {
-            error!("[runtime] JavaScript value could not be represented as JSON");
+            error!("JavaScript value could not be represented as JSON");
             RuntimeError::ScriptResult
         })
 }
