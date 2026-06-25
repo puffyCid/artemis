@@ -65,6 +65,7 @@ impl OutputManager {
                     .json()
                     .with_file(true)
                     .with_line_number(true)
+                    .with_target(false)
                     .flatten_event(true)
                     .with_writer(log_output.file),
             )
