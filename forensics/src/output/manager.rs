@@ -59,7 +59,7 @@ impl OutputManager {
         let log_output = sink.create_log_file()?;
         let log_path = log_output.path.clone();
 
-        tracing_subscriber::registry()
+        let _ = tracing_subscriber::registry()
             .with(
                 layer()
                     .json()
@@ -69,7 +69,7 @@ impl OutputManager {
                     .with_writer(log_output.file),
             )
             .with(log_level(config.logging.as_deref()))
-            .init();
+            .try_init();
 
         let context = CollectionContext::new(&config, log_path);
         Ok(Self {

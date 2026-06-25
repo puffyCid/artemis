@@ -8,6 +8,15 @@ use serde_json::Value;
 use tracing::{error, info};
 
 #[cfg(feature = "boa")]
+use tracing::level_filters::LevelFilter;
+#[cfg(feature = "boa")]
+use tracing_subscriber::fmt::layer;
+#[cfg(feature = "boa")]
+use tracing_subscriber::layer::SubscriberExt;
+#[cfg(feature = "boa")]
+use tracing_subscriber::util::SubscriberInitExt;
+
+#[cfg(feature = "boa")]
 use crate::runtime::run::raw_script;
 #[cfg(feature = "network")]
 use url::Url;
@@ -59,6 +68,16 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
 #[cfg(feature = "boa")]
 /// Execute a JavaScript file at provided path
 pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
+    let _ = tracing_subscriber::registry()
+        .with(
+            layer()
+                .json()
+                .with_file(true)
+                .with_line_number(true)
+                .flatten_event(true),
+        )
+        .with(LevelFilter::WARN)
+        .try_init();
     let code_result = read_text_file(path);
     let script = match code_result {
         Ok(results) => results,

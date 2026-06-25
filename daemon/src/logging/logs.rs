@@ -210,7 +210,7 @@ mod tests {
     fn test_read_log() {
         create_dir_all("./tmp/artemis").unwrap();
         let log_file = File::create("./tmp/artemis/daemon2.jsonl").unwrap();
-        tracing_subscriber::registry()
+        let _ = tracing_subscriber::registry()
             .with(
                 layer()
                     .json()
@@ -220,7 +220,7 @@ mod tests {
                     .with_writer(log_file),
             )
             .with(LevelFilter::WARN)
-            .init();
+            .try_init();
         warn!("test warning");
 
         let _ = read_log("./tmp/artemis/daemon2.jsonl").unwrap();

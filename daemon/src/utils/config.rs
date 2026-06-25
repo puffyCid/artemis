@@ -72,7 +72,7 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, D
 
     let (log_file, level) = setup_logging(&config)?;
 
-    tracing_subscriber::registry()
+    let _ = tracing_subscriber::registry()
         .with(
             layer()
                 .json()
@@ -82,7 +82,7 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, D
                 .with_writer(log_file),
         )
         .with(level)
-        .init();
+        .try_init();
 
     Ok(config)
 }
