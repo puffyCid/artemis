@@ -1,7 +1,7 @@
 use super::error::ConnectionsError;
 use crate::output::{manager::OutputManager, record::serialize_records_to_stream};
-use log::error;
 use lumination::connections::connections;
+use tracing::error;
 
 /// Attempt to get network connections on a system
 pub(crate) fn list_connections(manager: &mut OutputManager) -> Result<(), ConnectionsError> {
@@ -16,14 +16,14 @@ pub(crate) fn list_connections(manager: &mut OutputManager) -> Result<(), Connec
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize connections: {err:?}");
+            error!("Failed to serialize connections: {err:?}");
             return Err(ConnectionsError::Serialize);
         }
     };
 
     let artifact_name = "connections";
     if let Err(err) = manager.write_artifact(artifact_name, &"", &mut records) {
-        error!("[forensics] Failed to output connections: {err:?}");
+        error!("Failed to output connections: {err:?}");
         return Err(ConnectionsError::Output);
     }
     Ok(())

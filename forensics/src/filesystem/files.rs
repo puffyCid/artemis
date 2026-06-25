@@ -2,7 +2,6 @@ use super::{directory::is_directory, error::FileSystemError, metadata::get_metad
 use base16ct::lower::encode_str;
 use common::files::Hashes;
 use digest_io::IoWrapper;
-use log::{error, warn};
 use md5::{Digest, Md5};
 use sha1::Sha1;
 use sha2::Sha256;
@@ -13,6 +12,7 @@ use std::{
     io::{Read, copy},
     path::Path,
 };
+use tracing::{error, warn};
 
 /// Get a list of all files in a provided directory. Use `list_directories` to get only directories. Use `list_files_directories` to get both files and directories
 pub(crate) fn list_files(path: &str) -> Result<Vec<String>, FileSystemError> {
@@ -38,7 +38,7 @@ pub(crate) fn list_files_directories(path: &str) -> Result<Vec<String>, FileSyst
     let dir = match dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to get directory contents: {err:?}");
+            error!("Failed to get directory contents: {err:?}");
             return Err(FileSystemError::ReadDirectory);
         }
     };
@@ -48,7 +48,7 @@ pub(crate) fn list_files_directories(path: &str) -> Result<Vec<String>, FileSyst
         let entry = match entry_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Failed to get directory entry: {err:?}");
+                error!("Failed to get directory entry: {err:?}");
                 continue;
             }
         };
@@ -103,7 +103,7 @@ pub(crate) fn file_reader(path: &str) -> Result<File, FileSystemError> {
     let reader = match read_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to open file {path}: {err:?}");
+            error!("Failed to open file {path}: {err:?}");
             return Err(FileSystemError::OpenFile);
         }
     };
@@ -131,7 +131,7 @@ fn file_read(path: &str) -> Result<Vec<u8>, FileSystemError> {
     match read_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[forensics] Failed to read file {path}: {err:?}");
+            error!("Failed to read file {path}: {err:?}");
             Err(FileSystemError::ReadFile)
         }
     }
@@ -148,7 +148,7 @@ fn file_read_text(path: &str) -> Result<String, FileSystemError> {
     match data {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[forensics] Failed to read text file {path}: {err:?}");
+            error!("Failed to read text file {path}: {err:?}");
             Err(FileSystemError::ReadFile)
         }
     }
@@ -204,7 +204,7 @@ pub(crate) fn hash_file(hashes: &Hashes, path: &str) -> (String, String, String)
     let mut file = match file_open {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to hash file {path}: {err:?}");
+            error!("Failed to hash file {path}: {err:?}");
             return (md5_string, sha1_string, sha256_string);
         }
     };
@@ -217,7 +217,7 @@ pub(crate) fn hash_file(hashes: &Hashes, path: &str) -> (String, String, String)
         let bytes = match bytes_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Failed to read file: {err:?}");
+                error!("Failed to read file: {err:?}");
                 return (md5_string, sha1_string, sha256_string);
             }
         };
@@ -283,7 +283,7 @@ pub(crate) fn get_file_size(path: &str) -> u64 {
     match meta {
         Ok(result) => result.len(),
         Err(err) => {
-            error!("[forensics] Failed to get file size: {err:?}");
+            error!("Failed to get file size: {err:?}");
             0
         }
     }
@@ -322,7 +322,7 @@ pub(crate) fn get_filename(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[forensics] Failed to get filename from: {path}");
+        warn!("Failed to get filename from: {path}");
         return path.to_string();
     }
 

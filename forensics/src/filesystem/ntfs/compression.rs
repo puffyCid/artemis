@@ -8,11 +8,11 @@ use crate::{
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     },
 };
-use log::{error, warn};
 use nom::bytes::complete::take;
 use ntfs::NtfsFile;
 use ntfs::{Ntfs, NtfsAttributeType, NtfsError, structured_values::NtfsAttributeList};
 use std::{fs::File, io::BufReader};
+use tracing::{error, warn};
 
 #[cfg(target_os = "windows")]
 use crate::utils::compression::xpress::api::decompress_huffman_api;
@@ -34,7 +34,7 @@ pub(crate) fn check_wofcompressed(
     // Skipping files that have compressed data larger than 2GB
     let max_size = 2147483648;
     if compressed_data.len() >= max_size {
-        warn!("[wofcompression] Compressed data is larger than 2GB. Skipping decompression");
+        warn!("Compressed data is larger than 2GB. Skipping decompression");
         let size = compressed_data.len();
         return Ok((true, compressed_data, size as u64));
     }
@@ -52,7 +52,7 @@ pub(crate) fn check_wofcompressed(
     let compression_unit = grab_reparsepoint(ntfs_file, ntfs, fs)?;
     let lzx32k = 32768;
     if compression_unit == lzx32k {
-        warn!("[wofcompression] Lzx compression is not supported! Returning compressed data");
+        warn!("Lzx compression is not supported! Returning compressed data");
         let size = compressed_data.len();
         return Ok((true, compressed_data, size as u64));
     }
@@ -86,7 +86,7 @@ pub(crate) fn check_wofcompressed(
         uncompressed_data = if let Ok((_, result)) = compressed_results {
             result
         } else {
-            error!("[wofcompression] Could not get real compressed data for decompression");
+            error!("Could not get real compressed data for decompression");
             let entry_size = 4;
             return Err(NtfsError::BufferTooSmall {
                 expected: (array_len * entry_size) as usize,
@@ -145,9 +145,7 @@ fn grab_reparsepoint(
     let (_, reparse) = if let Ok(result) = reparse_result {
         result
     } else {
-        error!(
-            "[wofcompression] Could not parse reparse data, will not be able to decompress data"
-        );
+        error!("Could not parse reparse data, will not be able to decompress data");
         return Err(NtfsError::BufferTooSmall {
             expected: 16,
             actual: reparse_data.len(),
@@ -166,7 +164,7 @@ fn grab_reparsepoint(
         3 => lzxpress_huffman16k,
         _ => {
             error!(
-                "[wofcompression] Unknown compression unit {}, will not be able to decompress data",
+                "Unknown compression unit {}, will not be able to decompress data",
                 reparse.compression_method
             );
             return Err(NtfsError::InvalidStructuredValueSize {
@@ -277,7 +275,7 @@ fn walk_offset_table(
                 let mut uncompressed = match uncompressed_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[wofcompression] Could not decompress chunk: {err:?}");
+                        error!("Could not decompress chunk: {err:?}");
                         return Err(nom::Err::Incomplete(nom::Needed::Unknown));
                     }
                 };
@@ -294,7 +292,7 @@ fn walk_offset_table(
             decom_size = match last_size {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[wofcompression] Could not get last offset size: {err:?}");
+                    error!("Could not get last offset size: {err:?}");
                     return Err(nom::Err::Incomplete(nom::Needed::Unknown));
                 }
             };
@@ -305,7 +303,7 @@ fn walk_offset_table(
             let mut uncompressed = match uncompressed_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[wofcompression] Could not decompress chunk: {err:?}");
+                    error!("Could not decompress chunk: {err:?}");
                     return Err(nom::Err::Incomplete(nom::Needed::Unknown));
                 }
             };
@@ -323,7 +321,7 @@ fn walk_offset_table(
         let mut uncompressed = match uncompressed_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[wofcompression] Could not decompress chunk: {err:?}");
+                error!("Could not decompress chunk: {err:?}");
                 return Err(nom::Err::Incomplete(nom::Needed::Unknown));
             }
         };
@@ -340,14 +338,12 @@ fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSyst
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!(
-                "[wofcompression] Could not decompress data: {err:?}. Will try manual decompression"
-            );
+            error!("Could not decompress data: {err:?}. Will try manual decompression");
             let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
             match pf_data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[wofcompression] Could not decompress data: {err:?}");
+                    error!("Could not decompress data: {err:?}");
                     return Err(FileSystemError::FileData);
                 }
             }
@@ -364,7 +360,7 @@ fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSyst
     let ntfs_data = match ntfs_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wofcompression] Could not decompress data: {err:?}");
+            error!("Could not decompress data: {err:?}");
             return Err(FileSystemError::FileData);
         }
     };

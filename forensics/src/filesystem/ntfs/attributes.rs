@@ -1,7 +1,6 @@
 use super::{raw_files::raw_read_data, sector_reader::SectorReader};
 use crate::filesystem::error::FileSystemError;
 use common::windows::AttributeFlags;
-use log::{error, warn};
 use ntfs::{
     Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsReadSeek,
     attribute_value::NtfsAttributeValue,
@@ -11,6 +10,7 @@ use std::{
     fs::File,
     io::{BufReader, Error, ErrorKind},
 };
+use tracing::{error, warn};
 
 /// Return FILENAME attribute data
 pub(crate) fn get_filename_attribute(
@@ -19,7 +19,7 @@ pub(crate) fn get_filename_attribute(
     match filename_result {
         Ok(result) => Ok(result.clone()),
         Err(err) => {
-            error!("[forensics] Failed to get filename info, error: {err:?}");
+            error!("Failed to get filename info, error: {err:?}");
             Err(FileSystemError::NoFilenameAttr)
         }
     }
@@ -148,7 +148,7 @@ pub(crate) fn read_attribute_data(
             }
             all_data.append(&mut buff_data);
             if all_data.len() >= max_size {
-                warn!("[forensics] Currently 2GBs or more data. Exiting early");
+                warn!("Currently 2GBs or more data. Exiting early");
                 break;
             }
         }

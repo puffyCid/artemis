@@ -3,9 +3,9 @@ use super::{
     files::{file_lines, list_files_directories},
 };
 use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform_enum};
-use log::{error, warn};
 use std::path::Path;
 use sysinfo::Users;
+use tracing::{error, warn};
 
 /// Check if path is a directory
 pub(crate) fn is_directory(path: &str) -> bool {
@@ -36,7 +36,7 @@ pub(crate) fn get_user_paths() -> Result<Vec<String>, FileSystemError> {
             let mut user_path = if let Some(result) = user_path_result {
                 result
             } else {
-                error!("[forensics] Failed get user home paths");
+                error!("Failed get user home paths");
                 return Err(FileSystemError::UserPaths);
             };
 
@@ -102,7 +102,7 @@ pub(crate) fn get_parent_directory(path: &str) -> String {
     };
 
     if entry_opt.is_none() {
-        warn!("[forensics] Failed to get parent directory for path: {path}");
+        warn!("Failed to get parent directory for path: {path}");
         return path.to_string();
     }
 

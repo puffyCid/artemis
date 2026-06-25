@@ -12,13 +12,13 @@ use crate::{
     structs::artifacts::triage::TriageOptions,
     utils::regex_options::{create_regex, regex_check},
 };
-use log::{error, warn};
 use regex::Regex;
 use serde::Serialize;
 use std::{
     fs::{File, create_dir_all},
     io::BufReader,
 };
+use tracing::{error, warn};
 use walkdir::WalkDir;
 use zip::ZipWriter;
 
@@ -30,13 +30,13 @@ pub(crate) fn triage(
     let full_path = manager.config.directory.join(&manager.config.name);
     let zip_output = full_path.to_str().unwrap_or_default();
     if let Err(err) = create_dir_all(zip_output) {
-        error!("[triage] Could not create output directory: {err:?}");
+        error!("Could not create output directory: {err:?}");
         return Err(TriageError::Output);
     }
     let zip_file = match File::create(format!("{zip_output}/files.zip")) {
         Ok(result) => result,
         Err(err) => {
-            error!("[triage] Could not create zip file: {err:?}");
+            error!("Could not create zip file: {err:?}");
             return Err(TriageError::Output);
         }
     };
@@ -57,19 +57,19 @@ pub(crate) fn triage(
     acq.write_report(&mut bytes)?;
 
     if let Err(err) = acq.zip.finish() {
-        warn!("[triage] Failed to finish zipping file: {err:?}");
+        warn!("Failed to finish zipping file: {err:?}");
     }
 
     let mut records = match serialize_records_to_stream(report) {
         Ok(result) => result,
         Err(err) => {
-            error!("[triage] Could not serialize triage report: {err:?}");
+            error!("Could not serialize triage report: {err:?}");
             return Err(TriageError::Output);
         }
     };
     let artifact_name = "triage";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[triage] Could not write triage report: {err:?}");
+        error!("Could not write triage report: {err:?}");
         return Err(TriageError::Output);
     }
 
@@ -107,7 +107,7 @@ fn acquire_files(
         let pattern = match create_regex(&target.file_mask.replace("regex:", "")) {
             Ok(result) => result,
             Err(err) => {
-                error!("[triage] Could not create regex: {err:?}");
+                error!("Could not create regex: {err:?}");
                 return Err(TriageError::Regex);
             }
         };
@@ -162,7 +162,7 @@ fn walk_filesystem(
         let entry = match entries {
             Ok(result) => result,
             Err(err) => {
-                error!("[triage] Failed to walk directory: {err:?}");
+                error!("Failed to walk directory: {err:?}");
                 continue;
             }
         };
@@ -173,7 +173,7 @@ fn walk_filesystem(
             let glob_paths = match glob_paths(file_mask_path.to_str().unwrap_or_default()) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[triage] Failed to glob walk directory: {err:?}");
+                    error!("Failed to glob walk directory: {err:?}");
                     continue;
                 }
             };
@@ -228,7 +228,7 @@ fn read_file(
                 return read_file_ntfs(path, acq, create_paths);
             }
 
-            error!("[triage] Could not read file {path}: {err:?}");
+            error!("Could not read file {path}: {err:?}");
             return Err(TriageError::ReadFile);
         }
     };
@@ -300,7 +300,7 @@ fn read_file_ntfs(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[triage] Could not setup NTFS parser: {err:?}");
+            error!("Could not setup NTFS parser: {err:?}");
             return Err(TriageError::ReadFile);
         }
     };
@@ -309,7 +309,7 @@ fn read_file_ntfs(
     let ntfs_file = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[triage] Could not setup NTFS reader: {err:?}");
+            error!("Could not setup NTFS reader: {err:?}");
             return Err(TriageError::ReadFile);
         }
     };
@@ -318,7 +318,7 @@ fn read_file_ntfs(
     let hash = match acq.acquire_file_ntfs(&ntfs_file, &mut ntfs_parser.fs) {
         Ok(result) => result,
         Err(err) => {
-            error!("[triage] Could not acquire raw file: {err:?}");
+            error!("Could not acquire raw file: {err:?}");
             return Err(TriageError::ReadFile);
         }
     };

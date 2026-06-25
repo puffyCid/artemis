@@ -10,10 +10,10 @@ use ext4_fs::{
     extfs::{Ext4Reader, Ext4ReaderAction},
     structs::{FileInfo, FileType},
 };
-use log::error;
 use regex::Regex;
 use serde::Serialize;
 use std::{fs::File, io::BufReader};
+use tracing::error;
 
 /// Read a single file by parsing the EXT4 filesystem. This reads the entire file into memory
 /// If we are provided a device path we will use that device to search for and read the file
@@ -35,7 +35,7 @@ pub(crate) fn raw_read_file(path: &str, device: Option<&str>) -> Result<Vec<u8>,
         let reader = match File::open(&ext4_options.device) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not open ext4 device ({dev}): {err:?}");
+                error!("Could not open ext4 device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -43,7 +43,7 @@ pub(crate) fn raw_read_file(path: &str, device: Option<&str>) -> Result<Vec<u8>,
         let mut ext_reader = match Ext4Reader::new(buf, 4096, 0) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not create ext4 reader for device ({dev}): {err:?}");
+                error!("Could not create ext4 reader for device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -91,7 +91,7 @@ pub(crate) fn raw_read_file(path: &str, device: Option<&str>) -> Result<Vec<u8>,
         let reader = match File::open(&ext4_options.device) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not open ext4 device ({dev}): {err:?}");
+                error!("Could not open ext4 device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -99,7 +99,7 @@ pub(crate) fn raw_read_file(path: &str, device: Option<&str>) -> Result<Vec<u8>,
         let mut ext_reader = match Ext4Reader::new(buf, 4096, 0) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not create ext4 reader for device ({dev}): {err:?}");
+                error!("Could not create ext4 reader for device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -139,7 +139,7 @@ pub(crate) fn raw_read_inode<T: std::io::Seek + std::io::Read>(
     let bytes = match reader.read(inode) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not read indoe ({inode}): {err:?}");
+            error!("Could not read indoe ({inode}): {err:?}");
             return Err(FileSystemError::ReadFile);
         }
     };
@@ -159,7 +159,7 @@ pub(crate) fn raw_read_dir(
         let path_regex = match create_regex(path) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not setup regex for reading directory ({path}): {err:?}");
+                error!("Could not setup regex for reading directory ({path}): {err:?}");
                 return Err(FileSystemError::ReadDirectory);
             }
         };
@@ -177,7 +177,7 @@ pub(crate) fn raw_read_dir(
         let reader = match File::open(&ext4_options.device) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not open ext4 device ({dev}): {err:?}");
+                error!("Could not open ext4 device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -185,7 +185,7 @@ pub(crate) fn raw_read_dir(
         let mut ext_reader = match Ext4Reader::new(buf, 4096, 0) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not create ext4 reader for device ({dev}): {err:?}");
+                error!("Could not create ext4 reader for device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -212,7 +212,7 @@ pub(crate) fn raw_read_dir(
         let path_regex = match create_regex(path) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not setup regex for reading directory ({path}): {err:?}");
+                error!("Could not setup regex for reading directory ({path}): {err:?}");
                 return Err(FileSystemError::ReadDirectory);
             }
         };
@@ -231,7 +231,7 @@ pub(crate) fn raw_read_dir(
         let reader = match File::open(&ext4_options.device) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not open ext4 device ({dev}): {err:?}");
+                error!("Could not open ext4 device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -239,7 +239,7 @@ pub(crate) fn raw_read_dir(
         let mut ext_reader = match Ext4Reader::new(buf, 4096, 0) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not create ext4 reader for device ({dev}): {err:?}");
+                error!("Could not create ext4 reader for device ({dev}): {err:?}");
                 return Err(FileSystemError::OpenFile);
             }
         };
@@ -284,7 +284,7 @@ pub(crate) fn raw_reader<T: std::io::Seek + std::io::Read>(
         return Ok(file.inode);
     }
 
-    error!("[forensics] Could not find inode for file ({path}).");
+    error!("Could not find inode for file ({path}).");
     Err(FileSystemError::ReadFile)
 }
 
@@ -321,7 +321,7 @@ fn get_root<T: std::io::Seek + std::io::Read>(
     let root = match reader.root() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not read the root ext4 directory: {err:?}");
+            error!("Could not read the root ext4 directory: {err:?}");
             return Err(FileSystemError::RootDirectory);
         }
     };
@@ -364,7 +364,7 @@ fn iterate_ext4<T: std::io::Seek + std::io::Read>(
             let dir_info = match reader.read_dir(entry.inode) {
                 Ok(value) => value,
                 Err(err) => {
-                    error!("[forensics] Failed to read ext4 directory, error: {err:?}");
+                    error!("Failed to read ext4 directory, error: {err:?}");
                     continue;
                 }
             };
