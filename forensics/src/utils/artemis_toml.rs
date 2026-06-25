@@ -1,8 +1,8 @@
 use super::error::ArtemisError;
 use crate::structs::toml::ArtemisToml;
-use log::error;
 #[cfg(feature = "network")]
 use reqwest::blocking::Client;
+use tracing::error;
 
 impl ArtemisToml {
     #[cfg(feature = "network")]
@@ -11,7 +11,7 @@ impl ArtemisToml {
         let client = match Client::builder().build() {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not create HTTP client for remote toml: {err:?}");
+                error!("Could not create HTTP client for remote toml: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         };
@@ -21,7 +21,7 @@ impl ArtemisToml {
         let response = match request.send() {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not parse response from remote TOML: {err:?}");
+                error!("Could not parse response from remote TOML: {err:?}");
                 return Err(ArtemisError::Remote);
             }
         };
@@ -35,7 +35,7 @@ impl ArtemisToml {
         let artemis_collector: ArtemisToml = match toml_results {
             Ok(results) => results,
             Err(err) => {
-                error!("[forensics] Artemis failed to parse TOML data. Error: {err:?}");
+                error!("Artemis failed to parse TOML data. Error: {err:?}");
                 return Err(ArtemisError::BadToml);
             }
         };

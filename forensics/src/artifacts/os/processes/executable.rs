@@ -1,7 +1,7 @@
 use super::error::ProcessError;
 use crate::artifacts::os::linux::executable::parser::parse_elf_file;
 use common::linux::ElfInfo;
-use log::error;
+use tracing::error;
 
 /// Get elf metadata for processes
 pub(crate) fn elf_metadata(path: &str) -> Result<ElfInfo, ProcessError> {
@@ -9,7 +9,7 @@ pub(crate) fn elf_metadata(path: &str) -> Result<ElfInfo, ProcessError> {
     let info = match binary_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[processes] Failed to parse process binary {path}, error: {err:?}");
+            error!("Failed to parse process binary {path}, error: {err:?}");
             return Err(ProcessError::ParseProcFile);
         }
     };

@@ -203,7 +203,7 @@ impl AwsSink {
 
     /// Return the log file we are logging to
     fn log_filename(&self) -> String {
-        format!("artemis_{}_{}.log", self.collection_id, generate_uuid())
+        format!("artemis_{}_{}.jsonl", self.collection_id, generate_uuid())
     }
 
     /// Deserialize the base64 blob to our `AwsInfo` structure

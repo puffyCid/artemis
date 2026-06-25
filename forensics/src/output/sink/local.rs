@@ -65,7 +65,7 @@ impl LocalSink {
 
     /// Builds a unique log file path for this Artemis run
     fn log_path(&self) -> PathBuf {
-        let log = format!("artemis_{}_{}.log", self.collection_id, generate_uuid());
+        let log = format!("artemis_{}_{}.jsonl", self.collection_id, generate_uuid());
         self.output_directory.join(log)
     }
 

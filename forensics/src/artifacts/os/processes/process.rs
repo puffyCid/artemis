@@ -16,10 +16,10 @@ use crate::{
 };
 use common::files::Hashes;
 use common::system::Processes;
-use log::{error, info, warn};
 use serde_json::Value;
 use std::ffi::OsStr;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
+use tracing::{error, info, warn};
 
 /// Get process listing.
 pub(crate) fn proc_list(
@@ -135,7 +135,7 @@ fn proc_info(process: &Process, options: &ProcessOptions, plat: &PlatformType) -
             Ok(results) => {
                 system_proc.binary_info = results;
             }
-            Err(err) => info!("[processes] Failed to get executable data: {err:?}"),
+            Err(err) => info!("Failed to get executable data: {err:?}"),
         }
     }
 
@@ -158,7 +158,7 @@ fn proc_info(process: &Process, options: &ProcessOptions, plat: &PlatformType) -
         if let Some(ppid) = parent_pid {
             system_proc.ppid = ppid.as_u32();
         } else {
-            warn!("[processes] No Parent PID for: {}", process.pid());
+            warn!("No Parent PID for: {}", process.pid());
         }
     }
 
@@ -209,14 +209,14 @@ fn output_process(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[processes] Failed to serialize process entries: {err:?}");
+            error!("Failed to serialize process entries: {err:?}");
             return Err(ProcessError::Serialize);
         }
     };
 
     let artifact_name = "processes";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[processes] Could not output process data: {err:?}");
+        error!("Could not output process data: {err:?}");
         return Err(ProcessError::OutputData);
     }
 

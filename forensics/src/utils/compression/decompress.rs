@@ -4,7 +4,6 @@ use super::{
 };
 use crate::filesystem::files::read_file;
 use flate2::bufread::{MultiGzDecoder, ZlibDecoder};
-use log::{error, warn};
 use lz4_flex::block::decompress_with_dict;
 use miniz_oxide::{
     MZFlush,
@@ -13,6 +12,7 @@ use miniz_oxide::{
 use ruzstd::decoding::StreamingDecoder;
 use snap::raw::Decoder;
 use std::io::Read;
+use tracing::{error, warn};
 use xz2::read::XzDecoder;
 
 /// Decompress gzip compressed file
@@ -21,7 +21,7 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
     let buffer = match buffer_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[compression] Could not read file {path}: {err:?}");
+            error!("Could not read file {path}: {err:?}");
             return Err(CompressionError::GzipReadFile);
         }
     };
@@ -35,7 +35,7 @@ pub(crate) fn decompress_gzip_data(buffer: &[u8]) -> Result<Vec<u8>, Compression
     let mut decompress_data = Vec::new();
     let result = data.read_to_end(&mut decompress_data);
     if let Err(status) = result {
-        error!("[compression] Could not decompress data: {status:?}");
+        error!("Could not decompress data: {status:?}");
         return Err(CompressionError::GzipDecompress);
     }
 
@@ -48,7 +48,7 @@ pub(crate) fn decompress_zstd(data: &[u8]) -> Result<Vec<u8>, CompressionError> 
     let mut decoder = match decoder_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[compression] Could not decompress zstd data: {err:?}");
+            error!("Could not decompress zstd data: {err:?}");
             return Err(CompressionError::ZstdDecompress);
         }
     };
@@ -69,7 +69,7 @@ pub(crate) fn decompress_lz4(
     let decomp_data = match decompress_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[compression] Could not decompress lz4 data: {err:?}");
+            error!("Could not decompress lz4 data: {err:?}");
             return Err(CompressionError::Lz4Decompress);
         }
     };
@@ -91,10 +91,7 @@ pub(crate) fn decompress_zlib(
         let mut out = vec![0; decom_size];
         let status = inflate(&mut test, data, &mut out, MZFlush::None);
         if status.status.is_err() {
-            error!(
-                "[compression] Could not decompress zlib data: {:?}",
-                status.status
-            );
+            error!("Could not decompress zlib data: {:?}", status.status);
             return Err(CompressionError::ZlibDecompress);
         }
         return Ok(out);
@@ -105,7 +102,7 @@ pub(crate) fn decompress_zlib(
 
     let result = buffer.read_to_end(&mut decompress_data);
     if let Err(status) = result {
-        error!("[compression] Could not decompress zlib data: {status:?}");
+        error!("Could not decompress zlib data: {status:?}");
         return Err(CompressionError::ZlibDecompress);
     }
 
@@ -117,7 +114,7 @@ pub(crate) fn decompress_xz(data: &[u8]) -> Result<Vec<u8>, CompressionError> {
     let mut decompress = XzDecoder::new(data);
     let mut data: Vec<u8> = Vec::new();
     if decompress.read_to_end(&mut data).is_err() {
-        error!("[compression] Could not decompress xz data");
+        error!("Could not decompress xz data");
         return Err(CompressionError::XzDecompress);
     }
 
@@ -169,11 +166,11 @@ pub(crate) fn decompress_xpress(
         XpressType::Lz77 => decompress_lz77(data, &mut decompress_data)?,
         XpressType::_Lznt => decompress_lznt(data, &mut decompress_data)?,
         XpressType::_Default => {
-            warn!("[compression] Default type unsupported");
+            warn!("Default type unsupported");
             return Err(CompressionError::HuffmanCompressionDefault);
         }
         XpressType::_None => {
-            warn!("[compression] None type unsupported");
+            warn!("None type unsupported");
             return Err(CompressionError::HuffmanCompressionNone);
         }
     }
@@ -204,7 +201,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
     while !done {
         if position > data.len() {
             warn!(
-                "[compression] Data position greater than data size: {position} vs {}",
+                "Data position greater than data size: {position} vs {}",
                 data.len()
             );
             break;
@@ -218,7 +215,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
             if entry == '1' {
                 if position + 2 > data.len() {
                     warn!(
-                        "[compression] Data reference position greater than data size: {} vs {}",
+                        "Data reference position greater than data size: {} vs {}",
                         position + 2,
                         data.len()
                     );
@@ -245,7 +242,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
                     let value_offset = (offset + value) as usize % MAX_LZ_REFERENCE;
                     if value_offset > start.len() {
                         warn!(
-                            "[compression] Value offset greater than start size: {} vs {}",
+                            "Value offset greater than start size: {} vs {}",
                             value_offset,
                             start.len()
                         );
@@ -256,7 +253,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
 
                     if buf_position > start.len() {
                         warn!(
-                            "[compression] Buffer position greater than start size: {buf_position} vs {}",
+                            "Buffer position greater than start size: {buf_position} vs {}",
                             start.len()
                         );
                         break;
@@ -270,7 +267,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
 
             if position > data.len() {
                 warn!(
-                    "[compression] Data position greater than data size, cannot get next byte: {position} vs {}",
+                    "Data position greater than data size, cannot get next byte: {position} vs {}",
                     data.len()
                 );
                 done = true;
@@ -282,7 +279,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
             decom_data.push(next_bit);
             if buf_position > start.len() {
                 warn!(
-                    "[compression] Buffer position greater than start size, cannot set next byte: {buf_position} vs {}",
+                    "Buffer position greater than start size, cannot set next byte: {buf_position} vs {}",
                     start.len()
                 );
                 done = true;
@@ -295,7 +292,7 @@ pub(crate) fn decompress_rtf(data: &[u8], decom_size: u32) -> Result<Vec<u8>, Co
 
     if decom_data.len() as u32 != decom_size {
         error!(
-            "[compression] Failed to decompress RTF data expected decompress size {decom_size} got {}",
+            "Failed to decompress RTF data expected decompress size {decom_size} got {}",
             decom_data.len()
         );
         return Err(CompressionError::RtfCorrupted);
@@ -310,7 +307,7 @@ pub(crate) fn decompress_snappy(data: &[u8]) -> Result<Vec<u8>, CompressionError
     let decom_data = match decode.decompress_vec(data) {
         Ok(result) => result,
         Err(err) => {
-            error!("[compression] Could not decompress snappy data: {err:?}");
+            error!("Could not decompress snappy data: {err:?}");
             return Err(CompressionError::SnappyDecompress);
         }
     };

@@ -2,8 +2,8 @@ use super::error::ArtemisError;
 use super::nom_helper::nom_unsigned_two_bytes;
 use crate::utils::nom_helper::Endian;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, TimeZone, Utc};
-use log::error;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tracing::error;
 
 /// Return time now in seconds or 0
 pub(crate) fn time_now() -> u64 {
@@ -61,7 +61,7 @@ pub(crate) fn fattime_utc_to_iso(fattime: &[u8]) -> String {
     let (_, (date, time)) = match result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[time] Could not get FAT time");
+            error!("Could not get FAT time");
             return String::from("1970-01-01T00:00:00.000Z");
         }
     };
@@ -93,9 +93,7 @@ pub(crate) fn fattime_utc_to_iso(fattime: &[u8]) -> String {
     let year = match year_res {
         Ok(result) => result,
         Err(_err) => {
-            error!(
-                "[time] Got an extremely large year for FAT time (max should be 2108). Got: {year}"
-            );
+            error!("Got an extremely large year for FAT time (max should be 2108). Got: {year}");
             return String::from("1970-01-01T00:00:00.000Z");
         }
     };
@@ -103,7 +101,7 @@ pub(crate) fn fattime_utc_to_iso(fattime: &[u8]) -> String {
     let ymd = if let Some(result) = ymd_opt {
         result
     } else {
-        error!("[time] Could not get FAT time year month day: {year}-{month}-{day}");
+        error!("Could not get FAT time year month day: {year}-{month}-{day}");
         return String::from("1970-01-01T00:00:00.000Z");
     };
 
@@ -111,7 +109,7 @@ pub(crate) fn fattime_utc_to_iso(fattime: &[u8]) -> String {
     let hms = if let Some(result) = hms_opt {
         result
     } else {
-        error!("[time] Could not get FAT time hour min sec: {hour}:{min}:{second}");
+        error!("Could not get FAT time hour min sec: {hour}:{min}:{second}");
         return String::from("1970-01-01T00:00:00.000Z");
     };
     let utc = NaiveDateTime::new(ymd, hms);

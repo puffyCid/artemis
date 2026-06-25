@@ -13,8 +13,8 @@ use calf::{
     format::header::CalfHeader,
 };
 use ext4_fs::extfs::Ext4Reader;
-use log::error;
 use std::{fs::File, io::BufReader, mem::take};
+use tracing::error;
 
 /// Parse QCOW disk image
 pub(crate) fn qcow_ext4(
@@ -32,7 +32,7 @@ pub(crate) fn qcow_ext4(
     let header = match reader.header() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not parse the QCOW header: {err:?}");
+            error!("Could not parse the QCOW header: {err:?}");
             return Err(Ext4Error::QcowDevice);
         }
     };
@@ -40,7 +40,7 @@ pub(crate) fn qcow_ext4(
     let level1_table = match reader.level1_entries() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not parse the QCOW level one table: {err:?}");
+            error!("Could not parse the QCOW level one table: {err:?}");
             return Err(Ext4Error::QcowDevice);
         }
     };
@@ -53,7 +53,7 @@ pub(crate) fn qcow_ext4(
     let mut boot_reader = match reader.os_reader(&info) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not read the QCOW ext4 boot info: {err:?}");
+            error!("Could not read the QCOW ext4 boot info: {err:?}");
             return Err(Ext4Error::QcowExt4Boot);
         }
     };
@@ -61,7 +61,7 @@ pub(crate) fn qcow_ext4(
     let boot_info = match boot_reader.get_boot_info() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not get the QCOW ext4 boot info: {err:?}");
+            error!("Could not get the QCOW ext4 boot info: {err:?}");
             return Err(Ext4Error::QcowExt4Boot);
         }
     };
@@ -99,7 +99,7 @@ fn read_disk(
     let os_reader = match reader.os_reader(info) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not read the QCOW ext4 linux partition: {err:?}");
+            error!("Could not read the QCOW ext4 linux partition: {err:?}");
             return Err(Ext4Error::QcowDevice);
         }
     };
@@ -109,7 +109,7 @@ fn read_disk(
     let mut ext4_reader = match Ext4Reader::new(buff_read, 4096, start) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not setup the QCOW ext4 linux reader: {err:?}");
+            error!("Could not setup the QCOW ext4 linux reader: {err:?}");
             return Err(Ext4Error::QcowDevice);
         }
     };

@@ -4,9 +4,16 @@ use crate::{
     filesystem::files::{read_file, read_text_file},
     structs::toml::ArtemisToml,
 };
-use log::{LevelFilter, error, info};
 use serde_json::Value;
-use simplelog::{Config, SimpleLogger};
+#[cfg(feature = "boa")]
+use tracing::level_filters::LevelFilter;
+use tracing::{error, info};
+#[cfg(feature = "boa")]
+use tracing_subscriber::fmt::layer;
+#[cfg(feature = "boa")]
+use tracing_subscriber::layer::SubscriberExt;
+#[cfg(feature = "boa")]
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[cfg(feature = "boa")]
 use crate::runtime::run::raw_script;
@@ -60,7 +67,16 @@ pub fn parse_toml_data(data: &[u8]) -> Result<(), TomlError> {
 #[cfg(feature = "boa")]
 /// Execute a JavaScript file at provided path
 pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
-    let _ = SimpleLogger::init(LevelFilter::Warn, Config::default());
+    tracing_subscriber::registry()
+        .with(
+            layer()
+                .json()
+                .with_file(true)
+                .with_line_number(true)
+                .flatten_event(true),
+        )
+        .with(LevelFilter::WARN)
+        .init();
     let code_result = read_text_file(path);
     let script = match code_result {
         Ok(results) => results,
@@ -71,7 +87,7 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 
     let script_result = raw_script(&script);
     if script_result.is_err() {
-        error!("[forensics] Failed to execute js file");
+        error!("Failed to execute js file");
         return Err(TomlError::BadJs);
     }
 
@@ -82,9 +98,9 @@ pub fn parse_js_file(path: &str) -> Result<Value, TomlError> {
 pub fn artemis_collection(collection: ArtemisToml) -> Result<(), TomlError> {
     let result = collect(collection);
     match result {
-        Ok(_) => info!("[forensics] Parsed TOML data"),
+        Ok(_) => info!("Parsed TOML data"),
         Err(err) => {
-            error!("[forensics] Failed to parse collection: {err:?}");
+            error!("Failed to parse collection: {err:?}");
             return Err(TomlError::BadToml);
         }
     }

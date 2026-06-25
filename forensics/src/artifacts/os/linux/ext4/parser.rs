@@ -29,9 +29,9 @@ use ext4_fs::{
     extfs::{Ext4Reader, Ext4ReaderAction},
     structs::{Ext4Hash, FileInfo, FileType},
 };
-use log::error;
 use regex::Regex;
 use std::{fs::File, io::BufReader, mem::take};
+use tracing::error;
 
 /// Parse the raw EXT4 data and get a file listing
 pub(crate) fn ext4_filelisting(
@@ -72,7 +72,7 @@ pub(crate) fn ext4_filelisting(
         let reader = match File::open(&options.device) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not open ext4 device ({device}): {err:?}");
+                error!("Could not open ext4 device ({device}): {err:?}");
                 return Err(Ext4Error::Device);
             }
         };
@@ -80,7 +80,7 @@ pub(crate) fn ext4_filelisting(
         let mut ext_reader = match Ext4Reader::new(buf, 4096, 0) {
             Ok(result) => result,
             Err(err) => {
-                error!("[forensics] Could not create ext4 reader for device ({device}): {err:?}");
+                error!("Could not create ext4 reader for device ({device}): {err:?}");
                 return Err(Ext4Error::Device);
             }
         };
@@ -120,7 +120,7 @@ pub(crate) fn ext4_filelisting(
             let reader = match File::open(&options.device) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[forensics] Could not open ext4 device ({device}): {err:?}");
+                    error!("Could not open ext4 device ({device}): {err:?}");
                     return Err(Ext4Error::Device);
                 }
             };
@@ -128,9 +128,7 @@ pub(crate) fn ext4_filelisting(
             let mut ext_reader = match Ext4Reader::new(buf, 4096, 0) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!(
-                        "[forensics] Could not create ext4 reader for device ({device}): {err:?}"
-                    );
+                    error!("Could not create ext4 reader for device ({device}): {err:?}");
                     return Err(Ext4Error::Device);
                 }
             };
@@ -153,7 +151,7 @@ fn filesystem_regex(regex_string: &str) -> Result<Regex, Ext4Error> {
     let value = match create_regex(regex_string) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Bad regex provided ({regex_string}): {err:?}");
+            error!("Bad regex provided ({regex_string}): {err:?}");
             return Err(Ext4Error::Regex);
         }
     };
@@ -167,7 +165,7 @@ pub(crate) fn get_root<T: std::io::Seek + std::io::Read>(
     let root = match reader.root() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not read the root ext4 directory: {err:?}");
+            error!("Could not read the root ext4 directory: {err:?}");
             return Err(Ext4Error::RootDir);
         }
     };
@@ -218,7 +216,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
             let meta = match reader.stat(entry.inode) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[forensics] Could not stat the file {full_path}: {err:?}");
+                    error!("Could not stat the file {full_path}: {err:?}");
                     continue;
                 }
             };
@@ -252,7 +250,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
                 let hashes = match reader.hash(entry.inode, &params.hashing) {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[forensics] Could not hash the file {full_path}: {err:?}");
+                        error!("Could not hash the file {full_path}: {err:?}");
                         continue;
                     }
                 };
@@ -276,7 +274,7 @@ pub(crate) fn walk_ext4<T: std::io::Seek + std::io::Read>(
             let dir_info = match reader.read_dir(entry.inode) {
                 Ok(value) => value,
                 Err(err) => {
-                    error!("[forensics] Failed to read ext4 directory {full_path}, error: {err:?}");
+                    error!("Failed to read ext4 directory {full_path}, error: {err:?}");
                     params.cache.pop();
 
                     continue;
@@ -297,14 +295,14 @@ pub(crate) fn ext4_output(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize ext4 files: {err:?}");
+            error!("Failed to serialize ext4 files: {err:?}");
             return;
         }
     };
 
     let artifact_name = "ext4files";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output ext4files: {err:?}");
+        error!("Failed to output ext4files: {err:?}");
     }
 }
 

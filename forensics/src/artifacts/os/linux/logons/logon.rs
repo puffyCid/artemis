@@ -4,7 +4,6 @@ use crate::utils::{
     time::unixepoch_to_iso_with_nano,
 };
 use common::linux::{Logon, LogonType, Status};
-use log::error;
 use nom::{
     Parser,
     branch::alt,
@@ -16,6 +15,7 @@ use std::{
     mem::size_of,
     net::{Ipv4Addr, Ipv6Addr},
 };
+use tracing::error;
 
 /// Stream the logon info
 pub(crate) fn logon_reader(reader: &mut File, status: Status, evidence: &str) -> Vec<Logon> {
@@ -28,7 +28,7 @@ pub(crate) fn logon_reader(reader: &mut File, status: Status, evidence: &str) ->
         let read_size = match read_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[logons] Could not read logon data: {err:?}");
+                error!("Could not read logon data: {err:?}");
                 break;
             }
         };
@@ -41,7 +41,7 @@ pub(crate) fn logon_reader(reader: &mut File, status: Status, evidence: &str) ->
 
         let result = parse_logon(&logon_buff, status, &mut logons, evidence);
         if result.is_err() {
-            error!("[logons] Could not parse logon file");
+            error!("Could not parse logon file");
         }
     }
 
