@@ -3,8 +3,8 @@ use crate::{
     output::record::{VecRecordStream, serialize_records_to_stream},
 };
 use common::windows::{NotificationInfo, TableDump};
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse the notification table from SRUM
 pub(crate) fn parse_notification(
@@ -66,7 +66,7 @@ pub(crate) fn parse_notification(
     let records = match serialize_records_to_stream(notif_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM Notification table: {err:?}");
+            error!("Failed to serialize SRUM Notification table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };

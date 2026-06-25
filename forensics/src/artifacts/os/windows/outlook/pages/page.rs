@@ -1,5 +1,5 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_one_byte};
-use log::warn;
+use tracing::warn;
 
 #[derive(PartialEq, Debug)]
 pub(crate) enum PageType {
@@ -27,7 +27,7 @@ pub(crate) fn page_type(data: &[u8]) -> nom::IResult<&[u8], PageType> {
         0x85 => PageType::FreePage,
         0x86 => PageType::DensityList,
         _ => {
-            warn!("[outlook] Unknown PageType: {page_value}");
+            warn!("Unknown PageType: {page_value}");
             PageType::Unknown
         }
     };

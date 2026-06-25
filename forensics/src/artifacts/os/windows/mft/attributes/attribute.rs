@@ -16,12 +16,12 @@ use crate::{
     },
     utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
 };
-use log::error;
 use nom::bytes::complete::take;
 use ntfs::NtfsFile;
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::io::BufReader;
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct EntryAttributes {
@@ -188,7 +188,7 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .attributes
                 .push(serde_json::to_value(info).unwrap_or_default());
         } else {
-            error!("[mft] Unknown Attribute Type:{header:?}");
+            error!("Unknown Attribute Type:{header:?}");
         }
     }
 

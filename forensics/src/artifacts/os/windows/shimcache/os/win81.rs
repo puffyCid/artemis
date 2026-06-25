@@ -6,8 +6,8 @@ use crate::utils::{
     time::filetime_to_iso,
 };
 use common::windows::ShimcacheEntry;
-use log::warn;
 use nom::bytes::complete::take;
+use tracing::warn;
 
 /// Parse the `Shimcache` Windows 8.1 format
 pub(crate) fn win81_format<'a>(
@@ -26,7 +26,7 @@ pub(crate) fn win81_format<'a>(
 
         let sig_value = 1936994353; // 10ts
         if sig != sig_value {
-            warn!("[shimcache] Did not get shimcache win8.1 signature");
+            warn!("Did not get shimcache win8.1 signature");
             break;
         }
 

@@ -29,8 +29,8 @@ use crate::utils::{
     nom_helper::{Endian, nom_unsigned_one_byte, nom_unsigned_two_bytes},
 };
 use common::windows::ShellItem;
-use log::error;
 use nom::{Needed, bytes::complete::take};
+use tracing::error;
 
 /// Parse a base64 encoded `ShellItem`
 pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellItemError> {
@@ -38,7 +38,7 @@ pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellI
     let data = match result {
         Ok(shelldata) => shelldata,
         Err(err) => {
-            error!("[shellitems] Could not base64 decode data: {err:?}");
+            error!("Could not base64 decode data: {err:?}");
             return Err(ShellItemError::Decode);
         }
     };
@@ -51,7 +51,7 @@ pub(crate) fn parse_shellitem(data: &[u8]) -> Result<ShellItem, ShellItemError> 
     let (_, shell_item) = match result {
         Ok(results) => results,
         Err(_err) => {
-            error!("[shellitems] Failed to parse ShellItem!");
+            error!("Failed to parse ShellItem!");
             return Err(ShellItemError::ParseItem);
         }
     };

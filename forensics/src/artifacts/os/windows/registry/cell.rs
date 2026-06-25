@@ -9,12 +9,12 @@ use crate::{
     utils::nom_helper::{Endian, nom_signed_four_bytes},
 };
 use common::windows::KeyValue;
-use log::{error, warn};
 use nom::{
     Needed, Parser, bytes::complete::take, combinator::peek, error::ErrorKind,
     number::complete::le_u16,
 };
 use std::mem::size_of;
+use tracing::{error, warn};
 
 #[derive(Debug, PartialEq)]
 pub(crate) enum CellType {
@@ -45,7 +45,7 @@ pub(crate) fn get_cell_type(data: &[u8]) -> nom::IResult<&[u8], CellType> {
         0x6264 => CellType::Db,
         0x696c => CellType::Li,
         _ => {
-            error!("[registry] Unknown cell: {cell_type}");
+            error!("Unknown cell: {cell_type}");
             CellType::Unknown
         }
     };
@@ -64,7 +64,7 @@ pub(crate) fn walk_registry<'a>(
 ) -> nom::IResult<&'a [u8], ()> {
     if let Some(_value) = params.offset_tracker.get(&offset) {
         error!(
-            "[registry] Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early."
+            "Detected duplicate Registry offset: {offset}. This triggers infinite loops, stopping parsing and exiting early."
         );
         return Err(nom::Err::Failure(nom::error::Error::new(
             reg_data,
@@ -106,7 +106,7 @@ pub(crate) fn walk_registry<'a>(
             options,
         )?;
     } else {
-        error!("[registry] Got unknown cell type: {cell_type:?}.");
+        error!("Got unknown cell type: {cell_type:?}.");
         return Err(nom::Err::Failure(nom::error::Error::new(
             reg_data,
             ErrorKind::Fail,
@@ -174,7 +174,7 @@ pub(crate) fn walk_values(
         // Check for the value key signature (vk)
         let (vk_data, cell_type) = get_cell_type(vk_data)?;
         if cell_type != CellType::Vk {
-            warn!("[registry] Got non Vk cell type while iterating value list: {cell_type:?}");
+            warn!("Got non Vk cell type while iterating value list: {cell_type:?}");
             value_count += 1;
             continue;
         }

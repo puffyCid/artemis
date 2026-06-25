@@ -27,7 +27,7 @@ use crate::{
 };
 use common::windows::{EventLogRecord, EventMessage};
 use evtx::EvtxParser;
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Parse `EventLogs` based on `EventLogsOptions`
 pub(crate) fn grab_eventlogs(
@@ -56,7 +56,7 @@ pub(crate) fn parse_eventlogs(
         let bytes = match read_file(file) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to read template file: {err:?}");
+                error!("Failed to read template file: {err:?}");
                 return Err(EventLogsError::ReadTemplateFile);
             }
         };
@@ -64,7 +64,7 @@ pub(crate) fn parse_eventlogs(
         match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to deserialize template data: {err:?}");
+                error!("Failed to deserialize template data: {err:?}");
                 return Err(EventLogsError::DeserializeTemplate);
             }
         }
@@ -76,7 +76,7 @@ pub(crate) fn parse_eventlogs(
     let mut evt_parser = match evt_parser_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[eventlogs] Failed to parse event log {path}, error: {err:?}");
+            error!("Failed to parse event log {path}, error: {err:?}");
             return Err(EventLogsError::Parser);
         }
     };
@@ -98,7 +98,7 @@ pub(crate) fn parse_eventlogs(
                 eventlog_records.push(event_record);
             }
             Err(err) => {
-                error!("[eventlogs] Issue parsing record from {path}, error: {err:?}");
+                error!("Issue parsing record from {path}, error: {err:?}");
                 continue;
             }
         }
@@ -117,7 +117,7 @@ pub(crate) fn parse_eventlogs(
                 result
             } else {
                 warn!(
-                    "[eventlogs] Could not get template strings for file {path} record: {}. Using raw data",
+                    "Could not get template strings for file {path} record: {}. Using raw data",
                     record.event_record_id
                 );
                 raw_messages.push(record);
@@ -146,7 +146,7 @@ fn default_eventlogs(
         let drive = match drive_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Could not determine systemdrive: {err:?}");
+                error!("Could not determine systemdrive: {err:?}");
                 return Err(EventLogsError::DefaultDrive);
             }
         };
@@ -169,7 +169,7 @@ fn alt_eventlogs(
         let bytes = match read_file(template_file) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to read template file: {err:?}");
+                error!("Failed to read template file: {err:?}");
                 return Err(EventLogsError::ReadTemplateFile);
             }
         };
@@ -177,7 +177,7 @@ fn alt_eventlogs(
         match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to deserialize template data: {err:?}");
+                error!("Failed to deserialize template data: {err:?}");
                 return Err(EventLogsError::DeserializeTemplate);
             }
         }
@@ -191,7 +191,7 @@ fn alt_eventlogs(
         let record = match serialize_to_record(template) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to serialize provider strings: {err:?}");
+                error!("Failed to serialize provider strings: {err:?}");
                 return Err(EventLogsError::Serialize);
             }
         };
@@ -199,7 +199,7 @@ fn alt_eventlogs(
         if let Err(err) =
             manager.write_artifact(artifact_name, options, &mut SingleRecordStream::new(record))
         {
-            error!("[eventlogs] Failed to output provider strings: {err:?}");
+            error!("Failed to output provider strings: {err:?}");
             return Err(EventLogsError::Output);
         }
 
@@ -221,7 +221,7 @@ fn read_directory(
     let read_dir = match dir_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[eventlogs] Failed to get eventlogs files {path}, error: {err:?}");
+            error!("Failed to get eventlogs files {path}, error: {err:?}");
             return Err(EventLogsError::Parser);
         }
     };
@@ -233,7 +233,7 @@ fn read_directory(
         let bytes = match read_file(template_file) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to read template file: {err:?}");
+                error!("Failed to read template file: {err:?}");
                 return Err(EventLogsError::ReadTemplateFile);
             }
         };
@@ -241,7 +241,7 @@ fn read_directory(
         match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to deserialize template data: {err:?}");
+                error!("Failed to deserialize template data: {err:?}");
                 return Err(EventLogsError::DeserializeTemplate);
             }
         }
@@ -255,7 +255,7 @@ fn read_directory(
         let record = match serialize_to_record(template) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Failed to serialize provider strings: {err:?}");
+                error!("Failed to serialize provider strings: {err:?}");
                 return Err(EventLogsError::Serialize);
             }
         };
@@ -263,7 +263,7 @@ fn read_directory(
         if let Err(err) =
             manager.write_artifact(artifact_name, options, &mut SingleRecordStream::new(record))
         {
-            error!("[eventlogs] Failed to output provider strings: {err:?}");
+            error!("Failed to output provider strings: {err:?}");
             return Err(EventLogsError::Output);
         }
 
@@ -282,7 +282,7 @@ fn read_directory(
         match eventlogs_results {
             Ok(_) => (),
             Err(err) => {
-                error!("[eventlogs] Failed to get eventlogs for {evtx_file}, error: {err:?}");
+                error!("Failed to get eventlogs for {evtx_file}, error: {err:?}");
             }
         }
     }
@@ -301,7 +301,7 @@ fn read_eventlogs(
     let mut evt_parser = match evt_parser_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[eventlogs] Failed to parse event log {path}, error: {err:?}");
+            error!("Failed to parse event log {path}, error: {err:?}");
             return Err(EventLogsError::Parser);
         }
     };
@@ -323,7 +323,7 @@ fn read_eventlogs(
                 eventlog_records.push(event_record);
             }
             Err(err) => {
-                error!("[eventlogs] Issue parsing record from {path}, error: {err:?}");
+                error!("Issue parsing record from {path}, error: {err:?}");
                 continue;
             }
         }
@@ -339,7 +339,7 @@ fn read_eventlogs(
                         result
                     } else {
                         warn!(
-                            "[eventlogs] Could not get template strings for file {path} record: {}. Using raw data",
+                            "Could not get template strings for file {path} record: {}. Using raw data",
                             record.event_record_id
                         );
                         raw_messages.push(record);
@@ -359,7 +359,7 @@ fn read_eventlogs(
                 let _ = match serialize_records_to_stream(raw_output) {
                     Ok(records) => output_logs(manager, options, records),
                     Err(err) => {
-                        error!("[eventlogs] Could not serialize raw logs: {err:?}");
+                        error!("Could not serialize raw logs: {err:?}");
                         return Err(EventLogsError::Serialize);
                     }
                 };
@@ -368,7 +368,7 @@ fn read_eventlogs(
             let records = match serialize_records_to_stream(messages) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[eventlogs] Could not serialize logs: {err:?}");
+                    error!("Could not serialize logs: {err:?}");
                     eventlog_records = Vec::new();
                     continue;
                 }
@@ -390,7 +390,7 @@ fn read_eventlogs(
                     result
                 } else {
                     warn!(
-                        "[eventlogs] Could not get template strings for file {path} record: {}. Using raw data",
+                        "Could not get template strings for file {path} record: {}. Using raw data",
                         record.event_record_id
                     );
                     raw_messages.push(record);
@@ -408,7 +408,7 @@ fn read_eventlogs(
             let _ = match serialize_records_to_stream(raw_output) {
                 Ok(records) => output_logs(manager, options, records),
                 Err(err) => {
-                    error!("[eventlogs] Could not serialize remaining raw logs: {err:?}");
+                    error!("Could not serialize remaining raw logs: {err:?}");
                     return Err(EventLogsError::Serialize);
                 }
             };
@@ -417,7 +417,7 @@ fn read_eventlogs(
         let records = match serialize_records_to_stream(messages) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Could not serialize remaining logs: {err:?}");
+                error!("Could not serialize remaining logs: {err:?}");
                 return Err(EventLogsError::Serialize);
             }
         };
@@ -435,7 +435,7 @@ fn output_logs(
 ) -> Result<(), EventLogsError> {
     let artifact_name = "eventlogs";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[eventlogs] Failed to output eventlogs: {err:?}");
+        error!("Failed to output eventlogs: {err:?}");
         return Err(EventLogsError::Output);
     }
 

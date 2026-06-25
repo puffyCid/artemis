@@ -4,8 +4,8 @@ use crate::{
     utils::time::filetime_to_iso,
 };
 use common::windows::{EnergyInfo, EnergyUsage, TableDump};
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse the unknown energy table from SRUM
 pub(crate) fn parse_energy(
@@ -56,7 +56,7 @@ pub(crate) fn parse_energy(
     let records = match serialize_records_to_stream(energy_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM Unknown Energy table: {err:?}");
+            error!("Failed to serialize SRUM Unknown Energy table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };
@@ -135,7 +135,7 @@ pub(crate) fn parse_energy_usage(
     let records = match serialize_records_to_stream(energy_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM Energy Usage table: {err:?}");
+            error!("Failed to serialize SRUM Energy Usage table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };

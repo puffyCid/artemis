@@ -28,7 +28,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::{Flags, TaskFormat, TaskInfo, TaskJob, TaskXml};
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Grab Schedule Tasks based on `TaskOptions`
 pub(crate) fn grab_tasks(
@@ -41,7 +41,7 @@ pub(crate) fn grab_tasks(
             let records = match serialize_records_to_stream(vec![result]) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[tasks] Failed to serialize job: {err:?}");
+                    error!("Failed to serialize job: {err:?}");
                     return Err(TaskError::Serialize);
                 }
             };
@@ -52,7 +52,7 @@ pub(crate) fn grab_tasks(
         let records = match serialize_records_to_stream(vec![result]) {
             Ok(result) => result,
             Err(err) => {
-                error!("[tasks] Failed to serialize task: {err:?}");
+                error!("Failed to serialize task: {err:?}");
                 return Err(TaskError::Serialize);
             }
         };
@@ -64,7 +64,7 @@ pub(crate) fn grab_tasks(
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Could not determine systemdrive: {err:?}");
+            error!("Could not determine systemdrive: {err:?}");
             return Err(TaskError::DriveLetter);
         }
     };
@@ -96,7 +96,7 @@ fn drive_tasks(
     let xml_paths = match paths_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Could not glob Task XML files: {err:?}");
+            error!("Could not glob Task XML files: {err:?}");
             return Err(TaskError::Glob);
         }
     };
@@ -112,10 +112,7 @@ fn drive_tasks(
         let task_data = match parse_xml(&path.full_path) {
             Ok(result) => result,
             Err(err) => {
-                warn!(
-                    "[tasks] Could not parse Task File at {}: {err:?}",
-                    path.full_path
-                );
+                warn!("Could not parse Task File at {}: {err:?}", path.full_path);
                 continue;
             }
         };
@@ -140,7 +137,7 @@ fn drive_tasks(
     let records = match serialize_records_to_stream(xml_tasks) {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Failed to serialize tasks: {err:?}");
+            error!("Failed to serialize tasks: {err:?}");
             return Err(TaskError::Serialize);
         }
     };
@@ -152,7 +149,7 @@ fn drive_tasks(
     let jobs = match job_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Could not get Task Job files: {err:?}");
+            error!("Could not get Task Job files: {err:?}");
             return Err(TaskError::Jobs);
         }
     };
@@ -167,7 +164,7 @@ fn drive_tasks(
         let job_result = match parse_job(&job) {
             Ok(result) => result,
             Err(err) => {
-                warn!("[tasks] Could not parse Task Job {job}: {err:?}");
+                warn!("Could not parse Task Job {job}: {err:?}");
                 continue;
             }
         };
@@ -183,7 +180,7 @@ fn drive_tasks(
     let records = match serialize_records_to_stream(job_tasks) {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Failed to serialize jobs: {err:?}");
+            error!("Failed to serialize jobs: {err:?}");
             return Err(TaskError::Serialize);
         }
     };
@@ -199,7 +196,7 @@ fn output_tasks(
 ) -> Result<(), TaskError> {
     let artifact_name = "tasks";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[tasks] Could not output Schedule Tasks data: {err:?}");
+        error!("Could not output Schedule Tasks data: {err:?}");
         return Err(TaskError::Output);
     }
 

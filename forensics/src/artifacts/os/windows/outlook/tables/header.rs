@@ -4,9 +4,9 @@ use crate::{
         Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
-use log::warn;
 use nom::bytes::complete::take;
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 #[derive(Debug)]
 pub(crate) struct TableHeader {
@@ -89,7 +89,7 @@ fn get_table_type(table: u8) -> TableType {
         0xbc => TableType::PropertyContext,
         0xcc => TableType::Cc,
         _ => {
-            warn!("[outlook] Unknown table type: {table}");
+            warn!("Unknown table type: {table}");
             TableType::Unknown
         }
     }

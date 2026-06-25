@@ -15,7 +15,7 @@ use crate::{
     structs::artifacts::os::windows::ShimcacheOptions, utils::environment::get_systemdrive,
 };
 use common::windows::ShimcacheEntry;
-use log::error;
+use tracing::error;
 
 pub(crate) fn grab_shimcache(
     options: &ShimcacheOptions,
@@ -27,7 +27,7 @@ pub(crate) fn grab_shimcache(
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shimcache] Could not determine system drive: {err:?}");
+            error!("Could not determine system drive: {err:?}");
             return Err(ShimcacheError::Drive);
         }
     };

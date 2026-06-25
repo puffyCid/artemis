@@ -23,7 +23,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::BitsInfo;
-use log::error;
+use tracing::error;
 
 /**
  * Grab the `BITS` data from the default path(s) or an alternative path  
@@ -37,7 +37,7 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<Vec<BitsInfo>, BitsErro
     let systemdrive = match systemdrive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[bits] Could not get systemdrive: {err:?}");
+            error!("Could not get systemdrive: {err:?}");
             return Err(BitsError::Systemdrive);
         }
     };

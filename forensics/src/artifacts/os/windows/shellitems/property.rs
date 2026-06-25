@@ -4,9 +4,9 @@ use crate::utils::nom_helper::nom_unsigned_two_bytes;
 use crate::utils::strings::extract_utf8_string;
 use common::windows::ShellItem;
 use common::windows::ShellType;
-use log::error;
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::error;
 
 /// Parse a `Property` `ShellItem`. These are very complex structures. Currently only getting the first GUID
 pub(crate) fn parse_property(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
@@ -22,7 +22,7 @@ pub(crate) fn parse_property(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let stores = match result {
         Ok(results) => results,
         Err(err) => {
-            error!("[shellitems] Could not get property store shellitem:{err:?}");
+            error!("Could not get property store shellitem:{err:?}");
             Vec::new()
         }
     };

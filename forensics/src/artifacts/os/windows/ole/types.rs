@@ -13,13 +13,13 @@ use crate::{
     },
 };
 use common::windows::ShellItem;
-use log::warn;
 use nom::{
     bytes::complete::{take, take_while},
     number::complete::{le_f32, le_f64},
 };
 use serde_json::Value;
 use std::{collections::HashMap, mem::size_of};
+use tracing::warn;
 
 /// Parse different OLE Type definitions
 pub(crate) fn parse_types<'a>(
@@ -161,7 +161,7 @@ fn parse_stream<'a>(
         let shellitem = match item_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                warn!("[ole] Could not parse shellitem");
+                warn!("Could not parse shellitem");
                 break;
             }
         };

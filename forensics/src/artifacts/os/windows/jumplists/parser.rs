@@ -19,7 +19,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::JumplistEntry;
-use log::error;
+use tracing::error;
 
 /// Grab `Jumplists` based on provided options
 pub(crate) fn grab_jumplists(
@@ -32,7 +32,7 @@ pub(crate) fn grab_jumplists(
         let drive = match systemdrive_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[jumplist] Could not get systemdrive: {err:?}");
+                error!("Could not get systemdrive: {err:?}");
                 return Err(JumplistError::Systemdrive);
             }
         };
@@ -46,7 +46,7 @@ pub(crate) fn grab_jumplists(
     let glob_paths = match glob_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[jumplist] Could not glob jumplist paths {path}: {err:?}");
+            error!("Could not glob jumplist paths {path}: {err:?}");
             return Err(JumplistError::ReadFile);
         }
     };

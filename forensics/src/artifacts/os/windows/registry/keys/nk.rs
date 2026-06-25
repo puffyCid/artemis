@@ -17,9 +17,9 @@ use crate::{
     },
 };
 use common::windows::RegistryData;
-use log::error;
 use nom::bytes::complete::take;
 use std::mem;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct NameKey {
@@ -141,7 +141,7 @@ impl NameKey {
                 Ok((_, values)) => registry_entry.values = values,
                 Err(_) => {
                     error!(
-                        "[registry] Failed to iterate through Values at: {}",
+                        "Failed to iterate through Values at: {}",
                         params.key_tracker.join("\\")
                     );
                 }
@@ -167,7 +167,7 @@ impl NameKey {
                     && let Err(err) = writer.write_artifact(artifact_name, opt, &mut records)
                 {
                     error!(
-                        "[registry] Failed to output data for {}, error: {err:?}",
+                        "Failed to output data for {}, error: {err:?}",
                         params.registry_path
                     );
                 }
@@ -192,7 +192,7 @@ impl NameKey {
                 Ok((_, _)) => {}
                 Err(_) => {
                     error!(
-                        "[registry] Failed to iterate through sublist at: {}",
+                        "Failed to iterate through sublist at: {}",
                         params.key_tracker.join("\\")
                     );
                 }

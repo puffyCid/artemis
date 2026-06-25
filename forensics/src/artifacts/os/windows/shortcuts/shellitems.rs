@@ -3,8 +3,8 @@ use crate::{
     utils::nom_helper::{Endian, nom_unsigned_two_bytes},
 };
 use common::windows::ShellItem;
-use log::error;
 use nom::{Needed, bytes::complete::take};
+use tracing::error;
 
 /// Parse the `ShellItems` that are in the `Shortcut` data
 pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<ShellItem>> {
@@ -29,7 +29,7 @@ pub(crate) fn parse_lnk_shellitems(data: &[u8]) -> nom::IResult<&[u8], Vec<Shell
         let shellitem = match item_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[shortcuts] Could not parse shellitem");
+                error!("Could not parse shellitem");
                 continue;
             }
         };

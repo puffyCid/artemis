@@ -6,9 +6,9 @@ use crate::utils::{
     time::filetime_to_iso,
 };
 use common::windows::UserAssistEntry;
-use log::{error, warn};
 use nom::bytes::complete::take;
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 /// Parse the `UserAssist` data obtained from the Registry
 pub(crate) fn parse_userassist_data(
@@ -25,9 +25,7 @@ pub(crate) fn parse_userassist_data(
     let descriptions = match folder_result {
         Ok(result) => result,
         Err(err) => {
-            warn!(
-                "[userassist] Could not get folder descriptions cannot do CLSID lookups: {err:?}"
-            );
+            warn!("Could not get folder descriptions cannot do CLSID lookups: {err:?}");
             HashMap::new()
         }
     };
@@ -51,7 +49,7 @@ fn get_entries(
             let assist_data = match decoded_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[userassist] Could not base64 decode data: {err:?}");
+                    error!("Could not base64 decode data: {err:?}");
                     continue;
                 }
             };
@@ -60,7 +58,7 @@ fn get_entries(
             let (_, mut userassist) = match assist_result {
                 Ok(result) => result,
                 Err(_err) => {
-                    error!("[userassist] Could not parse userassist data");
+                    error!("Could not parse userassist data");
                     continue;
                 }
             };

@@ -1,11 +1,11 @@
 use common::windows::{ServiceState, ServicesData};
-use log::warn;
 use std::{
     ffi::{OsString, c_void},
     iter::once,
     os::windows::ffi::OsStrExt,
     ptr::null_mut,
 };
+use tracing::warn;
 use windows_sys::Win32::System::Services::{
     CloseServiceHandle, OpenSCManagerW, OpenServiceW, QueryServiceStatusEx,
     SC_MANAGER_ENUMERATE_SERVICE, SC_STATUS_PROCESS_INFO, SERVICE_QUERY_STATUS,
@@ -27,7 +27,7 @@ pub(crate) fn service_state(services: &mut [ServicesData]) {
         let service =
             unsafe { OpenServiceW(service_manager, ut16_bytes.as_ptr(), SERVICE_QUERY_STATUS) };
         if service.is_null() {
-            warn!("[services] Cannot get service state for: {}", entry.name);
+            warn!("Cannot get service state for: {}", entry.name);
             continue;
         }
 

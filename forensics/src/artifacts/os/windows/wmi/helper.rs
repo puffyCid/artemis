@@ -6,10 +6,10 @@ use crate::{
     artifacts::os::windows::wmi::{namespaces::extract_classes, objects::parse_objects},
     filesystem::{files::read_file, metadata::glob_paths},
 };
-use log::error;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Namespaces {
@@ -91,7 +91,7 @@ pub(crate) fn list_classes(
     let object_info = match parse_objects(object_data, pages) {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[wmi] Could not parse objects for namespace {namespace}:{err:?}");
+            error!("Could not parse objects for namespace {namespace}:{err:?}");
             return Err(WmiError::ReadObjects);
         }
     };
@@ -148,7 +148,7 @@ pub(crate) fn class_description(
     let object_info = match parse_objects(object_data, pages) {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[wmi] Could not parse objects for namespace {namespace}:{err:?}");
+            error!("Could not parse objects for namespace {namespace}:{err:?}");
             return Err(WmiError::ReadObjects);
         }
     };
@@ -179,7 +179,7 @@ pub(crate) fn class_description(
         }
     }
 
-    error!("[wmi] Could not get class descriptions for {namespace} class {class_name}");
+    error!("Could not get class descriptions for {namespace} class {class_name}");
     Err(WmiError::ClassDescriptions)
 }
 
@@ -226,7 +226,7 @@ pub(crate) fn get_pages(map_paths: &str) -> Result<Vec<u32>, WmiError> {
     let maps = match maps_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wmi] Could not glob maps path {map_paths}: {err:?}");
+            error!("Could not glob maps path {map_paths}: {err:?}");
             return Err(WmiError::GlobMaps);
         }
     };
@@ -239,7 +239,7 @@ pub(crate) fn get_pages(map_paths: &str) -> Result<Vec<u32>, WmiError> {
         let map_data = match map_data_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[wmi] Could not read map file {}: {err:?}", map.full_path);
+                error!("Could not read map file {}: {err:?}", map.full_path);
                 return Err(WmiError::ReadMaps);
             }
         };
@@ -248,7 +248,7 @@ pub(crate) fn get_pages(map_paths: &str) -> Result<Vec<u32>, WmiError> {
         let map_info = match map_info_result {
             Ok((_, result)) => result,
             Err(err) => {
-                error!("[wmi] Could not parse map file {}: {err:?}", map.full_path);
+                error!("Could not parse map file {}: {err:?}", map.full_path);
                 return Err(WmiError::ParseMap);
             }
         };

@@ -6,9 +6,9 @@
  *  `https://github.com/libyal/libfwps/blob/main/documentation/Windows%20Property%20Store%20format.asciidoc`
  */
 use super::{error::StoreError, store::parse_property_store};
-use log::error;
 use serde_json::Value;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Grab Stores from a `Property Store`
 pub(crate) fn get_property_guid(data: &[u8]) -> Result<Vec<HashMap<String, Value>>, StoreError> {
@@ -16,7 +16,7 @@ pub(crate) fn get_property_guid(data: &[u8]) -> Result<Vec<HashMap<String, Value
     let (_, store) = match result {
         Ok(results) => results,
         Err(_err) => {
-            error!("[propertystore] Could not parse property store");
+            error!("Could not parse property store");
             return Err(StoreError::ParseProperty);
         }
     };

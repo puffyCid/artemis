@@ -7,10 +7,10 @@ use crate::{
 };
 use base16ct::upper::encode_str;
 use common::windows::WmiPersist;
-use log::{error, warn};
 use md5::Md5;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashSet};
+use tracing::{error, warn};
 
 /// Parse the WMI repository and return data associated with provided classes
 pub(crate) fn parse_wmi_repo(
@@ -22,7 +22,7 @@ pub(crate) fn parse_wmi_repo(
     let objects = match objects_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wmi] Could not read objects file {objects_path}: {err:?}");
+            error!("Could not read objects file {objects_path}: {err:?}");
             return Err(WmiError::ReadObjects);
         }
     };
@@ -31,7 +31,7 @@ pub(crate) fn parse_wmi_repo(
     let index = match index_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wmi] Could not read index file {index_path}: {err:?}");
+            error!("Could not read index file {index_path}: {err:?}");
             return Err(WmiError::ReadIndex);
         }
     };
@@ -42,7 +42,7 @@ pub(crate) fn parse_wmi_repo(
     let index_info = match index_info_result {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[wmi] Could not parse index file {index_path}: {err:?}");
+            error!("Could not parse index file {index_path}: {err:?}");
             return Err(WmiError::ParseIndex);
         }
     };

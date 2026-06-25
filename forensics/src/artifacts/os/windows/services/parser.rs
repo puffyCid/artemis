@@ -16,7 +16,7 @@ use crate::{
     structs::artifacts::os::windows::ServicesOptions, utils::environment::get_systemdrive,
 };
 use common::windows::ServicesData;
-use log::error;
+use tracing::error;
 
 /// Parse `Services` based on `ServicesOptions`
 pub(crate) fn grab_services(options: &ServicesOptions) -> Result<Vec<ServicesData>, ServicesError> {
@@ -37,7 +37,7 @@ fn default_services() -> Result<Vec<ServicesData>, ServicesError> {
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[services] Could not determine systemdrive: {err:?}");
+            error!("Could not determine systemdrive: {err:?}");
             return Err(ServicesError::DriveLetter);
         }
     };

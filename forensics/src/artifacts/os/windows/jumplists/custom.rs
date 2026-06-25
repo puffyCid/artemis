@@ -4,12 +4,12 @@ use crate::{
     utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes},
 };
 use common::windows::{DestEntries, JumplistEntry, ListType, PinStatus};
-use log::warn;
 use nom::{
     Parser,
     branch::alt,
     bytes::complete::{take, take_until},
 };
+use tracing::warn;
 
 /// Parse Custom `Jumplist` file. It contains an array of `Shortcut` (LNK) structures
 pub(crate) fn parse_custom<'a>(
@@ -18,7 +18,7 @@ pub(crate) fn parse_custom<'a>(
 ) -> nom::IResult<&'a [u8], Vec<JumplistEntry>> {
     let min_size = 50;
     if data.len() < min_size {
-        warn!("[jumplists] Custom Jumplist file {path} too small. Likely empty");
+        warn!("Custom Jumplist file {path} too small. Likely empty");
         return Ok((data, Vec::new()));
     }
 

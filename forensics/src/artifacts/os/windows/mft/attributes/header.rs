@@ -1,8 +1,8 @@
 use crate::utils::nom_helper::{
     Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
 };
-use log::warn;
 use serde::Serialize;
+use tracing::warn;
 
 #[derive(Debug)]
 pub(crate) struct AttributeHeader {
@@ -122,7 +122,7 @@ impl AttributeHeader {
             0x200000 | 0x280000 | 0x300000 => AttributeType::Undocumented,
             0xffffffff => AttributeType::End,
             _ => {
-                warn!("[mft] Got unknown attribute type {data}");
+                warn!("Got unknown attribute type {data}");
                 AttributeType::Unknown
             }
         }

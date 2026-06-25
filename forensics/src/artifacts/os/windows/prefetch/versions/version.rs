@@ -1,5 +1,5 @@
 use super::{version23::Version23, version26::Version26, version30::Version30};
-use log::error;
+use tracing::error;
 
 pub(crate) struct VersionInfo {
     pub(crate) file_array_offset: u32,
@@ -44,7 +44,7 @@ impl VersionInfo {
         } else if version == version23 {
             Version23::parse_file_info_ver23(data)?
         } else {
-            error!("[prefetch] Unsupported Prefetch version: {version}");
+            error!("Unsupported Prefetch version: {version}");
             return Err(nom::Err::Incomplete(nom::Needed::Unknown));
         };
 

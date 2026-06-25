@@ -1,7 +1,7 @@
 use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::{IdleSettings, MaintenanceSettings, NetworkSettings, RestartType, Settings};
-use log::error;
 use quick_xml::{Reader, events::Event};
+use tracing::error;
 
 /// Parse all Settings associated with Task
 pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
@@ -33,7 +33,7 @@ pub(crate) fn parse_settings(reader: &mut Reader<&[u8]>) -> Settings {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Settings xml data: {err:?}");
+                error!("Could not read Settings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -170,7 +170,7 @@ fn process_restart(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read RestartSettings xml data: {err:?}");
+                error!("Could not read RestartSettings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -205,7 +205,7 @@ fn process_idle(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read IdleSettings xml data: {err:?}");
+                error!("Could not read IdleSettings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -250,7 +250,7 @@ fn process_network(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read NetworkSettings xml data: {err:?}");
+                error!("Could not read NetworkSettings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -282,7 +282,7 @@ fn process_maintenance(info: &mut Settings, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read MaintenanceSettings xml data: {err:?}");
+                error!("Could not read MaintenanceSettings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,

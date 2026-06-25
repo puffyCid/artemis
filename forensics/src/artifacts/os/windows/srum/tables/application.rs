@@ -4,8 +4,8 @@ use crate::{
     utils::time::filetime_to_iso,
 };
 use common::windows::{AppTimelineInfo, AppVfu, ApplicationInfo, TableDump};
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse the application table from SRUM
 pub(crate) fn parse_application(
@@ -127,7 +127,7 @@ pub(crate) fn parse_application(
     let records = match serialize_records_to_stream(app_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM application table: {err:?}");
+            error!("Failed to serialize SRUM application table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };
@@ -356,7 +356,7 @@ pub(crate) fn parse_app_timeline(
     let records = match serialize_records_to_stream(app_timeline) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM App Timeline table: {err:?}");
+            error!("Failed to serialize SRUM App Timeline table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };
@@ -427,7 +427,7 @@ pub(crate) fn parse_vfu_provider(
     let records = match serialize_records_to_stream(app_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM application vfu table: {err:?}");
+            error!("Failed to serialize SRUM application vfu table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };

@@ -15,13 +15,13 @@ use crate::{
 };
 use common::windows::{ADSInfo, CompressionType, RawFilelist};
 use common::{files::Hashes, windows::Namespace};
-use log::error;
 use ntfs::{
     Ntfs, NtfsAttribute, NtfsAttributeType, NtfsError, NtfsFile, NtfsReadSeek,
     structured_values::{NtfsAttributeList, NtfsStandardInformation},
 };
 use serde::Serialize;
 use std::{fs::File, io::BufReader};
+use tracing::error;
 
 /// Get filename and Filename timestamps
 pub(crate) fn filename_info(
@@ -45,7 +45,7 @@ pub(crate) fn filename_info(
             let bytes = match data.read(fs, &mut temp_buff) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to read the FILENAME attribute! Error: {err:?}");
+                    error!("Failed to read the FILENAME attribute! Error: {err:?}");
                     break;
                 }
             };
@@ -62,7 +62,7 @@ pub(crate) fn filename_info(
         let filename = match Filename::parse_filename(&temp_buff) {
             Ok((_, result)) => result,
             Err(err) => {
-                error!("[ntfs] Failed to parse FILENAME attribute: {err:?}");
+                error!("Failed to parse FILENAME attribute: {err:?}");
                 continue;
             }
         };
@@ -108,9 +108,7 @@ pub(crate) fn file_data(
     let (is_compressed, uncompressed_data, compressed_size) = match check_results {
         Ok(result) => result,
         Err(err) => {
-            error!(
-                "[ntfs] Could not check for wofcompression. Returning default data. Error: {err:?}"
-            );
+            error!("Could not check for wofcompression. Returning default data. Error: {err:?}");
             (false, Vec::new(), 0)
         }
     };
@@ -139,7 +137,7 @@ pub(crate) fn file_data(
     let ntfs_data = match ntfs_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ntfs] Failed to get NTFS data error: {err:?}");
+            error!("Failed to get NTFS data error: {err:?}");
             return Err(NTFSError::FileData);
         }
     };
@@ -164,7 +162,7 @@ pub(crate) fn file_data(
     let mut data_attr_value = match data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ntfs] Failed to get NTFS attribute data error: {err:?}");
+            error!("Failed to get NTFS attribute data error: {err:?}");
             return Err(NTFSError::AttributeValue);
         }
     };
@@ -182,7 +180,7 @@ pub(crate) fn get_attribute_name(attribute: &NtfsAttribute<'_, '_>) -> String {
     match attr_name_result {
         Ok(result) => result.to_string().unwrap_or_default(),
         Err(err) => {
-            error!("[ntfs] Failed to get INDX attribute name: {err:?}");
+            error!("Failed to get INDX attribute name: {err:?}");
             String::new()
         }
     }
@@ -378,7 +376,7 @@ pub(crate) fn get_attribute_type(attribute: &NtfsAttribute<'_, '_>) -> String {
     match attr_type_result {
         Ok(result) => result.to_string(),
         Err(err) => {
-            error!("[ntfs] Failed to get INDX attribute type: {err:?}");
+            error!("Failed to get INDX attribute type: {err:?}");
             String::new()
         }
     }

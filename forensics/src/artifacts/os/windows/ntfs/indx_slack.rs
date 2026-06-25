@@ -8,13 +8,13 @@ use crate::{
     },
 };
 use common::windows::RawFilelist;
-use log::{error, info};
 use nom::{
     bytes::complete::{take, take_until},
     number::complete::le_u64,
 };
 use ntfs::{NtfsAttributes, NtfsFile, NtfsReadSeek, structured_values::NtfsFileAttributeFlags};
 use std::{ffi::OsStr, fs::File, io::BufReader, mem::size_of, path::Path};
+use tracing::{error, info};
 
 /// Find the INDX attribute for the directory entry. We search the slack space on INDX attribute for metadata on deleted files or directories
 pub(crate) fn get_indx(
@@ -33,7 +33,7 @@ pub(crate) fn get_indx(
         let attr = match attr_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ntfs] Failed to get INDX attribute item: {err:?}");
+                error!("Failed to get INDX attribute item: {err:?}");
                 continue;
             }
         };
@@ -80,7 +80,7 @@ fn get_slack(
         let attr = match attr_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ntfs] Failed to get INDX attribute item: {err:?}");
+                error!("Failed to get INDX attribute item: {err:?}");
                 continue;
             }
         };
@@ -104,7 +104,7 @@ fn get_slack(
         let mut data_attr_value = match data_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ntfs] Failed to get NTFS attribute data error: {err:?}");
+                error!("Failed to get NTFS attribute data error: {err:?}");
                 continue;
             }
         };
@@ -117,7 +117,7 @@ fn get_slack(
             let bytes = match bytes_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to read INDX slack: {err:?}");
+                    error!("Failed to read INDX slack: {err:?}");
                     return slack_entries;
                 }
             };
@@ -135,7 +135,7 @@ fn get_slack(
         match slack_results {
             Ok((_, mut result)) => slack_entries.append(&mut result),
             Err(err) => {
-                info!("[ntfs] No INDX slack entries: {err:?}");
+                info!("No INDX slack entries: {err:?}");
                 continue;
             }
         }

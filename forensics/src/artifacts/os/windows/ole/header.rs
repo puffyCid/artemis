@@ -5,8 +5,8 @@ use crate::utils::{
     },
     uuid::format_guid_le_bytes,
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct OleHeader {
@@ -52,7 +52,7 @@ impl OleHeader {
         let ole_sig = 16220472316735377360;
 
         if sig != ole_sig {
-            error!("[ole] Incorrect OLE signature: {sig}!");
+            error!("Incorrect OLE signature: {sig}!");
             return Err(nom::Err::Failure(nom::error::Error::new(
                 &[],
                 ErrorKind::Fail,

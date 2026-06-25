@@ -6,7 +6,7 @@ use crate::{
     },
 };
 use common::windows::{Action, FailureActions, ServiceError, ServiceType, SidType, StartMode};
-use log::error;
+use tracing::error;
 
 /// Get Error Control type for Service
 pub(crate) fn error_control(value: &str) -> ServiceError {
@@ -83,7 +83,7 @@ pub(crate) fn failure_actions(value: &str) -> Result<(Vec<FailureActions>, u32),
     let data = match data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[services] Failed to base64 decode failure actions data: {err:?}");
+            error!("Failed to base64 decode failure actions data: {err:?}");
             return Err(ServicesError::Base64Decode);
         }
     };
@@ -91,7 +91,7 @@ pub(crate) fn failure_actions(value: &str) -> Result<(Vec<FailureActions>, u32),
     let (failures, reset) = match failures_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[services] Could not parse Failure Actions");
+            error!("Could not parse Failure Actions");
             return Err(ServicesError::ServicesData);
         }
     };

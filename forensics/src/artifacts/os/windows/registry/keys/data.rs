@@ -7,12 +7,12 @@ use crate::{
         time::filetime_to_iso,
     },
 };
-use log::error;
 use nom::{
     Needed,
     bytes::complete::take,
     number::complete::{le_i64, le_u64},
 };
+use tracing::error;
 
 #[derive(PartialEq)]
 enum DataTypes {
@@ -71,7 +71,7 @@ pub(crate) fn parse_qword_filetime(
     let (input, (allocated, data_cell_size)) = is_allocated(input)?;
 
     if !allocated {
-        error!("[registry] Got unallocated FILETIME/QWORD data");
+        error!("Got unallocated FILETIME/QWORD data");
         return Ok((reg_data, String::new()));
     }
     // Size includes the size itself. We nommed that away
@@ -108,7 +108,7 @@ fn check_big_data(
     let (input, (allocated, data_cell_size)) = is_allocated(input)?;
 
     if !allocated {
-        error!("[registry] Got unallocated Big Data");
+        error!("Got unallocated Big Data");
         return Ok((reg_data, String::new()));
     }
     // The max size of big data is 16344

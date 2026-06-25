@@ -7,8 +7,8 @@ use crate::artifacts::os::windows::shimdb::{
     indexes::get_indexes_data, stringtable::get_stringtable_data, tags::list::parse_list,
 };
 use common::windows::{DatabaseData, ShimData};
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse the bytes of a sdb file
 pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
@@ -68,7 +68,7 @@ pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
     match index_tag_result {
         Ok((_, mut result)) => shim_data.indexes.append(&mut result),
         Err(err) => {
-            error!("[shimdb] Failed to parse indexes list: {err:?}");
+            error!("Failed to parse indexes list: {err:?}");
         }
     }
 
@@ -79,7 +79,7 @@ pub(crate) fn parse_shimdb(data: &[u8]) -> nom::IResult<&[u8], ShimData> {
             shim_data.db_data = result;
         }
         Err(err) => {
-            error!("[shimdb] Failed to parse database list: {err:?}");
+            error!("Failed to parse database list: {err:?}");
         }
     }
 

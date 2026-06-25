@@ -22,7 +22,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::RecycleBin;
-use log::error;
+use tracing::error;
 
 /// Grab data in the Windows `Recycle Bin` based on options
 pub(crate) fn grab_recycle_bin(
@@ -36,7 +36,7 @@ pub(crate) fn grab_recycle_bin(
     let drive = match systemdrive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[recyclebin] Could not get system drive: {err:?}");
+            error!("Could not get system drive: {err:?}");
             return Err(RecycleBinError::Systemdrive);
         }
     };
@@ -46,7 +46,7 @@ pub(crate) fn grab_recycle_bin(
     let glob_paths = match glob_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[recyclebin] Could not glob recycle bin path {path}: {err:?}");
+            error!("Could not glob recycle bin path {path}: {err:?}");
             return Err(RecycleBinError::ReadFile);
         }
     };
@@ -71,7 +71,7 @@ pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBin
     let data = match read_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[recyclebin] Failed to read recycle bing file {path}: {err:?}");
+            error!("Failed to read recycle bing file {path}: {err:?}");
             return Err(RecycleBinError::ReadFile);
         }
     };
@@ -79,7 +79,7 @@ pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBin
     let mut bin = match bin_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[recyclebin] Failed to parse recycle bin file {path}");
+            error!("Failed to parse recycle bin file {path}");
             return Err(RecycleBinError::ParseFile);
         }
     };

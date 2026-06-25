@@ -7,11 +7,11 @@ use crate::{
     },
 };
 use common::windows::RecycleBin;
-use log::error;
 use nom::{
     Needed,
     bytes::complete::{take, take_until},
 };
+use tracing::error;
 
 /// Parse the `$I` file data from the `Recycle Bin`
 pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> {
@@ -29,7 +29,7 @@ pub(crate) fn parse_recycle_bin(data: &[u8]) -> nom::IResult<&[u8], RecycleBin> 
         let (_, name_data) = take(name_size * utf_adjust)(input)?;
         extract_utf16_string(name_data)
     } else {
-        error!("[recyclebin] Got unknown recycle bin version: {version}");
+        error!("Got unknown recycle bin version: {version}");
         return Err(nom::Err::Incomplete(Needed::Unknown));
     };
 

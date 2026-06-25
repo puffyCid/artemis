@@ -5,7 +5,7 @@ use super::{
     ssat::assemble_ssat_data,
 };
 use crate::artifacts::os::windows::ole::ssat::add_ssat_slots;
-use log::error;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct OleData {
@@ -55,7 +55,7 @@ impl OleData {
         let directories = match dir_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[ole] Failed to get OLE Directories");
+                error!("Failed to get OLE Directories");
                 Vec::new()
             }
         };
@@ -116,7 +116,7 @@ impl OleData {
                     Ok((_, results)) => results,
                     Err(_err) => {
                         error!(
-                            "[ole] Could not parse SSAT data associated with directory: {}",
+                            "Could not parse SSAT data associated with directory: {}",
                             directory.name
                         );
                         continue;
@@ -137,7 +137,7 @@ impl OleData {
                     Ok((_, results)) => results,
                     Err(_err) => {
                         error!(
-                            "[ole] Could not parse SAT data associated with directory: {}",
+                            "Could not parse SAT data associated with directory: {}",
                             directory.name
                         );
                         continue;

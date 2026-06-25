@@ -5,9 +5,9 @@ use crate::utils::{
     strings::extract_utf16_string,
     time::filetime_to_iso,
 };
-use log::error;
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::error;
 
 // There are three (3) Volume versions, however all of them have the same first 36 bytes
 // Rest of bytes are unknown
@@ -88,7 +88,7 @@ impl Volume {
                 let (input, _) = take(unknown_size)(input)?;
                 input
             } else {
-                error!("[prefetch] Unsupported prefetch volume info version: {version}");
+                error!("Unsupported prefetch volume info version: {version}");
                 break;
             };
         }

@@ -3,7 +3,7 @@ use crate::{
     artifacts::os::windows::registry::helper::get_registry_keys, utils::regex_options::create_regex,
 };
 use common::windows::RegistryData;
-use log::error;
+use tracing::error;
 
 /// Parse provided Registry file (SYSTEM) and get Services information
 pub(crate) fn get_services_data(path: &str) -> Result<Vec<RegistryData>, ServicesError> {
@@ -14,7 +14,7 @@ pub(crate) fn get_services_data(path: &str) -> Result<Vec<RegistryData>, Service
     let entries = match entries_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[services] Failed to parse Registry: {err:?}");
+            error!("Failed to parse Registry: {err:?}");
             return Err(ServicesError::RegistryFiles);
         }
     };

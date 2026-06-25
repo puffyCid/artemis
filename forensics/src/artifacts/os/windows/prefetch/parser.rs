@@ -16,7 +16,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::Prefetch;
-use log::error;
+use tracing::error;
 
 use super::pf::parse_prefetch;
 
@@ -30,7 +30,7 @@ pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, 
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[prefetch] Could not determine system drive: {err:?}");
+            error!("Could not determine system drive: {err:?}");
             return Err(PrefetchError::DriveLetter);
         }
     };
@@ -49,7 +49,7 @@ fn read_directory(path: &str) -> Result<Vec<Prefetch>, PrefetchError> {
     let read_dir = match dir_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[prefetch] Failed to get prefetch files {path}, error: {err:?}");
+            error!("Failed to get prefetch files {path}, error: {err:?}");
             return Err(PrefetchError::ReadDirectory);
         }
     };
@@ -65,7 +65,7 @@ fn read_directory(path: &str) -> Result<Vec<Prefetch>, PrefetchError> {
         match prefetch_results {
             Ok(result) => prefetch_data.push(result),
             Err(err) => {
-                error!("[prefetch] Failed to get prefetch for {pf_file}, error: {err:?}");
+                error!("Failed to get prefetch for {pf_file}, error: {err:?}");
             }
         }
     }
@@ -79,7 +79,7 @@ fn read_prefetch(path: &str) -> Result<Prefetch, PrefetchError> {
     let buffer = match buffer_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[prefetch] Failed to read prefetch file {path}, error: {err:?}");
+            error!("Failed to read prefetch file {path}, error: {err:?}");
             return Err(PrefetchError::ReadFile);
         }
     };

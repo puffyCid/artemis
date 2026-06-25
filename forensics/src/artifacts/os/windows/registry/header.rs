@@ -3,9 +3,9 @@ use crate::utils::{
     strings::extract_utf16_string,
     time::filetime_to_iso,
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
 use serde::Serialize;
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct RegHeader {
@@ -37,7 +37,7 @@ impl RegHeader {
         let sig = 0x66676572;
 
         if signature != sig {
-            error!("[registry] Not a registry file, got signature: {signature}");
+            error!("Not a registry file, got signature: {signature}");
             return Err(nom::Err::Failure(nom::error::Error::new(
                 input,
                 ErrorKind::Fail,

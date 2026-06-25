@@ -7,8 +7,8 @@ use crate::{
     },
 };
 use common::windows::ShimcacheEntry;
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
+use tracing::error;
 
 /// Parse Windows `Shimcache` data from the Registry
 pub(crate) fn parse_shimdata(
@@ -20,7 +20,7 @@ pub(crate) fn parse_shimdata(
     let binary_data = match binary_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shimcache] Could not base64 decode shimcache: {err:?}");
+            error!("Could not base64 decode shimcache: {err:?}");
             return Err(ShimcacheError::Base64);
         }
     };
@@ -29,7 +29,7 @@ pub(crate) fn parse_shimdata(
     match entries_result {
         Ok((_, result)) => Ok(result),
         Err(_err) => {
-            error!("[shimcache] Could not parse Shimcache format");
+            error!("Could not parse Shimcache format");
             Err(ShimcacheError::Parser)
         }
     }
@@ -61,7 +61,7 @@ fn detect_format<'a>(
         } else if entry_sig == win81_entry {
             win81_format(data, key_path, path)
         } else {
-            error!("[shimcache] Unknown Shimcache Win8 entrytype. Sig is: {entry_sig}");
+            error!("Unknown Shimcache Win8 entrytype. Sig is: {entry_sig}");
             Err(nom::Err::Failure(nom::error::Error::new(
                 &[],
                 ErrorKind::Fail,
@@ -70,7 +70,7 @@ fn detect_format<'a>(
     } else if win10_size == sig || win10_creator_size == sig {
         win10_format(data, key_path, path)
     } else {
-        error!("[shimcache] Unknown Shimcache type. Sig is: {sig}");
+        error!("Unknown Shimcache type. Sig is: {sig}");
         Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,

@@ -19,7 +19,6 @@ use crate::{
     },
 };
 use common::windows::{PropertyContext, PropertyType};
-use log::{error, warn};
 use nom::{
     bytes::complete::take,
     error::ErrorKind,
@@ -28,6 +27,7 @@ use nom::{
 use ntfs::NtfsFile;
 use serde_json::Value;
 use std::collections::BTreeMap;
+use tracing::{error, warn};
 
 pub(crate) trait OutlookPropertyContext<T: std::io::Seek + std::io::Read> {
     fn parse_property_context(
@@ -71,7 +71,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
         let props = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not parse property context");
+                error!("Could not parse property context");
                 return Err(OutlookError::PropertyContext);
             }
         };
@@ -92,7 +92,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
         // Have not seen Branch nodes for properties but maybe they exist?
         if heap_btree.level == NodeLevel::BranchNode {
-            warn!("[outlook] Got Branch node for property data. Parse will likely fail");
+            warn!("Got Branch node for property data. Parse will likely fail");
         }
 
         let mut prop_data_size = 0;
@@ -122,7 +122,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
 
         if !props.len().is_multiple_of(prop_entry_size) {
             error!(
-                "[outlook] Property definitions should always be a multiple of 8 bytes! Got size: {prop_data_size}. Returning early"
+                "Property definitions should always be a multiple of 8 bytes! Got size: {prop_data_size}. Returning early"
             );
             return Ok((&[], Vec::new()));
         }
@@ -180,7 +180,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                     let desc_blocks = match desc_result {
                         Ok(result) => result,
                         Err(_err) => {
-                            error!("[outlook] Failed to parse descriptors for large data");
+                            error!("Failed to parse descriptors for large data");
                             return Err(nom::Err::Failure(nom::error::Error::new(
                                 &[],
                                 ErrorKind::Fail,
@@ -196,9 +196,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                         let prop_value = match prop_result {
                             Ok((_, result)) => result,
                             Err(_err) => {
-                                error!(
-                                    "[outlook] Failed to parse property data from descriptor blocks"
-                                );
+                                error!("Failed to parse property data from descriptor blocks");
                                 continue;
                             }
                         };
@@ -214,7 +212,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookPropertyContext<T> for OutlookRead
                 let prop_value = match prop_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        error!("[outlook] Failed to parse property data");
+                        error!("Failed to parse property data");
                         continue;
                     }
                 };

@@ -8,9 +8,9 @@ use crate::{
     },
 };
 use common::windows::{AccessControlEntry, AccessItem, AccessMask, AceFlags, AceTypes, ObjectFlag};
-use log::warn;
 use nom::{Needed, bytes::complete::take};
 use std::mem::size_of;
+use tracing::warn;
 
 /**
  * Parse the raw Windows Acess Control List (ACL) data  
@@ -297,7 +297,7 @@ fn get_ace_type(ace_type: u8) -> (AceTypes, AceTypes) {
         16 => (AceTypes::SystemAlarmObjectTypeCallback, AceTypes::Object),
         17 => (AceTypes::SystemMandatoryLabel, AceTypes::Object),
         _ => {
-            warn!("[acl] Unknown ACE Type: {ace_type}");
+            warn!("Unknown ACE Type: {ace_type}");
             (AceTypes::Unknown, AceTypes::Unknown)
         }
     }

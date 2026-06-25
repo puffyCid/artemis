@@ -22,8 +22,8 @@ use crate::{
     structs::artifacts::os::windows::SrumOptions,
 };
 use common::windows::TableDump;
-use log::{error, warn};
 use serde_json::Value;
+use tracing::{error, warn};
 
 /// Parse and dump the provided SRUM tables
 pub(crate) fn parse_srum(
@@ -76,7 +76,7 @@ pub(crate) fn parse_srum(
 
         let artifact_name = "srum";
         if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-            error!("[srum] Could not output srum {table} data: {err:?}");
+            error!("Could not output srum {table} data: {err:?}");
         }
     }
 
@@ -110,7 +110,7 @@ pub(crate) fn get_srum(path: &str, table: &str) -> Result<Value, SrumError> {
     let mut serde_data = Value::Array(Vec::new());
     while let Ok(Some(entries)) = srum_data.next_record() {
         let Record::Json(record) = entries else {
-            error!("[srum] Got non JsonRecord type");
+            error!("Got non JsonRecord type");
             return Err(SrumError::Serialize);
         };
         serde_data.as_array_mut().unwrap().push(record.into_value());
@@ -125,21 +125,21 @@ pub(crate) fn get_srum_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     let catalog = match catalog_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[srum] Failed to parse {path} catalog: {err:?}");
+            error!("Failed to parse {path} catalog: {err:?}");
             return Err(SrumError::ParseEse);
         }
     };
 
     let mut info = table_info(&catalog, table);
     if info.table_name.is_empty() || info.table_page == 0 {
-        warn!("[srum] No hit for table: {table}");
+        warn!("No hit for table: {table}");
         return Ok(Vec::new());
     }
     let pages_result = get_all_pages(path, info.table_page as u32);
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[srum] Failed to get {table} pages at {path}: {err:?}");
+            error!("Failed to get {table} pages at {path}: {err:?}");
             return Err(SrumError::ParseEse);
         }
     };
@@ -148,7 +148,7 @@ pub(crate) fn get_srum_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     let table_rows = match rows_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[srum] Failed to parse {table} table at {path}: {err:?}");
+            error!("Failed to parse {table} table at {path}: {err:?}");
             return Err(SrumError::ParseEse);
         }
     };

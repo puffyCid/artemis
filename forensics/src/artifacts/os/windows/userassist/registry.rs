@@ -5,7 +5,7 @@ use crate::{
     utils::regex_options::create_regex,
 };
 use common::windows::RegistryData;
-use log::error;
+use tracing::error;
 
 pub(crate) struct UserAssistReg {
     pub(crate) regs: Vec<RegistryData>,
@@ -18,7 +18,7 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
     let user_hives = match user_reg_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[userassist] Could not get user hives: {err:?}");
+            error!("Could not get user hives: {err:?}");
             return Err(UserAssistError::RegistryFiles);
         }
     };
@@ -27,7 +27,7 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
     let mut ntfs_parser = match parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[userassist] Could no create ntfs parser: {err:?}");
+            error!("Could no create ntfs parser: {err:?}");
             return Err(UserAssistError::UserAssistData);
         }
     };
@@ -59,10 +59,7 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
                 userassist_data.push(assist_entry);
             }
             Err(err) => {
-                error!(
-                    "[userassist] Could not parse {}: {err:?}",
-                    assist_entry.reg_file
-                );
+                error!("Could not parse {}: {err:?}", assist_entry.reg_file);
             }
         }
     }
@@ -80,7 +77,7 @@ pub(crate) fn alt_userassist(path: &str) -> Result<Vec<UserAssistReg>, UserAssis
     let reg_data = match reg_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[userassist] Could not parse {path}: {err:?}",);
+            error!("Could not parse {path}: {err:?}",);
             return Err(UserAssistError::RegistryFiles);
         }
     };

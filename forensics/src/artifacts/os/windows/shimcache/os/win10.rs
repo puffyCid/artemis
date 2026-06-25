@@ -6,8 +6,8 @@ use crate::utils::{
     time::filetime_to_iso,
 };
 use common::windows::ShimcacheEntry;
-use log::warn;
 use nom::bytes::complete::take;
+use tracing::warn;
 
 /// Parse the `Shimcache` Windows 10 format
 pub(crate) fn win10_format<'a>(
@@ -29,7 +29,7 @@ pub(crate) fn win10_format<'a>(
 
         let sig_value = 1936994353; // 10ts
         if sig != sig_value {
-            warn!("[shimcache] Did not get shimcache win10 signature");
+            warn!("Did not get shimcache win10 signature");
             break;
         }
 

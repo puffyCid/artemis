@@ -8,8 +8,8 @@ use crate::{
     filesystem::files::get_filename,
 };
 use common::windows::{JumplistEntry, ListType};
-use log::error;
 use nom::error::ErrorKind;
+use tracing::error;
 
 /// Parse Automatic `Jumplists`
 pub(crate) fn parse_automatic<'a>(
@@ -36,7 +36,7 @@ pub(crate) fn parse_automatic<'a>(
         dest_info = match info_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[jumplist] Could not parse Automatic DestList info!");
+                error!("Could not parse Automatic DestList info!");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     &[],
                     ErrorKind::Fail,
@@ -58,7 +58,7 @@ pub(crate) fn parse_automatic<'a>(
             let mut lnk_info = match lnk_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[jumplist] Could not parse Shortcut info in Automatic Jumplist!");
+                    error!("Could not parse Shortcut info in Automatic Jumplist!");
                     continue;
                 }
             };

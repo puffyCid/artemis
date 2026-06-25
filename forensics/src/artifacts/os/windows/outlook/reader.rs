@@ -3,9 +3,9 @@ use crate::filesystem::{
     files::file_reader,
     ntfs::{raw_files::raw_reader, sector_reader::SectorReader},
 };
-use log::error;
 use ntfs::{Ntfs, NtfsFile};
 use std::{fs::File, io::BufReader};
+use tracing::error;
 
 /// Setup Windows Outlook reader using NTFS parser
 pub(crate) fn setup_outlook_reader_windows<'a>(
@@ -17,7 +17,7 @@ pub(crate) fn setup_outlook_reader_windows<'a>(
     let ntfs_file = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Could not setup reader: {err:?}");
+            error!("Could not setup reader: {err:?}");
             return Err(OutlookError::ReadFile);
         }
     };
@@ -31,7 +31,7 @@ pub(crate) fn setup_outlook_reader(path: &str) -> Result<File, OutlookError> {
     let reader = match reader_result {
         Ok(reader) => reader,
         Err(err) => {
-            error!("[outlook] Could not setup API reader: {err:?}");
+            error!("Could not setup API reader: {err:?}");
             return Err(OutlookError::ReadFile);
         }
     };

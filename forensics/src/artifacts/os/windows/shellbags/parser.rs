@@ -19,10 +19,10 @@ use crate::{
     },
 };
 use common::windows::{RegistryData, ShellItem, ShellType};
-use log::error;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
+use tracing::error;
 
 #[derive(Debug, Clone, Serialize, Default)]
 pub(crate) struct Shellbag {
@@ -51,7 +51,7 @@ pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shellbags] Could not get default system drive letter: {err:?}");
+            error!("Could not get default system drive letter: {err:?}");
             return Err(ShellbagError::DefaultDrive);
         }
     };
@@ -79,7 +79,7 @@ fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, Shell
     let bags = match shellbags_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shellbags] Could not parse file {path}: {err:?}");
+            error!("Could not parse file {path}: {err:?}");
             return Err(ShellbagError::GetRegistryData);
         }
     };
@@ -113,7 +113,7 @@ fn parse_shellbags(drive: char, resolve_guids: bool) -> Result<Vec<Shellbag>, Sh
     let user_hives = match user_hives_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shellbags] Could not get User Registry data for Shellbags: {err:?}");
+            error!("Could not get User Registry data for Shellbags: {err:?}");
             return Err(ShellbagError::GetRegistryData);
         }
     };
@@ -138,7 +138,7 @@ fn parse_shellbags(drive: char, resolve_guids: bool) -> Result<Vec<Shellbag>, Sh
                 Ok(result) => result,
                 Err(err) => {
                     error!(
-                        "[shellbags] Could not parse UsrClass.dat Registry file {}: {err:?}",
+                        "Could not parse UsrClass.dat Registry file {}: {err:?}",
                         &hive.full_path
                     );
                     continue;
@@ -154,7 +154,7 @@ fn parse_shellbags(drive: char, resolve_guids: bool) -> Result<Vec<Shellbag>, Sh
                 Ok(result) => result,
                 Err(err) => {
                     error!(
-                        "[shellbags] Could not parse NTUSER.DAT Registry file {}: {err:?}",
+                        "Could not parse NTUSER.DAT Registry file {}: {err:?}",
                         &hive.full_path
                     );
                     continue;
@@ -210,7 +210,7 @@ fn extract_shellbags(
                 Ok(result) => result,
                 Err(err) => {
                     error!(
-                        "[shellbags] Could not parse bag data at {} value name: {}: {err:?}",
+                        "Could not parse bag data at {} value name: {}: {err:?}",
                         entry.path, value.value
                     );
                     ShellItem {

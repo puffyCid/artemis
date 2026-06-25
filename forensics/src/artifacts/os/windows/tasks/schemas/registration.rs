@@ -1,7 +1,7 @@
 use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::RegistrationInfo;
-use log::error;
 use quick_xml::{Reader, events::Event};
+use tracing::error;
 
 /// Parse `RegistrationInfo` of Task
 pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo {
@@ -19,7 +19,7 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read RegistrationInfo xml data: {err:?}");
+                error!("Could not read RegistrationInfo xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,

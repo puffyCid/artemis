@@ -12,7 +12,7 @@ use crate::{
     filesystem::{files::is_file, ntfs::raw_files::raw_read_file},
 };
 use common::windows::{BitsInfo, FileInfo, JobInfo, JobPriority, JobState, JobType, TableDump};
-use log::error;
+use tracing::error;
 
 /**
  * Parse modern version (Win10+) of BITS which is an ESE database by dumping the `Jobs` and `Files` tables and parsing their contents  
@@ -80,7 +80,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
             add_carved_bits(&mut bits_info, carved_jobs, carved_files, bits_path);
         } else {
             error!(
-                "[bits] Could not read {bits_path} for carving: {:?}",
+                "Could not read {bits_path} for carving: {:?}",
                 read_result.unwrap_err()
             );
         }
@@ -94,7 +94,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     let catalog = match catalog_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[bits] Failed to parse {path} catalog: {err:?}");
+            error!("Failed to parse {path} catalog: {err:?}");
             return Err(BitsError::ParseEse);
         }
     };
@@ -104,7 +104,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[bits] Failed to get {table} pages at {path}: {err:?}");
+            error!("Failed to get {table} pages at {path}: {err:?}");
             return Err(BitsError::ParseEse);
         }
     };
@@ -113,7 +113,7 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     let table_rows = match rows_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[bits] Failed to parse {table} table at {path}: {err:?}");
+            error!("Failed to parse {table} table at {path}: {err:?}");
             return Err(BitsError::ParseEse);
         }
     };
@@ -152,7 +152,7 @@ pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<Vec<BitsInfo>, Bits
     let bits_data = match read_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[bits] Could not read file {path}: {err:?}");
+            error!("Could not read file {path}: {err:?}");
             return Err(BitsError::ReadFile);
         }
     };
@@ -178,7 +178,7 @@ fn parse_carve(data: &[u8], is_legacy: bool, evidence: &str) -> WinBits {
     match results {
         Ok((_, bits)) => bits,
         Err(_err) => {
-            error!("[bits] Could not carve BITS data");
+            error!("Could not carve BITS data");
             (Vec::new(), Vec::new(), Vec::new())
         }
     }

@@ -17,7 +17,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::ShimData;
-use log::error;
+use tracing::error;
 
 /// Parse `Shimdb` based on `ShimdbOptions`
 pub(crate) fn grab_shimdb(options: &ShimdbOptions) -> Result<Vec<ShimData>, ShimdbError> {
@@ -29,7 +29,7 @@ pub(crate) fn grab_shimdb(options: &ShimdbOptions) -> Result<Vec<ShimData>, Shim
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shimdb] Could not determine systemdrive: {err:?}");
+            error!("Could not determine systemdrive: {err:?}");
             return Err(ShimdbError::DriveLetter);
         }
     };
@@ -52,7 +52,7 @@ fn drive_shimdb(drive: char) -> Result<Vec<ShimData>, ShimdbError> {
         Ok(results) => results,
         Err(err) => {
             error!(
-                "[shimdb] Failed to list custom 32 bit sdb files at: {custom32_bit_path}, error: {err:?}",
+                "Failed to list custom 32 bit sdb files at: {custom32_bit_path}, error: {err:?}",
             );
             return Err(ShimdbError::ReadDirectory);
         }
@@ -63,7 +63,7 @@ fn drive_shimdb(drive: char) -> Result<Vec<ShimData>, ShimdbError> {
         Ok(mut results) => sdb_files.append(&mut results),
         Err(err) => {
             error!(
-                "[shimdb] Failed to list custom 64 bit sdb files at: {custom64_bit_path}, error: {err:?}",
+                "Failed to list custom 64 bit sdb files at: {custom64_bit_path}, error: {err:?}",
             );
             return Err(ShimdbError::ReadDirectory);
         }
@@ -92,7 +92,7 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
     let buffer = match buffer_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shimdb] Failed to read sdb file at: {path}, error: {err:?}");
+            error!("Failed to read sdb file at: {path}, error: {err:?}");
             return Err(ShimdbError::ReadFile);
         }
     };
@@ -100,7 +100,7 @@ fn parse_sdb_file(path: &str) -> Result<ShimData, ShimdbError> {
     let mut shim_results = match shimdb_result {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[shimdb] Failed to parse sdb file at: {path}, error: {err:?}");
+            error!("Failed to parse sdb file at: {path}, error: {err:?}");
             return Err(ShimdbError::ParseSdb);
         }
     };

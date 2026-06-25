@@ -19,12 +19,12 @@ use crate::{
     utils::nom_helper::nom_data,
 };
 use common::windows::{AttributeFlags, MftEntry, Namespace};
-use log::{error, warn};
 use ntfs::NtfsFile;
 use std::{
     collections::{HashMap, HashSet},
     io::BufReader,
 };
+use tracing::{error, warn};
 
 /// Parse the provided $MFT file and try to re-create filelisting
 pub(crate) fn parse_mft(
@@ -48,7 +48,7 @@ pub(crate) fn parse_mft(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[mft] Could not setup NTFS parser: {err:?}");
+            error!("Could not setup NTFS parser: {err:?}");
             return Err(MftError::Systemdrive);
         }
     };
@@ -57,7 +57,7 @@ pub(crate) fn parse_mft(
     let size = match get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs) {
         Ok(result) => result,
         Err(err) => {
-            error!("[mft] Failed to determine size of $MFT file: {err:?}");
+            error!("Failed to determine size of $MFT file: {err:?}");
             return Err(MftError::RawSize);
         }
     };
@@ -137,7 +137,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             ) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[mft] Could not read entry bytes: {err:?}");
+                    error!("Could not read entry bytes: {err:?}");
                     break;
                 }
             };
@@ -150,7 +150,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[mft] Could not parse entry bytes: {err:?}");
+                        error!("Could not parse entry bytes: {err:?}");
                         break;
                     }
                 };
@@ -163,7 +163,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 let (entry_bytes, mft_header) = match header_results {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[mft] Could not parse header: {err:?}");
+                        error!("Could not parse header: {err:?}");
                         break;
                     }
                 };
@@ -182,7 +182,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 ) {
                     Ok((_, result)) => result,
                     Err(err) => {
-                        error!("[mft] Could not parse mft attributes: {err:?}");
+                        error!("Could not parse mft attributes: {err:?}");
                         break;
                     }
                 };
@@ -362,7 +362,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
         "{}_{}",
         tracker.parent_index, tracker.parent_sequence
     )) {
-        warn!("[mft] Got recursive parent. This is wrong. Stopping lookups now");
+        warn!("Got recursive parent. This is wrong. Stopping lookups now");
         return Ok(String::new());
     }
 
@@ -455,7 +455,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     ) {
         Ok(result) => result,
         Err(err) => {
-            error!("[mft] Could not read entry bytes: {err:?}");
+            error!("Could not read entry bytes: {err:?}");
             return Ok(String::from("$OrphanFiles"));
         }
     };
@@ -471,7 +471,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     ) {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[mft] Could not parse mft attributes: {err:?}");
+            error!("Could not parse mft attributes: {err:?}");
             return Ok(String::from("$OrphanFiles"));
         }
     };
@@ -546,7 +546,7 @@ fn determine_header_info<T: std::io::Seek + std::io::Read>(
     let header_bytes = match header_bytes_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[mft] Could not read header bytes: {err:?}");
+            error!("Could not read header bytes: {err:?}");
             return Err(MftError::EntrySize);
         }
     };
@@ -555,7 +555,7 @@ fn determine_header_info<T: std::io::Seek + std::io::Read>(
     let (_, header) = match header_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[mft] Could not parse header: {err:?}");
+            error!("Could not parse header: {err:?}");
             return Err(MftError::EntrySize);
         }
     };
@@ -568,7 +568,7 @@ fn apply_fixup(data: &[u8], count: u16) -> Result<Vec<u8>, MftError> {
     let (entry_bytes, fixup) = match Fixup::get_fixup(data, count) {
         Ok(result) => result,
         Err(err) => {
-            error!("[mft] Could not parse mft fixup values: {err:?}");
+            error!("Could not parse mft fixup values: {err:?}");
             return Err(MftError::EntrySize);
         }
     };
@@ -592,14 +592,14 @@ fn output_mft(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[mft] Failed to serialize MFT entries: {err:?}");
+            error!("Failed to serialize MFT entries: {err:?}");
             return Err(MftError::Serialize);
         }
     };
 
     let artifact_name = "mft";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[mft] Could not output MFT entries: {err:?}");
+        error!("Could not output MFT entries: {err:?}");
         return Err(MftError::OutputData);
     }
 

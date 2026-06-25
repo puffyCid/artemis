@@ -9,7 +9,6 @@ use crate::{
         Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
-use log::error;
 use nom::{
     bytes::complete::take,
     error::ErrorKind,
@@ -18,6 +17,7 @@ use nom::{
 use ntfs::NtfsFile;
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, io::BufReader};
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct BtreeTable {
@@ -55,7 +55,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Failed to read bytes for node btree: {err:?}");
+            error!("Failed to read bytes for node btree: {err:?}");
             return Err(OutlookError::ReadFile);
         }
     };
@@ -63,7 +63,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
     let page = match page_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[outlook] Failed to parse node btree");
+            error!("Failed to parse node btree");
             return Err(OutlookError::NodeBtree);
         }
     };
@@ -77,7 +77,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         let branch_nodes = match branch_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Failed to parse node branch");
+                error!("Failed to parse node branch");
                 return Err(OutlookError::BadBranch);
             }
         };
@@ -97,7 +97,7 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         let leaf_node = match leaf_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Failed to parse leaf block");
+                error!("Failed to parse leaf block");
                 return Err(OutlookError::LeafNode);
             }
         };
@@ -135,7 +135,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Failed to read bytes for block btree: {err:?}");
+            error!("Failed to read bytes for block btree: {err:?}");
             return Err(OutlookError::ReadFile);
         }
     };
@@ -143,7 +143,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
     let page = match page_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[outlook] Failed to parse block btree");
+            error!("Failed to parse block btree");
             return Err(OutlookError::BlockBtree);
         }
     };
@@ -156,7 +156,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
         let branch_nodes = match branch_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Failed to parse node branch");
+                error!("Failed to parse node branch");
                 return Err(OutlookError::BadBranch);
             }
         };
@@ -168,7 +168,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
         let leaf_block = match leaf_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Failed to parse leaf block");
+                error!("Failed to parse leaf block");
                 return Err(OutlookError::LeafNode);
             }
         };
@@ -271,7 +271,7 @@ pub(crate) fn parse_branch_data<'a>(
         let node = match result {
             Ok((_, value)) => value,
             Err(err) => {
-                error!("[outlook] Failed to parse node id data for node branch: {err:?}");
+                error!("Failed to parse node id data for node branch: {err:?}");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     data,
                     ErrorKind::Fail,
@@ -345,7 +345,7 @@ pub(crate) fn parse_leaf_node_data<'a>(
         let node = match result {
             Ok((_, value)) => value,
             Err(err) => {
-                error!("[outlook] Failed to parse node id data for node leaf: {err:?}");
+                error!("Failed to parse node id data for node leaf: {err:?}");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     data,
                     ErrorKind::Fail,

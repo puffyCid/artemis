@@ -11,8 +11,8 @@ use crate::{
     utils::encoding::base64_encode_standard,
 };
 use common::windows::{Actions, TaskXml};
-use log::error;
 use quick_xml::{Reader, events::Event};
+use tracing::error;
 
 /// Parse Schedule Task XML files. Windows Vista and higher use XML for Tasks
 pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
@@ -21,7 +21,7 @@ pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
     let xml_data = match xml_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Could not read Task XML file at {path}: {err:?}");
+            error!("Could not read Task XML file at {path}: {err:?}");
             return Err(TaskError::ReadXml);
         }
     };
@@ -53,7 +53,7 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read xml data: {err:?}");
+                error!("Could not read xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,

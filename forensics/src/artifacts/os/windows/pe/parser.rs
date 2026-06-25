@@ -3,9 +3,9 @@ use crate::{
     utils::encoding::base64_encode_standard,
 };
 use common::windows::PeInfo;
-use log::error;
 use pelite::PeFile;
 use std::io::{Read, Seek, SeekFrom};
+use tracing::error;
 
 /// Read a `PE` file at provided path
 pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
@@ -13,7 +13,7 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
     let mut reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[pe] Could not get reader for {path}: {err:?}");
+            error!("Could not get reader for {path}: {err:?}");
             return Err(pelite::Error::Invalid);
         }
     };

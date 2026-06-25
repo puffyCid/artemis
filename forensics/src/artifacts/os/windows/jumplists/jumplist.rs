@@ -1,7 +1,7 @@
 use super::{automatic::parse_automatic, custom::parse_custom, error::JumplistError};
 use crate::filesystem::{files::read_file, metadata::GlobInfo};
 use common::windows::JumplistEntry;
-use log::error;
+use tracing::error;
 
 /// Get `Jumplists` from an array of globbed paths
 pub(crate) fn get_jumplists(paths: &[GlobInfo]) -> Result<Vec<JumplistEntry>, JumplistError> {
@@ -12,10 +12,7 @@ pub(crate) fn get_jumplists(paths: &[GlobInfo]) -> Result<Vec<JumplistEntry>, Ju
         let mut jump = match jump_result {
             Ok(result) => result,
             Err(err) => {
-                error!(
-                    "[jumplist] Could not parse Jumplist file {}: {err:?}",
-                    path.full_path
-                );
+                error!("Could not parse Jumplist file {}: {err:?}", path.full_path);
                 continue;
             }
         };
@@ -31,7 +28,7 @@ pub(crate) fn get_jumplist_path(path: &str) -> Result<Vec<JumplistEntry>, Jumpli
     let jump_data = match jump_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[jumplist] Could not read Jumplist file {path}: {err:?}");
+            error!("Could not read Jumplist file {path}: {err:?}");
             return Err(JumplistError::ReadFile);
         }
     };
@@ -41,7 +38,7 @@ pub(crate) fn get_jumplist_path(path: &str) -> Result<Vec<JumplistEntry>, Jumpli
         match jump_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[jumplist] Could not parse Automatic Jumplist file {path}");
+                error!("Could not parse Automatic Jumplist file {path}");
                 return Err(JumplistError::ParseJumplist);
             }
         }
@@ -50,7 +47,7 @@ pub(crate) fn get_jumplist_path(path: &str) -> Result<Vec<JumplistEntry>, Jumpli
         match jump_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[jumplist] Could not parse Custom Jumplist file {path}");
+                error!("Could not parse Custom Jumplist file {path}");
                 return Err(JumplistError::ParseJumplist);
             }
         }

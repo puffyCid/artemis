@@ -4,8 +4,8 @@ use super::class::{ClassInfo, parse_class};
 use crate::utils::nom_helper::{
     Endian, nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes,
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
+use tracing::error;
 
 /// Parse Objects.data file
 pub(crate) fn parse_objects<'a>(
@@ -98,7 +98,7 @@ fn parse_page<'a>(
                 let page = if let Some(result) = page_opt {
                     result
                 } else {
-                    error!("[wmi] Failed to get more pages for large data");
+                    error!("Failed to get more pages for large data");
                     break;
                 };
 
@@ -113,7 +113,7 @@ fn parse_page<'a>(
             match data_result {
                 Ok((_, result)) => object.object_data = result.to_vec(),
                 Err(_err) => {
-                    error!("[wmi] Failed to nom object large page data");
+                    error!("Failed to nom object large page data");
                     break;
                 }
             }
@@ -127,7 +127,7 @@ fn parse_page<'a>(
             let page = if let Some(result) = page_opt {
                 result
             } else {
-                error!("[wmi] Failed to get more pages for data");
+                error!("Failed to get more pages for data");
                 break;
             };
 
@@ -140,7 +140,7 @@ fn parse_page<'a>(
             match data_result {
                 Ok((_, result)) => object.object_data = result.to_vec(),
                 Err(_err) => {
-                    error!("[wmi] Failed to nom object data");
+                    error!("Failed to nom object data");
                     break;
                 }
             }

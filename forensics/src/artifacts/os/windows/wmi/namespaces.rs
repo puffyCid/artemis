@@ -4,9 +4,9 @@ use super::{
     objects::{ObjectPage, parse_objects, parse_record},
 };
 use crate::artifacts::os::windows::wmi::instance::{parse_instance_record, parse_instances};
-use log::{error, warn};
 use nom::error::ErrorKind;
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 /// Extract Properties, Classes, and Instances from a Namespace
 pub(crate) fn extract_namespace_data(
@@ -17,7 +17,7 @@ pub(crate) fn extract_namespace_data(
     let object_info = match parse_objects(objects, pages) {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[wmi] Could not parse objects for namespace:{err:?}");
+            error!("Could not parse objects for namespace:{err:?}");
             return Vec::new();
         }
     };
@@ -32,7 +32,7 @@ pub(crate) fn extract_namespace_data(
                 let mut instance = match instances_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        warn!("[wmi] Failed to get instance info for: {class_entry}");
+                        warn!("Failed to get instance info for: {class_entry}");
                         continue;
                     }
                 };
@@ -50,7 +50,7 @@ pub(crate) fn extract_namespace_data(
     match values_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[wmi] Failed to get WMI data for properties and instances");
+            error!("Failed to get WMI data for properties and instances");
             Vec::new()
         }
     }
@@ -71,7 +71,7 @@ pub(crate) fn extract_classes(
                 let classes_result = match class_info_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        warn!("[wmi] Failed to get class info for: {class_entry}");
+                        warn!("Failed to get class info for: {class_entry}");
                         continue;
                     }
                 };
@@ -95,7 +95,7 @@ pub(crate) fn get_classes<'a>(
     let (_hash, record_id) = if let Some(result) = hash_result {
         result
     } else {
-        error!("[wmi] Could not split WMI index hash for classes");
+        error!("Could not split WMI index hash for classes");
         return Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
@@ -125,7 +125,7 @@ fn get_instances<'a>(
     let (_hash, record_id) = if let Some(result) = hash_result {
         result
     } else {
-        error!("[wmi] Could not split WMI index hashes for instances");
+        error!("Could not split WMI index hashes for instances");
         return Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
@@ -155,7 +155,7 @@ fn extract_hash_info(hash: &str) -> Option<(String, u32)> {
     let record_id = match record_id_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wmi] Could not parse record id number: {err:?}");
+            error!("Could not parse record id number: {err:?}");
             return None;
         }
     };
