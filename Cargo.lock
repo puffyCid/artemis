@@ -182,7 +182,7 @@ dependencies = [
  "base64",
  "clap",
  "forensics",
- "log",
+ "tracing",
 ]
 
 [[package]]
@@ -1303,13 +1303,13 @@ dependencies = [
  "fastrand",
  "forensics",
  "httpmock",
- "log",
  "reqwest",
  "serde",
  "serde_json",
- "simplelog",
  "sysinfo",
  "toml",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
  "vergen",
 ]
@@ -1895,7 +1895,6 @@ dependencies = [
  "home",
  "httpmock",
  "jsonwebtoken",
- "log",
  "lumination",
  "lz4_flex",
  "macos-unifiedlogs",
@@ -1917,7 +1916,6 @@ dependencies = [
  "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.0",
- "simplelog",
  "snap",
  "sunlight 0.2.0",
  "sysinfo",
@@ -4844,17 +4842,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "simplelog"
-version = "0.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16257adbfaef1ee58b1363bdc0664c9b8e1e30aed86049635fb5f147d065a9c0"
-dependencies = [
- "log",
- "termcolor",
- "time",
-]
-
-[[package]]
 name = "siphasher"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5288,9 +5275,9 @@ name = "timeline"
 version = "0.20.0"
 dependencies = [
  "chrono",
- "log",
  "serde",
  "serde_json",
+ "tracing",
 ]
 
 [[package]]

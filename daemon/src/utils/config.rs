@@ -3,14 +3,14 @@ use super::{
     logging::setup_logging,
 };
 use crate::{error::DaemonError, utils::env::get_env_value};
-use log::error;
 use serde::{Deserialize, Serialize};
-use simplelog::{ConfigBuilder, WriteLogger};
 use std::{
     fs::{create_dir_all, read, write},
     path::Path,
     str::from_utf8,
 };
+use tracing::error;
+use tracing_subscriber::{fmt::layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Deserialize, Debug, Serialize)]
 pub(crate) struct ServerToml {
@@ -51,7 +51,7 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, D
     if get_platform_enum() == PlatformType::Windows {
         default_path = format!("{}\\artemis", get_env_value("ProgramData"));
         if default_path == "\\artemis" && alt_base.is_none() {
-            error!("[daemon] Failed to find ProgramData env value and alt_base is none");
+            error!("Failed to find ProgramData env value and alt_base is none");
             return Err(DaemonError::NoPath);
         }
     }
@@ -65,14 +65,24 @@ pub(crate) fn server(path: &str, alt_base: Option<&str>) -> Result<ServerToml, D
     let config: ServerToml = match toml::from_str(from_utf8(&bytes).unwrap_or_default()) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Failed to parse server config {path}: {err:?}");
+            error!("Failed to parse server config {path}: {err:?}");
             return Err(DaemonError::BadToml);
         }
     };
 
     let (log_file, level) = setup_logging(&config)?;
-    let log_config = ConfigBuilder::new().set_time_format_rfc3339().build();
-    let _ = WriteLogger::init(level, log_config, log_file);
+
+    tracing_subscriber::registry()
+        .with(
+            layer()
+                .json()
+                .with_file(true)
+                .with_line_number(true)
+                .flatten_event(true)
+                .with_writer(log_file),
+        )
+        .with(level)
+        .init();
 
     Ok(config)
 }
@@ -88,7 +98,7 @@ pub(crate) fn daemon(
     if get_platform_enum() == PlatformType::Windows {
         let programdata = get_env_value("ProgramData");
         if programdata.is_empty() && alt_artemis_path.is_none() {
-            error!("[daemon] Failed to find ProgramData env value and alt path is none");
+            error!("Failed to find ProgramData env value and alt path is none");
             return Err(DaemonError::NoPath);
         }
 
@@ -110,7 +120,7 @@ pub(crate) fn daemon(
     let config_file = match toml::to_string(&config) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Failed to parse daemon config: {err:?}");
+            error!("Failed to parse daemon config: {err:?}");
             return Err(DaemonError::BadToml);
         }
     };
@@ -118,7 +128,7 @@ pub(crate) fn daemon(
         config_file.as_bytes(),
         &format!("{artemis_path}/daemon.toml"),
     ) {
-        error!("[daemon] Could not write daemon TOML file at {artemis_path}: {status:?}");
+        error!("Could not write daemon TOML file at {artemis_path}: {status:?}");
         return Err(DaemonError::DaemonTomlWrite);
     }
     Ok(())
@@ -130,7 +140,7 @@ pub(crate) fn have_config() -> Option<String> {
     if get_platform_enum() == PlatformType::Windows {
         let programdata = get_env_value("ProgramData");
         if programdata.is_empty() {
-            error!("[daemon] Failed to find ProgramData env value for daemon.toml");
+            error!("Failed to find ProgramData env value for daemon.toml");
             return None;
         }
 
@@ -149,7 +159,7 @@ fn read_file(path: &str) -> Result<Vec<u8>, DaemonError> {
     let bytes = match read(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Failed to read file {path}: {err:?}");
+            error!("Failed to read file {path}: {err:?}");
             return Err(DaemonError::ReadFile);
         }
     };
@@ -162,7 +172,7 @@ fn create_directory(path: &str) -> Result<(), DaemonError> {
     match create_dir_all(path) {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[daemon] Failed to make directory {path}: {err:?}");
+            error!("Failed to make directory {path}: {err:?}");
             Err(DaemonError::MakeDirectory)
         }
     }
@@ -173,7 +183,7 @@ fn write_file(bytes: &[u8], path: &str) -> Result<(), DaemonError> {
     match write(path, bytes) {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[daemon] Failed to write file {path}: {err:?}");
+            error!("Failed to write file {path}: {err:?}");
             Err(DaemonError::WriteFile)
         }
     }

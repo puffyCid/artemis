@@ -11,7 +11,6 @@ use crate::{
     utils::{encoding::base64_decode_standard, uuid::generate_uuid},
 };
 use flate2::{Compression, write::GzEncoder};
-use log::{error, warn};
 use reqwest::{StatusCode, blocking::Client, header::ETAG};
 use rusty_s3::{
     Bucket, Credentials, S3Action, UrlStyle,
@@ -26,6 +25,7 @@ use std::{
     path::PathBuf,
     time::Duration,
 };
+use tracing::{error, warn};
 use url::Url;
 
 #[derive(Deserialize)]
@@ -127,13 +127,13 @@ impl AwsSink {
                     }
                 }
                 Ok(response) => {
-                    log::error!(
+                    tracing::error!(
                         "Non-OK response for upload on attempt {attempt}: {:?}",
                         response.text()
                     );
                 }
                 Err(err) => {
-                    log::error!("Failed to upload on attempt {attempt}: {err:?}");
+                    tracing::error!("Failed to upload on attempt {attempt}: {err:?}");
                 }
             }
         }

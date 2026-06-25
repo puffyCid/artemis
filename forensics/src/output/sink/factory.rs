@@ -157,9 +157,9 @@ mod tests {
         record::{JsonRecord, Record, VecRecordStream},
     };
     use crate::structs::toml::{OutputConfig, OutputFormat};
-    use log::error;
     use serde_json::json;
     use std::path::PathBuf;
+    use tracing::error;
 
     #[test]
     fn test_sink_local_write_artifact() {

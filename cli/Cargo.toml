@@ -9,7 +9,7 @@ description = { workspace = true }
 
 [dependencies]
 base64 = { workspace = true }
-log = { workspace = true }
+tracing = { workspace = true }
 forensics = { path = "../forensics", default-features = false }
 clap = { version = "4.6.1", features = ["std", "help", "derive"] }
 

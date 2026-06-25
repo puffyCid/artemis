@@ -8,8 +8,8 @@ use crate::{
     enrollment::enroll::EnrollEndpoint,
     start::DaemonConfig,
 };
-use log::error;
 use std::{str::from_utf8, thread::sleep, time::Duration};
+use tracing::error;
 
 /// Enroll the endpoint to our server based on parsed Server.toml file
 pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
@@ -41,7 +41,7 @@ pub(crate) fn setup_enrollment(config: &mut DaemonConfig) {
     }
 
     if enroll.endpoint_invalid {
-        error!("[daemon] Endpoint still invalid despite 8 enrollment attempts");
+        error!("Endpoint still invalid despite 8 enrollment attempts");
         return;
     }
     config.server.daemon.endpoint_id = enroll.endpoint_id;
@@ -52,7 +52,7 @@ pub(crate) fn setup_collection(collect: &CollectResponse) -> CollectionStatus {
     let collection_bytes = match base64_decode_standard(&collect.collection) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Could not decode TOML collection {err:?}");
+            error!("Could not decode TOML collection {err:?}");
             return CollectionStatus::Error;
         }
     };
@@ -61,12 +61,12 @@ pub(crate) fn setup_collection(collect: &CollectResponse) -> CollectionStatus {
     let collect_string = String::from_utf8(collection_bytes.clone()).unwrap_or_default();
     let clean_string = collect_string.replace(" ", "");
     if !clean_string.contains("format=\"jsonl\"") && !clean_string.contains("compressed=true") {
-        error!("[daemon] Invalid collection TOML. Format should be JSONL with compression");
+        error!("Invalid collection TOML. Format should be JSONL with compression");
         return CollectionStatus::Error;
     }
 
     if let Err(err) = forensics::core::parse_toml_data(&collection_bytes) {
-        error!("[daemon] Could not process TOML collection {err:?}");
+        error!("Could not process TOML collection {err:?}");
         return CollectionStatus::Error;
     }
 
@@ -88,9 +88,7 @@ pub(crate) fn setup_config(config: &mut DaemonConfig) {
     let toml_bytes = match base64_decode_standard(&daemon_config.config) {
         Ok(result) => result,
         Err(err) => {
-            error!(
-                "[daemon] Could not decode daemon toml config: {err:?}. Will use default config"
-            );
+            error!("Could not decode daemon toml config: {err:?}. Will use default config");
             return setup_daemon(config);
         }
     };
@@ -99,9 +97,7 @@ pub(crate) fn setup_config(config: &mut DaemonConfig) {
         match toml::from_str(from_utf8(&toml_bytes).unwrap_or_default()) {
             Ok(result) => result,
             Err(err) => {
-                error!(
-                    "[daemon] Could not parse daemon toml config: {err:?}. Will use default config"
-                );
+                error!("Could not parse daemon toml config: {err:?}. Will use default config");
                 return setup_daemon(config);
             }
         };
@@ -119,7 +115,7 @@ fn setup_daemon(daemon_config: &mut DaemonConfig) {
     match daemon(&mut daemon_config.server, None) {
         Ok(_result) => {}
         Err(err) => {
-            error!("[daemon] Could not setup daemon TOML config: {err:?}");
+            error!("Could not setup daemon TOML config: {err:?}");
         }
     }
 }

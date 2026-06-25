@@ -9,8 +9,8 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
+use tracing::error;
 
 /// Parse MUI files. Used mainly for international languages
 pub(crate) fn parse_mui<'a>(

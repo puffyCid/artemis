@@ -1,8 +1,8 @@
 use super::error::ConfigError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
-use log::error;
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct ConfigResponse {
@@ -43,25 +43,25 @@ impl ConfigEndpoint for DaemonConfig {
         let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to send request for config: {err:?}");
+                error!("Failed to send request for config: {err:?}");
                 return Err(ConfigError::FailedConfig);
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
             let message = bad_request(&res.bytes().unwrap_or_default());
-            error!("[daemon] Config request was bad: {}", message.message);
+            error!("Config request was bad: {}", message.message);
             return Err(ConfigError::BadConfig);
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok config response");
+            error!("Got non-Ok config response");
             return Err(ConfigError::ConfigNotOk);
         }
 
         let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to get config bytes: {err:?}");
+                error!("Failed to get config bytes: {err:?}");
                 return Err(ConfigError::FailedConfig);
             }
         };
@@ -69,7 +69,7 @@ impl ConfigEndpoint for DaemonConfig {
         let config_data: ConfigResponse = match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to serialize config response: {err:?}");
+                error!("Failed to serialize config response: {err:?}");
                 return Err(ConfigError::FailedConfig);
             }
         };

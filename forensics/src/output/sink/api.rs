@@ -10,7 +10,6 @@ use crate::{
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
-use log::{error, warn};
 use reqwest::{
     StatusCode,
     blocking::{Client, multipart},
@@ -21,6 +20,7 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+use tracing::{error, warn};
 
 /// A data Sink representing the API pipeline flow
 #[derive(Debug)]

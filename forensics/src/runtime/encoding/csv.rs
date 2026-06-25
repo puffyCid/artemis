@@ -1,7 +1,7 @@
 use crate::runtime::helper::{number_arg, string_arg};
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::warn;
 use serde_json::{Value, json};
+use tracing::warn;
 
 /// Parse a CSV file into array of JSON objects
 pub(crate) fn js_read_csv(

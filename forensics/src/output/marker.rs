@@ -5,12 +5,12 @@ use crate::{
     },
     utils::time::time_now,
 };
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{File, create_dir_all},
     path::PathBuf,
 };
+use tracing::error;
 
 /// Determine if an artifact was recently collected
 #[derive(Debug, Deserialize, Serialize)]

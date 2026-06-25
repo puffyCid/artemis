@@ -13,9 +13,9 @@ use crate::{
     },
 };
 use common::windows::{UacFlags, UserInfo};
-use log::error;
 use nom::bytes::complete::{take, take_until};
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse user account info
 pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError> {
@@ -25,7 +25,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
     let reg_data = match reg_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[accounts] Could not get user info from registry: {err:?}");
+            error!("Could not get user info from registry: {err:?}");
             return Err(AccountError::GetUserInfo);
         }
     };
@@ -60,7 +60,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
         let rid = match rid_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[accounts] Could not parse RID {key} for user: {err:?}");
+                error!("Could not parse RID {key} for user: {err:?}");
                 continue;
             }
         };
@@ -75,7 +75,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
             let user_data = match decode_results {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[accounts] Could not base64 decode user data: {err:?}");
+                    error!("Could not base64 decode user data: {err:?}");
                     continue;
                 }
             };
@@ -84,7 +84,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
             let (_, mut info) = match info_result {
                 Ok(result) => result,
                 Err(_err) => {
-                    error!("[accounts] Could not parse account info for {value}");
+                    error!("Could not parse account info for {value}");
                     continue;
                 }
             };
@@ -100,7 +100,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
                 let info_data = match decode_results {
                     Ok(results) => results,
                     Err(err) => {
-                        error!("[accounts] Could not base64 decode info data: {err:?}");
+                        error!("Could not base64 decode info data: {err:?}");
                         continue;
                     }
                 };

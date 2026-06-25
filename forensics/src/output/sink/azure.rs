@@ -10,13 +10,13 @@ use crate::{
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
-use log::error;
 use reqwest::{StatusCode, blocking::Client};
 use std::{
     fs::{File, create_dir_all, read, remove_file},
     io::Write,
     path::PathBuf,
 };
+use tracing::error;
 
 /// A data Sink representing the Azure pipeline flow
 pub(crate) struct AzureSink {

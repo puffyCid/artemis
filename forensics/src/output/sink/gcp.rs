@@ -12,7 +12,6 @@ use crate::{
 };
 use flate2::{Compression, write::GzEncoder};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
-use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -20,6 +19,7 @@ use std::{
     io::Write,
     path::PathBuf,
 };
+use tracing::{error, info, warn};
 
 /// GCP response upload successful upload
 #[derive(Deserialize)]

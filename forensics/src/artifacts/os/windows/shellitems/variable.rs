@@ -15,10 +15,10 @@ use crate::{
 };
 use common::windows::ShellItem;
 use common::windows::ShellType::Variable;
-use log::info;
 use nom::bytes::complete::{take, take_until, take_while};
 use serde_json::Value;
 use std::{collections::HashMap, mem::size_of};
+use tracing::info;
 
 #[derive(PartialEq, Hash, Eq)]
 enum BeefTypes {
@@ -86,7 +86,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     }
 
     info!(
-        "[shellitem] No beef signatures found in variable item, trying Zip file contents, Propety View, and then FTP URI"
+        "No beef signatures found in variable item, trying Zip file contents, Property View, and then FTP URI"
     );
     if check_zip(data) {
         let (input, (is_zip, directory)) = parse_zip(data)?;

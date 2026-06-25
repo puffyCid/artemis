@@ -11,7 +11,6 @@ build = "build.rs"
 
 [dependencies]
 serde = { workspace = true }
-log = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
 base64 = { workspace = true }
@@ -36,7 +35,6 @@ digest-io = { version = "0.1.0", default-features = false }
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.12"
-simplelog = "0.12.2"
 tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 quick-xml = { version = "0.40.1", default-features = false, features = [

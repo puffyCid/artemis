@@ -1,9 +1,9 @@
 use super::error::EnrollError;
 use crate::{start::DaemonConfig, utils::info::get_info};
 use common::system::SystemInfo;
-use log::error;
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
+use tracing::error;
 use uuid::Uuid;
 
 #[derive(Deserialize, Debug)]
@@ -59,26 +59,26 @@ impl EnrollEndpoint for DaemonConfig {
         let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to enroll endpoint: {err:?}");
+                error!("Failed to enroll endpoint: {err:?}");
                 return Err(EnrollError::FailedEnrollment);
             }
         };
 
         if res.status() == StatusCode::BAD_REQUEST {
             let message = bad_request(&res.bytes().unwrap_or_default());
-            error!("[daemon] Enrollment request was bad: {}", message.message);
+            error!("Enrollment request was bad: {}", message.message);
             return Err(EnrollError::BadEnrollment);
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok enrollment response");
+            error!("Got non-Ok enrollment response");
             return Err(EnrollError::EnrollmentNotOk);
         }
 
         let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to get enroll bytes: {err:?}");
+                error!("Failed to get enroll bytes: {err:?}");
                 return Err(EnrollError::FailedEnrollment);
             }
         };
@@ -86,7 +86,7 @@ impl EnrollEndpoint for DaemonConfig {
         let enroll_key: EnrollResponse = match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to serialize enroll response: {err:?}");
+                error!("Failed to serialize enroll response: {err:?}");
                 return Err(EnrollError::FailedEnrollment);
             }
         };
@@ -100,7 +100,7 @@ pub(crate) fn bad_request(bytes: &[u8]) -> BadRequest {
     let message: BadRequest = match serde_json::from_slice(bytes) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Failed to deserialize bad request (400) message: {err:?}");
+            error!("Failed to deserialize bad request (400) message: {err:?}");
             return BadRequest {
                 message: format!("Failed to deserialize bad request (400) message: {err:?}"),
             };
