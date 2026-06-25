@@ -323,7 +323,7 @@ impl OutputSink for AwsSink {
         let object_log = self.object_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(&object_log, data, "text/plain")?;
+        self.upload_bytes(&object_log, data, "application/jsonl")?;
         let _ = remove_file(&self.log_file);
 
         Ok(())
@@ -387,16 +387,10 @@ mod tests {
 
         let result = sink.decode_creds().unwrap();
         assert_eq!(result.region, "us-east-2");
+        let mock_response = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><InitiateMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Bucket>mybucket</Bucket><Key>mykey</Key><UploadId>whatever</UploadId></InitiateMultipartUploadResult>";
         let mock_me = server.mock(|when, then| {
             when.method(POST);
-            then.status(200).body(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <InitiateMultipartUploadResult>
-            <Bucket>mybucket</Bucket>
-            <Key>mykey</Key>
-            <UploadId>whatever</UploadId>
-         </InitiateMultipartUploadResult>",
-            );
+            then.status(200).body(mock_response);
         });
         let mock_me_put = server.mock(|when, then| {
             when.method(PUT);
@@ -429,17 +423,11 @@ mod tests {
         let sink = AwsSink::new(&config)
             .unwrap()
             .with_url_style(UrlStyle::Path);
+        let mock_response = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><InitiateMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Bucket>mybucket</Bucket><Key>mykey</Key><UploadId>whatever</UploadId></InitiateMultipartUploadResult>";
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
-            then.status(200).body(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <InitiateMultipartUploadResult>
-            <Bucket>mybucket</Bucket>
-            <Key>mykey</Key>
-            <UploadId>whatever</UploadId>
-         </InitiateMultipartUploadResult>",
-            );
+            then.status(200).body(mock_response);
         });
         let creds = sink.decode_creds().unwrap();
         let session = sink.create_upload_session(creds, "test").unwrap();
@@ -473,17 +461,11 @@ mod tests {
         let sink = AwsSink::new(&config)
             .unwrap()
             .with_url_style(UrlStyle::Path);
+        let mock_response = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><InitiateMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Bucket>mybucket</Bucket><Key>mykey</Key><UploadId>whatever</UploadId></InitiateMultipartUploadResult>";
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
-            then.status(200).body(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <InitiateMultipartUploadResult>
-            <Bucket>mybucket</Bucket>
-            <Key>mykey</Key>
-            <UploadId>whatever</UploadId>
-         </InitiateMultipartUploadResult>",
-            );
+            then.status(200).body(mock_response);
         });
         let mock_me_put = server.mock(|when, then| {
             when.method(PUT);

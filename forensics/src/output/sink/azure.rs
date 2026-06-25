@@ -204,7 +204,7 @@ impl OutputSink for AzureSink {
         let object_log = self.object_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(&object_log, data, "text/plain")?;
+        self.upload_bytes(&object_log, data, "application/jsonl")?;
         let _ = remove_file(&self.log_file);
 
         Ok(())

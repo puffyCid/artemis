@@ -107,7 +107,6 @@ impl LocalSink {
         // Only delete files associated with Artemis output
         for entry in entries {
             if !entry.ends_with(".json")
-                && !entry.ends_with(".log")
                 && !entry.ends_with(".gz")
                 && !entry.ends_with(".csv")
                 && !entry.ends_with(".jsonl")

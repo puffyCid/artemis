@@ -83,10 +83,7 @@ impl ApiSink {
             if compress {
                 builder = builder.header("Content-Encoding", "gzip");
             }
-            if filename.ends_with(".log") {
-                // The last two uploads for collections are just plaintext log files
-                part = part.mime_str("text/plain").unwrap();
-            } else if filename.ends_with(".jsonl.gz") {
+            if filename.ends_with(".jsonl.gz") || filename.ends_with(".jsonl") {
                 // Should be safe to unwrap?
                 part = part.mime_str("application/jsonl").unwrap();
             } else {
@@ -181,7 +178,7 @@ impl OutputSink for ApiSink {
             .and_then(|name| name.to_str())
             .ok_or_else(|| OutputError::Finalize(String::from("log file path has no filename")))?;
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(data, "text/plain", false, filename)?;
+        self.upload_bytes(data, "application/jsonl", false, filename)?;
         let _ = remove_file(&self.log_file);
 
         Ok(())

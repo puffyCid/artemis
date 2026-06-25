@@ -450,7 +450,7 @@ mod tests {
                 jsonl_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -599,7 +599,7 @@ mod tests {
                 jsonl_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -796,7 +796,7 @@ mod tests {
                 jsonl_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -870,7 +870,7 @@ mod tests {
                 csv_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -987,7 +987,7 @@ mod tests {
                 xml_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -1046,7 +1046,7 @@ mod tests {
                 par_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
