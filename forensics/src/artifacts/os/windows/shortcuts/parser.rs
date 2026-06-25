@@ -17,7 +17,7 @@
 use super::{error::LnkError, header::LnkHeader, shortcut::get_shortcut_data};
 use crate::filesystem::{files::read_file, metadata::glob_paths};
 use common::windows::ShortcutInfo;
-use log::error;
+use tracing::error;
 
 /// `Shortcut` files can be location anywhere. Provide a directory and parse any `lnk` (`Shortcut`) files
 pub(crate) fn grab_lnk_directory(path: &str) -> Result<Vec<ShortcutInfo>, LnkError> {
@@ -25,7 +25,7 @@ pub(crate) fn grab_lnk_directory(path: &str) -> Result<Vec<ShortcutInfo>, LnkErr
     let files = match files_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[shortcuts] Could not list files at path {path}: {err:?}");
+            error!("Could not list files at path {path}: {err:?}");
             return Err(LnkError::ReadDirectory);
         }
     };
@@ -38,7 +38,7 @@ pub(crate) fn grab_lnk_directory(path: &str) -> Result<Vec<ShortcutInfo>, LnkErr
         let result = grab_lnk_file(&file.full_path);
         match result {
             Ok(info) => shortcut_info.push(info),
-            Err(_err) => error!("[shortcuts] Failed to parse file: {}", file.full_path),
+            Err(_err) => error!("Failed to parse file: {}", file.full_path),
         }
     }
     Ok(shortcut_info)
@@ -50,7 +50,7 @@ pub(crate) fn grab_lnk_file(path: &str) -> Result<ShortcutInfo, LnkError> {
     let lnk_data = match result {
         Ok(data) => data,
         Err(err) => {
-            error!("[shortcuts] Could not read lnk file: {err:?}");
+            error!("Could not read lnk file: {err:?}");
             return Err(LnkError::ReadFile);
         }
     };
@@ -65,7 +65,7 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
     let is_header = match result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[shortcuts] Could not parse lnk header");
+            error!("Could not parse lnk header");
             return Err(LnkError::BadHeader);
         }
     };
@@ -77,7 +77,7 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
     let shortcut_info = match shortcut_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[shortcuts] Could not parse shortcut data");
+            error!("Could not parse shortcut data");
             return Err(LnkError::Parse);
         }
     };

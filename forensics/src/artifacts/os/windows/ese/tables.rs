@@ -21,13 +21,13 @@ use crate::{
     },
 };
 use common::windows::{ColumnType, TableDump};
-use log::{error, warn};
 use nom::{
     bytes::complete::take,
     number::complete::{le_f32, le_f64},
 };
 use serde::Deserialize;
 use std::{collections::HashMap, mem::size_of};
+use tracing::{error, warn};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TableInfo {
@@ -145,7 +145,7 @@ pub(crate) fn create_table_data(
                 dump.column_data = value;
             } else {
                 warn!(
-                    "[ese] Could not transform column {} data to string for table: {table_name}",
+                    "Could not transform column {} data to string for table: {table_name}",
                     column.column_name
                 );
                 dump.column_data = base64_encode_standard(&column.column_data);
@@ -177,7 +177,7 @@ fn column_data_to_string<'a>(
             let multi_value = match result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[ese] Failed to extract multivalue data");
+                    error!("Failed to extract multivalue data");
                     base64_encode_standard(&multi)
                 }
             };
@@ -272,7 +272,7 @@ fn extract_column_data_to_string<'a>(
             (data, value)
         }
         ColumnType::SuperLong => {
-            warn!("[ese] Super long column type is obsolete");
+            warn!("Super long column type is obsolete");
             let value = base64_encode_standard(data);
             (data, value)
         }
@@ -289,7 +289,7 @@ fn extract_column_data_to_string<'a>(
             (input, format!("{value}"))
         }
         ColumnType::Unknown => {
-            warn!("[ese] Got unknown column type");
+            warn!("Got unknown column type");
             let value = base64_encode_standard(data);
             (data, value)
         }
@@ -334,13 +334,13 @@ fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
         Ok(result) => result,
         Err(err) => {
             error!(
-                "[ese] Could not decompress Lz77 data with API: {err:?}. Will try manual decompression"
+                "Could not decompress Lz77 data with API: {err:?}. Will try manual decompression"
             );
             let decom_result = decompress_xpress(data, decom_size, &XpressType::Lz77);
             match decom_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ese] Could not decompress Lz77 data with API or manually: {err:?}");
+                    error!("Could not decompress Lz77 data with API or manually: {err:?}");
                     data.to_vec()
                 }
             }
@@ -355,7 +355,7 @@ fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
     match decom_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Could not decompress Lz77 data: {err:?}");
+            error!("Could not decompress Lz77 data: {err:?}");
             data.to_vec()
         }
     }
@@ -615,7 +615,7 @@ pub(crate) fn parse_multivalue_data<'a>(
         let mut offset_count = (offset / 2) - adjust;
         if offset_count as usize > data.len() {
             warn!(
-                "[ese] Multivalue offset count too large, got offset {offset_count}. Data length is: {}",
+                "Multivalue offset count too large, got offset {offset_count}. Data length is: {}",
                 data.len()
             );
             return Ok((data, multi_data));
@@ -640,7 +640,7 @@ pub(crate) fn parse_multivalue_data<'a>(
                 data.len() as u16
             };
             if size as usize > data.len() {
-                warn!("[ese] Multivalue offset length too large");
+                warn!("Multivalue offset length too large");
                 return Ok((data, multi_data));
             }
             let (input, value_data) = take(size)(data)?;
@@ -673,7 +673,7 @@ fn nom_fixed_column<'a>(
 ) -> nom::IResult<&'a [u8], Vec<u8>> {
     let (input, column_data) = match column_type {
         ColumnType::Nil => {
-            warn!("[ese] Invalid column type 'NIL'");
+            warn!("Invalid column type 'NIL'");
             (data, data)
         }
         ColumnType::Bit | ColumnType::UnsignedByte => take(size_of::<u8>())(data)?,
@@ -689,7 +689,7 @@ fn nom_fixed_column<'a>(
             take(column_space_usage as u32)(data)?
         }
         _ => {
-            error!("[ese] Invalid fixed column type {column_type:?}");
+            error!("Invalid fixed column type {column_type:?}");
             take(column_space_usage as u32)(data)?
         }
     };

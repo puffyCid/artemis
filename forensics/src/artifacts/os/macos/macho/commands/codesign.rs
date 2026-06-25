@@ -5,10 +5,10 @@ use crate::utils::{
     },
     strings::extract_utf8_string,
 };
-use log::error;
 use nom::bytes::complete::{take, take_while};
 use plist::Dictionary;
 use serde::Serialize;
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct CodeSign {
@@ -96,7 +96,7 @@ impl CodeSign {
                     code_sign.directory = match cd_result {
                         Ok((_, result)) => result,
                         Err(err) => {
-                            error!("[macho] Failed to parse code directory data: {err:?}");
+                            error!("Failed to parse code directory data: {err:?}");
                             count += 1;
                             continue;
                         }
@@ -110,7 +110,7 @@ impl CodeSign {
                     code_sign.certs = match certs_result {
                         Ok((_, result)) => result,
                         Err(err) => {
-                            error!("[macho] Failed to parse certs data: {err:?}");
+                            error!("Failed to parse certs data: {err:?}");
                             count += 1;
                             continue;
                         }
@@ -121,7 +121,7 @@ impl CodeSign {
                     code_sign.entitlements = match ent_result {
                         Ok((_, result)) => result,
                         Err(err) => {
-                            error!("[macho] Failed to parse entitlements data: {err:?}");
+                            error!("Failed to parse entitlements data: {err:?}");
                             count += 1;
                             continue;
                         }
@@ -132,7 +132,7 @@ impl CodeSign {
                     code_sign.embedded_entitlements = match ent_result {
                         Ok((_, result)) => result,
                         Err(err) => {
-                            error!("[macho] Failed to parse embedded entitlements data: {err:?}");
+                            error!("Failed to parse embedded entitlements data: {err:?}");
                             count += 1;
                             continue;
                         }
@@ -191,7 +191,7 @@ impl CodeSign {
         let entitlements = match plist_data_results {
             Ok(results) => results,
             Err(err) => {
-                error!("[macho] Failed to parse plist entitlement data: {err:?}");
+                error!("Failed to parse plist entitlement data: {err:?}");
                 Dictionary::new()
             }
         };

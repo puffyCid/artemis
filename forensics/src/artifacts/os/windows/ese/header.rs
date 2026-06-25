@@ -5,9 +5,9 @@ use crate::utils::{
     },
     strings::extract_utf8_string,
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
 use std::mem::size_of;
+use tracing::error;
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct EseHeader {
@@ -114,7 +114,7 @@ impl EseHeader {
         let (input, signature) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let sig = 2309737967;
         if signature != sig {
-            error!("[ese] Not an ESE file");
+            error!("Not an ESE file");
             return Err(nom::Err::Failure(nom::error::Error::new(
                 input,
                 ErrorKind::Fail,

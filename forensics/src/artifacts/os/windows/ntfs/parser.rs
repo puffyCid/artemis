@@ -35,10 +35,10 @@ use crate::{
 };
 use common::files::Hashes;
 use common::windows::RawFilelist;
-use log::error;
 use ntfs::{Ntfs, NtfsError, NtfsFile, structured_values::NtfsFileNamespace};
 use regex::Regex;
 use std::{collections::HashMap, fs::File, io::BufReader, mem::take};
+use tracing::error;
 
 /// Parameters used for determining what NTFS data to return
 struct Params {
@@ -68,7 +68,7 @@ pub(crate) fn ntfs_filelist(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
+            error!("Failed to get NTFS root directory, error: {err:?}");
             return Err(NTFSError::Parser);
         }
     };
@@ -77,7 +77,7 @@ pub(crate) fn ntfs_filelist(
     let root_dir = match root_dir_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to get NTFS root directory, error: {err:?}");
+            error!("Failed to get NTFS root directory, error: {err:?}");
             return Err(NTFSError::RootDir);
         }
     };
@@ -148,7 +148,7 @@ fn user_regex(input: &str) -> Result<Regex, NTFSError> {
     match reg_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[forensics] Bad regex: {input}, error: {err:?}");
+            error!("Bad regex: {input}, error: {err:?}");
             Err(NTFSError::Regex)
         }
     }
@@ -284,14 +284,14 @@ fn raw_output(entries: Vec<RawFilelist>, manager: &mut OutputManager, options: &
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize raw files: {err:?}");
+            error!("Failed to serialize raw files: {err:?}");
             return;
         }
     };
 
     let artifact_name = "rawfiles";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output raw files data: {err:?}");
+        error!("Failed to output raw files data: {err:?}");
     }
 }
 

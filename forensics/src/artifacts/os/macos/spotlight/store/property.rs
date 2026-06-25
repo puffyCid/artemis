@@ -18,10 +18,10 @@ use crate::{
     },
 };
 use common::macos::{DataAttribute, SpotlightEntries, SpotlightValue};
-use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use serde_json::{Value, json};
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 /// Parse and extract all properties associated with Spotlight data
 pub(crate) fn parse_property<'a>(
@@ -52,7 +52,7 @@ pub(crate) fn parse_property<'a>(
         }
 
         if compress_sig != lz4_sig {
-            error!("[spotlight] Did not get LZ4 compression signature");
+            error!("Did not get LZ4 compression signature");
             break;
         }
 
@@ -65,7 +65,7 @@ pub(crate) fn parse_property<'a>(
         let mut decom = match decompress_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[spotlight] Failed to decompress lz4 compression: {err:?}");
+                error!("Failed to decompress lz4 compression: {err:?}");
                 return Ok((input, Vec::new()));
             }
         };
@@ -82,7 +82,7 @@ pub(crate) fn parse_property<'a>(
 
     if decom_data.len() != (uncompressed_size - 20) as usize {
         warn!(
-            "[spotlight] Decompressed size ({}) did not matched expected size: {}. Parsing will likely fail or be incopmlete",
+            "Decompressed size ({}) did not matched expected size: {}. Parsing will likely fail or be incopmlete",
             decom_data.len(),
             (uncompressed_size - 20)
         );
@@ -92,7 +92,7 @@ pub(crate) fn parse_property<'a>(
     let entries = match entries_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[spotlight] Failed to parse all spotlight entries");
+            error!("Failed to parse all spotlight entries");
             Vec::new()
         }
     };
@@ -119,7 +119,7 @@ pub(crate) fn property_header(data: &[u8]) -> nom::IResult<&[u8], PropertyHeader
     let property_types = get_property_types(property_type_data);
 
     if !property_types.contains(&PropertyType::Lz4Compressed) {
-        warn!("[spotlight] Got non-lz4 compressed data. This is unsupported!");
+        warn!("Got non-lz4 compressed data. This is unsupported!");
         return Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
@@ -160,7 +160,7 @@ fn parse_all_records<'a>(
         let entry = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[spotlight] Failed to parse spotlight entry");
+                error!("Failed to parse spotlight entry");
                 continue;
             }
         };
@@ -197,7 +197,7 @@ fn parse_record<'a>(
         let props = if let Some(result) = prop_opt {
             result
         } else {
-            error!("[spotlight] No properties for {index}");
+            error!("No properties for {index}");
             break;
         };
 

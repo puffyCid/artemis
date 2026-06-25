@@ -1,6 +1,6 @@
 use super::{error::ProcessError, process::proc_list};
 use crate::{output::manager::OutputManager, structs::artifacts::os::processes::ProcessOptions};
-use log::warn;
+use tracing::warn;
 
 /// Collect a process listing from a system
 pub(crate) fn processes(
@@ -8,7 +8,7 @@ pub(crate) fn processes(
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
     if let Err(result) = proc_list(manager, options) {
-        warn!("[forensics] Failed to get process list: {result:?}");
+        warn!("Failed to get process list: {result:?}");
         return Err(ProcessError::ProcessList);
     }
 

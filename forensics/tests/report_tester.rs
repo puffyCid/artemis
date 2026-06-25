@@ -27,10 +27,16 @@ fn test_report_parser() {
         }
         let output_file = value.to_str().unwrap();
 
-        if output_file.contains("systeminfo_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("systeminfo_")
+            && output_file.ends_with(".jsonl")
+            && !output_file.contains("/artemis_")
+        {
             validate_output(value);
         }
-        if output_file.contains("processes_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("processes_")
+            && output_file.ends_with(".jsonl")
+            && !output_file.contains("/artemis_")
+        {
             validate_output(value);
         }
     }

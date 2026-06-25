@@ -13,9 +13,9 @@ use crate::{
     structs::artifacts::os::windows::SearchOptions,
 };
 use common::windows::TableDump;
-use log::{error, warn};
 use serde::Serialize;
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 #[derive(Serialize, Debug, Clone)]
 pub(crate) struct SearchEntry {
@@ -58,7 +58,7 @@ pub(crate) fn parse_search(
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[search] Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
+                error!("Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
                 continue;
             }
         };
@@ -79,7 +79,7 @@ pub(crate) fn parse_search(
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[search] Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
+                error!("Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
                 return Ok(());
             }
         };
@@ -147,9 +147,7 @@ pub(crate) fn get_properties(
         let mut property_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!(
-                    "[search] Failed to parse SystemIndex_PropertyStore table at {path}: {err:?}"
-                );
+                error!("Failed to parse SystemIndex_PropertyStore table at {path}: {err:?}");
                 continue;
             }
         };
@@ -182,9 +180,7 @@ pub(crate) fn get_properties(
         let mut property_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!(
-                    "[search] Failed to parse last SystemIndex_PropertyStore page at {path}: {err:?}"
-                );
+                error!("Failed to parse last SystemIndex_PropertyStore page at {path}: {err:?}");
                 return property_total_rows;
             }
         };
@@ -214,7 +210,7 @@ fn process_search(
         values
     } else {
         warn!(
-            "[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
+            "Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
         );
         return Err(SearchError::MissingIndexes);
     };
@@ -223,9 +219,7 @@ fn process_search(
     let entries = if let Some(values) = gather.get("SystemIndex_Gthr") {
         values
     } else {
-        warn!(
-            "[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
-        );
+        warn!("Could not get table SystemIndex_Gthr from ESE results. Something went very wrong");
         return Err(SearchError::ParseEse);
     };
     let _ = parse_index_gthr(entries, &props, manager, options, evidence);
@@ -239,7 +233,7 @@ pub(crate) fn search_catalog(path: &str) -> Result<Vec<Catalog>, SearchError> {
     let catalog = match catalog_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[search] Failed to parse {path} catalog: {err:?}");
+            error!("Failed to parse {path} catalog: {err:?}");
             return Err(SearchError::ParseEse);
         }
     };
@@ -253,7 +247,7 @@ pub(crate) fn search_pages(table_page: u32, path: &str) -> Result<Vec<u32>, Sear
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[search] Failed to get search pages at {path}: {err:?}");
+            error!("Failed to get search pages at {path}: {err:?}");
             return Err(SearchError::ParseEse);
         }
     };
@@ -294,7 +288,7 @@ pub(crate) fn parse_search_path(
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[search] Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
+                error!("Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
                 continue;
             }
         };
@@ -309,7 +303,7 @@ pub(crate) fn parse_search_path(
             values
         } else {
             warn!(
-                "[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
+                "Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
             );
             return Err(SearchError::MissingIndexes);
         };
@@ -319,7 +313,7 @@ pub(crate) fn parse_search_path(
             values
         } else {
             warn!(
-                "[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
+                "Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
             );
             return Err(SearchError::ParseEse);
         };
@@ -333,7 +327,7 @@ pub(crate) fn parse_search_path(
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[search] Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
+                error!("Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
                 return Ok(search_entries);
             }
         };
@@ -348,7 +342,7 @@ pub(crate) fn parse_search_path(
             values
         } else {
             warn!(
-                "[search] Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
+                "Could not get table SystemIndex_PropertyStore from ESE results. Something went very wrong"
             );
             return Err(SearchError::MissingIndexes);
         };
@@ -358,7 +352,7 @@ pub(crate) fn parse_search_path(
             values
         } else {
             warn!(
-                "[search] Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
+                "Could not get table SystemIndex_Gthr from ESE results. Something went very wrong"
             );
             return Err(SearchError::ParseEse);
         };

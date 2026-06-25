@@ -1,14 +1,14 @@
 use crate::filesystem::disks::error::DiskError;
 use calf::calf::CalfReader;
-use log::error;
 use std::{fs::File, io::BufReader};
+use tracing::error;
 
 /// Return a reader to access the OS of a QCOW disk image
 pub(crate) fn qcow_reader(path: &str) -> Result<CalfReader<File>, DiskError> {
     let file = match File::open(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to open QCOW file: {err:?}");
+            error!("Failed to open QCOW file: {err:?}");
             return Err(DiskError::Qcow);
         }
     };

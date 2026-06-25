@@ -3,8 +3,8 @@ use crate::utils::{
     strings::{extract_utf8_string, extract_utf16_string},
 };
 use common::windows::DataFlags;
-use log::warn;
 use nom::bytes::complete::take;
+use tracing::warn;
 
 /// Extract strings from `shortcut` data. Most string data will have max length of 260 bytes (520 if Unicode)
 /// Only command arguements in the shortcut file are the exception
@@ -36,15 +36,11 @@ pub(crate) fn extract_string<'a>(
         // However, Shortcut files that are larger than 260 bytes may have been created manually or using non-Windows standards
         // This is sometimes used by threat actors to hide Shortcut data from forensic tools
         // See: https://harfanglab.io/insidethelab/sadfuture-xdspy-latest-evolution/#tid_specifications_ignored
-        warn!(
-            "[shortcuts] Got abnormal string size. LNK data could be malformed or possibly malicious"
-        );
+        warn!("Got abnormal string size. LNK data could be malformed or possibly malicious");
         size = max_string_size;
         is_abnormal = true;
     } else if size > max_string_size && !flags.contains(&DataFlags::IsUnicode) && !is_command_args {
-        warn!(
-            "[shortcuts] Got abnormal string size. LNK data could be malformed or possibly malicious"
-        );
+        warn!("Got abnormal string size. LNK data could be malformed or possibly malicious");
         size = max_string_size;
         is_abnormal = true;
     }

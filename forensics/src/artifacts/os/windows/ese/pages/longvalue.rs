@@ -10,11 +10,11 @@ use crate::{
     },
     filesystem::ntfs::reader::read_bytes,
 };
-use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use std::collections::HashMap;
 use std::io::BufReader;
+use tracing::{error, warn};
 
 /**
  * Parse long value page into a `HashMap`  
@@ -69,7 +69,7 @@ pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
             let (_, mut leaf_row) = match leaf_result {
                 Ok(result) => result,
                 Err(_err) => {
-                    error!("[ese] Failed to parse leaf page for leaf long value");
+                    error!("Failed to parse leaf page for leaf long value");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         leaf_data,
                         ErrorKind::Fail,
@@ -114,7 +114,7 @@ pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
         let child_data = match child_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ese] Failed to read bytes for long value child data: {err:?}");
+                error!("Failed to read bytes for long value child data: {err:?}");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     &[],
                     ErrorKind::Fail,
@@ -124,7 +124,7 @@ pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
 
         let result = parse_long_value_child(&child_data, &mut values);
         if result.is_err() {
-            error!("[ese] Failed to parse long value child");
+            error!("Failed to parse long value child");
         }
     }
 
@@ -179,7 +179,7 @@ fn parse_long_value_child<'a>(
             let (_, mut leaf_row) = match leaf_result {
                 Ok(result) => result,
                 Err(_err) => {
-                    error!("[ese] Failed to parse leaf page for child long value");
+                    error!("Failed to parse leaf page for child long value");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         leaf_data,
                         ErrorKind::Fail,
@@ -206,10 +206,7 @@ fn parse_long_value_child<'a>(
 
             continue;
         }
-        warn!(
-            "[ese] Non-leaf type page flag: {:?}",
-            branch_page_data.page_flags
-        );
+        warn!("Non-leaf type page flag: {:?}", branch_page_data.page_flags);
     }
     Ok((data, ()))
 }

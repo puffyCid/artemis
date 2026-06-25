@@ -10,13 +10,13 @@ use crate::{
     },
 };
 use common::windows::{AttributeFlags, Reason, Source};
-use log::error;
 use nom::bytes::complete::{take, take_until, take_while};
 use ntfs::NtfsFile;
 use std::{
     collections::{HashMap, HashSet},
     io::BufReader,
 };
+use tracing::error;
 
 #[derive(Debug, Clone)]
 pub(crate) struct UsnJrnlFormat {
@@ -152,7 +152,7 @@ impl UsnJrnlFormat {
             match file_reader(path) {
                 Ok(result) => Some(BufReader::new(result)),
                 Err(err) => {
-                    error!("[usnjrnl] Could not create reader for alt MFT file: {err:?}");
+                    error!("Could not create reader for alt MFT file: {err:?}");
                     None
                 }
             }

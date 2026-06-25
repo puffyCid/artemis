@@ -10,7 +10,7 @@ build = "build.rs"
 
 [dependencies]
 serde = { workspace = true }
-log = { workspace = true }
+tracing = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
 sysinfo = { workspace = true }
@@ -20,7 +20,7 @@ base64 = { workspace = true }
 fastrand = { workspace = true }
 chrono = { workspace = true }
 
-simplelog = "0.12.2"
+tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
 
 common = { path = "../common" }
 forensics = { path = "../forensics", default-features = false }
@@ -31,4 +31,4 @@ httpmock = "0.8.3"
 criterion = "0.8.2"
 
 [build-dependencies]
-vergen = { version = "9.1.0", features = ["build", "rustc"] }
+vergen = { version = "10.0.0", features = ["build", "rustc"] }

@@ -4,9 +4,9 @@ use crate::output::{
     error::{OutputError, OutputResult},
     record::{Record, RecordStream},
 };
-use log::debug;
 use std::io::Write;
 use timeline::timeline::timeline_artifact;
+use tracing::debug;
 
 /// Encoder for Timeline files. This is same as JSONL encoder except we do extra processing to timeline the data
 #[derive(Debug, PartialEq)]
@@ -40,7 +40,7 @@ impl ArtifactEncoder for TimelineEncoder {
                 &context.end_time_filter,
             ) {
                 debug!(
-                    "[forensics] Skipping '{}' record during timeline encoding. Unexpected artifact format.",
+                    "Skipping '{}' record during timeline encoding. Unexpected artifact format.",
                     context.artifact_name
                 );
                 continue;

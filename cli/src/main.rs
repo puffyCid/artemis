@@ -5,7 +5,7 @@ use base64::{Engine, engine::general_purpose};
 use clap::Parser;
 use collector::system::Commands;
 use forensics::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-use log::info;
+use tracing::info;
 mod collector;
 
 #[derive(Parser)]
@@ -34,15 +34,15 @@ fn main() {
 
 /// Parse the support `artemis` options
 fn parse_args(args: &Args) {
-    println!("[artemis] Starting artemis collection!");
+    println!("Starting artemis collection!");
 
     if let Some(toml) = &args.toml {
         if !toml.is_empty() {
             let collection_results = forensics::core::parse_toml_file(toml);
             match collection_results {
-                Ok(_) => info!("[artemis] Collection success"),
+                Ok(_) => info!("Collection success"),
                 Err(err) => {
-                    println!("[artemis] Failed to collect artifacts: {err:?}");
+                    println!("Failed to collect artifacts: {err:?}");
                     return;
                 }
             }
@@ -53,17 +53,15 @@ fn parse_args(args: &Args) {
             let toml_data = match toml_data_results {
                 Ok(results) => results,
                 Err(err) => {
-                    println!(
-                        "[artemis] Failed to base64 decode TOML collector {data}, error: {err:?}",
-                    );
+                    println!("Failed to base64 decode TOML collector {data}, error: {err:?}",);
                     return;
                 }
             };
             let collection_results = forensics::core::parse_toml_data(&toml_data);
             match collection_results {
-                Ok(_) => info!("[artemis] Collection success"),
+                Ok(_) => info!("Collection success"),
                 Err(err) => {
-                    println!("[artemis] Failed to collect artifacts: {err:?}");
+                    println!("Failed to collect artifacts: {err:?}");
                     return;
                 }
             }
@@ -73,9 +71,9 @@ fn parse_args(args: &Args) {
         if !js.is_empty() {
             let collection_results = forensics::core::parse_js_file(js);
             match collection_results {
-                Ok(_) => info!("[artemis] JavaScript execution success"),
+                Ok(_) => info!("JavaScript execution success"),
                 Err(err) => {
-                    println!("[artemis] Failed to run JavaScript: {err:?}");
+                    println!("Failed to run JavaScript: {err:?}");
                     return;
                 }
             }
@@ -91,10 +89,10 @@ fn parse_args(args: &Args) {
         };
         run_collector(command, out)
     } else {
-        println!("[artemis] No valid command args provided!");
+        println!("No valid command args provided!");
         return;
     }
-    println!("[artemis] Finished artemis collection!");
+    println!("Finished artemis collection!");
 }
 
 #[cfg(test)]

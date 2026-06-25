@@ -13,8 +13,8 @@ use crate::filesystem::files::{file_reader, file_too_large};
 use common::linux::ElfInfo;
 use elf::ElfBytes;
 use elf::endian::AnyEndian;
-use log::error;
 use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
+use tracing::error;
 
 /// Parse an `ELF` file at provided path
 pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseError> {
@@ -22,7 +22,7 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseErr
     let mut reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[elf] Could not get reader for {path}: {err:?}");
+            error!("Could not get reader for {path}: {err:?}");
             return Err(elf::ParseError::IOError(Error::new(
                 ErrorKind::NotFound,
                 err,

@@ -2,9 +2,9 @@ use crate::utils::nom_helper::{
     Endian, nom_data, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
     nom_unsigned_sixteen_bytes, nom_unsigned_two_bytes,
 };
-use log::error;
 use nom::error::ErrorKind;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use super::tables::header::get_heap_node_id;
 
@@ -87,7 +87,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
     let format_type = get_format(format_data);
 
     if format_type == FormatType::ANSI32 {
-        error!("[outlook] Got ANSI32 FormatType. This type is currently unsupported");
+        error!("Got ANSI32 FormatType. This type is currently unsupported");
         return Err(nom::Err::Failure(nom::error::Error::new(
             data,
             ErrorKind::Fail,
@@ -109,7 +109,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
         let values = match result {
             Ok((_, value)) => value,
             Err(err) => {
-                error!("[outlook] Failed to parse node id data: {err:?}");
+                error!("Failed to parse node id data: {err:?}");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     data,
                     ErrorKind::Fail,
@@ -178,7 +178,7 @@ pub(crate) fn parse_header(data: &[u8]) -> nom::IResult<&[u8], OutlookHeader> {
 
     if header.encryption_type != EncryptionType::None {
         error!(
-            "[outlook] Outlook file is encrypted: {:?}. Currently decryption is not supported",
+            "Outlook file is encrypted: {:?}. Currently decryption is not supported",
             header.encryption_type
         );
         return Err(nom::Err::Failure(nom::error::Error::new(

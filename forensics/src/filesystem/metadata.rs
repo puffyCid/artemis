@@ -1,8 +1,8 @@
 use crate::filesystem::error::FileSystemError;
-use log::error;
 use serde::Serialize;
 use std::fs::symlink_metadata;
 use std::{fs::Metadata, io::Error};
+use tracing::error;
 
 // Timestamps containing number of seconds since UNIXEPOCH
 #[derive(Debug)]
@@ -103,7 +103,7 @@ pub(crate) fn glob_paths(glob_pattern: &str) -> Result<Vec<GlobInfo>, FileSystem
     let paths = match glob_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not glob {glob_pattern}: {err:?}");
+            error!("Could not glob {glob_pattern}: {err:?}");
             return Err(FileSystemError::BadGlob);
         }
     };

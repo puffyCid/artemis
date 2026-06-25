@@ -10,9 +10,9 @@ use crate::{
     },
 };
 use common::{outlook::PropertyName, windows::PropertyContext};
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
+use tracing::error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MessageDetails {
@@ -76,7 +76,7 @@ pub(crate) fn message_details(
             let decode = match decode_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[outlook] Could not base64 decode HTML message: {err:?}");
+                    error!("Could not base64 decode HTML message: {err:?}");
                     message.body = encoded.to_string();
                     keep.push(false);
                     continue;
@@ -111,9 +111,7 @@ pub(crate) fn message_details(
             let data = match data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!(
-                        "[outlook] Failed to decode encoded RTF data: {err:?}. Returning base64 data"
-                    );
+                    error!("Failed to decode encoded RTF data: {err:?}. Returning base64 data");
                     message.body = encoded.to_string();
                     keep.push(false);
                     continue;
@@ -124,7 +122,7 @@ pub(crate) fn message_details(
             let decom = match decom_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Failed to parse RTF data. Returning base64 data");
+                    error!("Failed to parse RTF data. Returning base64 data");
                     message.body = encoded.to_string();
                     keep.push(false);
                     continue;
@@ -238,7 +236,7 @@ fn get_rtf_data(data: &[u8]) -> nom::IResult<&[u8], String> {
     let decom = match decom_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Failed to decompress RTF data: {err:?}. Returning base64 data");
+            error!("Failed to decompress RTF data: {err:?}. Returning base64 data");
             return Ok((input, base64_encode_standard(data)));
         }
     };

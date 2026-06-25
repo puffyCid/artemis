@@ -3,8 +3,8 @@ use crate::{
     structs::artifacts::os::windows::WindowsUserOptions, utils::environment::get_systemdrive,
 };
 use common::windows::UserInfo;
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Get Windows `Users` for based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_users(options: &WindowsUserOptions) -> Result<Vec<UserInfo>, AccountError> {
@@ -15,7 +15,7 @@ pub(crate) fn grab_users(options: &WindowsUserOptions) -> Result<Vec<UserInfo>, 
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[accounts] Could not get default system drive letter: {err:?}");
+            error!("Could not get default system drive letter: {err:?}");
             return Err(AccountError::DefaultDrive);
         }
     };
@@ -31,7 +31,7 @@ pub(crate) fn get_users() -> Result<HashMap<String, String>, AccountError> {
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[accounts] Could not get default system drive letter: {err:?}");
+            error!("Could not get default system drive letter: {err:?}");
             return Err(AccountError::DefaultDrive);
         }
     };

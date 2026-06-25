@@ -21,9 +21,9 @@ use crate::{
     },
 };
 use common::windows::RegistryData;
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse and extract eventlog string resources
 pub(crate) fn get_resources() -> Result<StringResource, EventLogsError> {

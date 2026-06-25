@@ -12,8 +12,8 @@
 use super::{commands::command::Commands, error::MachoError, fat::FatHeader, header::MachoHeader};
 use crate::filesystem::files::{file_reader, file_too_large};
 use common::macos::MachoInfo;
-use log::error;
 use std::io::{Read, Seek, SeekFrom};
+use tracing::error;
 
 /// Parse a macho file
 pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
@@ -21,7 +21,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
     let mut reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[macho] Could not get file reader for {path}. Error: {err:?}");
+            error!("Could not get file reader for {path}. Error: {err:?}");
             return Err(MachoError::Path);
         }
     };
@@ -126,7 +126,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
     let is_macho = match is_macho_results {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[macho] Failed to check macho magic number: {err:?}");
+            error!("Failed to check macho magic number: {err:?}");
             return Err(MachoError::Magic);
         }
     };
@@ -138,7 +138,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
     let (command_data, header_data) = match header_results {
         Ok((command, result)) => (command, result),
         Err(err) => {
-            error!("[macho] Failed to parse MACHO header: {err:?}");
+            error!("Failed to parse MACHO header: {err:?}");
             return Err(MachoError::Header);
         }
     };

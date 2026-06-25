@@ -12,13 +12,13 @@ use crate::{
     },
 };
 use common::macos::SpotlightEntries;
-use log::error;
 use nom::bytes::complete::take;
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
     mem,
 };
+use tracing::error;
 
 /// Parse the Spotlight store.db and extract entries
 pub(crate) fn parse_store(
@@ -38,7 +38,7 @@ pub(crate) fn parse_store(
     for block in blocks {
         let offset = block * offset_size;
         if reader.seek(SeekFrom::Start(offset as u64)).is_err() {
-            error!("[spotlight] Could not seek to store offset");
+            error!("Could not seek to store offset");
             continue;
         }
 
@@ -51,7 +51,7 @@ pub(crate) fn parse_store(
         let prop_header = match prop_header_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[spotlight] Could not parse store prop header");
+                error!("Could not parse store prop header");
                 continue;
             }
         };
@@ -65,7 +65,7 @@ pub(crate) fn parse_store(
         let mut spotlight_data = match data_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[spotlight] Could not parse store prop");
+                error!("Could not parse store prop");
                 continue;
             }
         };
@@ -76,14 +76,14 @@ pub(crate) fn parse_store(
             let mut records = match serialize_records_to_stream(mem::take(&mut entries)) {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[spotlight] Failed to serialize spotlight data: {err:?}");
+                    error!("Failed to serialize spotlight data: {err:?}");
                     continue;
                 }
             };
 
             let artifact_name = "spotlight";
             if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-                error!("[spotlight] Could not output spotlight data: {err:?}");
+                error!("Could not output spotlight data: {err:?}");
             }
         }
     }
@@ -92,14 +92,14 @@ pub(crate) fn parse_store(
         let mut records = match serialize_records_to_stream(entries) {
             Ok(results) => results,
             Err(err) => {
-                error!("[spotlight] Failed to serialize remainingspotlight data: {err:?}");
+                error!("Failed to serialize remainingspotlight data: {err:?}");
                 return Err(SpotlightError::Serialize);
             }
         };
 
         let artifact_name = "spotlight";
         if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-            error!("[spotlight] Could not output remaiing spotlight data: {err:?}");
+            error!("Could not output remaiing spotlight data: {err:?}");
             return Err(SpotlightError::Output);
         }
     }
@@ -142,7 +142,7 @@ pub(crate) fn parse_store_blocks(
 
         let offset = block * offset_size;
         if reader.seek(SeekFrom::Start(offset as u64)).is_err() {
-            error!("[spotlight] Could not seek to store offset");
+            error!("Could not seek to store offset");
             continue;
         }
 
@@ -155,7 +155,7 @@ pub(crate) fn parse_store_blocks(
         let prop_header = match prop_header_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[spotlight] Could not parse store prop header");
+                error!("Could not parse store prop header");
                 continue;
             }
         };
@@ -169,7 +169,7 @@ pub(crate) fn parse_store_blocks(
         let mut spotlight_data = match data_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[spotlight] Could not parse store prop");
+                error!("Could not parse store prop");
                 continue;
             }
         };
@@ -192,7 +192,7 @@ pub(crate) fn get_blocks(reader: &mut File) -> Result<(Vec<u32>, String), Spotli
     let header = match header_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[spotlight] Could not parse store header");
+            error!("Could not parse store header");
             return Err(SpotlightError::StoreHeader);
         }
     };
@@ -206,7 +206,7 @@ pub(crate) fn get_blocks(reader: &mut File) -> Result<(Vec<u32>, String), Spotli
     let blocks = match blocks_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[spotlight] Could not parse store map");
+            error!("Could not parse store map");
             return Err(SpotlightError::StoreMap);
         }
     };

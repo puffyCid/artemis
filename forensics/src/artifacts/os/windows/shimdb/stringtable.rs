@@ -11,11 +11,9 @@ pub(crate) fn get_stringtable_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> 
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
-    use crate::filesystem::files::read_file;
-
     use super::get_stringtable_data;
+    use crate::filesystem::files::read_file;
+    use std::path::PathBuf;
 
     #[test]
     fn test_get_stringtable_data() {

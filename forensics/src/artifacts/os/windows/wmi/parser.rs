@@ -21,7 +21,7 @@ use crate::{
     structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
 };
 use common::windows::WmiPersist;
-use log::error;
+use tracing::error;
 
 /// Get WMI persist data based on provided options
 pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPersist>, WmiError> {
@@ -53,7 +53,7 @@ pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPer
     let default_drive = match default_drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[wmi] Could not get drive letter: {err:?}");
+            error!("Could not get drive letter: {err:?}");
             return Err(WmiError::DriveLetter);
         }
     };

@@ -10,7 +10,6 @@ use crate::{
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
-use log::{error, warn};
 use reqwest::{
     StatusCode,
     blocking::{Client, multipart},
@@ -21,6 +20,7 @@ use std::{
     thread::sleep,
     time::Duration,
 };
+use tracing::{error, warn};
 
 /// A data Sink representing the API pipeline flow
 #[derive(Debug)]
@@ -83,10 +83,7 @@ impl ApiSink {
             if compress {
                 builder = builder.header("Content-Encoding", "gzip");
             }
-            if filename.ends_with(".log") {
-                // The last two uploads for collections are just plaintext log files
-                part = part.mime_str("text/plain").unwrap();
-            } else if filename.ends_with(".jsonl.gz") {
+            if filename.ends_with(".jsonl.gz") || filename.ends_with(".jsonl") {
                 // Should be safe to unwrap?
                 part = part.mime_str("application/jsonl").unwrap();
             } else {
@@ -100,12 +97,9 @@ impl ApiSink {
 
             match result {
                 Ok(response) if response.status() == StatusCode::OK => return Ok(()),
-                Ok(response) => warn!(
-                    "[forensics] Non-OK response from server: {:?}",
-                    response.status()
-                ),
+                Ok(response) => warn!("Non-OK response from server: {:?}", response.status()),
                 Err(err) => {
-                    error!("[forensics] Failed to upload data to API. Error: {err:?}");
+                    error!("Failed to upload data to API. Error: {err:?}");
                 }
             }
             let jitter = fastrand::usize(..11);
@@ -121,7 +115,7 @@ impl ApiSink {
 
     /// Return the log file we are logging to
     fn log_filename(&self) -> String {
-        format!("artemis_{}_{}.log", self.collection_id, generate_uuid())
+        format!("artemis_{}_{}.jsonl", self.collection_id, generate_uuid())
     }
 }
 
@@ -184,7 +178,7 @@ impl OutputSink for ApiSink {
             .and_then(|name| name.to_str())
             .ok_or_else(|| OutputError::Finalize(String::from("log file path has no filename")))?;
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(data, "text/plain", false, filename)?;
+        self.upload_bytes(data, "application/jsonl", false, filename)?;
         let _ = remove_file(&self.log_file);
 
         Ok(())

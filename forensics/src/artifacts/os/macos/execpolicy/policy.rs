@@ -4,8 +4,8 @@ use crate::{
     utils::time::unixepoch_to_iso,
 };
 use common::macos::ExecPolicy;
-use log::error;
 use rusqlite::{Connection, OpenFlags};
+use tracing::error;
 
 /// Query `ExecPolicy` database
 pub(crate) fn grab_execpolicy(
@@ -31,7 +31,7 @@ pub(crate) fn grab_execpolicy(
     let conn = match connection {
         Ok(connect) => connect,
         Err(err) => {
-            error!("[execpolicy] Failed to read ExecPolicy SQLITE file {err:?}");
+            error!("Failed to read ExecPolicy SQLITE file {err:?}");
             return Err(ExecPolicyError::SQLITEParseError);
         }
     };
@@ -40,7 +40,7 @@ pub(crate) fn grab_execpolicy(
     let mut stmt = match statement {
         Ok(query) => query,
         Err(err) => {
-            error!("[execpolicy] Failed to compose ExecPolicy SQL query {err:?}");
+            error!("Failed to compose ExecPolicy SQL query {err:?}");
             return Err(ExecPolicyError::BadSQL);
         }
     };
@@ -100,7 +100,7 @@ pub(crate) fn grab_execpolicy(
                         policy_vec.push(exec_data);
                     }
                     Err(err) => {
-                        error!("[execpolicy] Failed to iterate ExecPolicy data: {err:?}");
+                        error!("Failed to iterate ExecPolicy data: {err:?}");
                     }
                 }
             }
@@ -108,7 +108,7 @@ pub(crate) fn grab_execpolicy(
             Ok(policy_vec)
         }
         Err(err) => {
-            error!("[execpolicy] Failed to get ExecPolicy data: {err:?}");
+            error!("Failed to get ExecPolicy data: {err:?}");
             Err(ExecPolicyError::SQLITEParseError)
         }
     }

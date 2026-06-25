@@ -2,8 +2,8 @@ use crate::{
     artifacts::os::macos::spotlight::error::SpotlightError,
     utils::nom_helper::{Endian, nom_unsigned_four_bytes},
 };
-use log::error;
 use nom::bytes::complete::take;
+use tracing::error;
 
 /// The offsets associated with Spotlight data
 pub(crate) fn get_offsets(data: &[u8], offset_entries: u32) -> Result<Vec<u32>, SpotlightError> {
@@ -11,7 +11,7 @@ pub(crate) fn get_offsets(data: &[u8], offset_entries: u32) -> Result<Vec<u32>, 
     let offsets = match offset_results {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[spotlight] Could not parse dbstr offsets data");
+            error!("Could not parse dbstr offsets data");
             return Err(SpotlightError::Offsets);
         }
     };

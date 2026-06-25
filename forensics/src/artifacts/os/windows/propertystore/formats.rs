@@ -1,7 +1,7 @@
 use super::properties::{numeric::parse_numeric, string::parse_string};
-use log::warn;
 use serde_json::Value;
 use std::collections::HashMap;
+use tracing::warn;
 
 /// Parse support `Property Store` formats
 pub(crate) fn parse_formats<'a>(
@@ -19,7 +19,7 @@ pub(crate) fn parse_formats<'a>(
         let (input, result) = match numeric_result {
             Ok(result) => result,
             Err(_err) => {
-                warn!("[propertystore] Failed to parse Property GUID: {guid}");
+                warn!("Failed to parse Property GUID: {guid}");
                 return Ok((data, HashMap::new()));
             }
         };

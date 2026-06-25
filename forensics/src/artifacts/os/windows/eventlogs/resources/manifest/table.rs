@@ -8,8 +8,8 @@ use crate::{
         uuid::format_guid_le_bytes,
     },
 };
-use log::warn;
 use nom::bytes::complete::{take, take_while};
+use tracing::warn;
 
 /// Parse template containing binary XML
 pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement> {
@@ -18,7 +18,7 @@ pub(crate) fn parse_template(data: &[u8]) -> nom::IResult<&[u8], TemplateElement
     let (input, size) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let adjust_size = 8;
     if adjust_size > size {
-        warn!("[eventlogs] Template size is too small: {size}. Ending parsing");
+        warn!("Template size is too small: {size}. Ending parsing");
         let temp = TemplateElement {
             template_id: String::new(),
             event_data_type: String::new(),

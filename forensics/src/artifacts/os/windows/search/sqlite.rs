@@ -3,9 +3,9 @@ use crate::{
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::SearchOptions,
 };
-use log::{error, warn};
 use rusqlite::{Connection, OpenFlags};
 use std::{collections::HashMap, mem::take};
+use tracing::{error, warn};
 
 struct SqlEntry {
     document_id: i32,
@@ -29,7 +29,7 @@ pub(crate) fn parse_search_sqlite(
     let conn = match connection {
         Ok(connect) => connect,
         Err(err) => {
-            error!("[search] Failed to read Search SQLITE file {err:?}");
+            error!("Failed to read Search SQLITE file {err:?}");
             return Err(SearchError::SqliteParse);
         }
     };
@@ -39,7 +39,7 @@ pub(crate) fn parse_search_sqlite(
     let mut stmt = match statement {
         Ok(result) => result,
         Err(err) => {
-            error!("[search] Failed to compose Search SQL query {err:?}");
+            error!("Failed to compose Search SQL query {err:?}");
             return Err(SearchError::BadSQL);
         }
     };
@@ -88,9 +88,7 @@ pub(crate) fn parse_search_sqlite(
                             {
                                 Ok(results) => results,
                                 Err(err) => {
-                                    error!(
-                                        "[search] Failed to serialize search SQLITE data: {err:?}"
-                                    );
+                                    error!("Failed to serialize search SQLITE data: {err:?}");
                                     continue;
                                 }
                             };
@@ -98,12 +96,12 @@ pub(crate) fn parse_search_sqlite(
                             if let Err(err) =
                                 manager.write_artifact(artifact_name, options, &mut records)
                             {
-                                error!("[search] Could not output search SQLITE data: {err:?}");
+                                error!("Could not output search SQLITE data: {err:?}");
                             }
                         }
                     }
                     Err(err) => {
-                        warn!("[search] Failed to iterate through Search data: {err:?}");
+                        warn!("Failed to iterate through Search data: {err:?}");
                     }
                 }
             }
@@ -116,18 +114,18 @@ pub(crate) fn parse_search_sqlite(
             let mut records = match serialize_records_to_stream(entries) {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[search] Failed to serialize remaining search SQLITE data: {err:?}");
+                    error!("Failed to serialize remaining search SQLITE data: {err:?}");
                     return Err(SearchError::Serialize);
                 }
             };
             let artifact_name = "search";
             if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-                error!("[search] Could not output remaining search SQLITE data: {err:?}");
+                error!("Could not output remaining search SQLITE data: {err:?}");
                 return Err(SearchError::Output);
             }
         }
         Err(err) => {
-            error!("[search]  Failed to get Search SQLITE data: {err:?}");
+            error!(" Failed to get Search SQLITE data: {err:?}");
             return Err(SearchError::SqliteParse);
         }
     }
@@ -147,7 +145,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
     let conn = match connection {
         Ok(connect) => connect,
         Err(err) => {
-            error!("[search] Failed to read Search SQLITE file {err:?}");
+            error!("Failed to read Search SQLITE file {err:?}");
             return Err(SearchError::SqliteParse);
         }
     };
@@ -157,7 +155,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
     let mut stmt = match statement {
         Ok(result) => result,
         Err(err) => {
-            error!("[search] Failed to compose Search SQL query {err:?}");
+            error!("Failed to compose Search SQL query {err:?}");
             return Err(SearchError::BadSQL);
         }
     };
@@ -201,13 +199,13 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
                         entry.properties.insert(sql_entry.prop, sql_entry.value);
                     }
                     Err(err) => {
-                        warn!("[search] Failed to iterate through Search data: {err:?}");
+                        warn!("Failed to iterate through Search data: {err:?}");
                     }
                 }
             }
         }
         Err(err) => {
-            error!("[search]  Failed to get Search SQLITE data: {err:?}");
+            error!(" Failed to get Search SQLITE data: {err:?}");
             return Err(SearchError::SqliteParse);
         }
     }

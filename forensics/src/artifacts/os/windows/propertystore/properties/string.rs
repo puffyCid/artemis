@@ -9,10 +9,10 @@ use crate::{
         time::filetime_to_iso,
     },
 };
-use log::error;
 use nom::bytes::complete::{take, take_until};
 use serde_json::Value;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse a `Property Store` stream
 pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, Value>> {
@@ -41,7 +41,7 @@ pub(crate) fn parse_string(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, V
     let _ = match serde_result {
         Ok(results) => values.insert(name, results),
         Err(err) => {
-            error!("[propertystore] Failed to serialize property store shellitems: {err:?}");
+            error!("Failed to serialize property store shellitems: {err:?}");
             Option::None
         }
     };

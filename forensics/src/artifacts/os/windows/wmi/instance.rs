@@ -11,10 +11,10 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use log::warn;
 use nom::{bytes::complete::take, error::ErrorKind};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use tracing::warn;
 
 #[derive(Debug, Clone)]
 pub(crate) struct InstanceRecord {
@@ -102,7 +102,7 @@ pub(crate) fn parse_instances<'a>(
                     Ok((_, result)) => result,
                     Err(_err) => {
                         warn!(
-                            "[wmi] Could not grab instance data for class {}. There may not be any data",
+                            "Could not grab instance data for class {}. There may not be any data",
                             class_info.class_name
                         );
                         empty_instances.insert(instance.hash_name.clone());

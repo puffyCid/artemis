@@ -4,10 +4,10 @@ use crate::{
         Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
 };
-use log::error;
 use nom::{Needed, bytes::complete::take, error::ErrorKind};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct PageLeaf {
@@ -117,7 +117,7 @@ impl PageLeaf {
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[ese] Could not serialize {:?} leaf type: {err:?}",
+                    "Could not serialize {:?} leaf type: {err:?}",
                     page_leaf.leaf_type
                 );
                 return Err(nom::Err::Failure(nom::error::Error::new(

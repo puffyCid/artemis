@@ -33,7 +33,10 @@ fn test_journal_parser() {
         }
         let output_file = value.to_str().unwrap();
 
-        if output_file.contains("/journal_") && output_file.ends_with(".jsonl") {
+        if output_file.contains("/journal_")
+            && output_file.ends_with(".jsonl")
+            && !output_file.contains("/artemis_")
+        {
             validate_output(value);
         }
         if value.extension().unwrap() == "log" && !value.to_str().unwrap().contains("status_") {

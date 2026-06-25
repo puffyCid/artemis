@@ -9,8 +9,8 @@ use crate::{
     },
 };
 use common::windows::TableDump;
-use log::error;
 use std::{collections::HashMap, mem::take};
+use tracing::error;
 
 /// Parse the `SystemIndex_Gthr` table and output data
 pub(crate) fn parse_index_gthr(
@@ -72,13 +72,13 @@ pub(crate) fn parse_index_gthr(
             let mut records = match serialize_records_to_stream(take(&mut entries)) {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[search] Failed to serialize search ESE data: {err:?}");
+                    error!("Failed to serialize search ESE data: {err:?}");
                     continue;
                 }
             };
             let artifact_name = "search";
             if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-                error!("[search] Could not output search ESE data: {err:?}");
+                error!("Could not output search ESE data: {err:?}");
             }
         }
     }
@@ -91,13 +91,13 @@ pub(crate) fn parse_index_gthr(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(results) => results,
         Err(err) => {
-            error!("[search] Failed to serialize remaining search ESE data: {err:?}");
+            error!("Failed to serialize remaining search ESE data: {err:?}");
             return Err(SearchError::Serialize);
         }
     };
     let artifact_name = "search";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[search] Could not output remaining search ESE data: {err:?}");
+        error!("Could not output remaining search ESE data: {err:?}");
         return Err(SearchError::Output);
     }
 

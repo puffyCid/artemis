@@ -18,13 +18,13 @@ use crate::{
 use common::windows::{
     AccessItem, BitsInfo, JobFlags, JobInfo, JobPriority, JobState, JobType, TableDump,
 };
-use log::error;
 use nom::{
     Parser,
     bytes::complete::{take, take_until},
     combinator::peek,
 };
 use std::mem::size_of;
+use tracing::error;
 
 /// Loop through table rows and parse out all of the active BITS jobs
 pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, BitsError> {
@@ -46,7 +46,7 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
                     let job_data = match job_results {
                         Ok((data_results, _)) => data_results,
                         Err(_err) => {
-                            error!("[bits] Could not parse BITS job details");
+                            error!("Could not parse BITS job details");
                             continue;
                         }
                     };
@@ -54,7 +54,7 @@ pub(crate) fn get_jobs(column_rows: &[Vec<TableDump>]) -> Result<Vec<JobInfo>, B
                         continue;
                     }
 
-                    error!("[bits] Could not parse BITS job file info");
+                    error!("Could not parse BITS job file info");
                 }
             }
         }
@@ -70,7 +70,7 @@ pub(crate) fn get_legacy_jobs(data: &[u8], evidence: &str) -> Result<Vec<BitsInf
     let jobs = if let Ok((_, results)) = job_results {
         results
     } else {
-        error!("[bits] Could not parse legacy BITS format");
+        error!("Could not parse legacy BITS format");
         return Err(BitsError::ParseLegacyBits);
     };
     Ok(jobs)

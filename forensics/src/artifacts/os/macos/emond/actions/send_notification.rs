@@ -1,7 +1,7 @@
 use crate::artifacts::os::macos::plist::property_list::{get_dictionary, get_string};
 use common::macos::SendNotification;
-use log::warn;
 use plist::Dictionary;
+use tracing::warn;
 
 /// Parse send notification `Emond` action
 pub(crate) fn parse_action_send_notification(action_dictionary: &Dictionary) -> SendNotification {
@@ -19,7 +19,7 @@ pub(crate) fn parse_action_send_notification(action_dictionary: &Dictionary) -> 
         } else if key == "details" {
             notification.details = get_dictionary(action_value).unwrap_or_default();
         } else if key != "type" {
-            warn!("[emond] Unknown Log Action key: {key}. Value: {action_value:?}");
+            warn!("Unknown Log Action key: {key}. Value: {action_value:?}");
         }
     }
     notification

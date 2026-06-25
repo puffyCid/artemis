@@ -14,13 +14,13 @@ use super::{
     error::BookmarkError,
 };
 use common::macos::BookmarkData;
-use log::error;
+use tracing::error;
 
 /// Parse provided bookmark data
 pub(crate) fn parse_bookmark(data: &[u8]) -> Result<BookmarkData, BookmarkError> {
     let header_size = 48;
     if data.len() < header_size {
-        error!("[bookmarks] Data size less than bookmark header size");
+        error!("Data size less than bookmark header size");
         return Err(BookmarkError::BadHeader);
     }
 
@@ -29,7 +29,7 @@ pub(crate) fn parse_bookmark(data: &[u8]) -> Result<BookmarkData, BookmarkError>
     let (bookmark_data, header) = match header_results {
         Ok((bookmark_data, header)) => (bookmark_data, header),
         Err(err) => {
-            error!("[bookmarks] failed to get bookmark header: {err:?}");
+            error!("Failed to get bookmark header: {err:?}");
             return Err(BookmarkError::BadHeader);
         }
     };
@@ -38,7 +38,7 @@ pub(crate) fn parse_bookmark(data: &[u8]) -> Result<BookmarkData, BookmarkError>
 
     // Check for bookmark signature and expected offset
     if header.signature != book_sig || header.bookmark_data_offset < book_data_offset {
-        error!("[bookmarks] Data is not a bookmark got incorrect signature/offset");
+        error!("Data is not a bookmark got incorrect signature/offset");
         return Err(BookmarkError::BadHeader);
     }
 
@@ -46,7 +46,7 @@ pub(crate) fn parse_bookmark(data: &[u8]) -> Result<BookmarkData, BookmarkError>
     match data_results {
         Ok((_, bookmark_results)) => Ok(bookmark_results),
         Err(err) => {
-            error!("[bookmarks] Failed to get bookmark data: {err:?}");
+            error!("Failed to get bookmark data: {err:?}");
             Err(BookmarkError::BadBookmarkData)
         }
     }

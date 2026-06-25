@@ -1,7 +1,7 @@
 use crate::artifacts::os::macos::plist::property_list::get_string;
 use common::macos::Command;
-use log::warn;
 use plist::Dictionary;
+use tracing::warn;
 
 // Parse the Run Command Action Emond Rule
 pub(crate) fn parse_action_run_command(action_dictionary: &Dictionary) -> Command {
@@ -22,7 +22,7 @@ pub(crate) fn parse_action_run_command(action_dictionary: &Dictionary) -> Comman
             let arg_array = if let Some(results) = action_value.as_array() {
                 results
             } else {
-                warn!("[emond] Failed to parse Run Command Action array: {action_value:?}",);
+                warn!("Failed to parse Run Command Action array: {action_value:?}",);
                 continue;
             };
 

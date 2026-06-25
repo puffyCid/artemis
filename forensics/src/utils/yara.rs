@@ -1,6 +1,6 @@
 use super::{encoding::base64_decode_standard, error::ArtemisError, strings::extract_utf8_string};
-use log::error;
 use reqwest::blocking::Client;
+use tracing::error;
 #[cfg(feature = "yarax")]
 use yara_x::{Compiler, Scanner};
 
@@ -24,7 +24,7 @@ pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisEr
     let hits = match results {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to scan file {path}: {err:?}",);
+            error!("Failed to scan file {path}: {err:?}",);
             return Err(ArtemisError::YaraScan);
         }
     };
@@ -50,7 +50,7 @@ pub(crate) fn scan_bytes(data: &[u8], encoded_rule: &str) -> Result<Vec<String>,
     let hits = match results {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to scan bytes: {err:?}",);
+            error!("Failed to scan bytes: {err:?}",);
             return Err(ArtemisError::YaraScan);
         }
     };
@@ -70,7 +70,7 @@ pub(crate) fn scan_base64_bytes(
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to base64 target bytes: {err:?}");
+            error!("Failed to base64 target bytes: {err:?}");
             return Err(ArtemisError::Encoding);
         }
     };
@@ -83,7 +83,7 @@ fn remote_yara(url: &str) -> Result<String, ArtemisError> {
     let client = match Client::builder().build() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not create HTTP client for remote yara: {err:?}");
+            error!("Could not create HTTP client for remote yara: {err:?}");
             return Err(ArtemisError::Remote);
         }
     };
@@ -93,7 +93,7 @@ fn remote_yara(url: &str) -> Result<String, ArtemisError> {
     let response = match request.send() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not parse response from remote yara: {err:?}");
+            error!("Could not parse response from remote yara: {err:?}");
             return Err(ArtemisError::Remote);
         }
     };
@@ -101,7 +101,7 @@ fn remote_yara(url: &str) -> Result<String, ArtemisError> {
     let body = match response.text() {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Bad body response: {err:?}");
+            error!("Bad body response: {err:?}");
             return Err(ArtemisError::Remote);
         }
     };
@@ -115,7 +115,7 @@ fn rule_decode(rule: &str) -> Result<String, ArtemisError> {
     let rule_bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to base64 decode rule: {err:?}");
+            error!("Failed to base64 decode rule: {err:?}");
             return Err(ArtemisError::Encoding);
         }
     };
@@ -129,7 +129,7 @@ fn compile_rule(rule: &str) -> Result<Compiler<'_>, ArtemisError> {
     compile.error_on_slow_pattern(true);
     let status = compile.add_source(rule);
     if let Err(result) = status {
-        error!("[forensics] Failed to add yara rule: {result:?}");
+        error!("Failed to add yara rule: {result:?}");
         return Err(ArtemisError::YaraRule);
     }
 

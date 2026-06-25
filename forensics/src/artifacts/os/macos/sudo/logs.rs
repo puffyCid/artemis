@@ -1,7 +1,6 @@
 use crate::{
     artifacts::os::macos::error::MacArtifactError, structs::artifacts::os::macos::MacosSudoOptions,
 };
-use log::error;
 use macos_unifiedlogs::{
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
@@ -11,6 +10,7 @@ use macos_unifiedlogs::{
     unified_log::LogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
+use tracing::error;
 
 /// Grab sudo log entries in the Unified Log files
 pub(crate) fn grab_sudo_logs(options: &MacosSudoOptions) -> Result<Vec<LogData>, MacArtifactError> {

@@ -12,7 +12,6 @@ use crate::{
 };
 use flate2::{Compression, write::GzEncoder};
 use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
-use log::{error, info, warn};
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -20,6 +19,7 @@ use std::{
     io::Write,
     path::PathBuf,
 };
+use tracing::{error, info, warn};
 
 /// GCP response upload successful upload
 #[derive(Deserialize)]
@@ -132,7 +132,7 @@ impl GcpSink {
 
     /// Return the log file we are logging to
     fn log_filename(&self) -> String {
-        format!("artemis_{}_{}.log", self.collection_id, generate_uuid())
+        format!("artemis_{}_{}.jsonl", self.collection_id, generate_uuid())
     }
 
     /// Start the upload process to GCP
@@ -157,22 +157,19 @@ impl GcpSink {
                     && let Ok(status) = serde_json::from_slice::<UploadResponse>(&bytes)
                 {
                     info!(
-                        "[forensics] Uploaded GCP object {} at {}",
+                        "Uploaded GCP object {} at {}",
                         status.name, status.time_created
                     );
                 }
                 return Ok(());
             }
             Ok(response) => {
-                error!(
-                    "[forensics] Non-OK response from GCP upload: {:?}",
-                    response.text()
-                );
+                error!("Non-OK response from GCP upload: {:?}", response.text());
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
             Err(err) => {
-                error!("[forensics] Failed to upload to GCP: {err:?}");
+                error!("Failed to upload to GCP: {err:?}");
                 // Retry the upload 15 times
                 GcpSink::resume_upload(&session_uri, &data)?;
             }
@@ -264,12 +261,12 @@ impl GcpSink {
                         }
                         Ok(response) => {
                             warn!(
-                                "[forensics] GCP resume issue on attempt {attempt}: {:?}",
+                                "GCP resume issue on attempt {attempt}: {:?}",
                                 response.text()
                             );
                         }
                         Err(err) => {
-                            warn!("[forensics] GCP resume failed on attempt {attempt}: {err:?}");
+                            warn!("GCP resume failed on attempt {attempt}: {err:?}");
                         }
                     }
                 }
@@ -379,7 +376,7 @@ impl OutputSink for GcpSink {
         let object_log = self.object_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(&object_log, data, "text/plain")?;
+        self.upload_bytes(&object_log, data, "application/jsonl")?;
         let _ = remove_file(&self.log_file);
 
         Ok(())

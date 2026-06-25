@@ -9,11 +9,11 @@ use crate::{
     filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes},
 };
-use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use std::collections::HashMap;
 use std::io::BufReader;
+use tracing::{error, warn};
 
 #[derive(Debug)]
 pub(crate) struct BranchPage {
@@ -104,7 +104,7 @@ impl BranchPage {
                 let (_, leaf_row) = match leaf_result {
                     Ok(result) => result,
                     Err(_err) => {
-                        error!("[ese] Failed to parse leaf page for catalog branch child");
+                        error!("Failed to parse leaf page for catalog branch child");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             leaf_data,
                             ErrorKind::Fail,
@@ -125,7 +125,7 @@ impl BranchPage {
 
             if let Some(_page) = page_tracker.get(&branch.child_page) {
                 warn!(
-                    "[ese] Found a catalog branch child recursively pointing to same page {}. Exiting early",
+                    "Found a catalog branch child recursively pointing to same page {}. Exiting early",
                     branch.child_page
                 );
                 return Ok((data, catalog_rows));
@@ -140,7 +140,7 @@ impl BranchPage {
             let child_data = match child_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ese] Could not read child page data: {err:?}");
+                    error!("Could not read child page data: {err:?}");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -152,7 +152,7 @@ impl BranchPage {
             let (_, mut rows) = if let Ok(results) = rows_results {
                 results
             } else {
-                error!("[ese] Could not parse child branch");
+                error!("Could not parse child branch");
                 continue;
             };
             catalog_rows.append(&mut rows);
@@ -208,7 +208,7 @@ impl BranchPage {
             let (_, branch) = BranchPage::parse_branch_page(branch_data, &tag.flags)?;
             if let Some(_page) = page_tracker.get(&branch.child_page) {
                 warn!(
-                    "[ese] Found a table branch child recursively pointing to same page {}. Exiting early",
+                    "Found a table branch child recursively pointing to same page {}. Exiting early",
                     branch.child_page
                 );
                 return Ok((page_branch_data, 0));
@@ -230,7 +230,7 @@ impl BranchPage {
             let child_data = match child_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ese] Failed to read bytes for child data: {err:?}");
+                    error!("Failed to read bytes for child data: {err:?}");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -247,7 +247,7 @@ impl BranchPage {
             ) {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[ese] Failed to parse branch child table");
+                    error!("Failed to parse branch child table");
                     continue;
                 }
             };

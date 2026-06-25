@@ -3,8 +3,8 @@ use super::{
     header::{AttributeHeader, AttributeType},
 };
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes, nom_unsigned_two_bytes};
-use log::error;
 use serde_json::Value;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct IndexRoot {
@@ -123,7 +123,7 @@ impl IndexRoot {
             return Ok((&[], Value::Null));
         }
 
-        error!("[mft] Unknown AttributeList entry type: {attribute_type:?}");
+        error!("Unknown AttributeList entry type: {attribute_type:?}");
         Ok((&[], Value::Null))
     }
 

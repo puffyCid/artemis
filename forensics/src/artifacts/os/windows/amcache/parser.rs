@@ -18,7 +18,7 @@ use crate::{
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
 use common::windows::{Amcache, RegistryData};
-use log::error;
+use tracing::error;
 
 /// Get Windows `Amcache` for all users based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, AmcacheError> {
@@ -30,7 +30,7 @@ pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, Amc
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[amcache] Could not get default system drive letter: {err:?}");
+            error!("Could not get default system drive letter: {err:?}");
             return Err(AmcacheError::DefaultDrive);
         }
     };
@@ -76,7 +76,7 @@ fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
     let amcache = match amcache_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[amcache] Could not parse Amcache file {path}: {err:?}");
+            error!("Could not parse Amcache file {path}: {err:?}");
             return Err(AmcacheError::GetRegistryData);
         }
     };

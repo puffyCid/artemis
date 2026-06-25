@@ -16,7 +16,7 @@ use crate::{
     structs::artifacts::os::macos::LaunchdOptions,
 };
 use common::macos::LaunchdPlist;
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Grab `LuanchDaemons` and `LaunchAgents`
 pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>, LaunchdError> {
@@ -25,7 +25,7 @@ pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>
         let plist_data = match results {
             Ok(result) => result,
             Err(err) => {
-                warn!("[launchd] Failed to parse plist file {alt_file}: {err:?}");
+                warn!("Failed to parse plist file {alt_file}: {err:?}");
                 return Err(LaunchdError::Files);
             }
         };
@@ -62,13 +62,13 @@ pub(crate) fn grab_launchd_daemons() -> Result<Vec<LaunchdPlist>, LaunchdError> 
     let user_launchd = user_launchd_daemons();
     match user_launchd {
         Ok(mut launchd_data) => plist_files.append(&mut launchd_data),
-        Err(err) => warn!("[launchd] Failed to get user launchd daemon plist files: {err:?}"),
+        Err(err) => warn!("Failed to get user launchd daemon plist files: {err:?}"),
     }
 
     let system_launchd = system_launchd_daemons();
     match system_launchd {
         Ok(mut launchd_data) => plist_files.append(&mut launchd_data),
-        Err(err) => warn!("[launchd] Failed to get system launchd daemon plist files: {err:?}"),
+        Err(err) => warn!("Failed to get system launchd daemon plist files: {err:?}"),
     }
 
     let mut launchd_plist_vec: Vec<LaunchdPlist> = Vec::new();
@@ -81,7 +81,7 @@ pub(crate) fn grab_launchd_daemons() -> Result<Vec<LaunchdPlist>, LaunchdError> 
         let meta = match meta_result {
             Ok(result) => result,
             Err(err) => {
-                warn!("[launchd] Failed to get timestamp for plist daemon file {data}: {err:?}");
+                warn!("Failed to get timestamp for plist daemon file {data}: {err:?}");
                 continue;
             }
         };
@@ -99,7 +99,7 @@ pub(crate) fn grab_launchd_daemons() -> Result<Vec<LaunchdPlist>, LaunchdError> 
                 };
                 launchd_plist_vec.push(launchd_data);
             }
-            Err(err) => warn!("[launchd] Failed to parse plist file {data}: {err:?}"),
+            Err(err) => warn!("Failed to parse plist file {data}: {err:?}"),
         }
     }
     Ok(launchd_plist_vec)
@@ -111,13 +111,13 @@ pub(crate) fn grab_launchd_agents() -> Result<Vec<LaunchdPlist>, LaunchdError> {
     let user_launchd = user_launchd_agents();
     match user_launchd {
         Ok(mut launchd_data) => plist_files.append(&mut launchd_data),
-        Err(err) => warn!("[launchd] Failed to get user launchd agent plist files: {err:?}"),
+        Err(err) => warn!("Failed to get user launchd agent plist files: {err:?}"),
     }
 
     let system_launchd = system_launchd_agents();
     match system_launchd {
         Ok(mut launchd_data) => plist_files.append(&mut launchd_data),
-        Err(err) => warn!("[launchd] Failed to get system launchd agent plist files: {err:?}"),
+        Err(err) => warn!("Failed to get system launchd agent plist files: {err:?}"),
     }
 
     let mut launchd_plist_vec: Vec<LaunchdPlist> = Vec::new();
@@ -130,7 +130,7 @@ pub(crate) fn grab_launchd_agents() -> Result<Vec<LaunchdPlist>, LaunchdError> {
         let meta = match meta_result {
             Ok(result) => result,
             Err(err) => {
-                warn!("[launchd] Failed to get timestamp for plist agent file {data}: {err:?}");
+                warn!("Failed to get timestamp for plist agent file {data}: {err:?}");
                 continue;
             }
         };
@@ -148,7 +148,7 @@ pub(crate) fn grab_launchd_agents() -> Result<Vec<LaunchdPlist>, LaunchdError> {
                 };
                 launchd_plist_vec.push(launchd_data);
             }
-            Err(err) => warn!("[launchd] Failed to parse plist file {data}: {err:?}"),
+            Err(err) => warn!("Failed to parse plist file {data}: {err:?}"),
         }
     }
     Ok(launchd_plist_vec)
@@ -220,7 +220,7 @@ fn launchd_data(path: &str) -> Result<Vec<String>, LaunchdError> {
     let files = match files_results {
         Ok(result) => result,
         Err(err) => {
-            error!("[launchd] Could not list plist files: {err:?}");
+            error!("Could not list plist files: {err:?}");
             return Err(LaunchdError::Files);
         }
     };

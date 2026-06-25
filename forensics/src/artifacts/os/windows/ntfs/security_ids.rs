@@ -12,10 +12,10 @@ use crate::{
         nom_unsigned_two_bytes,
     },
 };
-use log::error;
 use nom::bytes::complete::{take, take_until};
 use ntfs::{Ntfs, NtfsAttributes, NtfsFile, structured_values::NtfsIndexRoot};
 use std::{collections::HashMap, fs::File, io::BufReader};
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct SecurityIDs {
@@ -37,9 +37,7 @@ impl SecurityIDs {
         let index = match index_result {
             Ok(result) => result,
             Err(err) => {
-                error!(
-                    "[ntfs] Failed to get NTFS index directory for Security IDs, error: {err:?}"
-                );
+                error!("Failed to get NTFS index directory for Security IDs, error: {err:?}");
                 return Err(NTFSError::IndexDir);
             }
         };
@@ -52,7 +50,7 @@ impl SecurityIDs {
             let entry_index = match entry_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get NTFS entry index, error: {err:?}");
+                    error!("Failed to get NTFS entry index, error: {err:?}");
                     continue;
                 }
             };
@@ -75,7 +73,7 @@ impl SecurityIDs {
             let ntfs_file = match ntfs_file_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get NTFS $Secure file, error: {err:?}");
+                    error!("Failed to get NTFS $Secure file, error: {err:?}");
                     break;
                 }
             };
@@ -86,7 +84,7 @@ impl SecurityIDs {
                 let attr = match attr_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[ntfs] Failed to get $SDS or $SII attributes: {err:?}");
+                        error!("Failed to get $SDS or $SII attributes: {err:?}");
                         continue;
                     }
                 };
@@ -95,7 +93,7 @@ impl SecurityIDs {
                 let attr_data = match attr_data_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[ntfs] Failed to get NTFS attribute error: {err:?}");
+                        error!("Failed to get NTFS attribute error: {err:?}");
                         continue;
                     }
                 };
@@ -107,7 +105,7 @@ impl SecurityIDs {
                     let indx_root = match indx_root_result {
                         Ok(result) => result,
                         Err(err) => {
-                            error!("[ntfs] Failed to get NTFS INDX root: {err:?}");
+                            error!("Failed to get NTFS INDX root: {err:?}");
                             break;
                         }
                     };
@@ -134,7 +132,7 @@ impl SecurityIDs {
             let attr = match attr_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get $SII attribute item: {err:?}");
+                    error!("Failed to get $SII attribute item: {err:?}");
                     continue;
                 }
             };
@@ -143,7 +141,7 @@ impl SecurityIDs {
             let attr_data = match attr_data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get NTFS attribute error: {err:?}");
+                    error!("Failed to get NTFS attribute error: {err:?}");
                     continue;
                 }
             };
@@ -158,7 +156,7 @@ impl SecurityIDs {
             let mut data_attr_value = match data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get $SII INDX data error: {err:?}");
+                    error!("Failed to get $SII INDX data error: {err:?}");
                     continue;
                 }
             };
@@ -168,7 +166,7 @@ impl SecurityIDs {
             let buff_data = match buff_results {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[ntfs] Failed to read $SII INDX: {err:?}");
+                    error!("Failed to read $SII INDX: {err:?}");
                     return Ok(sids);
                 }
             };
@@ -178,7 +176,7 @@ impl SecurityIDs {
                 Ok((_, sid_data)) => sids.extend(sid_data),
                 Err(err) => {
                     error!(
-                        "[ntfs] Failed to parse $SII will not be able to lookup SID information, error: {err:?}"
+                        "Failed to parse $SII will not be able to lookup SID information, error: {err:?}"
                     );
                 }
             }
@@ -255,7 +253,7 @@ impl SecurityIDs {
             let attr = match attr_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get $SDS attribute item: {err:?}");
+                    error!("Failed to get $SDS attribute item: {err:?}");
                     continue;
                 }
             };
@@ -264,7 +262,7 @@ impl SecurityIDs {
             let attr_data = match attr_data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get NTFS attribute error: {err:?}");
+                    error!("Failed to get NTFS attribute error: {err:?}");
                     continue;
                 }
             };
@@ -279,7 +277,7 @@ impl SecurityIDs {
             let mut data_attr_value = match data_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ntfs] Failed to get NTFS $SDS data error: {err:?}");
+                    error!("Failed to get NTFS $SDS data error: {err:?}");
                     continue;
                 }
             };
@@ -288,7 +286,7 @@ impl SecurityIDs {
             let buff_data = match buff_results {
                 Ok(results) => results,
                 Err(err) => {
-                    error!("[ntfs] Failed to read $SDS INDX: {err:?}");
+                    error!("Failed to read $SDS INDX: {err:?}");
                     return sids;
                 }
             };
@@ -298,7 +296,7 @@ impl SecurityIDs {
                 Ok((_, result)) => sids = result,
                 Err(err) => {
                     error!(
-                        "[ntfs] Failed to parse $SDS will not be able to lookup SID information, error: {err:?}"
+                        "Failed to parse $SDS will not be able to lookup SID information, error: {err:?}"
                     );
                     break;
                 }

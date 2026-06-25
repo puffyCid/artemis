@@ -3,7 +3,7 @@ use crate::{
     structs::artifacts::os::linux::LinuxSudoOptions,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use log::error;
+use tracing::error;
 
 /// Get `Sudo log` data
 pub(crate) fn js_get_sudologs_linux(
@@ -23,7 +23,7 @@ pub(crate) fn js_get_sudologs_linux(
     let sudo = match sudo_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[runtime] Failed to get sudo log data: {err:?}");
+            error!("Failed to get sudo log data: {err:?}");
             let issue = format!("Failed to get sudo log data: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn test_js_get_sudologs() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvdW5peC9zdWRvbG9ncy50cwpmdW5jdGlvbiBnZXRNYWNvc1N1ZG9Mb2dzKCkgewogIGNvbnN0IGRhdGEgPSBqc19nZXRfc3Vkb2xvZ3NfbGludXgoIiIpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZGF0YSA9IGdldE1hY29zU3Vkb0xvZ3MoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("sudo_linux_runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("sudo_script"),
             script: test.to_string(),

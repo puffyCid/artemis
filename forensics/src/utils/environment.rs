@@ -1,9 +1,9 @@
 use super::error::ArtemisError;
 use super::regex_options::create_regex;
 use crate::artifacts::os::windows::registry::helper::get_registry_keys;
-use log::error;
 use std::collections::HashMap;
 use std::env::vars_os;
+use tracing::error;
 
 /// Get the `SystemDrive` for Windows
 pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
@@ -19,7 +19,7 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
     {
         return Ok(drive);
     }
-    error!("[forensics] Empty system drive value");
+    error!("Empty system drive value");
     Err(ArtemisError::Env)
 }
 
@@ -34,7 +34,7 @@ pub(crate) fn get_folder_descriptions() -> Result<HashMap<String, String>, Artem
     let reg_values = match reg_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Could not get folder descriptions: {err:?}",);
+            error!("Could not get folder descriptions: {err:?}",);
             return Err(ArtemisError::Env);
         }
     };
@@ -62,7 +62,7 @@ pub(crate) fn get_clsids() -> Result<HashMap<String, String>, ArtemisError> {
     let reg_values = match reg_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Could not get CLSIDs: {err:?}");
+            error!("Could not get CLSIDs: {err:?}");
             return Err(ArtemisError::Env);
         }
     };

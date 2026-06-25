@@ -10,13 +10,13 @@ use crate::{
     utils::uuid::generate_uuid,
 };
 use flate2::{Compression, write::GzEncoder};
-use log::error;
 use reqwest::{StatusCode, blocking::Client};
 use std::{
     fs::{File, create_dir_all, read, remove_file},
     io::Write,
     path::PathBuf,
 };
+use tracing::error;
 
 /// A data Sink representing the Azure pipeline flow
 pub(crate) struct AzureSink {
@@ -83,10 +83,10 @@ impl AzureSink {
                     return Ok(());
                 }
                 Ok(response) => error!(
-                    "[forensics] Non-OK response from Azure blob storage on {attempt}: {:?}",
+                    "Non-OK response from Azure blob storage on {attempt}: {:?}",
                     response.status()
                 ),
-                Err(err) => error!("[forensics] Failed to upload to Azure on {attempt}: {err:?}"),
+                Err(err) => error!("Failed to upload to Azure on {attempt}: {err:?}"),
             }
         }
 
@@ -98,7 +98,7 @@ impl AzureSink {
     /// Compose the final URL to upload data to Azure
     fn compose_url(&self, full_path: &str) -> OutputResult<String> {
         let Some((base, query)) = self.url.split_once('?') else {
-            error!("[forensics] Unexpected Azure URL provided. Missing '?' delimiter.");
+            error!("Unexpected Azure URL provided. Missing '?' delimiter.");
             return Err(OutputError::Sink(String::from("Bad Azure URL length")));
         };
 
@@ -137,7 +137,7 @@ impl AzureSink {
 
     /// Return the log file we are logging to
     fn log_filename(&self) -> String {
-        format!("artemis_{}_{}.log", self.collection_id, generate_uuid())
+        format!("artemis_{}_{}.jsonl", self.collection_id, generate_uuid())
     }
 }
 
@@ -204,7 +204,7 @@ impl OutputSink for AzureSink {
         let object_log = self.object_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(&object_log, data, "text/plain")?;
+        self.upload_bytes(&object_log, data, "application/jsonl")?;
         let _ = remove_file(&self.log_file);
 
         Ok(())

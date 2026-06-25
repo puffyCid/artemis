@@ -18,7 +18,7 @@ use crate::structs::artifacts::os::windows::{
     SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
     WmiPersistOptions,
 };
-use log::error;
+use tracing::error;
 
 /// Parse the Windows `Prefetch` artifact
 pub(crate) fn prefetch(
@@ -29,7 +29,7 @@ pub(crate) fn prefetch(
     let entries = match pf_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Prefetch: {err:?}");
+            error!("Artemis failed to parse Prefetch: {err:?}");
             return Err(WinArtifactError::Prefetch);
         }
     };
@@ -41,14 +41,14 @@ pub(crate) fn prefetch(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize prefetch: {err:?}");
+            error!("Failed to serialize prefetch: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "prefetch";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output prefetch: {err:?}");
+        error!("Failed to output prefetch: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -62,7 +62,7 @@ pub(crate) fn eventlogs(
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
     if let Err(err) = grab_eventlogs(options, manager) {
-        error!("[forensics] Artemis failed to parse EventLogs: {err:?}");
+        error!("Artemis failed to parse EventLogs: {err:?}");
         return Err(WinArtifactError::EventLogs);
     }
 
@@ -76,7 +76,7 @@ pub(crate) fn registry(
 ) -> Result<(), WinArtifactError> {
     // Since we may be parsing multiple files, let the parser handle outputting the data
     if let Err(err) = parse_registry(options, manager) {
-        error!("[forensics] Failed to parse Registry: {err:?}");
+        error!("Failed to parse Registry: {err:?}");
         return Err(WinArtifactError::Registry);
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn raw_filelist(
 ) -> Result<(), WinArtifactError> {
     // Since we may be walking the file system, let the parser handle outputting the data
     if let Err(err) = ntfs_filelist(options, manager) {
-        error!("[forensics] Failed to parse NTFS: {err:?}");
+        error!("Failed to parse NTFS: {err:?}");
         return Err(WinArtifactError::Ntfs);
     }
 
@@ -106,7 +106,7 @@ pub(crate) fn shimdb(
     let entries = match shimdb_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse shimdb: {err:?}");
+            error!("Artemis failed to parse shimdb: {err:?}");
             return Err(WinArtifactError::Shimdb);
         }
     };
@@ -118,14 +118,14 @@ pub(crate) fn shimdb(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize shimdb: {err:?}");
+            error!("Failed to serialize shimdb: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "shimdb";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output shimdb: {err:?}");
+        error!("Failed to output shimdb: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -141,7 +141,7 @@ pub(crate) fn userassist(
     let entries = match assist_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse userassist: {err:?}");
+            error!("Artemis failed to parse userassist: {err:?}");
             return Err(WinArtifactError::UserAssist);
         }
     };
@@ -153,14 +153,14 @@ pub(crate) fn userassist(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize userassist: {err:?}");
+            error!("Failed to serialize userassist: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "userassist";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output userassist: {err:?}");
+        error!("Failed to output userassist: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -176,7 +176,7 @@ pub(crate) fn shimcache(
     let entries = match shim_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse shimcache: {err:?}");
+            error!("Artemis failed to parse shimcache: {err:?}");
             return Err(WinArtifactError::Shimcache);
         }
     };
@@ -188,14 +188,14 @@ pub(crate) fn shimcache(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize shimcache: {err:?}");
+            error!("Failed to serialize shimcache: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "shimcache";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output shimcache: {err:?}");
+        error!("Failed to output shimcache: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -212,7 +212,7 @@ pub(crate) fn shellbags(
     match artifact_result {
         Ok(mut result) => entries.append(&mut result),
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Shellbags: {err:?}");
+            error!("Artemis failed to parse Shellbags: {err:?}");
             return Err(WinArtifactError::Shellbag);
         }
     }
@@ -224,14 +224,14 @@ pub(crate) fn shellbags(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize shellbags: {err:?}");
+            error!("Failed to serialize shellbags: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "shellbags";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output shellbags: {err:?}");
+        error!("Failed to output shellbags: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -248,7 +248,7 @@ pub(crate) fn amcache(
     match artifact_result {
         Ok(mut result) => entries.append(&mut result),
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Amcache: {err:?}");
+            error!("Artemis failed to parse Amcache: {err:?}");
             return Err(WinArtifactError::Amcache);
         }
     }
@@ -260,14 +260,14 @@ pub(crate) fn amcache(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize amcache: {err:?}");
+            error!("Failed to serialize amcache: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "amcache";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output amcache: {err:?}");
+        error!("Failed to output amcache: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -283,7 +283,7 @@ pub(crate) fn shortcuts(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Shortcut data: {err:?}");
+            error!("Artemis failed to parse Shortcut data: {err:?}");
             return Err(WinArtifactError::Shortcuts);
         }
     };
@@ -295,14 +295,14 @@ pub(crate) fn shortcuts(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize shortcuts: {err:?}");
+            error!("Failed to serialize shortcuts: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "shortcuts";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output shortcuts: {err:?}");
+        error!("Failed to output shortcuts: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -315,7 +315,7 @@ pub(crate) fn usnjrnl(
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     if let Err(err) = grab_usnjrnl(options, manager) {
-        error!("[forensics] Artemis failed to parse UsnJrnl data: {err:?}");
+        error!("Artemis failed to parse UsnJrnl data: {err:?}");
         return Err(WinArtifactError::UsnJrnl);
     }
 
@@ -331,7 +331,7 @@ pub(crate) fn bits(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Bits data: {err:?}");
+            error!("Artemis failed to parse Bits data: {err:?}");
             return Err(WinArtifactError::Bits);
         }
     };
@@ -343,14 +343,14 @@ pub(crate) fn bits(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize bits: {err:?}");
+            error!("Failed to serialize bits: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "bits";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output bits: {err:?}");
+        error!("Failed to output bits: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -363,7 +363,7 @@ pub(crate) fn srum(
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     if let Err(err) = grab_srum(options, manager) {
-        error!("[forensics] Artemis failed to parse SRUM data: {err:?}");
+        error!("Artemis failed to parse SRUM data: {err:?}");
         return Err(WinArtifactError::Srum);
     }
 
@@ -376,7 +376,7 @@ pub(crate) fn search(
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     if let Err(err) = grab_search(options, manager) {
-        error!("[forensics] Artemis failed to parse Search data: {err:?}");
+        error!("Artemis failed to parse Search data: {err:?}");
         return Err(WinArtifactError::Search);
     }
 
@@ -392,7 +392,7 @@ pub(crate) fn users_windows(
     let entries = match artifact_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse User info: {err:?}");
+            error!("Artemis failed to parse User info: {err:?}");
             return Err(WinArtifactError::Users);
         }
     };
@@ -404,14 +404,14 @@ pub(crate) fn users_windows(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize users-windows: {err:?}");
+            error!("Failed to serialize users-windows: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "users-windows";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output users-windows: {err:?}");
+        error!("Failed to output users-windows: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -424,7 +424,7 @@ pub(crate) fn tasks(
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     if let Err(err) = grab_tasks(options, manager) {
-        error!("[forensics] Artemis failed to parse Tasks: {err:?}");
+        error!("Artemis failed to parse Tasks: {err:?}");
         return Err(WinArtifactError::Tasks);
     }
 
@@ -440,7 +440,7 @@ pub(crate) fn services(
     let entries = match service_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Services: {err:?}");
+            error!("Artemis failed to parse Services: {err:?}");
             return Err(WinArtifactError::Services);
         }
     };
@@ -452,14 +452,14 @@ pub(crate) fn services(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize services: {err:?}");
+            error!("Failed to serialize services: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "services";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output services: {err:?}");
+        error!("Failed to output services: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -475,7 +475,7 @@ pub(crate) fn jumplists(
     let entries = match jumplist_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Jumplists: {err:?}");
+            error!("Artemis failed to parse Jumplists: {err:?}");
             return Err(WinArtifactError::Jumplists);
         }
     };
@@ -487,14 +487,14 @@ pub(crate) fn jumplists(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize jumplists: {err:?}");
+            error!("Failed to serialize jumplists: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "jumplists";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output jumplists: {err:?}");
+        error!("Failed to output jumplists: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -510,7 +510,7 @@ pub(crate) fn recycle_bin(
     let entries = match bin_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse Recycle Bin: {err:?}");
+            error!("Artemis failed to parse Recycle Bin: {err:?}");
             return Err(WinArtifactError::RecycleBin);
         }
     };
@@ -522,14 +522,14 @@ pub(crate) fn recycle_bin(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize recyclebin: {err:?}");
+            error!("Failed to serialize recyclebin: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "recyclebin";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output recyclebin: {err:?}");
+        error!("Failed to output recyclebin: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -545,7 +545,7 @@ pub(crate) fn wmi_persist(
     let entries = match wmi_result {
         Ok(results) => results,
         Err(err) => {
-            error!("[forensics] Artemis failed to parse WMI Persistence: {err:?}");
+            error!("Artemis failed to parse WMI Persistence: {err:?}");
             return Err(WinArtifactError::WmiPersist);
         }
     };
@@ -557,14 +557,14 @@ pub(crate) fn wmi_persist(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize wmipersist: {err:?}");
+            error!("Failed to serialize wmipersist: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };
 
     let artifact_name = "wmipersist";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output wmipersist: {err:?}");
+        error!("Failed to output wmipersist: {err:?}");
         return Err(WinArtifactError::Output);
     }
 
@@ -577,7 +577,7 @@ pub(crate) fn outlook(
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     if let Err(err) = grab_outlook(options, manager) {
-        error!("[forensics] Artemis failed to parse Outlook: {err:?}");
+        error!("Artemis failed to parse Outlook: {err:?}");
         return Err(WinArtifactError::Outlook);
     }
 
@@ -590,7 +590,7 @@ pub(crate) fn mft(
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
     if let Err(err) = grab_mft(options, manager) {
-        error!("[forensics] Artemis failed to parse MFT: {err:?}");
+        error!("Artemis failed to parse MFT: {err:?}");
         return Err(WinArtifactError::Mft);
     }
 

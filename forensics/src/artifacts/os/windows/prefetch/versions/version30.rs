@@ -2,10 +2,10 @@ use crate::utils::{
     nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     time::filetime_to_iso,
 };
-use log::warn;
 use nom::{Needed, bytes::complete::take};
 use serde::Serialize;
 use std::mem::size_of;
+use tracing::warn;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Version30 {
@@ -72,7 +72,7 @@ impl Version30 {
             input = remaining_input;
             unknown2 = unknown2_data.to_vec();
         } else {
-            warn!("[prefetch] Unknown prefetch version 30 variant, size: {file_array_offset}");
+            warn!("Unknown prefetch version 30 variant, size: {file_array_offset}");
             return Err(nom::Err::Incomplete(Needed::Unknown));
         }
 

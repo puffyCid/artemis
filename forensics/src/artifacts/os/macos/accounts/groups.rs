@@ -4,7 +4,7 @@
 use super::opendirectory::parse_groups_plist;
 use crate::{filesystem::files::list_files, structs::artifacts::os::macos::MacosGroupsOptions};
 use common::macos::OpendirectoryGroups;
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Get users on a macOS system. Requires root
 pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGroups> {
@@ -20,7 +20,7 @@ pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGrou
     let files = match files_result {
         Ok(result) => result,
         Err(err) => {
-            warn!("[groups] Failed to list files, error: {err:?}");
+            warn!("Failed to list files, error: {err:?}");
             return group_data;
         }
     };
@@ -30,7 +30,7 @@ pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGrou
             Ok(results) => {
                 group_data.push(results);
             }
-            Err(err) => error!("[groups] Failed to parse groups {group}: {err:?}"),
+            Err(err) => error!("Failed to parse groups {group}: {err:?}"),
         }
     }
 

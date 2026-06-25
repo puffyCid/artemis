@@ -1,8 +1,8 @@
 use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::{Actions, ComHandlerType, ExecType, Message, SendEmail};
-use log::error;
 use quick_xml::{Reader, events::Event};
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse all Task Actions
 pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
@@ -16,7 +16,7 @@ pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Settings xml data: {err:?}");
+                error!("Could not read Settings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -48,7 +48,7 @@ fn process_exec(reader: &mut Reader<&[u8]>) -> ExecType {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Exec xml data: {err:?}");
+                error!("Could not read Exec xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -84,7 +84,7 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read ComHandler xml data: {err:?}");
+                error!("Could not read ComHandler xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -129,7 +129,7 @@ fn process_email(reader: &mut Reader<&[u8]>) -> SendEmail {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read SendEmail xml data: {err:?}");
+                error!("Could not read SendEmail xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -197,7 +197,7 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read SendMessage xml data: {err:?}");
+                error!("Could not read SendMessage xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,

@@ -13,11 +13,11 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use serde::Serialize;
 use std::io::BufReader;
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AttributeList {
@@ -101,7 +101,7 @@ impl AttributeList {
             let list_mft = match read_bytes(offset as u64, entry_size as u64, ntfs_file, reader) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[mft] Failed to read attribute list bytes: {err:?}");
+                    error!("Failed to read attribute list bytes: {err:?}");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -112,7 +112,7 @@ impl AttributeList {
             list.attribute = match AttributeList::grab_list_data(&list_mft, reader, ntfs_file) {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[mft] Failed to parse attribute list bytes");
+                    error!("Failed to parse attribute list bytes");
                     continue;
                 }
             };

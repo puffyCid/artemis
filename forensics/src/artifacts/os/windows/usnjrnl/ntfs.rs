@@ -11,11 +11,11 @@ use crate::{
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
 use common::windows::UsnJrnlEntry;
-use log::error;
 use std::{
     collections::{HashMap, HashSet},
     mem::take,
 };
+use tracing::error;
 
 /// Grab `UsnJrnl` entries by reading the $J ADS attribute and parsing its data runs
 pub(crate) fn parse_usnjrnl_data(
@@ -29,7 +29,7 @@ pub(crate) fn parse_usnjrnl_data(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Cannot setup NTFS parser: {err:?}");
+            error!("Cannot setup NTFS parser: {err:?}");
             return Err(UsnJrnlError::Parser);
         }
     };
@@ -37,7 +37,7 @@ pub(crate) fn parse_usnjrnl_data(
     let ntfs_file = match setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, mft) {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Cannot read the MFT file: {err:?}");
+            error!("Cannot read the MFT file: {err:?}");
             return Err(UsnJrnlError::ReadFile);
         }
     };
@@ -55,7 +55,7 @@ pub(crate) fn parse_usnjrnl_data(
         Ok((_, result)) => result,
         Err(_err) => {
             // We might get errors if we try to parse an entry that has not yet been fully written to the UsnJrnl
-            error!("[usnjrnl] Issue with parsing whole UsnJrnl");
+            error!("Issue with parsing whole UsnJrnl");
             return Err(UsnJrnlError::Parser);
         }
     };
@@ -79,7 +79,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Cannot setup NTFS parser: {err:?}");
+            error!("Cannot setup NTFS parser: {err:?}");
             return Err(UsnJrnlError::Parser);
         }
     };
@@ -87,7 +87,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
     let ntfs_file = match setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, mft) {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Cannot read the MFT file: {err:?}");
+            error!("Cannot read the MFT file: {err:?}");
             return Err(UsnJrnlError::ReadFile);
         }
     };
@@ -105,7 +105,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
         Ok((_, result)) => result,
         Err(_err) => {
             // We might get errors if we try to parse an entry that has not yet been fully written to the UsnJrnl
-            error!("[usnjrnl] Issue with parsing whole UsnJrnl.");
+            error!("Issue with parsing whole UsnJrnl.");
             return Err(UsnJrnlError::Parser);
         }
     };
@@ -128,7 +128,7 @@ pub(crate) fn get_usnjrnl_alt_path(
     let data = match data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Could not read UsnJrnl file {path}: {err:?}");
+            error!("Could not read UsnJrnl file {path}: {err:?}");
             return Err(UsnJrnlError::ReadFile);
         }
     };
@@ -139,7 +139,7 @@ pub(crate) fn get_usnjrnl_alt_path(
     let mut entries = match entries_result {
         Ok((_, results)) => results,
         Err(_err) => {
-            error!("[usnjrnl] Could nt parse UsnJrnl file {path}");
+            error!("Could nt parse UsnJrnl file {path}");
             return Err(UsnJrnlError::Parser);
         }
     };
@@ -158,7 +158,7 @@ pub(crate) fn get_usnjrnl_path_stream(
     let data = match data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Could not read UsnJrnl file {path}: {err:?}");
+            error!("Could not read UsnJrnl file {path}: {err:?}");
             return Err(UsnJrnlError::ReadFile);
         }
     };
@@ -169,7 +169,7 @@ pub(crate) fn get_usnjrnl_path_stream(
     let mut entries = match entries_result {
         Ok((_, results)) => results,
         Err(_err) => {
-            error!("[usnjrnl] Could nt parse UsnJrnl file {path}");
+            error!("Could nt parse UsnJrnl file {path}");
             return Err(UsnJrnlError::Parser);
         }
     };
@@ -253,7 +253,7 @@ fn get_data(drive: char) -> Result<Vec<u8>, UsnJrnlError> {
     let data = match data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Could not read UsnJrnl $J attribute: {err:?}");
+            error!("Could not read UsnJrnl $J attribute: {err:?}");
             return Err(UsnJrnlError::Attribute);
         }
     };
@@ -299,13 +299,13 @@ fn output_usnjnl(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Failed to serialize UsnJrnl entries: {err:?}");
+            error!("Failed to serialize UsnJrnl entries: {err:?}");
             return Err(UsnJrnlError::Serialize);
         }
     };
     let artifact_name = "usnjrnl";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[usnjrnl] Could not output UsnJrnl entries: {err:?}");
+        error!("Could not output UsnJrnl entries: {err:?}");
         return Err(UsnJrnlError::OutputData);
     }
 

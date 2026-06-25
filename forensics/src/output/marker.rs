@@ -5,12 +5,12 @@ use crate::{
     },
     utils::time::time_now,
 };
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{File, create_dir_all},
     path::PathBuf,
 };
+use tracing::error;
 
 /// Determine if an artifact was recently collected
 #[derive(Debug, Deserialize, Serialize)]
@@ -53,7 +53,7 @@ impl MarkerTracker {
         let mut runs = match self.read_runs() {
             Ok(results) => results,
             Err(err) => {
-                error!("[forensics] Could not read marker file {err:?}. Overwriting it");
+                error!("Could not read marker file {err:?}. Overwriting it");
                 Vec::new()
             }
         };

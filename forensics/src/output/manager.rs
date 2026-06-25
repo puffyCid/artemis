@@ -15,10 +15,10 @@ use crate::{
     },
     structs::toml::OutputConfig,
 };
-use log::LevelFilter;
 use serde::Serialize;
 use serde_json::Value;
-use simplelog::{Config, WriteLogger};
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{fmt::layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(feature = "boa")]
 use crate::output::filter::js::JsFilterRecordStream;
@@ -59,11 +59,18 @@ impl OutputManager {
         let log_output = sink.create_log_file()?;
         let log_path = log_output.path.clone();
 
-        let _ = WriteLogger::init(
-            log_level(config.logging.as_deref()),
-            Config::default(),
-            log_output.file,
-        );
+        let _ = tracing_subscriber::registry()
+            .with(
+                layer()
+                    .json()
+                    .with_file(true)
+                    .with_line_number(true)
+                    .with_target(false)
+                    .flatten_event(true)
+                    .with_writer(log_output.file),
+            )
+            .with(log_level(config.logging.as_deref()))
+            .try_init();
 
         let context = CollectionContext::new(&config, log_path);
         Ok(Self {
@@ -369,11 +376,11 @@ impl OutputManager {
 /// Translate Artemis collection log level to proper `LevelFilter`
 fn log_level(level: Option<&str>) -> LevelFilter {
     match level.unwrap_or("warn").to_ascii_lowercase().as_str() {
-        "error" => LevelFilter::Error,
-        "info" => LevelFilter::Info,
-        "debug" => LevelFilter::Debug,
-        "trace" => LevelFilter::Trace,
-        _ => LevelFilter::Warn,
+        "error" => LevelFilter::ERROR,
+        "info" => LevelFilter::INFO,
+        "debug" => LevelFilter::DEBUG,
+        "trace" => LevelFilter::TRACE,
+        _ => LevelFilter::WARN,
     }
 }
 
@@ -444,7 +451,7 @@ mod tests {
                 jsonl_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -593,7 +600,7 @@ mod tests {
                 jsonl_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -790,7 +797,7 @@ mod tests {
                 jsonl_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -864,7 +871,7 @@ mod tests {
                 csv_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -981,7 +988,7 @@ mod tests {
                 xml_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }
@@ -1040,7 +1047,7 @@ mod tests {
                 par_files.push(path);
             } else if name.starts_with("report_") && name.ends_with(".json") {
                 report_files.push(path);
-            } else if name.starts_with("artemis_") && name.ends_with(".log") {
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
                 log_files.push(path);
             }
         }

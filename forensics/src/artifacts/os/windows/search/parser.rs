@@ -24,7 +24,7 @@ use crate::{
     filesystem::files::is_file, output::manager::OutputManager,
     structs::artifacts::os::windows::SearchOptions, utils::environment::get_systemdrive,
 };
-use log::error;
+use tracing::error;
 
 /// Grab the Windows `Search` data
 pub(crate) fn grab_search(
@@ -38,7 +38,7 @@ pub(crate) fn grab_search(
         let systemdrive = match systemdrive_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[search] Could not get systemdrive: {err:?}");
+                error!("Could not get systemdrive: {err:?}");
                 return Err(SearchError::Systemdrive);
             }
         };

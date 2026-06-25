@@ -7,10 +7,10 @@ use super::{
     task::{Task, parse_task},
 };
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
-use log::warn;
 use nom::bytes::complete::take;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::warn;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct ManifestTemplate {
@@ -70,7 +70,7 @@ pub(crate) fn parse_manifest(
                     let (_, maps) = parse_map(data, element_start)?;
                     value.maps = maps;
                 }
-                SigType::Unknown => warn!("[eventlogs] Unknown manifest sig: {sig}"),
+                SigType::Unknown => warn!("Unknown manifest sig: {sig}"),
                 SigType::Ttbl | SigType::Evta | SigType::Priva => (),
             }
         }

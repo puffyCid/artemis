@@ -21,8 +21,8 @@ use crate::{
     output::manager::OutputManager, structs::artifacts::os::windows::SrumOptions,
     utils::environment::get_systemdrive,
 };
-use log::error;
 use serde_json::Value;
+use tracing::error;
 
 /**
  * Grab the `SRUM` data from the default or an alternative path  
@@ -39,7 +39,7 @@ pub(crate) fn grab_srum(
         let systemdrive = match systemdrive_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[srum] Could not get systemdrive: {err:?}");
+                error!("Could not get systemdrive: {err:?}");
                 return Err(SrumError::Systemdrive);
             }
         };

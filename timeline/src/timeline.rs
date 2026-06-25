@@ -12,8 +12,8 @@ use crate::artifacts::{
         userassist, users, usnjrnl, wmi,
     },
 };
-use log::warn;
 use serde_json::Value;
+use tracing::warn;
 
 /// Timeline supported artifacts.
 /// Returns false if the artifact could not be timelined

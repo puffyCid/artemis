@@ -17,12 +17,12 @@ use crate::{
     },
 };
 use common::{outlook::PropertyName, windows::PropertyType};
-use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
+use tracing::{error, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct TableRows {
@@ -121,7 +121,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let table = match props_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not get table info");
+                error!("Could not get table info");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -148,7 +148,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not get table rows");
+                error!("Could not get table rows");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -175,7 +175,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             descriptor_data = match desc_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[outlook] Failed to parse descriptor data: {err:?}");
+                    error!("Failed to parse descriptor data: {err:?}");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -195,7 +195,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             for branch in branch_info {
                 if branch.node.block_index as usize > info.block_data.len() {
                     warn!(
-                        "[outlook] The Branch block index {} is larger than the block data length {}. This should not happen.",
+                        "The Branch block index {} is larger than the block data length {}. This should not happen.",
                         branch.node.block_index,
                         info.block_data.len()
                     );
@@ -212,7 +212,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 let rows = match rows_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        error!("[outlook] Failed to parse branch rows");
+                        error!("Failed to parse branch rows");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,
@@ -228,7 +228,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             let rows = match rows_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Failed to parse rows from descriptors");
+                    error!("Failed to parse rows from descriptors");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -261,7 +261,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Could not get table rows from branch");
+                error!("Could not get table rows from branch");
                 return Err(OutlookError::TableContext);
             }
         };
@@ -283,7 +283,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             descriptor_data = match desc_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[outlook] Failed to parse descriptor data for branch: {err:?}");
+                    error!("Failed to parse descriptor data for branch: {err:?}");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -294,7 +294,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
         if branch.node.block_index as usize > info.block_data.len() {
             error!(
-                "[outlook] The Branch block index {} is larger than the block data length {}. Stopping parsing.",
+                "The Branch block index {} is larger than the block data length {}. Stopping parsing.",
                 branch.node.block_index,
                 info.block_data.len()
             );
@@ -314,7 +314,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Failed to parse branch rows");
+                error!("Failed to parse branch rows");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     &[],
                     ErrorKind::Fail,
@@ -363,7 +363,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         if heap_btree.level == NodeLevel::BranchNode {
             if heap_btree.node.block_index as usize > all_block.len() {
                 error!(
-                    "[outlook] Block index {} greater than the block length {}.",
+                    "Block index {} greater than the block length {}.",
                     heap_btree.node.block_index,
                     all_block.len()
                 );
@@ -381,7 +381,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             let branch_references = match branch_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Failed to extract branch details");
+                    error!("Failed to extract branch details");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -394,7 +394,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             for branch in branch_references {
                 if branch.block_index as usize > all_block.len() {
                     warn!(
-                        "[outlook] Branch index {} greater than the block length {}.",
+                        "Branch index {} greater than the block length {}.",
                         branch.block_index,
                         all_block.len()
                     );
@@ -408,7 +408,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
                 let message_rows = match rows_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        error!("[outlook] Failed to parse branch row");
+                        error!("Failed to parse branch row");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,
@@ -430,7 +430,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         } else if heap_btree.node.block_index != 0 {
             if heap_btree.node.block_index as usize > all_block.len() {
                 error!(
-                    "[outlook] Block index {} greater than the alternative block length {}.",
+                    "Block index {} greater than the alternative block length {}.",
                     heap_btree.node.block_index,
                     all_block.len()
                 );
@@ -446,7 +446,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             info.total_rows = match rows_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Failed to parse block row count");
+                    error!("Failed to parse block row count");
                     return Err(nom::Err::Failure(nom::error::Error::new(
                         &[],
                         ErrorKind::Fail,
@@ -550,7 +550,7 @@ fn extract_branch_row(data: &[u8], map_index: usize) -> nom::IResult<&[u8], Rows
     let row_size = 8;
     if !branch_row_size.is_multiple_of(row_size) {
         error!(
-            "[outlook] Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
+            "Branch row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
         );
         let info = RowsInfo {
             row_end: branch_row_end,
@@ -591,7 +591,7 @@ fn extract_branch_details(data: &[u8], map_index: u32) -> nom::IResult<&[u8], Ve
     let row_size = 8;
     if !branch_row_size.is_multiple_of(row_size) {
         error!(
-            "[outlook] Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
+            "Branch details row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
         );
         return Ok((&[], Vec::new()));
     }
@@ -638,7 +638,7 @@ fn block_row_count(data: &[u8], heap_index: u32) -> nom::IResult<&[u8], u64> {
     let row_size = 8;
     if !branch_row_size.is_multiple_of(row_size) {
         error!(
-            "[outlook] Block row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
+            "Block row size should be a multiple of 8 bytes. Something went wrong. Got size: {branch_row_size}. Ending parsing early"
         );
         return Ok((&[], 0));
     }
@@ -663,7 +663,7 @@ fn get_row_count(map: &[u16]) -> u64 {
     let row_size = 8;
     if !rows.is_multiple_of(row_size) {
         warn!(
-            "[outlook] Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early"
+            "Row size should be a multiple of 8 bytes. Something went wrong. Got size: {rows}. Ending parsing early"
         );
         return 0;
     }
@@ -711,7 +711,7 @@ fn parse_descriptors<'a>(
 
         if desc_index > descriptors.len() {
             warn!(
-                "[outlook] THe descriptor index {desc_index} is larger than the descriptor array length {}. This should not happen",
+                "THe descriptor index {desc_index} is larger than the descriptor array length {}. This should not happen",
                 descriptors.len()
             );
             break;
@@ -722,7 +722,7 @@ fn parse_descriptors<'a>(
         let row = match row_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[outlook] Failed to parse descriptors for table");
+                error!("Failed to parse descriptors for table");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     &[],
                     ErrorKind::Fail,
@@ -798,7 +798,7 @@ fn get_row_data<'a>(
         let (row_start, _) = take(entry * info.row_size as u64)(data)?;
         if info.row_size as usize > row_start.len() {
             warn!(
-                "[outlook] Row size {} value greater than data len {}",
+                "Row size {} value greater than data len {}",
                 info.row_size,
                 row_start.len()
             );
@@ -869,7 +869,7 @@ fn parse_row_data<'a>(
                 Ok((_, result)) => result,
                 Err(_err) => {
                     error!(
-                        "[outlook] Failed to parse the property data associated with {prop_type:?}. Data could be malformed."
+                        "Failed to parse the property data associated with {prop_type:?}. Data could be malformed."
                     );
                     return Ok((&[], value));
                 }

@@ -11,9 +11,9 @@ use crate::{
     utils::encoding::base64_decode_standard,
 };
 use boa_engine::Context;
-use log::error;
 use serde_json::Value;
 use std::str::from_utf8;
+use tracing::error;
 
 /// Execute the provided JavaScript data from the TOML input
 pub(crate) fn execute_script(
@@ -35,7 +35,7 @@ pub(crate) fn raw_script(script: &str) -> Result<Value, RuntimeError> {
     let status = match result {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not execute javascript: {err}");
+            error!("Could not execute javascript: {err}");
             return Err(RuntimeError::ExecuteScript);
         }
     };
@@ -53,7 +53,7 @@ fn decode_script(
     let script_bytes = match script_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not base64 provided javascript script: {err:?}",);
+            error!("Could not base64 provided javascript script: {err:?}",);
             return Err(RuntimeError::Decode);
         }
     };
@@ -62,7 +62,7 @@ fn decode_script(
     let script = match str_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not read javascript script as string: {err:?}");
+            error!("Could not read javascript script as string: {err:?}");
             return Err(RuntimeError::Decode);
         }
     };
@@ -75,7 +75,7 @@ fn decode_script(
     let script_value = match result {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not execute javascript: {err:?}");
+            error!("Could not execute javascript: {err:?}");
             return Err(RuntimeError::ExecuteScript);
         }
     };
@@ -106,7 +106,7 @@ pub(crate) fn output_data(
     let records = match Record::from_value(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[runtime] Could not create record from data: {err:?}");
+            error!("Could not create record from data: {err:?}");
             return Err(RuntimeError::Output);
         }
     };
@@ -118,7 +118,7 @@ pub(crate) fn output_data(
                 options,
                 &mut VecRecordStream::new(record_array),
             ) {
-                error!("[runtime] Could not write record from data: {err:?}");
+                error!("Could not write record from data: {err:?}");
                 return Err(RuntimeError::Output);
             }
         }
@@ -129,7 +129,7 @@ pub(crate) fn output_data(
                 options,
                 &mut SingleRecordStream::new(records),
             ) {
-                error!("[runtime] Could not write record from data: {err:?}");
+                error!("Could not write record from data: {err:?}");
                 return Err(RuntimeError::Output);
             }
         }

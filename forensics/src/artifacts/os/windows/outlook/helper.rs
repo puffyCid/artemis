@@ -25,12 +25,12 @@ use crate::{
     filesystem::ntfs::reader::read_bytes,
 };
 use common::windows::PropertyContext;
-use log::{error, warn};
 use ntfs::NtfsFile;
 use std::{
     collections::{BTreeMap, HashMap},
     io::BufReader,
 };
+use tracing::{error, warn};
 
 pub(crate) struct OutlookReader<T: std::io::Seek + std::io::Read> {
     pub(crate) fs: BufReader<T>,
@@ -101,7 +101,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let header_bytes = match header_results {
             Ok(result) => result,
             Err(err) => {
-                error!("[outlook] Could not read header bytes: {err:?}");
+                error!("Could not read header bytes: {err:?}");
                 return Err(OutlookError::ReadFile);
             }
         };
@@ -109,7 +109,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         let (_, header) = match header_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[outlook] Could not parse header: {err:?}");
+                error!("Could not parse header: {err:?}");
                 return Err(OutlookError::Header);
             }
         };
@@ -156,9 +156,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         descriptor: Option<&LeafBlockData>,
     ) -> Result<BlockValue, OutlookError> {
         if block.block_offset == 0 && block.size == 0 {
-            error!(
-                "[outlook] Got offset and size value of 0. Cannot parse blocks with these values."
-            );
+            error!("Got offset and size value of 0. Cannot parse blocks with these values.");
             return Err(OutlookError::NoBlocks);
         }
         self.parse_blocks(ntfs_file, block, descriptor)
@@ -179,7 +177,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         if node.is_none() {
-            error!("[outlook] Could not find Message Store node");
+            error!("Could not find Message Store node");
             return Err(OutlookError::PropertyContext);
         }
 
@@ -192,7 +190,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         if block.is_none() {
-            error!("[outlook] Could not find Message Store block");
+            error!("Could not find Message Store block");
             return Err(OutlookError::PropertyContext);
         }
 
@@ -218,7 +216,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         if node.is_none() {
-            error!("[outlook] Could not find Name Map node");
+            error!("Could not find Name Map node");
             return Err(OutlookError::PropertyContext);
         }
 
@@ -239,7 +237,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
         }
 
         if block.is_none() || leaf_descriptor.is_none() {
-            error!("[outlook] Could not find Name Map block");
+            error!("Could not find Name Map block");
             return Err(OutlookError::PropertyContext);
         }
 
@@ -315,7 +313,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         && node.node.node_id != NodeID::Unknown
                     {
                         // ContentsTableIndex is undocumented may be internal to Outlook
-                        warn!("[outlook] Unexpected NodeID for folder: {node:?}");
+                        warn!("Unexpected NodeID for folder: {node:?}");
                     }
                 }
                 if normal.block_offset_data_id != 0
@@ -492,7 +490,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
                         && node.node.node_id != NodeID::SearchUpdateQueue
                         && node.node.node_id != NodeID::Unknown
                     {
-                        warn!("[outlook] Unexpected NodeID for search folder: {node:?}");
+                        warn!("Unexpected NodeID for search folder: {node:?}");
                     }
                 }
                 if search.block_offset_data_id != 0 && criteria.block_offset_data_id != 0 {
@@ -680,7 +678,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookReaderAction<T> for OutlookReader<
     ) -> Result<Vec<MessageDetails>, OutlookError> {
         if info.rows.len() > info.total_rows as usize {
             warn!(
-                "[outlook] Caller asked for too many messages. Caller asked for {} messages. But there are only {} available. We will return {}",
+                "Caller asked for too many messages. Caller asked for {} messages. But there are only {} available. We will return {}",
                 info.rows.len(),
                 info.total_rows,
                 info.total_rows
@@ -900,7 +898,7 @@ fn check_node(leaf: &LeafNodeData) -> Result<(), OutlookError> {
         && leaf.node.node_id_num == not_set
     {
         error!(
-            "[outlook] Leaf node data has default values. Its likely the data was not found in the Node Btree"
+            "Leaf node data has default values. Its likely the data was not found in the Node Btree"
         );
         return Err(OutlookError::LeafNode);
     }

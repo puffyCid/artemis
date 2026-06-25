@@ -12,10 +12,10 @@ use crate::{
         nom_unsigned_two_bytes,
     },
 };
-use log::{error, warn};
 use nom::error::ErrorKind;
 use ntfs::NtfsFile;
 use std::{collections::BTreeMap, io::BufReader};
+use tracing::{error, warn};
 
 /// Get block data from xblocks
 pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
@@ -55,7 +55,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Could not read xblock bytes: {err:?}");
+            error!("Could not read xblock bytes: {err:?}");
             return Err(OutlookError::ReadFile);
         }
     };
@@ -64,7 +64,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
     let entries = match entries_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[outlook] Could not parse xblock bytes");
+            error!("Could not parse xblock bytes");
             return Err(OutlookError::Xblock);
         }
     };
@@ -92,7 +92,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 let bytes = match bytes_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[outlook] Could not read xblock bytes for entry {entry}: {err:?}");
+                        error!("Could not read xblock bytes for entry {entry}: {err:?}");
                         return Err(OutlookError::ReadFile);
                     }
                 };
@@ -101,7 +101,7 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                 let block_data = match block_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        error!("[outlook] Could not parse block bytes");
+                        error!("Could not parse block bytes");
                         return Err(OutlookError::Xblock);
                     }
                 };
@@ -140,7 +140,7 @@ fn xblock_data<'a>(
                 let descriptor_tree = match desc_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        error!("[outlook] Could not parse descriptor xblock bytes");
+                        error!("Could not parse descriptor xblock bytes");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,
@@ -155,7 +155,7 @@ fn xblock_data<'a>(
                 let result = match xblock_result {
                     Ok((_, result)) => result,
                     Err(_err) => {
-                        error!("[outlook] Could not extract xblock entries");
+                        error!("Could not extract xblock entries");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,
@@ -181,7 +181,7 @@ fn extract_xblock_entries<'a>(
     let (input, sig) = nom_unsigned_one_byte(data, Endian::Le)?;
     let block_sig = 1;
     if sig != block_sig {
-        error!("[outlook] Got wrong xblock sig {sig} value should be 1");
+        error!("Got wrong xblock sig {sig} value should be 1");
         return Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
@@ -190,9 +190,7 @@ fn extract_xblock_entries<'a>(
     let (input, array_level) = nom_unsigned_one_byte(input, Endian::Le)?;
 
     if array_level != 1 {
-        warn!(
-            "[outlook] Got possible xxblock. Level: {array_level}. Should be same format as xblock?"
-        );
+        warn!("Got possible xxblock. Level: {array_level}. Should be same format as xblock?");
     }
     let (input, number_entries) = nom_unsigned_two_bytes(input, Endian::Le)?;
 

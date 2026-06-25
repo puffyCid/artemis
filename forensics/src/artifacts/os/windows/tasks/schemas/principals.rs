@@ -1,7 +1,7 @@
 use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
 use common::windows::Principals;
-use log::error;
 use quick_xml::{Reader, events::Event};
+use tracing::error;
 
 /// Parse Principal information for Task
 pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
@@ -20,7 +20,7 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Settings xml data: {err:?}");
+                error!("Could not read Settings xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,

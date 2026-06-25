@@ -1,10 +1,10 @@
 use crate::filesystem::files::read_file;
-use log::error;
 use pelite::{
     Error, PeFile,
     resources::{Directory, Name},
 };
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EventLogResource {
@@ -20,7 +20,7 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
     let pe_bytes = match pe_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[pe] Could not read file {path}: {err:?}");
+            error!("Could not read file {path}: {err:?}");
             return Err(Error::Invalid);
         }
     };
@@ -58,7 +58,7 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
                     continue;
                 }
 
-                error!("[pe] Got None value on root resource directory");
+                error!("Got None value on root resource directory");
                 return Err(Error::Invalid);
             }
 
@@ -72,7 +72,7 @@ pub(crate) fn read_eventlog_resource(path: &str) -> Result<EventLogResource, Err
                 }
                 continue;
             }
-            error!("[pe] Got None value on root resource bytes");
+            error!("Got None value on root resource bytes");
             return Err(Error::Invalid);
         }
     }
@@ -92,7 +92,7 @@ fn read_dir(dir: &Directory<'_>) -> Result<Vec<u8>, Error> {
                 return read_dir(&entry_dir);
             }
 
-            error!("[pe] Got None value on resource directory");
+            error!("Got None value on resource directory");
             return Err(Error::Invalid);
         }
 
@@ -103,7 +103,7 @@ fn read_dir(dir: &Directory<'_>) -> Result<Vec<u8>, Error> {
         if let Some(data) = res_entry.data() {
             res_bytes = data.bytes()?.to_vec();
         } else {
-            error!("[pe] Got None value on resource bytes");
+            error!("Got None value on resource bytes");
             return Err(Error::Invalid);
         }
     }

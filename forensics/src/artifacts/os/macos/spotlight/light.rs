@@ -10,8 +10,8 @@ use crate::{
     structs::artifacts::os::macos::SpotlightOptions,
 };
 use common::macos::SpotlightEntries;
-use log::error;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 /// Parse the Spotlight database and output results
 pub(crate) fn parse_spotlight(
@@ -23,7 +23,7 @@ pub(crate) fn parse_spotlight(
     let paths = match paths_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[spotlight] Could not glob {glob_path}: {err:?}");
+            error!("Could not glob {glob_path}: {err:?}");
             return Err(SpotlightError::Glob);
         }
     };
@@ -38,7 +38,7 @@ pub(crate) fn parse_spotlight(
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[spotlight] Could not create reader for store.db {}: {err:?}",
+                    "Could not create reader for store.db {}: {err:?}",
                     path.full_path
                 );
                 return Err(SpotlightError::ReadFile);
@@ -47,10 +47,7 @@ pub(crate) fn parse_spotlight(
 
         let result = parse_store(&mut store_reader, &meta, manager, options);
         if result.is_err() {
-            error!(
-                "[spotlight] Could not parse the spotlight store at: {}",
-                path.full_path
-            );
+            error!("Could not parse the spotlight store at: {}", path.full_path);
         }
         break;
     }
@@ -69,7 +66,7 @@ pub(crate) fn parse_spotlight_reader(
     let mut store_reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[spotlight] Could not create reader for store.db {store_file}: {err:?}",);
+            error!("Could not create reader for store.db {store_file}: {err:?}",);
             return Err(SpotlightError::ReadFile);
         }
     };
@@ -90,7 +87,7 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
     let paths = match paths_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[spotlight] Could not glob {glob_path}: {err:?}");
+            error!("Could not glob {glob_path}: {err:?}");
             return Err(SpotlightError::Glob);
         }
     };
@@ -105,7 +102,7 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[spotlight] Could not create reader for store.db {}: {err:?}",
+                    "Could not create reader for store.db {}: {err:?}",
                     path.full_path
                 );
                 return Err(SpotlightError::ReadFile);

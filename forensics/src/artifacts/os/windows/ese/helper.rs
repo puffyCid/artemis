@@ -44,9 +44,9 @@ use crate::{
     utils::nom_helper::nom_data,
 };
 use common::windows::{ColumnType, TableDump};
-use log::error;
 use ntfs::{Ntfs, NtfsFile};
 use std::{collections::HashMap, fs::File, io::BufReader};
+use tracing::error;
 
 /// Get `Catalog` data from provided ESE path
 pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
@@ -65,7 +65,7 @@ pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
         let mut ntfs_parser = match ntfs_parser_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ese] Could not setup NTFS parser: {err:?}");
+                error!("Could not setup NTFS parser: {err:?}");
                 return Err(EseError::ParseEse);
             }
         };
@@ -329,7 +329,7 @@ fn setup_ese_reader_windows<'a>(
     let ntfs_file = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Could not setup reader: {err:?}");
+            error!("Could not setup reader: {err:?}");
             return Err(EseError::ReadFile);
         }
     };
@@ -343,7 +343,7 @@ fn setup_ese_reader(path: &str) -> Result<File, EseError> {
     let reader = match reader_result {
         Ok(reader) => reader,
         Err(err) => {
-            error!("[ese] Could not setup API reader: {err:?}");
+            error!("Could not setup API reader: {err:?}");
             return Err(EseError::ReadFile);
         }
     };
@@ -363,7 +363,7 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
     let header_data = match header_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Failed to reader header bytes: {err:?}");
+            error!("Failed to reader header bytes: {err:?}");
             return Err(EseError::ParseEse);
         }
     };
@@ -372,7 +372,7 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
     let (_, db_header) = match db_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[ese] Failed to parse ESE header");
+            error!("Failed to parse ESE header");
             return Err(EseError::ParseEse);
         }
     };
@@ -395,7 +395,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Failed to read bytes for page start: {err:?}");
+            error!("Failed to read bytes for page start: {err:?}");
             return Err(EseError::ParseEse);
         }
     };
@@ -405,7 +405,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     let (page_data, table_page_data) = match page_header_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[ese] Failed to parse ESE header");
+            error!("Failed to parse ESE header");
             return Err(EseError::ParseEse);
         }
     };
@@ -414,7 +414,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
     if table_page_data.page_flags.contains(&PageFlags::Root) {
         let root_page_result = parse_root_page(page_data);
         if root_page_result.is_err() {
-            error!("[ese] Failed to parse root page. Stopping parsing");
+            error!("Failed to parse root page. Stopping parsing");
             return Err(EseError::ParseEse);
         }
         has_root = true;
@@ -442,7 +442,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         let (branch_start, _) = match branch_result {
             Ok(result) => result,
             Err(_err) => {
-                error!("[ese] Failed to get branch start data");
+                error!("Failed to get branch start data");
                 return Err(EseError::ParseEse);
             }
         };
@@ -450,7 +450,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         let (_, branch_data) = match branch_result {
             Ok(result) => result,
             Err(_err) => {
-                error!("[ese] Failed to get branch data");
+                error!("Failed to get branch data");
                 return Err(EseError::ParseEse);
             }
         };
@@ -458,7 +458,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         let (_, branch) = match branch_result {
             Ok(result) => result,
             Err(_err) => {
-                error!("[ese] Failed to get branch page data");
+                error!("Failed to get branch page data");
                 return Err(EseError::ParseEse);
             }
         };
@@ -472,7 +472,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         let child_data = match child_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[ese] Failed to read bytes for child data: {err:?}");
+                error!("Failed to read bytes for child data: {err:?}");
                 return Err(EseError::ParseEse);
             }
         };
@@ -487,7 +487,7 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
             fs,
         );
         if last_result.is_err() {
-            error!("[ese] Could not parse branch child table and last page in page tags");
+            error!("Could not parse branch child table and last page in page tags");
             return Err(EseError::ParseEse);
         }
     }
@@ -511,7 +511,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
     let page_start = match start_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Failed to read bytes for page start: {err:?}");
+            error!("Failed to read bytes for page start: {err:?}");
             return Err(EseError::ParseEse);
         }
     };
@@ -521,7 +521,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
     let (page_data, table_page_data) = match page_header_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[ese] Failed to parse ESE header");
+            error!("Failed to parse ESE header");
             return Err(EseError::ParseEse);
         }
     };
@@ -530,7 +530,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
     if table_page_data.page_flags.contains(&PageFlags::Root) {
         let root_page_result = parse_root_page(page_data);
         if root_page_result.is_err() {
-            error!("[ese] Failed to parse root page. Stopping parsing");
+            error!("Failed to parse root page. Stopping parsing");
             return Err(EseError::ParseEse);
         }
         has_root = true;
@@ -557,7 +557,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
             let (key_start, _) = match key_result {
                 Ok(result) => result,
                 Err(_err) => {
-                    error!("[ese] Failed to get key data");
+                    error!("Failed to get key data");
                     return Err(EseError::ParseEse);
                 }
             };
@@ -565,7 +565,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
             let (_, page_key_data) = match page_key_data_result {
                 Ok(result) => result,
                 Err(_err) => {
-                    error!("[ese] Failed to get page key data");
+                    error!("Failed to get page key data");
                     return Err(EseError::ParseEse);
                 }
             };
@@ -581,7 +581,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
         let (leaf_start, _) = match leaf_result {
             Ok(result) => result,
             Err(_err) => {
-                error!("[ese] Failed to get leaf data");
+                error!("Failed to get leaf data");
                 return Err(EseError::ParseEse);
             }
         };
@@ -589,7 +589,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
         let (_, leaf_data) = match leaf_result {
             Ok(result) => result,
             Err(_err) => {
-                error!("[ese] Failed to get leaf data");
+                error!("Failed to get leaf data");
                 return Err(EseError::ParseEse);
             }
         };
@@ -603,7 +603,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
         let (_, leaf_row) = match leaf_result {
             Ok(result) => result,
             Err(_err) => {
-                error!("[ese] Failed to parse leaf page {page}");
+                error!("Failed to parse leaf page {page}");
                 return Err(EseError::ParseEse);
             }
         };
@@ -641,7 +641,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     let page_start = match page_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[ese] Failed to read bytes for child data: {err:?}");
+            error!("Failed to read bytes for child data: {err:?}");
             return Err(EseError::ParseEse);
         }
     };
@@ -650,7 +650,7 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     let (_, long_values) = match long_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[ese] Could not get long value data");
+            error!("Could not get long value data");
             return Err(EseError::ParseEse);
         }
     };

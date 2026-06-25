@@ -1,6 +1,6 @@
 use crate::artifacts::os::macos::plist::property_list::get_dictionary;
-use log::warn;
 use plist::{Dictionary, Value};
+use tracing::warn;
 
 // Get the Vec of dictionaries value from the dictionary
 pub(crate) fn get_dictionary_values(dict_data: Value) -> Vec<Dictionary> {

@@ -3,7 +3,7 @@ use aes::{
     Aes256,
     cipher::{BlockModeDecrypt, KeyIvInit, block_padding::Pkcs7},
 };
-use log::error;
+use tracing::error;
 
 /// Decrypt AES256 data
 pub(crate) fn decrypt_aes_data(
@@ -25,7 +25,7 @@ pub(crate) fn decrypt_aes_data(
     let decrypt = match decrypt_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to decrypt data: {err:?}");
+            error!("Failed to decrypt data: {err:?}");
             return Err(DecryptError::AesDecrypt);
         }
     };

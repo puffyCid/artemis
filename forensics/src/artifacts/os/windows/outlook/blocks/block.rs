@@ -14,10 +14,10 @@ use crate::{
         },
     },
 };
-use log::error;
 use nom::error::ErrorKind;
 use ntfs::NtfsFile;
 use std::collections::BTreeMap;
+use tracing::error;
 
 #[derive(Debug, Clone)]
 pub(crate) struct BlockValue {
@@ -190,7 +190,7 @@ pub(crate) fn parse_block_bytes<'a>(
                 let decom_data = match decom_result {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[outlook] Could not decompress zlib data: {err:?}");
+                        error!("Could not decompress zlib data: {err:?}");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             &[],
                             ErrorKind::Fail,

@@ -2,7 +2,7 @@ use super::error::ShimcacheError;
 use crate::{
     artifacts::os::windows::registry::helper::get_registry_keys, utils::regex_options::create_regex,
 };
-use log::error;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct ShimcacheReg {
@@ -20,7 +20,7 @@ pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, Shimca
     let shim_matches = match encoded_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[shimcache] Could not get shimcache data from Registry: {err:?}");
+            error!("Could not get shimcache data from Registry: {err:?}");
             return Err(ShimcacheError::RegistryFile);
         }
     };

@@ -17,8 +17,8 @@ use crate::{
     structs::artifacts::os::macos::LoginitemsOptions,
 };
 use common::macos::LoginItemsData;
-use log::error;
 use std::path::Path;
+use tracing::error;
 
 /// Parse `LoginItem` paths on macOS system
 pub(crate) fn grab_loginitems(
@@ -50,7 +50,7 @@ pub(crate) fn grab_loginitems(
             match results {
                 Ok(mut data) => loginitems_data.append(&mut data),
                 Err(err) => {
-                    error!("[loginitem] Could not parse legacy loginitems: {err:?}: {plist_path}");
+                    error!("Could not parse legacy loginitems: {err:?}: {plist_path}");
                 }
             }
         }
@@ -63,7 +63,7 @@ pub(crate) fn grab_loginitems(
     let items = match loginitems_glob {
         Ok(results) => results,
         Err(err) => {
-            error!("[loginitems] Failed to glob {ventura_loginitems}: {err:?}");
+            error!("Failed to glob {ventura_loginitems}: {err:?}");
             Vec::new()
         }
     };
@@ -77,7 +77,7 @@ pub(crate) fn grab_loginitems(
         match results {
             Ok(mut data) => loginitems_data.append(&mut data),
             Err(err) => {
-                error!("[loginitem] Could not parse modern loginitems: {err:?}");
+                error!("Could not parse modern loginitems: {err:?}");
             }
         }
     }

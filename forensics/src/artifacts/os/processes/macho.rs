@@ -1,7 +1,7 @@
 use super::error::ProcessError;
 use crate::artifacts::os::macos::macho::parser::parse_macho;
 use common::macos::MachoInfo;
-use log::error;
+use tracing::error;
 
 /// Get macho metadata for processes
 pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError> {
@@ -9,7 +9,7 @@ pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError>
     let info = match binary_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[processes] Failed to parse process binary {path}, error: {err:?}");
+            error!("Failed to parse process binary {path}, error: {err:?}");
             return Err(ProcessError::ParseProcFile);
         }
     };

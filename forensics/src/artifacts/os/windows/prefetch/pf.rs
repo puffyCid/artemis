@@ -8,7 +8,7 @@ use super::{
 };
 use crate::utils::compression::decompress::{XpressType, decompress_xpress};
 use common::windows::Prefetch;
-use log::error;
+use tracing::error;
 
 /// Parse Prefetch files and return parsed data or error
 pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError> {
@@ -16,7 +16,7 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
     let is_compressed = match is_compressed_results {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[prefetch] Failed to check for Prefetch compression signature: {err:?}");
+            error!("Failed to check for Prefetch compression signature: {err:?}");
             return Err(PrefetchError::Header);
         }
     };
@@ -27,7 +27,7 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
         match pf_data_results {
             Ok((pf_data, result)) => (pf_data, result),
             Err(err) => {
-                error!("[prefetch] Failed to get compressed header data: {err:?}");
+                error!("Failed to get compressed header data: {err:?}");
                 return Err(PrefetchError::Header);
             }
         }
@@ -47,7 +47,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     let (pf_data, header) = match results {
         Ok((data, result)) => (data, result),
         Err(err) => {
-            error!("[prefetch] Failed to parse header: {err:?}");
+            error!("Failed to parse header: {err:?}");
             return Err(PrefetchError::Header);
         }
     };
@@ -56,7 +56,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     let version = match results {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[prefetch] Failed to parse prefetch version data: {err:?}");
+            error!("Failed to parse prefetch version data: {err:?}");
             return Err(PrefetchError::Version);
         }
     };
@@ -70,7 +70,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     let metrics = match results {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[prefetch] Failed to parse file metrics: {err:?}");
+            error!("Failed to parse file metrics: {err:?}");
             return Err(PrefetchError::FileMetrics);
         }
     };
@@ -79,7 +79,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     let filenames = match results {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[prefetch] Failed to get filenames: {err:?}");
+            error!("Failed to get filenames: {err:?}");
             return Err(PrefetchError::Filenames);
         }
     };
@@ -93,7 +93,7 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
     let volumes = match results {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[prefetch] Failed to get volume info: {err:?}");
+            error!("Failed to get volume info: {err:?}");
             return Err(PrefetchError::VolumeInfo);
         }
     };
@@ -147,7 +147,7 @@ fn decompress_pf(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, PrefetchEr
             return Ok(pf_data.unwrap_or_default());
         }
         error!(
-            "[prefetch] Could not decompress data: {:?}. Will try manual decompression",
+            "Could not decompress data: {:?}. Will try manual decompression",
             pf_data.unwrap_err()
         );
     }
@@ -155,7 +155,7 @@ fn decompress_pf(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, PrefetchEr
     let pf_data = match pf_data_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[prefetch] Could not decompress data: {err:?}");
+            error!("Could not decompress data: {err:?}");
             return Err(PrefetchError::Decompress);
         }
     };

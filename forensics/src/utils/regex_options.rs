@@ -1,6 +1,6 @@
 use super::error::ArtemisError;
-use log::error;
 use regex::Regex;
+use tracing::error;
 
 /// Check if string matches provided regex
 pub(crate) fn regex_check(reg: &Regex, path: &str) -> bool {
@@ -17,7 +17,7 @@ pub(crate) fn create_regex(input: &str) -> Result<Regex, ArtemisError> {
     let regex = match regex_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Bad regex {input}, error: {err:?}");
+            error!("Bad regex {input}, error: {err:?}");
             return Err(ArtemisError::Regex);
         }
     };

@@ -16,7 +16,7 @@ use crate::{
     structs::artifacts::os::linux::LogonOptions,
 };
 use common::linux::{Logon, Status};
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Grab all logon data from default paths
 pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
@@ -42,7 +42,7 @@ pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
 /// Parse logon files at provided path
 pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
     if !path.ends_with("wtmp") && !path.ends_with("utmp") && !path.ends_with("btmp") {
-        warn!("[logons] Provided unsupported logon file {path}");
+        warn!("Provided unsupported logon file {path}");
         return;
     }
 
@@ -50,7 +50,7 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
     let mut reader = match read_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[logons] Could not read file {path}: {err:?}");
+            error!("Could not read file {path}: {err:?}");
             return;
         }
     };

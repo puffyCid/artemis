@@ -9,8 +9,8 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use log::error;
 use nom::{bytes::complete::take, error::ErrorKind};
+use tracing::error;
 
 /// Parse MUI files. Used mainly for international languages
 pub(crate) fn parse_mui<'a>(
@@ -71,7 +71,7 @@ pub(crate) fn parse_mui<'a>(
     };
 
     if !is_file(&real_path) {
-        error!("[eventlogs] No MUI file at {real_path}");
+        error!("No MUI file at {real_path}");
         return Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,
@@ -82,7 +82,7 @@ pub(crate) fn parse_mui<'a>(
     let mut resource = match resource_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[eventlogs] Could not parse MUI file at {real_path}: {err:?}");
+            error!("Could not parse MUI file at {real_path}: {err:?}");
             return Err(nom::Err::Failure(nom::error::Error::new(
                 &[],
                 ErrorKind::Fail,
@@ -106,7 +106,7 @@ pub(crate) fn parse_mui<'a>(
         let mun_resource = match read_eventlog_resource(&mun_path) {
             Ok(result) => result,
             Err(err) => {
-                error!("[eventlogs] Could not parse MUN file at {real_path}: {err:?}");
+                error!("Could not parse MUN file at {real_path}: {err:?}");
                 return Ok((&[], resource));
             }
         };

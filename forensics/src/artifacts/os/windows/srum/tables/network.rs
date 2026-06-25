@@ -4,8 +4,8 @@ use crate::{
     utils::time::filetime_to_iso,
 };
 use common::windows::{NetworkConnectivityInfo, NetworkInfo, TableDump};
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse the network table from SRUM
 pub(crate) fn parse_network(
@@ -75,7 +75,7 @@ pub(crate) fn parse_network(
     let records = match serialize_records_to_stream(network_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM Network table: {err:?}");
+            error!("Failed to serialize SRUM Network table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };
@@ -152,7 +152,7 @@ pub(crate) fn parse_network_connectivity(
     let records = match serialize_records_to_stream(network_vec) {
         Ok(results) => results,
         Err(err) => {
-            error!("[srum] Failed to serialize SRUM Network Connectivity table: {err:?}");
+            error!("Failed to serialize SRUM Network Connectivity table: {err:?}");
             return Err(SrumError::Serialize);
         }
     };

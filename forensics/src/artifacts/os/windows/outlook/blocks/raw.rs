@@ -5,9 +5,9 @@ use crate::{
     },
     filesystem::ntfs::reader::read_bytes,
 };
-use log::error;
 use ntfs::NtfsFile;
 use std::io::BufReader;
+use tracing::error;
 
 /// Parse a Raw block. Will be either `Xblock`, `XXblock` or `Descriptor` block
 pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
@@ -46,7 +46,7 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Failed to raw block bytes: {err:?}");
+            error!("Failed to raw block bytes: {err:?}");
             return Err(OutlookError::ReadFile);
         }
     };
@@ -55,7 +55,7 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     let block_data = match block_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[outlook] Failed to parse raw block bytes");
+            error!("Failed to parse raw block bytes");
             return Err(OutlookError::RawBlock);
         }
     };

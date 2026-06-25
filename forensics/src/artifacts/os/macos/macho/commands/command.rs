@@ -9,10 +9,10 @@ use crate::utils::{
     uuid::format_guid_be_bytes,
 };
 use common::macos::{DylibCommand, Segment64};
-use log::error;
 use nom::bytes::complete::take;
 use plist::Dictionary;
 use serde::Serialize;
+use tracing::error;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Commands {
@@ -107,7 +107,7 @@ impl Commands {
         match segment_result {
             Ok((_, result)) => segments.push(result),
             Err(err) => {
-                error!("[macho] Failed to parse segment64: {err:?}");
+                error!("Failed to parse segment64: {err:?}");
             }
         }
     }
@@ -118,7 +118,7 @@ impl Commands {
         match segment_result {
             Ok((_, result)) => segments.push(result),
             Err(err) => {
-                error!("[macho] Failed to parse segment32: {err:?}");
+                error!("Failed to parse segment32: {err:?}");
             }
         }
     }
@@ -134,7 +134,7 @@ impl Commands {
         match segment_result {
             Ok((_, result)) => dylib_commands.push(result),
             Err(err) => {
-                error!("[macho] Failed to parse DYLIB command: {err:?}");
+                error!("Failed to parse DYLIB command: {err:?}");
             }
         }
     }
@@ -145,7 +145,7 @@ impl Commands {
         match segment_result {
             Ok((_, result)) => command.build_system = result,
             Err(err) => {
-                error!("[macho] Failed to parse build system data {err:?}");
+                error!("Failed to parse build system data {err:?}");
             }
         }
     }
@@ -156,7 +156,7 @@ impl Commands {
         match codesign_results {
             Ok((_, result)) => command.code_sign = result,
             Err(err) => {
-                error!("[macho] Failed to parse code signature data {err:?}");
+                error!("Failed to parse code signature data {err:?}");
             }
         }
     }

@@ -1,7 +1,7 @@
 use super::error::ProcessError;
 use crate::artifacts::os::windows::pe::parser::parse_pe_file;
 use common::windows::PeInfo;
-use log::warn;
+use tracing::warn;
 
 /// Parse PE metadata from provided path
 pub(crate) fn pe_metadata(path: &str) -> Result<PeInfo, ProcessError> {
@@ -9,7 +9,7 @@ pub(crate) fn pe_metadata(path: &str) -> Result<PeInfo, ProcessError> {
     let info = match info_result {
         Ok(result) => result,
         Err(err) => {
-            warn!("[processes] Could not parse PE process {path}: {err:?}");
+            warn!("Could not parse PE process {path}: {err:?}");
             return Err(ProcessError::ParseProcFile);
         }
     };

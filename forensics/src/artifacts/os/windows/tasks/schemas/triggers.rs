@@ -5,8 +5,8 @@ use common::windows::{
     EventTrigger, IdleTrigger, LogonTrigger, Repetition, SessionTrigger, TimeTrigger, Triggers,
     WnfTrigger,
 };
-use log::error;
 use quick_xml::{Reader, events::Event, name::QName};
+use tracing::error;
 
 /// Parse all Task Trigger options.
 pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
@@ -25,7 +25,7 @@ pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Triggers xml data: {err:?}");
+                error!("Could not read Triggers xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -69,7 +69,7 @@ fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: bool) 
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read BootTrigger xml data: {err:?}");
+                error!("Could not read BootTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -116,7 +116,7 @@ fn process_notification(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read WnfTrigger xml data: {err:?}");
+                error!("Could not read WnfTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -159,7 +159,7 @@ fn process_idle(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read IdleTrigger xml data: {err:?}");
+                error!("Could not read IdleTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -196,7 +196,7 @@ fn process_time(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read TimeTrigger xml data: {err:?}");
+                error!("Could not read TimeTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -240,7 +240,7 @@ fn process_event(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read EventTrigger xml data: {err:?}");
+                error!("Could not read EventTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -299,7 +299,7 @@ fn process_logon(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read LogonTrigger xml data: {err:?}");
+                error!("Could not read LogonTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -343,7 +343,7 @@ fn process_session(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read SessionStateChangeTrigger xml data: {err:?}");
+                error!("Could not read SessionStateChangeTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -392,7 +392,7 @@ fn process_calendar(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read CalendarTrigger xml data: {err:?}");
+                error!("Could not read CalendarTrigger xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -459,7 +459,7 @@ fn process_repetition(common: &mut BaseTriggers, reader: &mut Reader<&[u8]>) {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Repetition xml data: {err:?}");
+                error!("Could not read Repetition xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -494,7 +494,7 @@ fn process_event_values(reader: &mut Reader<&[u8]>) -> Vec<String> {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read EventTrigger Values xml data: {err:?}");
+                error!("Could not read EventTrigger Values xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -521,7 +521,7 @@ fn process_cal_day(reader: &mut Reader<&[u8]>) -> ByDay {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Calendar ByDay Values xml data: {err:?}");
+                error!("Could not read Calendar ByDay Values xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -554,7 +554,7 @@ fn process_cal_week(reader: &mut Reader<&[u8]>) -> ByWeek {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Calendar ByWeek Values xml data: {err:?}");
+                error!("Could not read Calendar ByWeek Values xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -591,7 +591,7 @@ fn process_cal_month(reader: &mut Reader<&[u8]>) -> ByMonth {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Calendar ByWeek Values xml data: {err:?}");
+                error!("Could not read Calendar ByWeek Values xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -630,7 +630,7 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("[tasks] Could not read Calendar ByWeek Values xml data: {err:?}");
+                error!("Could not read Calendar ByWeek Values xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,

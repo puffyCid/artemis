@@ -4,7 +4,7 @@
 use super::opendirectory::parse_users_plist;
 use crate::{filesystem::files::list_files, structs::artifacts::os::macos::MacosUsersOptions};
 use common::macos::OpendirectoryUsers;
-use log::{error, warn};
+use tracing::{error, warn};
 
 /// Get users on a macOS system. Requires root
 pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers> {
@@ -20,7 +20,7 @@ pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers>
     let files = match files_result {
         Ok(result) => result,
         Err(err) => {
-            warn!("[users] Failed to list files, error: {err:?}");
+            warn!("Failed to list files, error: {err:?}");
             return user_data;
         }
     };
@@ -28,7 +28,7 @@ pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers>
         let opendirectoryd_users = parse_users_plist(&user);
         match opendirectoryd_users {
             Ok(results) => user_data.push(results),
-            Err(err) => error!("[users] Failed to parse file {user}. Error: {err:?}"),
+            Err(err) => error!("Failed to parse file {user}. Error: {err:?}"),
         }
     }
     user_data

@@ -1,7 +1,7 @@
 use crate::utils::nom_helper::{Endian, nom_unsigned_four_bytes};
-use log::warn;
 use nom::bytes::complete::take;
 use serde::Serialize;
+use tracing::warn;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct MachoHeader {
@@ -145,7 +145,7 @@ impl MachoHeader {
             0x1c => "XEONMP",
             0x80000003 => "x86 ALL",
             _ => {
-                warn!("[macho] Unknown MachO sub CPU Intel Type: {subtype}");
+                warn!("Unknown MachO sub CPU Intel Type: {subtype}");
                 "Unknown MachO sub CPU Intel Type"
             }
         };
@@ -172,7 +172,7 @@ impl MachoHeader {
             0x10 => "ARMv7EM",
             0xc0000002 => "A14",
             _ => {
-                warn!("[macho] Unknown MachO sub CPU ARM Type: {subtype}");
+                warn!("Unknown MachO sub CPU ARM Type: {subtype}");
                 "Unknown MachO sub CPU ARM Type"
             }
         };
@@ -196,7 +196,7 @@ impl MachoHeader {
             0xb => "KEXT_BUNDLE",
             0xc => "FILESET",
             _ => {
-                warn!("[macho] Unknown MachO File Type: {filetype}");
+                warn!("Unknown MachO File Type: {filetype}");
                 "Unknown MachO FILE Type"
             }
         };

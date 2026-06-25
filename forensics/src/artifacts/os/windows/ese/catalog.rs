@@ -18,11 +18,11 @@ use crate::{
         strings::extract_utf8_string,
     },
 };
-use log::{error, warn};
 use nom::{bytes::complete::take, error::ErrorKind};
 use ntfs::NtfsFile;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, io::BufReader};
+use tracing::{error, warn};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Catalog {
@@ -152,7 +152,7 @@ impl Catalog {
         let catalog_data = match catalog_results {
             Ok(results) => results,
             Err(err) => {
-                error!("[ese] Failed to read bytes for catalog: {err:?}");
+                error!("Failed to read bytes for catalog: {err:?}");
                 return Err(EseError::ReadFile);
             }
         };
@@ -161,7 +161,7 @@ impl Catalog {
         let (_, catalog) = if let Ok(result) = catalog_result {
             result
         } else {
-            error!("[ese] Could not parse Catalog");
+            error!("Could not parse Catalog");
             return Err(EseError::Catalog);
         };
 
@@ -218,7 +218,7 @@ impl Catalog {
                 let (_, leaf_row) = match leaf_result {
                     Ok(result) => result,
                     Err(_err) => {
-                        error!("[ese] Failed to parse leaf page for catalog");
+                        error!("Failed to parse leaf page for catalog");
                         return Err(nom::Err::Failure(nom::error::Error::new(
                             leaf_data,
                             ErrorKind::Fail,
@@ -244,7 +244,7 @@ impl Catalog {
             let child_data = match child_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[ese] Could not read child page data: {err:?}");
+                    error!("Could not read child page data: {err:?}");
                     continue;
                 }
             };
@@ -260,7 +260,7 @@ impl Catalog {
             let (_, mut rows) = if let Ok(results) = rows_results {
                 results
             } else {
-                error!("[ese] Could not parse branch child catalog");
+                error!("Could not parse branch child catalog");
                 continue;
             };
             catalog_rows.append(&mut rows);
@@ -417,7 +417,7 @@ impl Catalog {
                     data = input;
                 }
                 _ => {
-                    warn!("[ese] Catalog Unknown fixed data value {column}");
+                    warn!("Catalog Unknown fixed data value {column}");
                     break;
                 }
             }
@@ -518,7 +518,7 @@ impl Catalog {
                     data = input;
                 }
                 _ => {
-                    warn!("[ese] Unknown variable data value {}", var_data.column);
+                    warn!("Unknown variable data value {}", var_data.column);
                 }
             }
 
@@ -671,7 +671,7 @@ impl Catalog {
                 260 => catalog.space_deferred_lv_hints = tag.data,
                 261 => catalog.local_name = tag.data,
                 _ => {
-                    warn!("[ese] Unknown tagged data value {}", tag.column);
+                    warn!("Unknown tagged data value {}", tag.column);
                 }
             }
         }

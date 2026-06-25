@@ -6,9 +6,9 @@ use crate::{
     },
 };
 use common::macos::FsEvents;
-use log::warn;
 use nom::bytes::complete::{take, take_while};
 use std::mem::size_of;
+use tracing::warn;
 
 #[derive(Debug)]
 struct FsEventsHeader {
@@ -34,10 +34,7 @@ pub(crate) fn fsevents_data<'a>(
         // Parse header to get `FsEvent` stream size
         let (fsevents_data, fsevents_header) = fsevents_header(input)?;
         if !versions.contains(&fsevents_header.signature) {
-            warn!(
-                "[fsevents] Got unknown header: {}",
-                fsevents_header.signature
-            );
+            warn!("Got unknown header: {}", fsevents_header.signature);
             break;
         }
 

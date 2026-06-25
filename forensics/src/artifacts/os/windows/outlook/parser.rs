@@ -28,9 +28,9 @@ use crate::{
     utils::{environment::get_systemdrive, time::compare_timestamps},
 };
 use common::windows::{OutlookAttachment, OutlookMessage};
-use log::error;
 use ntfs::NtfsFile;
 use std::io::BufReader;
+use tracing::error;
 
 #[cfg(feature = "yarax")]
 use crate::utils::yara::{scan_base64_bytes, scan_bytes};
@@ -47,7 +47,7 @@ pub(crate) fn grab_outlook(
     let drive = match systemdrive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Could not get systemdrive: {err:?}");
+            error!("Could not get systemdrive: {err:?}");
             return Err(OutlookError::Systemdrive);
         }
     };
@@ -58,7 +58,7 @@ pub(crate) fn grab_outlook(
     let paths = match paths_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Failed to glob: {glob_path}: {err:?}");
+            error!("Failed to glob: {glob_path}: {err:?}");
             return Err(OutlookError::GlobPath);
         }
     };
@@ -67,7 +67,7 @@ pub(crate) fn grab_outlook(
         let status = grab_outlook_file(&path.full_path, options, manager);
         if let Err(result) = status {
             error!(
-                "[outlook] Could not extract messages from {}: {result:?}",
+                "Could not extract messages from {}: {result:?}",
                 path.full_path
             );
         }
@@ -112,7 +112,7 @@ fn grab_outlook_file(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[outlook] Could not setup NTFS parser: {err:?}");
+            error!("Could not setup NTFS parser: {err:?}");
             return Err(OutlookError::Systemdrive);
         }
     };
@@ -463,13 +463,13 @@ fn output_messages(
     let mut records = match serialize_records_to_stream(messages) {
         Ok(results) => results,
         Err(err) => {
-            error!("[outlook] Failed to serialize Outlook messages: {err:?}");
+            error!("Failed to serialize Outlook messages: {err:?}");
             return Err(OutlookError::Serialize);
         }
     };
     let artifact_name = "outlook";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[outlook] Could not output Outlook messages: {err:?}");
+        error!("Could not output Outlook messages: {err:?}");
         return Err(OutlookError::OutputData);
     }
 

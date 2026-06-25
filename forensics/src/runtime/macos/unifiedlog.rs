@@ -1,6 +1,5 @@
 use crate::runtime::{error::RuntimeError, helper::string_arg};
 use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
-use log::{error, warn};
 use macos_unifiedlogs::{
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
@@ -10,6 +9,7 @@ use macos_unifiedlogs::{
     unified_log::LogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
+use tracing::{error, warn};
 
 /// Expose Unified Log parsing to `BoaJS`
 pub(crate) fn js_unified_log(
@@ -70,7 +70,7 @@ fn parse_trace_file(
         return iterate_logs(source.reader(), timesync_data, provider, path);
     }
 
-    warn!("[runtime] Failed to iterate through logs");
+    warn!("Failed to iterate through logs");
     Ok(Vec::new())
 }
 
@@ -84,7 +84,7 @@ fn iterate_logs(
 
     let err = reader.read_to_end(&mut buf);
     if let Err(status) = err {
-        error!("[runtime] Could not read unifiedlogs: {status:?}");
+        error!("Could not read unifiedlogs: {status:?}");
         return Err(RuntimeError::ExecuteScript);
     }
 

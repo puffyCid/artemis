@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::spotlight::error::SpotlightError,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
 };
-use log::error;
+use tracing::error;
 
 pub(crate) struct DbHeader {
     _sig: u64,
@@ -20,7 +20,7 @@ pub(crate) fn get_header(data: &[u8]) -> Result<DbHeader, SpotlightError> {
     let header = match header_results {
         Ok((_, results)) => results,
         Err(_err) => {
-            error!("[spotlight] Could not parse dbstr header data");
+            error!("Could not parse dbstr header data");
             return Err(SpotlightError::Header);
         }
     };

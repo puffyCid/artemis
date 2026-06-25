@@ -17,7 +17,7 @@ use crate::{
     structs::artifacts::os::windows::UserAssistOptions, utils::environment::get_systemdrive,
 };
 use common::windows::UserAssistEntry;
-use log::error;
+use tracing::error;
 
 /// Parse `UserAssist` based on `UserAssistOptions`
 pub(crate) fn grab_userassist(
@@ -34,7 +34,7 @@ pub(crate) fn grab_userassist(
     let drive = match drive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[userassist] Could not determine systemdrive: {err:?}");
+            error!("Could not determine systemdrive: {err:?}");
             return Err(UserAssistError::DriveLetter);
         }
     };

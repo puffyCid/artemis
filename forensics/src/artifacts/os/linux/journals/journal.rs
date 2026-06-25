@@ -11,8 +11,8 @@ use crate::{
     structs::artifacts::os::linux::JournalOptions,
 };
 use common::linux::Journal;
-use log::error;
 use std::{collections::HashSet, fs::File, io::Read};
+use tracing::error;
 
 /// Parse provided `Journal` file path. Will output results when finished. Use `parse_journal_file` if you want the results
 pub(crate) fn parse_journal(
@@ -24,7 +24,7 @@ pub(crate) fn parse_journal(
     let mut reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[journal] Could not create reader for file {path}: {err:?}");
+            error!("Could not create reader for file {path}: {err:?}");
             return Err(JournalError::ReaderError);
         }
     };
@@ -32,7 +32,7 @@ pub(crate) fn parse_journal(
     // We technically only need first 232 bytes but version 252 is 264 bytes in size
     let mut header_buff = [0; 264];
     if reader.read(&mut header_buff).is_err() {
-        error!("[journal] Could not read file header {path}");
+        error!("Could not read file header {path}");
         return Err(JournalError::ReadError);
     }
 
@@ -40,7 +40,7 @@ pub(crate) fn parse_journal(
     let journal_header = match header_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[journal] Could not parser file header {path}");
+            error!("Could not parser file header {path}");
             return Err(JournalError::JournalHeader);
         }
     };
@@ -67,7 +67,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
     let mut reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[journal] Could not create reader for file {path}: {err:?}");
+            error!("Could not create reader for file {path}: {err:?}");
             return Err(JournalError::ReaderError);
         }
     };
@@ -75,7 +75,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
     // We technically only need first 232 bytes but version 252 is 264 bytes in size
     let mut header_buff = [0; 264];
     if reader.read(&mut header_buff).is_err() {
-        error!("[journal] Could not read file header {path}");
+        error!("Could not read file header {path}");
         return Err(JournalError::ReadError);
     }
 
@@ -83,7 +83,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
     let journal_header = match header_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("[journal] Could not parser file header {path}");
+            error!("Could not parser file header {path}");
             return Err(JournalError::JournalHeader);
         }
     };
@@ -108,7 +108,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         let object_header = ObjectHeader::parse_header(&mut reader, offset)?;
         if object_header.obj_type != ObjectType::EntryArray {
             error!(
-                "[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {path}",
+                "Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {path}",
                 object_header.obj_type
             );
             break;
@@ -119,7 +119,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         let mut entry_array = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[journal] Could not walk journal entries. Exiting early");
+                error!("Could not walk journal entries. Exiting early");
                 break;
             }
         };
@@ -128,7 +128,7 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         offset = entry_array.next_entry_array_offset;
 
         if offset_tracker.contains(&offset) {
-            error!("[journal] Found recursive offset. Exiting now");
+            error!("Found recursive offset. Exiting now");
             break;
         }
     }
@@ -158,7 +158,7 @@ fn get_entries(
         let object_header = ObjectHeader::parse_header(reader, offset)?;
         if object_header.obj_type != ObjectType::EntryArray {
             error!(
-                "[journal] Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {evidence}",
+                "Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {evidence}",
                 object_header.obj_type
             );
             break;
@@ -175,13 +175,13 @@ fn get_entries(
         let next_offset = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
-                error!("[journal] Could not walk journal entries. Exiting early");
+                error!("Could not walk journal entries. Exiting early");
                 break;
             }
         };
         offset = next_offset;
         if offset_tracker.contains(&offset) {
-            error!("[journal] Found recursive offset. Exiting now");
+            error!("Found recursive offset. Exiting now");
             break;
         }
 

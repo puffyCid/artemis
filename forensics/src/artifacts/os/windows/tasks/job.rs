@@ -4,7 +4,7 @@ use super::{
 };
 use crate::filesystem::files::read_file;
 use common::windows::TaskJob;
-use log::error;
+use tracing::error;
 
 /// Parse the older Task format
 pub(crate) fn parse_job(path: &str) -> Result<TaskJob, TaskError> {
@@ -17,7 +17,7 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Could not read Task Job file at {path}: {err:?}");
+            error!("Could not read Task Job file at {path}: {err:?}");
             return Err(TaskError::ReadJob);
         }
     };
@@ -26,7 +26,7 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
     let (var_data, fixed_value) = match fixed_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[tasks] Could not parse Fixed section of Job file {path}");
+            error!("Could not parse Fixed section of Job file {path}");
             return Err(TaskError::FixedSection);
         }
     };
@@ -35,7 +35,7 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
     let (_, variable_value) = match var_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[tasks] Could not parse Variable section of Job file {path}");
+            error!("Could not parse Variable section of Job file {path}");
             return Err(TaskError::VariableSection);
         }
     };

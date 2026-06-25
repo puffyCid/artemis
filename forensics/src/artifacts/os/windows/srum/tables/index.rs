@@ -6,8 +6,8 @@ use crate::{
     },
 };
 use common::windows::TableDump;
-use log::{error, warn};
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 /**
  * Before parsing `SRUM` data parse the `SruDbIdMapTable` table which is an Index that contains resolved ID values (ex: SIDs, application names)
@@ -28,7 +28,7 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
                 blob = match decode_results {
                     Ok(results) => results,
                     Err(err) => {
-                        error!("[srum] Could not base64 decode ID blog: {err:?}");
+                        error!("Could not base64 decode ID blog: {err:?}");
                         continue;
                     }
                 };
@@ -45,7 +45,7 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
                 let sid = match sid_results {
                     Ok((_, results)) => results,
                     Err(_err) => {
-                        warn!("[srum] Could not parse SID ID blob");
+                        warn!("Could not parse SID ID blob");
                         String::new()
                     }
                 };
@@ -53,7 +53,7 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
             }
             "1" | "2" | "0" => id_lookups.insert(id, extract_utf16_string(&blob)),
             _ => {
-                warn!("[srum] Unknown ID Type");
+                warn!("Unknown ID Type");
                 id_lookups.insert(id, base64_encode_standard(&blob))
             }
         };

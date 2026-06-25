@@ -10,11 +10,11 @@ use crate::{
     structs::artifacts::os::windows::RegistryOptions,
 };
 use common::windows::RegistryData;
-use log::error;
 use nom::bytes::complete::take;
 use ntfs::NtfsFileReference;
 use regex::Regex;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parse provided `Registry` file at starting Key path and apply any optional Key path regex filtering
 /// Use `get_registry_keys_by_ref` if you want to provide a `Registry` file reference
@@ -36,7 +36,7 @@ pub(crate) fn get_registry_keys(
     match reg_entries_results {
         Ok((_, results)) => Ok(results),
         Err(_err) => {
-            error!("[registry] Failed to parse registry file {file_path}");
+            error!("Failed to parse registry file {file_path}");
             Err(RegistryError::Parser)
         }
     }
@@ -64,7 +64,7 @@ pub(crate) fn get_registry_keys_by_ref(
     match reg_entries_results {
         Ok((_, results)) => Ok(results),
         Err(_err) => {
-            error!("[registry] Failed to parse registry file reference: {file_ref:?}");
+            error!("Failed to parse registry file reference: {file_ref:?}");
             Err(RegistryError::Parser)
         }
     }
@@ -103,7 +103,7 @@ pub(crate) fn read_registry(path: &str) -> Result<Vec<u8>, RegistryError> {
     match result {
         Ok(buffer) => Ok(buffer),
         Err(err) => {
-            error!("[registry] Failed to read registry file {path}, error: {err:?}");
+            error!("Failed to read registry file {path}, error: {err:?}");
             Err(RegistryError::ReadRegistry)
         }
     }
@@ -118,7 +118,7 @@ pub(crate) fn read_registry_ref(
     match result {
         Ok(buffer) => Ok(buffer),
         Err(err) => {
-            error!("[registry] Failed to read registry file reference: {err:?}");
+            error!("Failed to read registry file reference: {err:?}");
             Err(RegistryError::ReadRegistry)
         }
     }
@@ -128,7 +128,7 @@ pub(crate) fn read_registry_ref(
 pub(crate) fn lookup_sk_info(path: &str, sk_offset: i32) -> Result<SecurityKey, RegistryError> {
     let empty = 0;
     if sk_offset < empty {
-        error!("[registry] Provided unallocated offset. Refusing to parse SK data.");
+        error!("Provided unallocated offset. Refusing to parse SK data.");
         return Err(RegistryError::ReadRegistry);
     }
     let adjust_offset = 4096;
@@ -140,7 +140,7 @@ pub(crate) fn lookup_sk_info(path: &str, sk_offset: i32) -> Result<SecurityKey, 
     let sk = if let Ok((_, result)) = sk_result {
         result
     } else {
-        error!("[registry] Could not parse Security info at offset {sk_offset}");
+        error!("Could not parse Security info at offset {sk_offset}");
         return Err(RegistryError::Parser);
     };
     Ok(sk)

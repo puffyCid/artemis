@@ -1,6 +1,6 @@
 use super::{error::FileError, filelisting::get_filelist};
 use crate::{output::manager::OutputManager, structs::artifacts::os::files::FileOptions};
-use log::error;
+use tracing::error;
 
 /// Get a filelisting based on provided options
 pub(crate) fn filelisting(
@@ -8,7 +8,7 @@ pub(crate) fn filelisting(
     options: &FileOptions,
 ) -> Result<(), FileError> {
     if let Err(err) = get_filelist(options, manager) {
-        error!("[forensics] Failed to get file listing: {err:?}");
+        error!("Failed to get file listing: {err:?}");
         return Err(FileError::Filelisting);
     }
 

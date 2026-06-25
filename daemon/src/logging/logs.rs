@@ -1,12 +1,12 @@
 use super::error::LoggingError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
-use log::error;
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{BufRead, BufReader, Lines},
 };
+use tracing::error;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct LoggingResponse {
@@ -34,7 +34,7 @@ impl LoggingEndpoint for DaemonConfig {
             self.server.server.version,
             self.server.server.logging
         );
-        let log_path = format!("{}/daemon.log", self.server.log_path);
+        let log_path = format!("{}/daemon.jsonl", self.server.log_path);
         let mut lines = read_log(&log_path)?;
 
         let client = Client::new();
@@ -56,31 +56,31 @@ impl LoggingEndpoint for DaemonConfig {
                 let res = match builder.send() {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[daemon] Failed to send request for log upload: {err:?}");
+                        error!("Failed to send request for log upload: {err:?}");
                         return Err(LoggingError::FailedUpload);
                     }
                 };
                 if res.status() == StatusCode::BAD_REQUEST {
                     let message = bad_request(&res.bytes().unwrap_or_default());
-                    error!("[daemon] Log request was bad: {}", message.message);
+                    error!("Log request was bad: {}", message.message);
                     return Err(LoggingError::FailedUpload);
                 }
 
                 if res.status() != StatusCode::OK {
-                    error!("[daemon] Got non-Ok logging response");
+                    error!("Got non-Ok logging response");
                     return Err(LoggingError::UploadNotOk);
                 }
 
                 let bytes = match res.bytes() {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[daemon] Failed to get config bytes: {err:?}");
+                        error!("Failed to get config bytes: {err:?}");
                         return Err(LoggingError::FailedUpload);
                     }
                 };
 
                 if let Err(err) = serde_json::from_slice::<LoggingResponse>(&bytes) {
-                    error!("[daemon] Failed to serialize config response: {err:?}");
+                    error!("Failed to serialize config response: {err:?}");
                     return Err(LoggingError::UploadBadResponse);
                 }
 
@@ -99,25 +99,25 @@ impl LoggingEndpoint for DaemonConfig {
         let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to send request for log upload: {err:?}");
+                error!("Failed to send request for log upload: {err:?}");
                 return Err(LoggingError::FailedUpload);
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
             let message = bad_request(&res.bytes().unwrap_or_default());
-            error!("[daemon] Log request was bad: {}", message.message);
+            error!("Log request was bad: {}", message.message);
             return Err(LoggingError::FailedUpload);
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok logging response");
+            error!("Got non-Ok logging response");
             return Err(LoggingError::UploadNotOk);
         }
 
         let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to get config bytes: {err:?}");
+                error!("Failed to get config bytes: {err:?}");
                 return Err(LoggingError::FailedUpload);
             }
         };
@@ -125,7 +125,7 @@ impl LoggingEndpoint for DaemonConfig {
         let log_response = match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to serialize config response: {err:?}");
+                error!("Failed to serialize config response: {err:?}");
                 return Err(LoggingError::UploadBadResponse);
             }
         };
@@ -137,12 +137,12 @@ impl LoggingEndpoint for DaemonConfig {
     }
 }
 
-/// Read the daemon.log file
+/// Read the daemon.jsonl file
 fn read_log(path: &str) -> Result<Lines<BufReader<File>>, LoggingError> {
     let reader = match File::open(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("[daemon] Failed to open file {path}: {err:?}");
+            error!("Failed to open file {path}: {err:?}");
             return Err(LoggingError::OpenFile);
         }
     };
@@ -155,7 +155,7 @@ fn read_log(path: &str) -> Result<Lines<BufReader<File>>, LoggingError> {
 /// When we upload log data to the server. We can clear the log
 fn clear_log(path: &str) -> Result<(), LoggingError> {
     if let Err(err) = File::create(path) {
-        error!("[daemon] Failed to clear log file {path}: {err:?}");
+        error!("Failed to clear log file {path}: {err:?}");
         return Err(LoggingError::ClearLog);
     }
 
@@ -170,13 +170,13 @@ mod tests {
         utils::config::server,
     };
     use httpmock::{Method::POST, MockServer};
-    use log::{LevelFilter, error, warn};
     use serde_json::json;
-    use simplelog::{Config, WriteLogger};
     use std::{
         fs::{File, create_dir_all},
         path::PathBuf,
     };
+    use tracing::{error, level_filters::LevelFilter, warn};
+    use tracing_subscriber::{fmt::layer, layer::SubscriberExt, util::SubscriberInitExt};
 
     #[test]
     fn test_log_upload() {
@@ -209,17 +209,27 @@ mod tests {
     #[test]
     fn test_read_log() {
         create_dir_all("./tmp/artemis").unwrap();
-        let log_file = File::create("./tmp/artemis/daemon2.log").unwrap();
-        let _ = WriteLogger::init(LevelFilter::Warn, Config::default(), log_file);
+        let log_file = File::create("./tmp/artemis/daemon2.jsonl").unwrap();
+        let _ = tracing_subscriber::registry()
+            .with(
+                layer()
+                    .json()
+                    .with_file(true)
+                    .with_line_number(true)
+                    .flatten_event(true)
+                    .with_writer(log_file),
+            )
+            .with(LevelFilter::WARN)
+            .try_init();
         warn!("test warning");
 
-        let _ = read_log("./tmp/artemis/daemon2.log").unwrap();
+        let _ = read_log("./tmp/artemis/daemon2.jsonl").unwrap();
     }
 
     #[test]
     #[should_panic(expected = "ClearLog")]
     fn test_clear_log() {
-        clear_log("./tmp/artemis/asdfasf/daemon.log").unwrap();
+        clear_log("./tmp/artemis/asdfasf/daemon.jsonl").unwrap();
     }
 
     #[test]

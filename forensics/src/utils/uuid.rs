@@ -1,4 +1,4 @@
-use log::warn;
+use tracing::warn;
 use uuid::Uuid;
 
 /// Create a UUID and return as a string
@@ -11,7 +11,7 @@ pub(crate) fn format_guid_le_bytes(data: &[u8]) -> String {
     let guid_size = 16;
     if data.len() != guid_size {
         warn!(
-            "[forensics] Provided little endian data does not meet GUID size of 16 bytes, got: {}",
+            "Provided little endian data does not meet GUID size of 16 bytes, got: {}",
             data.len()
         );
         return format!("Not a GUID/UUID: {data:?}");
@@ -21,9 +21,7 @@ pub(crate) fn format_guid_le_bytes(data: &[u8]) -> String {
     match guid_data {
         Ok(result) => Uuid::from_bytes_le(result).hyphenated().to_string(),
         Err(_err) => {
-            warn!(
-                "[forensics] Could not convert little endian bytes to a GUID/UUID format: {data:?}"
-            );
+            warn!("Could not convert little endian bytes to a GUID/UUID format: {data:?}");
             format!("Could not convert data: {data:?}")
         }
     }
@@ -34,7 +32,7 @@ pub(crate) fn format_guid_be_bytes(data: &[u8]) -> String {
     let guid_size = 16;
     if data.len() != guid_size {
         warn!(
-            "[forensics] Provided big endian data does not meet GUID size of 16 bytes, got: {}",
+            "Provided big endian data does not meet GUID size of 16 bytes, got: {}",
             data.len()
         );
         return format!("Not a GUID/UUID: {data:?}");
@@ -44,7 +42,7 @@ pub(crate) fn format_guid_be_bytes(data: &[u8]) -> String {
     match guid_data {
         Ok(result) => Uuid::from_bytes(result).hyphenated().to_string(),
         Err(_err) => {
-            warn!("[forensics] Could not convert big endian bytes to a GUID/UUID format: {data:?}");
+            warn!("Could not convert big endian bytes to a GUID/UUID format: {data:?}");
             format!("Could not convert data: {data:?}")
         }
     }

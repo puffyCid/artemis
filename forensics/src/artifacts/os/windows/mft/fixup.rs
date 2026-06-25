@@ -1,5 +1,5 @@
-use log::error;
 use nom::bytes::complete::take;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct Fixup {
@@ -39,7 +39,7 @@ impl Fixup {
         // We nom'd part of the bytes away, so we need to adjust to make sure fixup values are applied correctly
         let previous_bytes = header_size + (fixup.original.len() * fixup_size) + fixup_size;
         if !(entry.len() + previous_bytes).is_multiple_of(cluster_size) {
-            error!("[mft] MFT bytes not divisble by 512");
+            error!("MFT bytes not divisble by 512");
             return;
         }
 

@@ -23,11 +23,11 @@ use crate::structs::toml::OutputFormat;
 use crate::utils::regex_options::{create_regex, regex_check};
 use common::files::FileInfo;
 use common::files::Hashes;
-use log::{error, info, warn};
 use regex::Regex;
 use serde_json::Value;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error as ioError};
+use tracing::{error, info, warn};
 use walkdir::{DirEntry, WalkDir};
 
 #[cfg(feature = "yarax")]
@@ -327,14 +327,14 @@ fn file_output(entries: Vec<FileInfo>, manager: &mut OutputManager, options: &Fi
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize filelisting: {err:?}");
+            error!("Failed to serialize filelisting: {err:?}");
             return;
         }
     };
 
     let artifact_name = "files";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output filelisting: {err:?}");
+        error!("Failed to output filelisting: {err:?}");
     }
 }
 

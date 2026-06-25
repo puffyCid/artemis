@@ -1,8 +1,8 @@
 use crate::artifacts::os::windows::propertystore::parser::get_property_guid;
-use log::error;
 use nom::bytes::complete::{take, take_until};
 use serde_json::Value;
 use std::{collections::HashMap, mem::size_of};
+use tracing::error;
 
 /// Determine if extra Property Store data exists in `Shortcut` data
 pub(crate) fn has_property(data: &[u8]) -> (bool, Vec<HashMap<String, Value>>) {
@@ -27,7 +27,7 @@ fn parse_property(data: &[u8]) -> nom::IResult<&[u8], Vec<HashMap<String, Value>
     match prop_result {
         Ok(stores) => Ok((input, stores)),
         Err(err) => {
-            error!("[shortcut] Failed to parse extra property data: {err:?}");
+            error!("Failed to parse extra property data: {err:?}");
             Ok((input, Vec::new()))
         }
     }

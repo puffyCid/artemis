@@ -7,8 +7,8 @@ use crate::utils::{
     },
     strings::extract_utf8_string,
 };
-use log::error;
 use nom::bytes::complete::take_until;
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct DataObject {
@@ -66,7 +66,7 @@ impl DataObject {
             let decompress_data = match decompress_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[journal] Could not decompress lz4 data: {err:?}");
+                    error!("Could not decompress lz4 data: {err:?}");
                     data_object.message = format!(
                         "Failed to decompress lz4 data: {}",
                         base64_encode_standard(input)
@@ -82,7 +82,7 @@ impl DataObject {
             let decompress_data = match decompress_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[journal] Could not decompress xz data: {err:?}");
+                    error!("Could not decompress xz data: {err:?}");
                     data_object.message = format!(
                         "Failed to decompress xz data: {}",
                         base64_encode_standard(input)
@@ -98,7 +98,7 @@ impl DataObject {
             let decompress_data = match decompress_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[journal] Could not decompress zstd data: {err:?}");
+                    error!("Could not decompress zstd data: {err:?}");
                     data_object.message = format!(
                         "Failed to decompress zstd data: {}",
                         base64_encode_standard(input)
@@ -125,7 +125,7 @@ impl DataObject {
         // However raw binary blobs have been observed
         // Ex: COREDUMP_PROC_AUXV
         // Before returning base64 blob. Try one last time to extract at the message key
-        if message.starts_with("[strings] Failed to get UTF8 string: ") {
+        if message.starts_with("Failed to get UTF8 string: ") {
             // "="
             let delimiter = [61];
             let (remaining_input, key_bytes) = take_until(delimiter.as_slice())(input)?;

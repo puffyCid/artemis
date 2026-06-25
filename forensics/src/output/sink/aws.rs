@@ -11,7 +11,6 @@ use crate::{
     utils::{encoding::base64_decode_standard, uuid::generate_uuid},
 };
 use flate2::{Compression, write::GzEncoder};
-use log::{error, warn};
 use reqwest::{StatusCode, blocking::Client, header::ETAG};
 use rusty_s3::{
     Bucket, Credentials, S3Action, UrlStyle,
@@ -26,6 +25,7 @@ use std::{
     path::PathBuf,
     time::Duration,
 };
+use tracing::{error, warn};
 use url::Url;
 
 #[derive(Deserialize)]
@@ -127,13 +127,13 @@ impl AwsSink {
                     }
                 }
                 Ok(response) => {
-                    log::error!(
-                        "[forensics] Non-OK response for upload on attempt {attempt}: {:?}",
+                    tracing::error!(
+                        "Non-OK response for upload on attempt {attempt}: {:?}",
                         response.text()
                     );
                 }
                 Err(err) => {
-                    log::error!("[forensics] Failed to upload on attempt {attempt}: {err:?}");
+                    tracing::error!("Failed to upload on attempt {attempt}: {err:?}");
                 }
             }
         }
@@ -163,19 +163,17 @@ impl AwsSink {
                         .contains("Internal Error")
                     {
                         error!(
-                            "[forensics] OK response on final upload but the response contained an error for attempt {attempt}"
+                            "OK response on final upload but the response contained an error for attempt {attempt}"
                         );
                         continue;
                     }
                     return Ok(());
                 }
                 Ok(response) => {
-                    warn!(
-                        "[forensics] Non-OK response on attempt {attempt} for final upload : {response:?}"
-                    );
+                    warn!("Non-OK response on attempt {attempt} for final upload : {response:?}");
                 }
                 Err(err) => {
-                    error!("[forensics] Final upload failed on attempt {attempt}: {err:?}");
+                    error!("Final upload failed on attempt {attempt}: {err:?}");
                 }
             }
         }
@@ -203,7 +201,7 @@ impl AwsSink {
 
     /// Return the log file we are logging to
     fn log_filename(&self) -> String {
-        format!("artemis_{}_{}.log", self.collection_id, generate_uuid())
+        format!("artemis_{}_{}.jsonl", self.collection_id, generate_uuid())
     }
 
     /// Deserialize the base64 blob to our `AwsInfo` structure
@@ -240,7 +238,7 @@ impl AwsSink {
 
             if response.status() != StatusCode::OK {
                 warn!(
-                    "[forensics] Non-200 AWS response on upload start. Attempt {attempt}: {:?}",
+                    "Non-200 AWS response on upload start. Attempt {attempt}: {:?}",
                     response.status()
                 );
                 continue;
@@ -249,7 +247,7 @@ impl AwsSink {
                 OutputError::Sink(format!("failed to get AWS XML start: {err:?}"))
             })?;
 
-            let session = CreateMultipartUpload::parse_response(xml_session).map_err(|err| {
+            let session = CreateMultipartUpload::parse_response(&xml_session).map_err(|err| {
                 OutputError::Sink(format!("failed to parse AWS XML session: {err:?}"))
             })?;
 
@@ -325,7 +323,7 @@ impl OutputSink for AwsSink {
         let object_log = self.object_path(filename);
 
         let data = read(&self.log_file).map_err(|err| OutputError::io_path(&self.log_file, err))?;
-        self.upload_bytes(&object_log, data, "text/plain")?;
+        self.upload_bytes(&object_log, data, "application/jsonl")?;
         let _ = remove_file(&self.log_file);
 
         Ok(())
@@ -389,16 +387,10 @@ mod tests {
 
         let result = sink.decode_creds().unwrap();
         assert_eq!(result.region, "us-east-2");
+        let mock_response = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><InitiateMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Bucket>mybucket</Bucket><Key>mykey</Key><UploadId>whatever</UploadId></InitiateMultipartUploadResult>";
         let mock_me = server.mock(|when, then| {
             when.method(POST);
-            then.status(200).body(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <InitiateMultipartUploadResult>
-            <Bucket>mybucket</Bucket>
-            <Key>mykey</Key>
-            <UploadId>whatever</UploadId>
-         </InitiateMultipartUploadResult>",
-            );
+            then.status(200).body(mock_response);
         });
         let mock_me_put = server.mock(|when, then| {
             when.method(PUT);
@@ -431,17 +423,11 @@ mod tests {
         let sink = AwsSink::new(&config)
             .unwrap()
             .with_url_style(UrlStyle::Path);
+        let mock_response = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><InitiateMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Bucket>mybucket</Bucket><Key>mykey</Key><UploadId>whatever</UploadId></InitiateMultipartUploadResult>";
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
-            then.status(200).body(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <InitiateMultipartUploadResult>
-            <Bucket>mybucket</Bucket>
-            <Key>mykey</Key>
-            <UploadId>whatever</UploadId>
-         </InitiateMultipartUploadResult>",
-            );
+            then.status(200).body(mock_response);
         });
         let creds = sink.decode_creds().unwrap();
         let session = sink.create_upload_session(creds, "test").unwrap();
@@ -475,17 +461,11 @@ mod tests {
         let sink = AwsSink::new(&config)
             .unwrap()
             .with_url_style(UrlStyle::Path);
+        let mock_response = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><InitiateMultipartUploadResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Bucket>mybucket</Bucket><Key>mykey</Key><UploadId>whatever</UploadId></InitiateMultipartUploadResult>";
 
         let mock_me = server.mock(|when, then| {
             when.method(POST);
-            then.status(200).body(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-            <InitiateMultipartUploadResult>
-            <Bucket>mybucket</Bucket>
-            <Key>mykey</Key>
-            <UploadId>whatever</UploadId>
-         </InitiateMultipartUploadResult>",
-            );
+            then.status(200).body(mock_response);
         });
         let mock_me_put = server.mock(|when, then| {
             when.method(PUT);

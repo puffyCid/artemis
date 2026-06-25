@@ -9,7 +9,6 @@ use crate::{
         strings::{extract_ascii_utf16_string, extract_utf8_string, extract_utf16_string},
     },
 };
-use log::warn;
 use nom::{
     bytes::complete::{take, take_while},
     error::ErrorKind,
@@ -18,6 +17,7 @@ use nom::{
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::mem::size_of;
+use tracing::warn;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ClassInfo {
@@ -117,7 +117,7 @@ pub(crate) fn parse_class(data: &[u8]) -> nom::IResult<&[u8], ClassInfo> {
 
     if prop_value_size < adjust_msb {
         warn!(
-            "[wmi] Property value size is too small. Expected MSB to bet set. Got instead: {prop_value_size}"
+            "Property value size is too small. Expected MSB to bet set. Got instead: {prop_value_size}"
         );
         return Err(nom::Err::Failure(nom::error::Error::new(
             input,
@@ -266,7 +266,7 @@ fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
         // CIM strings are ASCII with end of string character
         let (input, string_data) = take_while(|b| b != 0)(input)?;
         let value = extract_utf8_string(string_data);
-        if value.starts_with("[strings] ") {
+        if value.starts_with("Failed to get UTF8 string: ") {
             // May encounter UTF8/ASCII strings Rust does not like
             // Ex: A Microsoft Win32® service that runs its own process or 3½-Inch Floppy Disk
             return Ok((input, extract_ascii_utf16_string(string_data)));
@@ -280,7 +280,7 @@ fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
         return Ok((input, value));
     }
 
-    warn!("[wmi] CIM String is using unknown encoding/raw bytes. Cannot extract.");
+    warn!("CIM String is using unknown encoding/raw bytes. Cannot extract.");
     Ok((input, String::new()))
 }
 
@@ -368,7 +368,7 @@ pub(crate) fn extract_cim_data<'a>(
             remaining = input;
         }
         CimType::Unknown => {
-            warn!("[wmi] Got Unknown CIM Type");
+            warn!("Got Unknown CIM Type");
             cim_value = Value::Null;
             remaining = &[];
         }
@@ -405,7 +405,7 @@ pub(crate) fn extract_cim_data<'a>(
             cim_value = json!(strings);
         }
         CimType::Object => {
-            warn!("[wmi] Got Object CIM Type. This is not supported yet");
+            warn!("Got Object CIM Type. This is not supported yet");
             cim_value = Value::Null;
             remaining = &[];
         }
@@ -498,7 +498,7 @@ pub(crate) fn extract_cim_data<'a>(
             cim_value = json!(strings);
         }
         CimType::ArrayObject => {
-            warn!("[wmi] Got ArrayObject CIM Type. This is not supported yet");
+            warn!("Got ArrayObject CIM Type. This is not supported yet");
             cim_value = Value::Null;
             remaining = &[];
         }
@@ -604,7 +604,7 @@ pub(crate) fn extract_cim_data<'a>(
             cim_value = json!(signed_ints);
         }
         _ => {
-            warn!("[wmi] Unsupported CIM Type: {cim_type:?}");
+            warn!("Unsupported CIM Type: {cim_type:?}");
             let (input, _) = nom_unsigned_four_bytes(remaining_input, Endian::Le)?;
             remaining = input;
             cim_value = Value::Null;

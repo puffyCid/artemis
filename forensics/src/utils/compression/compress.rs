@@ -1,10 +1,10 @@
 use super::error::CompressionError;
 use crate::filesystem::files::file_reader;
-use log::{error, warn};
 use std::{
     fs::File,
     io::{Read, copy},
 };
+use tracing::{error, warn};
 use walkdir::WalkDir;
 use zip::{ZipWriter, write::SimpleFileOptions};
 
@@ -16,7 +16,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
     let zip_file = match zip_file_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[compression] Could not create compressed zip: {err:?}");
+            error!("Could not create compressed zip: {err:?}");
             return Err(CompressionError::CompressCreate);
         }
     };
@@ -26,7 +26,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
         let entry = match entries {
             Ok(result) => result,
             Err(err) => {
-                warn!("[compression] Failed to get output file info: {err:?}");
+                warn!("Failed to get output file info: {err:?}");
                 continue;
             }
         };
@@ -38,12 +38,12 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
         let name = if let Some(result) = name_result {
             result
         } else {
-            warn!("[compression] Failed to get target filename");
+            warn!("Failed to get target filename");
             continue;
         };
 
         if let Err(err) = zip_writer.start_file(name, options) {
-            warn!("[compression] Could not start file to zip: {err:?}");
+            warn!("Could not start file to zip: {err:?}");
             continue;
         }
 
@@ -51,7 +51,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
         let path = if let Some(result) = path_result {
             result
         } else {
-            warn!("[compression] Failed to get target path");
+            warn!("Failed to get target path");
             continue;
         };
 
@@ -61,7 +61,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
         let mut reader = match file_reader(path) {
             Ok(result) => result,
             Err(err) => {
-                warn!("[compression] Could not read file {path}: {err:?}");
+                warn!("Could not read file {path}: {err:?}");
                 continue;
             }
         };
@@ -70,7 +70,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
             let bytes = match reader.read(&mut buf) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[compression] Failed to read all bytes from file: {err:?}");
+                    error!("Failed to read all bytes from file: {err:?}");
                     break;
                 }
             };
@@ -90,7 +90,7 @@ pub(crate) fn compress_output_zip(directory: &str, zip_name: &str) -> Result<(),
     match finish_result {
         Ok(_) => {}
         Err(err) => {
-            warn!("[compression] Could not finish compressing to zip: {err:?}");
+            warn!("Could not finish compressing to zip: {err:?}");
         }
     }
     Ok(())

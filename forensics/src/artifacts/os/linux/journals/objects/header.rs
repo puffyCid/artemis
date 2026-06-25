@@ -2,12 +2,12 @@ use crate::{
     artifacts::os::linux::journals::error::JournalError,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_one_byte},
 };
-use log::error;
 use nom::bytes::complete::take;
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
 };
+use tracing::error;
 
 #[derive(Debug)]
 pub(crate) struct ObjectHeader {
@@ -45,13 +45,13 @@ impl ObjectHeader {
         offset: u64,
     ) -> Result<ObjectHeader, JournalError> {
         if reader.seek(SeekFrom::Start(offset)).is_err() {
-            error!("[journal] Could not seek to object header offset: {offset}");
+            error!("Could not seek to object header offset: {offset}");
             return Err(JournalError::SeekError);
         }
 
         let mut header_buff = [0; 16];
         if reader.read(&mut header_buff).is_err() {
-            error!("[journal] Could not read minimum object header size");
+            error!("Could not read minimum object header size");
             return Err(JournalError::ReadError);
         }
 
@@ -59,7 +59,7 @@ impl ObjectHeader {
         let mut header = match result {
             Ok((_, result)) => result,
             Err(err) => {
-                error!("[journal] Could not parse object header: {err:?}");
+                error!("Could not parse object header: {err:?}");
                 return Err(JournalError::ObjectHeader);
             }
         };
@@ -78,7 +78,7 @@ impl ObjectHeader {
         let mut payload_data: Vec<u8> = vec![0; (header.size - header_meta_size) as usize];
 
         if reader.read(&mut payload_data).is_err() {
-            error!("[journal] Could not read payload datafrom object header");
+            error!("Could not read payload datafrom object header");
             return Err(JournalError::ReadError);
         }
 

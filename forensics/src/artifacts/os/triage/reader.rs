@@ -4,10 +4,10 @@ use crate::{
 };
 use base16ct::lower::encode_str;
 use digest_io::IoWrapper;
-use log::error;
 use md5::{Digest, Md5};
 use ntfs::{NtfsError, NtfsFile, NtfsReadSeek};
 use std::io::{BufReader, Error, ErrorKind, Read, Write, copy};
+use tracing::error;
 use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
 pub(crate) struct TriageReader<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write>
@@ -30,7 +30,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
-            error!("[triage] Failed to start file read into zip: {err:?}");
+            error!("Failed to start file read into zip: {err:?}");
             return Err(TriageError::StartZip);
         }
 
@@ -39,7 +39,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             let bytes = match self.fs.as_mut().unwrap().read(&mut buf) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[triage] Failed to read all bytes from file: {err:?}");
+                    error!("Failed to read all bytes from file: {err:?}");
                     return Err(TriageError::ReadFile);
                 }
             };
@@ -87,7 +87,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
-            error!("[triage] Failed to start file read into zip: {err:?}");
+            error!("Failed to start file read into zip: {err:?}");
             return Err(NtfsError::Io(Error::new(
                 ErrorKind::InvalidData,
                 "Failed to start zip writer",
@@ -99,7 +99,7 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
             let bytes = match data_reader.read(fs, &mut buf) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("[triage] Failed to read all bytes from file: {err:?}");
+                    error!("Failed to read all bytes from file: {err:?}");
                     return Err(NtfsError::Io(Error::new(
                         ErrorKind::InvalidData,
                         "Failed to read all data",
@@ -132,14 +132,14 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let method = CompressionMethod::DEFLATE;
         let options = SimpleFileOptions::default().compression_method(method);
         if let Err(err) = self.zip.start_file_from_path(entry_path, options) {
-            error!("[triage] Failed to start ads read into zip: {err:?}");
+            error!("Failed to start ads read into zip: {err:?}");
             return Err(TriageError::StartZip);
         }
 
         let bytes = match read_attribute(&self.path, attribute) {
             Ok(result) => result,
             Err(err) => {
-                error!("[triage] Failed to read ads: {err:?}");
+                error!("Failed to read ads: {err:?}");
                 return Err(TriageError::ReadFile);
             }
         };
@@ -160,11 +160,11 @@ impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> Triage
         let options = SimpleFileOptions::default().compression_method(method);
         let filename = "acquisition_report.json";
         if let Err(err) = self.zip.start_file_from_path(filename, options) {
-            error!("[triage] Failed to start report into zip: {err:?}");
+            error!("Failed to start report into zip: {err:?}");
             return Err(TriageError::StartZip);
         }
         if let Err(err) = self.zip.write_all(report) {
-            error!("[triage] Failed to write report into zip: {err:?}");
+            error!("Failed to write report into zip: {err:?}");
             return Err(TriageError::WriteReport);
         };
 

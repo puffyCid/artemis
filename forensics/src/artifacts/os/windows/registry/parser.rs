@@ -31,9 +31,9 @@ use crate::{
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
 use common::windows::RegistryData;
-use log::error;
 use regex::Regex;
 use std::collections::HashMap;
+use tracing::error;
 
 /// Parameters used for determining what `Registry` data to return
 pub(crate) struct Params {
@@ -69,7 +69,7 @@ pub(crate) fn parse_registry(
     let drive = match drive_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("[registry] Could not get systemdrive");
+            error!("Could not get systemdrive");
             return Err(RegistryError::SystemDrive);
         }
     };
@@ -91,7 +91,7 @@ fn user_regex(input: &str) -> Result<Regex, RegistryError> {
     match reg_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[registry] Bad regex: {input}, error: {err:?}");
+            error!("Bad regex: {input}, error: {err:?}");
             Err(RegistryError::Regex)
         }
     }
@@ -118,7 +118,7 @@ fn parse_default_system_hives(
             Ok(_) => {}
             Err(err) => {
                 error!(
-                    "[registry] Could not parse System Registry file: {}, error: {err:?}",
+                    "Could not parse System Registry file: {}, error: {err:?}",
                     params.registry_path
                 );
             }
@@ -138,10 +138,7 @@ fn parse_registry_file(
     let entries = match reg_results {
         Ok((_, results)) => results,
         Err(_err) => {
-            error!(
-                "[registry] Failed to parse Registry file: {}",
-                params.registry_path
-            );
+            error!("Failed to parse Registry file: {}", params.registry_path);
             return Err(RegistryError::Parser);
         }
     };
@@ -151,7 +148,7 @@ fn parse_registry_file(
         Ok(result) => result,
         Err(err) => {
             error!(
-                "[registry] Failed to serialize Registry file {}: {err:?}",
+                "Failed to serialize Registry file {}: {err:?}",
                 params.registry_path
             );
             return Err(RegistryError::Serialize);
@@ -159,7 +156,7 @@ fn parse_registry_file(
     };
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!(
-            "[registry] Failed to output data for {}, error: {err:?}",
+            "Failed to output data for {}, error: {err:?}",
             params.registry_path
         );
         return Err(RegistryError::Output);
@@ -179,7 +176,7 @@ fn parse_user_hives(
     let user_hives = match user_hives_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[registry] Failed to get user registry files: {err:?}");
+            error!("Failed to get user registry files: {err:?}");
             return Err(RegistryError::GetUserHives);
         }
     };
@@ -187,7 +184,7 @@ fn parse_user_hives(
     let mut ntfs_parser = match ntfs_parser_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[registry] Could not setup NTFS parser: {err:?}");
+            error!("Could not setup NTFS parser: {err:?}");
             return Err(RegistryError::NtfsSetup);
         }
     };
@@ -199,7 +196,7 @@ fn parse_user_hives(
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[registry] Failed to read Registry file: {}, error: {err:?}",
+                    "Failed to read Registry file: {}, error: {err:?}",
                     path.full_path
                 );
                 continue;
@@ -212,10 +209,7 @@ fn parse_user_hives(
         let entries = match reg_results {
             Ok((_, results)) => results,
             Err(_err) => {
-                error!(
-                    "[registry] Failed to parse Registry file: {}",
-                    params.registry_path
-                );
+                error!("Failed to parse Registry file: {}", params.registry_path);
                 continue;
             }
         };
@@ -225,7 +219,7 @@ fn parse_user_hives(
             Ok(result) => result,
             Err(err) => {
                 error!(
-                    "[registry] Failed to serialize Registry file {}: {err:?}",
+                    "Failed to serialize Registry file {}: {err:?}",
                     params.registry_path
                 );
                 continue;
@@ -233,7 +227,7 @@ fn parse_user_hives(
         };
         if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
             error!(
-                "[registry] Failed to output data for {}, error: {err:?}",
+                "Failed to output data for {}, error: {err:?}",
                 params.registry_path
             );
         }

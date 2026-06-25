@@ -22,7 +22,7 @@ use crate::{
     utils::environment::get_systemdrive,
 };
 use common::windows::UsnJrnlEntry;
-use log::error;
+use tracing::error;
 
 /// Parse `UsnJrnl` data and return list of entries
 pub(crate) fn grab_usnjrnl(
@@ -39,7 +39,7 @@ pub(crate) fn grab_usnjrnl(
     let systemdrive = match systemdrive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Could not get systemdrive: {err:?}");
+            error!("Could not get systemdrive: {err:?}");
             return Err(UsnJrnlError::SystemDrive);
         }
     };
@@ -66,7 +66,7 @@ pub(crate) fn grab_usnjrnl_path(
     let systemdrive = match systemdrive_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[usnjrnl] Could not get systemdrive: {err:?}");
+            error!("Could not get systemdrive: {err:?}");
             return Err(UsnJrnlError::SystemDrive);
         }
     };

@@ -5,8 +5,8 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use log::warn;
 use nom::{Needed, bytes::complete::take};
+use tracing::warn;
 
 /// Grab and return string from stringtable based on the parsed stringref value
 pub(crate) fn parse_stringref<'a>(
@@ -17,7 +17,7 @@ pub(crate) fn parse_stringref<'a>(
 
     // Offset is based on offset of the stringtable list
     if offset as usize > stringtable_data.len() {
-        warn!("[shimdb] String ref offset larger than stringtable. Cannot do string lookups");
+        warn!("String ref offset larger than stringtable. Cannot do string lookups");
         return Ok((input, format!("Offset too large for stringtable: {offset}")));
     }
 
@@ -31,7 +31,7 @@ pub(crate) fn parse_stringref<'a>(
     // We should now be at the start of the STRING tag associated with the stringref
     let (string_entry, (tag, tag_value)) = get_tag(string_entry)?;
     if tag != Tags::String {
-        warn!("[shimdb] Stringtable contained a tag other than STRING. Cannot do string lookups");
+        warn!("Stringtable contained a tag other than STRING. Cannot do string lookups");
         return Ok((
             input,
             format!("Incorrect tag value in stringtable: {tag_value}"),
@@ -41,7 +41,7 @@ pub(crate) fn parse_stringref<'a>(
     let (string_entry, string_size) = nom_unsigned_four_bytes(string_entry, Endian::Le)?;
 
     if string_size as usize > string_entry.len() {
-        warn!("[shimdb] String size larger than stringtable. Cannot do string lookups");
+        warn!("String size larger than stringtable. Cannot do string lookups");
         return Ok((
             input,
             format!(

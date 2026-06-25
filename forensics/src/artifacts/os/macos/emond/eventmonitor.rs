@@ -15,8 +15,8 @@ use crate::{
     filesystem::{files::list_files, metadata},
 };
 use common::macos::{Actions, EmondData};
-use log::{error, warn};
 use plist::Value;
+use tracing::{error, warn};
 
 /// Parse all Emond rules files at provided path
 pub(crate) fn parse_emond_rules(path: &str) -> Result<Vec<EmondData>, PlistError> {
@@ -24,7 +24,7 @@ pub(crate) fn parse_emond_rules(path: &str) -> Result<Vec<EmondData>, PlistError
     let rules = match rules_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[emond] Failed to read Emond rules directory {path}: {err:?}");
+            error!("Failed to read Emond rules directory {path}: {err:?}");
             return Err(PlistError::File);
         }
     };
@@ -34,7 +34,7 @@ pub(crate) fn parse_emond_rules(path: &str) -> Result<Vec<EmondData>, PlistError
         let mut emond_data = match emond_data_results {
             Ok(results) => results,
             Err(err) => {
-                error!("[emond] Failed to parse Emond file: {rule}. Error: {err:?}");
+                error!("Failed to parse Emond file: {rule}. Error: {err:?}");
                 continue;
             }
         };
@@ -50,7 +50,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
     let emond_plist = match emond_plist_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[emond] Failed to parse Emond PLIST Rule: {err:?}");
+            error!("Failed to parse Emond PLIST Rule: {err:?}");
             return Err(PlistError::File);
         }
     };
@@ -109,7 +109,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
                         let actions = match actions_results {
                             Ok(results) => results,
                             Err(err) => {
-                                warn!("[emond] Failed to parse Emond Action data: {err:?}");
+                                warn!("Failed to parse Emond Action data: {err:?}");
                                 continue;
                             }
                         };
@@ -120,7 +120,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
                         emond_data.send_notification_actions = actions.send_notification;
                         emond_data.send_sms_actions = actions.send_sms_action;
                     } else {
-                        warn!("[emond] Unknown key ({key}) in Emond Rule. Value: {value:?}");
+                        warn!("Unknown key ({key}) in Emond Rule. Value: {value:?}");
                     }
                 }
             }
@@ -129,7 +129,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
         emond_data.emond_clients_enabled = check_clients();
         emond_data_vec.push(emond_data);
     } else {
-        warn!("[emond] Failed to get Emond Rule Array value");
+        warn!("Failed to get Emond Rule Array value");
         return Err(PlistError::Array);
     }
 
@@ -146,7 +146,7 @@ fn parse_event_types(value: &Value) -> Result<Vec<String>, PlistError> {
         }
         Ok(event_types_vec)
     } else {
-        error!("[emond] Failed to parse Emond Event Types");
+        error!("Failed to parse Emond Event Types");
         Err(PlistError::String)
     }
 }
@@ -164,7 +164,7 @@ fn parse_actions(value: &Value) -> Result<Actions, PlistError> {
     let value_array = if let Some(results) = value.as_array() {
         results
     } else {
-        error!("[emond] Failed to parse Action array");
+        error!("Failed to parse Action array");
         return Err(PlistError::Array);
     };
 
@@ -172,7 +172,7 @@ fn parse_actions(value: &Value) -> Result<Actions, PlistError> {
         let action_dictionary = if let Some(results) = value_data.as_dictionary() {
             results
         } else {
-            error!("[emond] Failed to parse Action Dictionary");
+            error!("Failed to parse Action Dictionary");
             return Err(PlistError::Dictionary);
         };
 
@@ -199,7 +199,7 @@ fn parse_actions(value: &Value) -> Result<Actions, PlistError> {
                     let notification_data = parse_action_send_notification(action_dictionary);
                     emond_actions.send_notification.push(notification_data);
                 }
-                _ => warn!("[emond] Unknown Action Type: {action_type}"),
+                _ => warn!("Unknown Action Type: {action_type}"),
             }
         }
     }
@@ -214,7 +214,7 @@ fn check_clients() -> bool {
     let clients = match clients_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[emond] Failed to read Emond clients directory: {err:?}");
+            error!("Failed to read Emond clients directory: {err:?}");
             return false;
         }
     };

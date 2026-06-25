@@ -7,9 +7,9 @@ use crate::{
     artifacts::os::macos::spotlight::error::SpotlightError,
     filesystem::{files::read_file, metadata::GlobInfo},
 };
-use log::error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::error;
 
 #[derive(Deserialize, Serialize)]
 pub(crate) struct SpotlightMeta {
@@ -50,10 +50,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
             match prop_results {
                 Ok((_, results)) => meta.props = results,
                 Err(_err) => {
-                    error!(
-                        "[spotlight] Could not parse dbstr property: {}",
-                        path.full_path
-                    );
+                    error!("Could not parse dbstr property: {}", path.full_path);
                     return Err(SpotlightError::Property);
                 }
             }
@@ -64,10 +61,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
             match cat_results {
                 Ok((_, results)) => meta.categories = results,
                 Err(_err) => {
-                    error!(
-                        "[spotlight] Could not parse dbstr category: {}",
-                        path.full_path
-                    );
+                    error!("Could not parse dbstr category: {}", path.full_path);
                     return Err(SpotlightError::Category);
                 }
             }
@@ -78,10 +72,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
             match indexes_results {
                 Ok((_, results)) => meta.indexes1 = results,
                 Err(_err) => {
-                    error!(
-                        "[spotlight] Could not parse dbstr indexes1: {}",
-                        path.full_path
-                    );
+                    error!("Could not parse dbstr indexes1: {}", path.full_path);
                     return Err(SpotlightError::Indexes1);
                 }
             }
@@ -92,10 +83,7 @@ pub(crate) fn get_spotlight_meta(paths: &[GlobInfo]) -> Result<SpotlightMeta, Sp
             match indexes_results {
                 Ok((_, results)) => meta.indexes2 = results,
                 Err(_err) => {
-                    error!(
-                        "[spotlight] Could not parse dbstr indexes2: {}",
-                        path.full_path
-                    );
+                    error!("Could not parse dbstr indexes2: {}", path.full_path);
                     return Err(SpotlightError::Indexes2);
                 }
             }
@@ -111,7 +99,7 @@ fn read_dbstr(path: &str) -> Result<Vec<u8>, SpotlightError> {
     let data = match data_results {
         Ok(results) => results,
         Err(err) => {
-            error!("[spotlight] Could not read dbstr file {path}: {err:?}");
+            error!("Could not read dbstr file {path}: {err:?}");
             return Err(SpotlightError::ReadFile);
         }
     };

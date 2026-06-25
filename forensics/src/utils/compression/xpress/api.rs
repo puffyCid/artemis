@@ -1,9 +1,9 @@
 use crate::utils::compression::{decompress::XpressType, error::CompressionError};
-use log::error;
 use ntapi::{
     ntrtl::{RtlDecompressBufferEx, RtlGetCompressionWorkSpaceSize},
     winapi::um::winnt::PVOID,
 };
+use tracing::error;
 
 /// Decompress LZXPRESS HUFFMAN using Windows API
 pub(crate) fn decompress_huffman_api(
@@ -35,7 +35,7 @@ pub(crate) fn decompress_huffman_api(
             &mut frag_workspace_size,
         );
         if status != success {
-            error!("[compression] Failed to get lzxpress huffmane workspace size: {status}");
+            error!("Failed to get lzxpress huffmane workspace size: {status}");
             return Err(CompressionError::HuffmanCompression);
         }
 
@@ -43,7 +43,7 @@ pub(crate) fn decompress_huffman_api(
         let frag_size: usize = match frag_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[compression] Failed to get fragment workspace size data: {err:?}");
+                error!("Failed to get fragment workspace size data: {err:?}");
                 return Err(CompressionError::HuffmanCompression);
             }
         };
@@ -61,7 +61,7 @@ pub(crate) fn decompress_huffman_api(
                 .cast::<ntapi::winapi::ctypes::c_void>(),
         );
         if status != success {
-            error!("[compression] Failed to decompress data: {status}");
+            error!("Failed to decompress data: {status}");
             return Err(CompressionError::HuffmanCompression);
         }
         decompress_data.set_len(decom_size as usize);

@@ -4,9 +4,9 @@ use super::{
 };
 use crate::{filesystem::files::read_file, utils::error::ArtemisError};
 use base64::{DecodeError, Engine, engine::general_purpose};
-use log::error;
 use std::collections::HashMap;
 use sunlight::light::{ProtoTag, extract_protobuf};
+use tracing::error;
 
 /// Base64 encode data using the STANDARD engine (alphabet along with "+" and "/")
 pub(crate) fn base64_encode_standard(data: &[u8]) -> String {
@@ -24,7 +24,7 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not read XML file at {path}: {err:?}");
+            error!("Could not read XML file at {path}: {err:?}");
             return Err(ArtemisError::ReadXml);
         }
     };
@@ -33,7 +33,7 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
     let (data, utf_status) = match utf_check {
         Ok(result) => result,
         Err(_err) => {
-            error!("[forensics] Could not determine UTF encoding for XML {path}");
+            error!("Could not determine UTF encoding for XML {path}");
             return Err(ArtemisError::UtfType);
         }
     };
@@ -55,7 +55,7 @@ pub(crate) fn parse_protobuf(data: &[u8]) -> Result<HashMap<usize, ProtoTag>, Ar
     let result = match extract_protobuf(data) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Could not parse protobuf: {err:?}");
+            error!("Could not parse protobuf: {err:?}");
             return Err(ArtemisError::Protobuf);
         }
     };

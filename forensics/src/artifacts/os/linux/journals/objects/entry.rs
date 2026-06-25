@@ -3,8 +3,8 @@ use crate::artifacts::os::linux::journals::objects::data::DataObject;
 use crate::utils::nom_helper::{
     Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes,
 };
-use log::{error, warn};
 use std::fs::File;
+use tracing::{error, warn};
 
 #[derive(Debug)]
 pub(crate) struct Entry {
@@ -56,13 +56,13 @@ impl Entry {
             let object_header = match object_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!["[journal] Could not parse object header for data object: {err:?}"];
+                    error!["Could not parse object header for data object: {err:?}"];
                     continue;
                 }
             };
 
             if object_header.obj_type != ObjectType::Data {
-                warn!("[journal] Did not get Data object type!");
+                warn!("Did not get Data object type!");
                 continue;
             }
 
@@ -74,7 +74,7 @@ impl Entry {
             let data_object = match data_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[journal] Could not parse data object");
+                    error!("Could not parse data object");
                     continue;
                 }
             };

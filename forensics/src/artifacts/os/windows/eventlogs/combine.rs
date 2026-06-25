@@ -4,10 +4,10 @@ use super::{
     strings::StringResource,
 };
 use common::windows::{EventLevel, EventLogRecord, EventMessage};
-use log::{error, warn};
 use regex::Regex;
 use serde_json::{Map, Number, Value};
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 /// Combine raw `EventLog` data with template strings
 pub(crate) fn add_message_strings(
@@ -538,7 +538,7 @@ fn get_provider(data: &Value) -> Option<&str> {
         return provider.as_str();
     }
 
-    error!("[eventlogs] Provider is not a string: {provider:?}",);
+    error!("Provider is not a string: {provider:?}",);
     None
 }
 
@@ -560,7 +560,7 @@ fn get_guid(data: &Value) -> Option<&str> {
         return guid.as_str();
     }
 
-    error!("[eventlogs] Guid is not a string: {guid:?}",);
+    error!("Guid is not a string: {guid:?}",);
     None
 }
 
@@ -643,7 +643,7 @@ fn merge_strings(
 
         let num_result = param.get(1..)?.parse();
         if let Err(status) = num_result {
-            error!("[eventlogs] Could not get parameter for log message: {status:?}");
+            error!("Could not get parameter for log message: {status:?}");
             continue;
         }
         let param_num = num_result.unwrap_or(0);
@@ -756,7 +756,7 @@ fn add_event_string(
     */
     if value.as_str().is_some_and(|s| s.starts_with("%%")) {
         if parameter_message.is_empty() {
-            warn!("[eventlogs] Got parameter message id {value:?} but no parameter message table");
+            warn!("Got parameter message id {value:?} but no parameter message table");
             return Some(message);
         }
 
@@ -772,9 +772,7 @@ fn add_event_string(
 
             let num_result = match_value.get(2..)?.parse();
             if let Err(status) = num_result {
-                warn!(
-                    "[eventlogs] Could not get parameter message id: {status:?}. Value: {value:?}"
-                );
+                warn!("Could not get parameter message id: {status:?}. Value: {value:?}");
                 return Some(message);
             }
             let param_message_id: u32 = num_result.unwrap_or_default();
@@ -897,7 +895,7 @@ fn merge_strings_message_table(
 
         let num_result = param.get(1..)?.parse();
         if let Err(status) = num_result {
-            error!("[eventlogs] Could not get parameter for log message: {status:?}");
+            error!("Could not get parameter for log message: {status:?}");
             continue;
         }
 

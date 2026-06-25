@@ -9,11 +9,11 @@ use crate::{
     },
 };
 use common::{outlook::PropertyName, windows::PropertyContext};
-use log::{error, warn};
 use nom::bytes::complete::take;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
+use tracing::{error, warn};
 
 /// Parse and get the Name ID to Map data
 pub(crate) fn extract_name_id_map(
@@ -41,7 +41,7 @@ pub(crate) fn extract_name_id_map(
         let bytes = match bytes_result {
             Ok(result) => result,
             Err(err) => {
-                error!("[outlook] Could not base64 name-id-map property data: {err:?}");
+                error!("Could not base64 name-id-map property data: {err:?}");
                 return Err(OutlookError::Base64Property);
             }
         };
@@ -51,7 +51,7 @@ pub(crate) fn extract_name_id_map(
             guids = match guid_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Failed to parse name-id-map GUIDs data");
+                    error!("Failed to parse name-id-map GUIDs data");
                     return Err(OutlookError::NameIdMap);
                 }
             };
@@ -62,7 +62,7 @@ pub(crate) fn extract_name_id_map(
             entries = match result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[outlook] Could not extract entries from NameMapID");
+                    error!("Could not extract entries from NameMapID");
                     return Err(OutlookError::NameIdMap);
                 }
             };
@@ -80,7 +80,7 @@ pub(crate) fn extract_name_id_map(
             let name = match string_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    warn!("[outlook] Could not extract NameIdMap string for: {entry:?}");
+                    warn!("Could not extract NameIdMap string for: {entry:?}");
                     String::from("Failed to extract string for NameIdMap")
                 }
             };

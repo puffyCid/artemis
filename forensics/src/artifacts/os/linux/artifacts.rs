@@ -5,7 +5,7 @@ use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::linux::{
     Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
 };
-use log::{error, warn};
+use tracing::{error, warn};
 
 use super::sudo::logs::grab_sudo_logs;
 use super::{journals::parser::grab_journal, logons::parser::grab_logons};
@@ -16,7 +16,7 @@ pub(crate) fn journals(
     options: &JournalOptions,
 ) -> Result<(), LinuxArtifactError> {
     if let Err(err) = grab_journal(manager, options) {
-        error!("[forensics] Failed to get journals: {err:?}");
+        error!("Failed to get journals: {err:?}");
         return Err(LinuxArtifactError::Journal);
     }
 
@@ -36,14 +36,14 @@ pub(crate) fn logons(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize logons: {err:?}");
+            error!("Failed to serialize logons: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
 
     let artifact_name = "logons";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output logons: {err:?}");
+        error!("Failed to output logons: {err:?}");
         return Err(LinuxArtifactError::Output);
     }
 
@@ -59,7 +59,7 @@ pub(crate) fn sudo_logs_linux(
     let entries = match sudo_results {
         Ok(results) => results,
         Err(err) => {
-            warn!("[forensics] Failed to get sudo log data: {err:?}");
+            warn!("Failed to get sudo log data: {err:?}");
             return Err(LinuxArtifactError::SudoLog);
         }
     };
@@ -70,14 +70,14 @@ pub(crate) fn sudo_logs_linux(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("[forensics] Failed to serialize sudo log data: {err:?}");
+            error!("Failed to serialize sudo log data: {err:?}");
             return Err(LinuxArtifactError::Serialize);
         }
     };
 
     let artifact_name = "sudologs-linux";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("[forensics] Failed to output sudologs-linux: {err:?}");
+        error!("Failed to output sudologs-linux: {err:?}");
         return Err(LinuxArtifactError::Output);
     }
 
@@ -90,7 +90,7 @@ pub(crate) fn ext4_filelist(
     options: &Ext4Options,
 ) -> Result<(), LinuxArtifactError> {
     if let Err(err) = ext4_filelisting(options, manager) {
-        error!("[forensics] Failed to get ext4 filelisting: {err:?}");
+        error!("Failed to get ext4 filelisting: {err:?}");
         return Err(LinuxArtifactError::Ext4);
     }
 

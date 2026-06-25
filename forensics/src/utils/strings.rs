@@ -1,6 +1,6 @@
 use crate::utils::encoding::base64_encode_standard;
-use log::warn;
 use std::string::{FromUtf8Error, FromUtf16Error};
+use tracing::warn;
 
 /// Get a UTF16 string from provided bytes data. Will attempt to fix malformed UTF16. Such as UTF16 missing zeros
 pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
@@ -15,13 +15,10 @@ pub(crate) fn extract_utf16_string(data: &[u8]) -> String {
                 Err(err) => {
                     let max_size = 100;
                     let issue = if data.len() < max_size {
-                        warn!("[strings] Failed to get UTF16 string: {err:?}");
+                        warn!("Failed to get UTF16 string: {err:?}");
                         base64_encode_standard(data)
                     } else {
-                        warn!(
-                            "[strings] Failed to get large UTF16 string: {} bytes",
-                            data.len()
-                        );
+                        warn!("Failed to get large UTF16 string: {} bytes", data.len());
                         let preview = &data[0..50];
                         format!("String size: {} bytes. Preview: {preview:?}", data.len())
                     };
@@ -96,11 +93,11 @@ pub(crate) fn extract_multiline_utf16_string(data: &[u8]) -> String {
                 Err(err) => {
                     let max_size = 100;
                     let issue = if data.len() < max_size {
-                        warn!("[strings] Failed to get UTF16 multi-line string: {err:?}");
+                        warn!("Failed to get UTF16 multi-line string: {err:?}");
                         base64_encode_standard(data)
                     } else {
                         warn!(
-                            "[strings] Failed to get large UTF16 multi-line string: {} bytes",
+                            "Failed to get large UTF16 multi-line string: {} bytes",
                             data.len()
                         );
                         let preview = &data[0..50];
@@ -127,17 +124,14 @@ pub(crate) fn extract_utf8_string(data: &[u8]) -> String {
         Err(err) => {
             let max_size = 100;
             let issue = if data.len() < max_size {
-                warn!("[strings] Failed to get UTF8 string: {err:?}");
+                warn!("Failed to get UTF8 string: {err:?}");
                 base64_encode_standard(data)
             } else {
-                warn!(
-                    "[strings] Failed to get large UTF8 string: {} bytes",
-                    data.len()
-                );
+                warn!("Failed to get large UTF8 string: {} bytes", data.len());
                 let preview = &data[0..50];
                 format!("String size: {} bytes. Preview: {preview:?}", data.len())
             };
-            format!("[strings] Failed to get UTF8 string: {issue}")
+            format!("Failed to get UTF8 string: {issue}")
         }
     }
 }
@@ -343,7 +337,7 @@ mod tests {
 
         assert_eq!(
             extract_utf8_string(&test),
-            "[strings] Failed to get UTF8 string: MicrosoftCorporationOneMicrosoftWayRedmondWA9805"
+            "Failed to get UTF8 string: MicrosoftCorporationOneMicrosoftWayRedmondWA9805"
         );
     }
 

@@ -1,8 +1,8 @@
 use super::error::CollectError;
 use crate::{enrollment::enroll::bad_request, start::DaemonConfig};
-use log::{error, info};
 use reqwest::{StatusCode, blocking::Client};
 use serde::{Deserialize, Serialize};
+use tracing::{error, info};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct CollectResponse {
@@ -75,30 +75,30 @@ impl CollectEndpoint for DaemonConfig {
         let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to send request for collection: {err:?}");
+                error!("Failed to send request for collection: {err:?}");
                 return Err(CollectError::FailedCollect);
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
             let message = bad_request(&res.bytes().unwrap_or_default());
-            error!("[daemon] Collection request was bad: {}", message.message);
+            error!("Collection request was bad: {}", message.message);
             return Err(CollectError::BadCollect);
         }
 
         if res.status() == StatusCode::NO_CONTENT {
-            info!("[daemon] No collection content from server");
+            info!("No collection content from server");
             return Err(CollectError::NoCollection);
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok collection response");
+            error!("Got non-Ok collection response");
             return Err(CollectError::CollectNotOk);
         }
 
         let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to get collection bytes: {err:?}");
+                error!("Failed to get collection bytes: {err:?}");
                 return Err(CollectError::FailedCollect);
             }
         };
@@ -106,7 +106,7 @@ impl CollectEndpoint for DaemonConfig {
         let collect_toml: CollectResponse = match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to serialize collect response: {err:?}");
+                error!("Failed to serialize collect response: {err:?}");
                 return Err(CollectError::FailedCollect);
             }
         };
@@ -143,28 +143,25 @@ impl CollectEndpoint for DaemonConfig {
         let res = match builder.send() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to send request for collection status: {err:?}");
+                error!("Failed to send request for collection status: {err:?}");
                 return Err(CollectError::FailedCollect);
             }
         };
         if res.status() == StatusCode::BAD_REQUEST {
             let message = bad_request(&res.bytes().unwrap_or_default());
-            error!(
-                "[daemon] Collection status request was bad: {}",
-                message.message
-            );
+            error!("Collection status request was bad: {}", message.message);
             return Err(CollectError::BadCollect);
         }
 
         if res.status() != StatusCode::OK {
-            error!("[daemon] Got non-Ok collection status response");
+            error!("Got non-Ok collection status response");
             return Err(CollectError::CollectNotOk);
         }
 
         let bytes = match res.bytes() {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to get collection status bytes: {err:?}");
+                error!("Failed to get collection status bytes: {err:?}");
                 return Err(CollectError::FailedCollect);
             }
         };
@@ -172,7 +169,7 @@ impl CollectEndpoint for DaemonConfig {
         let collect_toml: CompleteResponse = match serde_json::from_slice(&bytes) {
             Ok(result) => result,
             Err(err) => {
-                error!("[daemon] Failed to serialize collect status response: {err:?}");
+                error!("Failed to serialize collect status response: {err:?}");
                 return Err(CollectError::FailedCollect);
             }
         };

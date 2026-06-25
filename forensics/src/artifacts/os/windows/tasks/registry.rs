@@ -10,8 +10,8 @@ use crate::{
     },
 };
 use common::windows::TaskCache;
-use log::error;
 use std::collections::HashMap;
+use tracing::error;
 
 #[derive(Debug)]
 struct TaskTree {
@@ -29,7 +29,7 @@ pub(crate) fn cache_info(drive: char) -> Result<HashMap<String, TaskCache>, Task
     let reg_paths = match get_registry_keys("ROOT", &patter, &registry_file) {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Could not read Registry {err:?}");
+            error!("Could not read Registry {err:?}");
             return Err(TaskError::Registry);
         }
     };
@@ -102,7 +102,7 @@ fn extract_dynamic_info(value: &str) -> Result<DynamicInfo, TaskError> {
     let bytes = match base64_decode_standard(value) {
         Ok(result) => result,
         Err(err) => {
-            error!("[tasks] Failed to decode dynamic info: {err:?}");
+            error!("Failed to decode dynamic info: {err:?}");
             return Err(TaskError::Registry);
         }
     };
@@ -110,7 +110,7 @@ fn extract_dynamic_info(value: &str) -> Result<DynamicInfo, TaskError> {
     let info = match parse_dynamic_info(&bytes) {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("[tasks] Failed to parse dynamic info: {err:?}");
+            error!("Failed to parse dynamic info: {err:?}");
             return Err(TaskError::Registry);
         }
     };

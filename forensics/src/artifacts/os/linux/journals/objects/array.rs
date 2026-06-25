@@ -11,8 +11,8 @@ use crate::{
     },
 };
 use common::linux::{Facility, Journal, Priority};
-use log::{error, warn};
 use std::fs::File;
+use tracing::{error, warn};
 
 #[derive(Debug)]
 pub(crate) struct EntryArray {
@@ -58,14 +58,14 @@ impl EntryArray {
             let object_header = match object_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!["[journal] Could not parse object header for entry in array: {err:?}"];
+                    error!["Could not parse object header for entry in array: {err:?}"];
                     continue;
                 }
             };
 
             if object_header.obj_type != ObjectType::Entry {
                 warn!(
-                    "[journal] Did not get Entry object type, received: {:?}",
+                    "Did not get Entry object type, received: {:?}",
                     object_header.obj_type
                 );
                 continue;
@@ -76,7 +76,7 @@ impl EntryArray {
             let entry = match entry_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[journal] Could not parse log entry data for {evidence}");
+                    error!("Could not parse log entry data for {evidence}");
                     continue;
                 }
             };
@@ -90,14 +90,14 @@ impl EntryArray {
                 let mut records = match serialize_records_to_stream(entries) {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("[journal] Failed to serialize journal data: {err:?}");
+                        error!("Failed to serialize journal data: {err:?}");
                         continue;
                     }
                 };
 
                 let artifact_name = "journal";
                 if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-                    error!("[forensics] Failed to output journal: {err:?}");
+                    error!("Failed to output journal: {err:?}");
                 }
                 // Now empty the vec
                 entry_array.entries = Vec::new();
@@ -113,14 +113,14 @@ impl EntryArray {
         let mut records = match serialize_records_to_stream(entries) {
             Ok(result) => result,
             Err(err) => {
-                error!("[journal] Failed to serialize last journal data: {err:?}");
+                error!("Failed to serialize last journal data: {err:?}");
                 return Ok((input, entry_array.next_entry_array_offset));
             }
         };
 
         let artifact_name = "journal";
         if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-            error!("[forensics] Failed to output journal: {err:?}");
+            error!("Failed to output journal: {err:?}");
         }
         Ok((input, entry_array.next_entry_array_offset))
     }
@@ -156,14 +156,14 @@ impl EntryArray {
             let object_header = match object_result {
                 Ok(result) => result,
                 Err(err) => {
-                    error!["[journal] Could not parse object header for entry in array: {err:?}"];
+                    error!["Could not parse object header for entry in array: {err:?}"];
                     continue;
                 }
             };
 
             if object_header.obj_type != ObjectType::Entry {
                 warn!(
-                    "[journal] Did not get Entry object type, received: {:?}",
+                    "Did not get Entry object type, received: {:?}",
                     object_header.obj_type
                 );
                 continue;
@@ -173,7 +173,7 @@ impl EntryArray {
             let entry = match entry_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("[journal] Could not parse entry data");
+                    error!("Could not parse entry data");
                     continue;
                 }
             };
@@ -342,7 +342,7 @@ impl EntryArray {
                         .insert(field.to_string(), field_data.to_string());
                 } else {
                     warn!(
-                        "[journal] Message missing '=' delimiter for entry at {evidence}:seqnum - {}",
+                        "Message missing '=' delimiter for entry at {evidence}:seqnum - {}",
                         entry.seqnum
                     );
                     // Possible binary blob?
