@@ -34,7 +34,7 @@ impl LoggingEndpoint for DaemonConfig {
             self.server.server.version,
             self.server.server.logging
         );
-        let log_path = format!("{}/daemon.log", self.server.log_path);
+        let log_path = format!("{}/daemon.jsonl", self.server.log_path);
         let mut lines = read_log(&log_path)?;
 
         let client = Client::new();
@@ -137,7 +137,7 @@ impl LoggingEndpoint for DaemonConfig {
     }
 }
 
-/// Read the daemon.log file
+/// Read the daemon.jsonl file
 fn read_log(path: &str) -> Result<Lines<BufReader<File>>, LoggingError> {
     let reader = match File::open(path) {
         Ok(result) => result,
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "ClearLog")]
     fn test_clear_log() {
-        clear_log("./tmp/artemis/asdfasf/daemon.log").unwrap();
+        clear_log("./tmp/artemis/asdfasf/daemon.jsonl").unwrap();
     }
 
     #[test]
