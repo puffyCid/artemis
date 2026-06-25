@@ -125,7 +125,7 @@ impl DataObject {
         // However raw binary blobs have been observed
         // Ex: COREDUMP_PROC_AUXV
         // Before returning base64 blob. Try one last time to extract at the message key
-        if message.starts_with("[strings] Failed to get UTF8 string: ") {
+        if message.starts_with("Failed to get UTF8 string: ") {
             // "="
             let delimiter = [61];
             let (remaining_input, key_bytes) = take_until(delimiter.as_slice())(input)?;

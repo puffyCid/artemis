@@ -266,7 +266,7 @@ fn extract_cim_string(data: &[u8]) -> nom::IResult<&[u8], String> {
         // CIM strings are ASCII with end of string character
         let (input, string_data) = take_while(|b| b != 0)(input)?;
         let value = extract_utf8_string(string_data);
-        if value.starts_with("[strings] ") {
+        if value.starts_with("Failed to get UTF8 string: ") {
             // May encounter UTF8/ASCII strings Rust does not like
             // Ex: A Microsoft Win32® service that runs its own process or 3½-Inch Floppy Disk
             return Ok((input, extract_ascii_utf16_string(string_data)));
