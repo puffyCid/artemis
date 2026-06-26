@@ -10,8 +10,8 @@ use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
 };
-use tracing::debug;
 use std::mem::size_of;
+use tracing::debug;
 
 /// Parse a 0xbeef0004 block. Contains a file/directory name, FAT timestamps, and MFT metadata
 pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u8], ShellItem> {
@@ -29,7 +29,7 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
 
     let (input, created_data) = take(size_of::<u32>())(input)?;
     let (input, accessed_data) = take(size_of::<u32>())(input)?;
-    let (mut input, _unknown2) =  nom_unsigned_two_bytes(input, Endian::Le)?;
+    let (mut input, _unknown2) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
     let mut directory_item = ShellItem {
         value: String::new(),
@@ -44,7 +44,7 @@ pub(crate) fn parse_beef(data: &[u8], shell_type: ShellType) -> nom::IResult<&[u
 
     let vista_version = 7;
     if version >= vista_version {
-        let (vista_input, _unknown3) =  nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (vista_input, _unknown3) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let entry_size: u8 = 6;
         let (vista_input, mut entry_data) = take(entry_size)(vista_input)?;
         let (vista_input, mft_seq) = nom_unsigned_two_bytes(vista_input, Endian::Le)?;

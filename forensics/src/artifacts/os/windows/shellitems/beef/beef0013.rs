@@ -1,6 +1,6 @@
 use nom::bytes::complete::take;
-use tracing::debug;
 use std::mem::size_of;
+use tracing::debug;
 
 /// Parse a `0xbeef0013` block. This extension is undocumented
 pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], String> {

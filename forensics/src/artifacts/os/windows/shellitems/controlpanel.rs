@@ -4,8 +4,8 @@ use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::ShellItem;
 use common::windows::ShellType;
 use nom::bytes::complete::take;
-use tracing::info;
 use std::mem::size_of;
+use tracing::info;
 
 /// Parse a `Control Panel` `ShellItem` type
 pub(crate) fn parse_control_panel(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {

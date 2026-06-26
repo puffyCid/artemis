@@ -9,8 +9,8 @@ use nom::{
     bytes::complete::{take, take_until},
     combinator::peek,
 };
-use tracing::{debug, info};
 use std::mem::size_of;
+use tracing::{debug, info};
 
 /// Parse a `Directory ShellItem`. The most common `ShellItem` type
 pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {

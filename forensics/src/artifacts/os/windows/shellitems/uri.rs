@@ -7,8 +7,8 @@ use crate::utils::time::filetime_to_iso;
 use common::windows::ShellItem;
 use common::windows::ShellType::Uri;
 use nom::bytes::complete::{take, take_while};
-use tracing::info;
 use std::mem::size_of;
+use tracing::info;
 
 /// Parse a `URI` `ShellItem`. Often related to browsing FTP servers with Explorer
 pub(crate) fn parse_uri(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
