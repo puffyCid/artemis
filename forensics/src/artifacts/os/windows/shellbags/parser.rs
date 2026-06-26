@@ -153,7 +153,7 @@ fn parse_shellbags(drive: char, resolve_guids: bool) -> Result<Vec<Shellbag>, Sh
             Ok(result) => result,
             Err(err) => {
                 error!("Could not parse file {}: {err:?}", hive.full_path);
-                return Err(ShellbagError::GetRegistryData);
+                continue;
             }
         };
 
