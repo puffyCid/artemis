@@ -1,8 +1,10 @@
 use nom::bytes::complete::take;
+use tracing::debug;
 use std::mem::size_of;
 
 /// Parse a `0xbeef0013` block. This extension is undocumented
 pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], String> {
+    debug!("Got 0xbeef0013 block for {} bytes", data.len());
     let (input, _size_data) = take(size_of::<u16>())(data)?;
     let (input, _extension) = take(size_of::<u16>())(input)?;
     let (input, _signature) = take(size_of::<u32>())(input)?;

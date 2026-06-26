@@ -4,10 +4,12 @@ use crate::utils::uuid::format_guid_le_bytes;
 use common::windows::ShellItem;
 use common::windows::ShellType;
 use nom::bytes::complete::take;
+use tracing::info;
 use std::mem::size_of;
 
 /// Parse a `Control Panel` `ShellItem` type
 pub(crate) fn parse_control_panel(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Control Panel shellitem. {} bytes", data.len());
     let (input, _unknown) = take(size_of::<u8>())(data)?;
     let (input, _signature) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, panel) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -44,6 +46,7 @@ pub(crate) fn parse_control_panel(data: &[u8]) -> nom::IResult<&[u8], ShellItem>
 
 /// Parse a `Control Panel Entry` `ShellItem` type
 pub(crate) fn parse_control_panel_entry(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Control Panel Entry shellitem. {} bytes", data.len());
     // Always 0x80
     let (input, _unknown) = take(size_of::<u8>())(data)?;
 

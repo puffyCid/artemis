@@ -25,7 +25,7 @@ pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, Shimca
         }
     };
     debug!(
-        "Got {} Registry values from regex '{pattern}'",
+        "Got {} Shimcache Registry values from regex '{pattern}'",
         shim_matches.len()
     );
 

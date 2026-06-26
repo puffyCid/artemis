@@ -3,9 +3,11 @@ use common::windows::ShellItem;
 use common::windows::ShellType::RootFolder;
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::info;
 
 /// Parse a `Root` `ShellItem` type. Contains a GUID and optional 0xbeefXXXX data. Currently only GUID is returned
 pub(crate) fn parse_root(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Root shellitem. {} bytes", data.len());
     let (input, _sort_index) = take(size_of::<u8>())(data)?;
 
     let (input, guid) = take(size_of::<u128>())(input)?;

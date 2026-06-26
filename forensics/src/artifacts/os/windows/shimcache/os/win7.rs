@@ -15,7 +15,7 @@ pub(crate) fn win7_format<'a>(
     key_path: &str,
     path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
-    info!("Windows 7: {path}");
+    info!("Shimcache Windows 7: {path}");
     let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, entries) = nom_unsigned_four_bytes(input, Endian::Le)?;
 

@@ -4,9 +4,11 @@ use common::windows::ShellItem;
 use common::windows::ShellType::{Mtp, Volume};
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::info;
 
 /// Parse a `MTP Folder` `ShellItem`
 pub(crate) fn get_folder_name(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("MTP shellitem. {} bytes", data.len());
     /* MTP folder contains a lot of metadata on the device folder
      * Appears to be property arrays?
      * Contains metadata on timestamps, name, and alot of GUIDs

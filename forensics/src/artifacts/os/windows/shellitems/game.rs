@@ -7,9 +7,11 @@ use common::windows::ShellItem;
 use common::windows::ShellType::GameFolder;
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::info;
 
 /// Parse a `Game` `ShellItem` type. Contains a GUID.
 pub(crate) fn parse_game(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Game shellitem. {} bytes", data.len());
     let (input, _unknown) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, _sig) = nom_unsigned_four_bytes(input, Endian::Le)?;
     let (input, guid) = take(size_of::<u128>())(input)?;

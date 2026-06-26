@@ -1,9 +1,11 @@
 use crate::utils::uuid::format_guid_le_bytes;
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::debug;
 
 /// Parse a `0xbeef0019` block. Contains a GUID
 pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], String> {
+    debug!("Got 0xbeef0019 block for {} bytes", data.len());
     let (input, _size_data) = take(size_of::<u16>())(data)?;
     let (input, _extension) = take(size_of::<u16>())(input)?;
     let (input, _signature) = take(size_of::<u32>())(input)?;

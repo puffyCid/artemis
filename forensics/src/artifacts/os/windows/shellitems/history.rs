@@ -2,10 +2,13 @@ use crate::utils::strings::extract_utf16_string;
 use common::windows::ShellItem;
 use common::windows::ShellType::History;
 use nom::bytes::complete::take;
+use tracing::info;
 use std::mem::size_of;
 
 /// Parse `History` `ShelliItems` data
 pub(crate) fn parse_history(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("History shellitem. {} bytes", data.len());
+
     let (input, _unknown) = take(size_of::<u8>())(data)?;
 
     let value = extract_utf16_string(input);

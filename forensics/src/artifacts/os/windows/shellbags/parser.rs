@@ -22,7 +22,7 @@ use common::windows::{RegistryData, ShellItem, ShellType};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
-use tracing::error;
+use tracing::{debug, error, info};
 
 #[derive(Debug, Clone, Serialize, Default)]
 pub(crate) struct Shellbag {
@@ -61,12 +61,14 @@ pub(crate) fn grab_shellbags(options: &ShellbagsOptions) -> Result<Vec<Shellbag>
 
 /// Parse `Shellbags` associated with provided alternative path
 fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, ShellbagError> {
-    let regex = if path.to_lowercase().contains("usrclass.dat") {
-        create_regex(r"local settings\\software\\microsoft\\windows\\shell\\bagmru").unwrap()
-    // Should always be valid
+    info!("Reading ShellBags file {path}. Resolve GUIDS: {resolve_guids}");
+    let pattern = if path.to_lowercase().contains("usrclass.dat") {
+        r"local settings\\software\\microsoft\\windows\\shell\\bagmru"
     } else {
-        create_regex(r"software\\microsoft\\windows\\shell\\bagmru").unwrap() // Should always be valid
+        r"software\\microsoft\\windows\\shell\\bagmru"
     };
+
+    let regex = create_regex(pattern).unwrap(); // Should always be valid
 
     let clsids = if resolve_guids {
         get_clsids().unwrap_or_default()
@@ -83,10 +85,18 @@ fn alt_shellbags(path: &str, resolve_guids: bool) -> Result<Vec<Shellbag>, Shell
             return Err(ShellbagError::GetRegistryData);
         }
     };
+    debug!(
+        "Got {} ShellBag Registry values from regex '{pattern}'",
+        bags.len()
+    );
     let mut shell_map: HashMap<String, Shellbag> = HashMap::new();
     extract_shellbags(&bags, &get_filename(path), path, &clsids, &mut shell_map);
 
-    let mut shellbags_vec: Vec<Shellbag> = Vec::new();
+    info!(
+        "Got {} raw ShellItems for {path}. Now will build directory paths",
+        shell_map.len()
+    );
+    let mut shellbags_vec = Vec::new();
     save_shellbags(&mut shellbags_vec, &shell_map);
 
     Ok(shellbags_vec)
@@ -126,49 +136,45 @@ fn parse_shellbags(drive: char, resolve_guids: bool) -> Result<Vec<Shellbag>, Sh
 
     let mut shellbags_vec: Vec<Shellbag> = Vec::new();
     for hive in user_hives {
-        let shellbags = if hive.filename.to_lowercase() == "usrclass.dat" {
-            // UsrClass starts with <SID>_Classes
-            let start_path = "";
-            let path_regex =
-                create_regex(r"local settings\\software\\microsoft\\windows\\shell\\bagmru")
-                    .unwrap(); // Should always be valid
+        info!(
+            "Reading ShellBags file {}. Resolve GUIDS: {resolve_guids}",
+            hive.full_path
+        );
 
-            let shellbags_result = get_registry_keys(start_path, &path_regex, &hive.full_path);
-            match shellbags_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!(
-                        "Could not parse UsrClass.dat Registry file {}: {err:?}",
-                        &hive.full_path
-                    );
-                    continue;
-                }
-            }
+        let pattern = if hive.filename.to_lowercase().contains("usrclass.dat") {
+            r"local settings\\software\\microsoft\\windows\\shell\\bagmru"
         } else {
-            // Get NTUSER.DAT Shellbags
-            let start_path = "";
-            let path_regex = create_regex(r"software\\microsoft\\windows\\shell\\bagmru").unwrap(); // Should always be valid
-
-            let shellbags_result = get_registry_keys(start_path, &path_regex, &hive.full_path);
-            match shellbags_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!(
-                        "Could not parse NTUSER.DAT Registry file {}: {err:?}",
-                        &hive.full_path
-                    );
-                    continue;
-                }
+            r"software\\microsoft\\windows\\shell\\bagmru"
+        };
+        let regex = create_regex(pattern).unwrap(); // Should always be valid
+        let start_path = "";
+        let shellbags_result = get_registry_keys(start_path, &regex, &hive.full_path);
+        let bags = match shellbags_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not parse file {}: {err:?}", hive.full_path);
+                return Err(ShellbagError::GetRegistryData);
             }
         };
 
-        let mut shell_map: HashMap<String, Shellbag> = HashMap::new();
+        debug!(
+            "Got {} ShellBag Registry values from regex '{pattern}'",
+            bags.len()
+        );
+
+        let mut shell_map = HashMap::new();
         extract_shellbags(
-            &shellbags,
+            &bags,
             &hive.filename,
             &hive.full_path,
             &clsids,
             &mut shell_map,
+        );
+
+        info!(
+            "Got {} raw ShellItems for {}. Now will build paths",
+            shell_map.len(),
+            hive.full_path
         );
 
         save_shellbags(&mut shellbags_vec, &shell_map);

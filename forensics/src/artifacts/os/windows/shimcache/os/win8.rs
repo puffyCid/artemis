@@ -15,7 +15,7 @@ pub(crate) fn win8_format<'a>(
     key_path: &str,
     path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
-    info!("Windows 8: {path}");
+    info!("Shimcache Windows 8: {path}");
     // Shimcache header on Windows 8 and 8.1 is 128 bytes in size
     let header_size: u8 = 128;
     let (mut shim_data, _) = take(header_size)(data)?;

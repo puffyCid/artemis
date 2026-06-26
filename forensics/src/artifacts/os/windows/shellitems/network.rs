@@ -3,9 +3,11 @@ use common::windows::ShellItem;
 use common::windows::ShellType::Network;
 use nom::bytes::complete::{take, take_while};
 use std::mem::size_of;
+use tracing::info;
 
 /// Parse `Network` `ShellItems`
 pub(crate) fn parse_network(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Network shellitem. {} bytes", data.len());
     let (input, _unknown) = take(size_of::<u8>())(data)?;
     let (input, _flags) = take(size_of::<u8>())(input)?;
     let end_of_string = 0;

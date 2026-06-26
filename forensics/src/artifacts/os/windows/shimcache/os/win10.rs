@@ -15,7 +15,7 @@ pub(crate) fn win10_format<'a>(
     key_path: &str,
     path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
-    info!("Windows 10/11: {path}");
+    info!("Shimcache Windows 10/11: {path}");
     let (_, header_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
     // Windows 10 versions before the Creator update have a header size of 48 bytes

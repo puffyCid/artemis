@@ -2,9 +2,11 @@ use crate::utils::strings::extract_utf8_string;
 use common::windows::ShellItem;
 use common::windows::ShellType::Volume;
 use nom::bytes::complete::take;
+use tracing::info;
 
 /// Grab the Volume Drive
 pub(crate) fn parse_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Volume shellitem. {} bytes", data.len());
     // Drive shellitem just contains a drive letter
     let drive = extract_utf8_string(data);
     let shellitem = ShellItem {
