@@ -15,6 +15,10 @@ struct Args {
     #[clap(short, long, value_parser)]
     toml: Option<String>,
 
+    /// Logging level (error, warn, info, debug, trace)
+    #[clap(short, long, value_parser, default_value_t = String::from("warn"))]
+    logging: String,
+
     /// Base64 encoded TOML file
     #[clap(short, long, value_parser)]
     decode: Option<String>,
@@ -85,6 +89,7 @@ fn parse_args(args: &Args) {
             directory: PathBuf::from("./tmp"),
             destination: OutputDestination::Local,
             format: OutputFormat::Jsonl,
+            logging: Some(args.logging.clone()),
             ..Default::default()
         };
         run_collector(command, out)
@@ -110,6 +115,7 @@ mod tests {
             decode: None,
             javascript: None,
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -125,6 +131,7 @@ mod tests {
             )),
             javascript: None,
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -140,6 +147,7 @@ mod tests {
             decode: None,
             javascript: None,
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -155,6 +163,7 @@ mod tests {
             )),
             javascript: None,
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -170,6 +179,7 @@ mod tests {
             decode: None,
             javascript: None,
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -185,6 +195,7 @@ mod tests {
             )),
             javascript: None,
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -219,6 +230,7 @@ mod tests {
                 start: None,
                 end: None,
             }),
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -242,6 +254,7 @@ mod tests {
                 start: None,
                 end: None,
             }),
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -270,6 +283,7 @@ mod tests {
                 start: None,
                 end: None,
             }),
+            logging: String::from("warn"),
         };
 
         parse_args(&args);
@@ -284,6 +298,7 @@ mod tests {
             decode: None,
             javascript: Some(test_location.display().to_string()),
             command: None,
+            logging: String::from("warn"),
         };
 
         parse_args(&args);

@@ -7,6 +7,7 @@ use crate::utils::{
 };
 use common::windows::ShimcacheEntry;
 use nom::bytes::complete::take;
+use tracing::{debug, info};
 
 /// Parse Windows 7 `Shimcache` format. Depending on architecture the format is slightly different
 pub(crate) fn win7_format<'a>(
@@ -14,6 +15,7 @@ pub(crate) fn win7_format<'a>(
     key_path: &str,
     path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
+    info!("Windows 7: {path}");
     let (input, _sig) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (input, entries) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
@@ -21,18 +23,19 @@ pub(crate) fn win7_format<'a>(
     let unknown2_size: u8 = 116;
     let (mut shim_data, _unknown2) = take(unknown2_size)(input)?;
     let mut entry = 0;
-    let mut shim_vec: Vec<ShimcacheEntry> = Vec::new();
+    let mut shim_vec = Vec::new();
 
     while entry < entries {
         let (input, _path_size) = nom_unsigned_two_bytes(shim_data, Endian::Le)?;
         let (shim_input, max_path_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
-        // Assume 64-bit Shimcace be default
+        // Assume 64-bit Shimcache be default
         let (input, _padding) = nom_unsigned_four_bytes(shim_input, Endian::Le)?;
         let (input, offset) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+        debug!("Offset to path start {offset}, from {} bytes", data.len());
 
         // Its probably 64-bit if the offset is less than length
         if offset as usize <= data.len() {
+            debug!("64-bit value");
             let (input, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
             let (input, _insertion_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
             let (input, _shim_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
@@ -56,6 +59,10 @@ pub(crate) fn win7_format<'a>(
             }
             // Offset is from start of Shimcache data
             let (path_start, _) = take(offset)(data)?;
+            debug!(
+                "Path size is {max_path_size} bytes for remaining {} bytes",
+                path_start.len()
+            );
             let (_, path_data) = take(max_path_size)(path_start)?;
 
             let shim_entry = ShimcacheEntry {
@@ -70,6 +77,7 @@ pub(crate) fn win7_format<'a>(
             continue;
         }
 
+        debug!("32-bit value");
         // Otherwise assume 32-bit Shimcache
         let (input, offset) = nom_unsigned_four_bytes(shim_input, Endian::Le)?;
 
@@ -97,6 +105,7 @@ pub(crate) fn win7_format<'a>(
         }
         // Offset is from start of Shimcache data
         let (path_start, _) = take(offset)(data)?;
+        debug!("Max path size {max_path_size}, from {}", path_start.len());
         let (_, path_data) = take(max_path_size)(path_start)?;
 
         let shim_entry = ShimcacheEntry {

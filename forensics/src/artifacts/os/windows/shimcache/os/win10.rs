@@ -7,7 +7,7 @@ use crate::utils::{
 };
 use common::windows::ShimcacheEntry;
 use nom::bytes::complete::take;
-use tracing::warn;
+use tracing::{debug, info, warn};
 
 /// Parse the `Shimcache` Windows 10 format
 pub(crate) fn win10_format<'a>(
@@ -15,6 +15,7 @@ pub(crate) fn win10_format<'a>(
     key_path: &str,
     path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
+    info!("Windows 10/11: {path}");
     let (_, header_size) = nom_unsigned_four_bytes(data, Endian::Le)?;
 
     // Windows 10 versions before the Creator update have a header size of 48 bytes
@@ -29,7 +30,7 @@ pub(crate) fn win10_format<'a>(
 
         let sig_value = 1936994353; // 10ts
         if sig != sig_value {
-            warn!("Did not get shimcache win10 signature");
+            warn!("Did not get shimcache win10 signature. Got {sig}");
             break;
         }
 
@@ -40,12 +41,16 @@ pub(crate) fn win10_format<'a>(
         shim_data = remaining_data;
 
         let (input, path_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
-
+        debug!(
+            "Path size is {path_size} bytes for remaining {} bytes",
+            input.len()
+        );
         // Path is UTF16
         let (input, path_data) = take(path_size)(input)?;
-        let (_input, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+        let (remaining, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
         // Remaining part of entry data is raw binary data
+        debug!("Remaining binary bytes {}", remaining.len());
 
         let shim_entry = ShimcacheEntry {
             entry,

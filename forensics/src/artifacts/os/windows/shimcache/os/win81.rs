@@ -7,7 +7,7 @@ use crate::utils::{
 };
 use common::windows::ShimcacheEntry;
 use nom::bytes::complete::take;
-use tracing::warn;
+use tracing::{debug, info, warn};
 
 /// Parse the `Shimcache` Windows 8.1 format
 pub(crate) fn win81_format<'a>(
@@ -15,6 +15,7 @@ pub(crate) fn win81_format<'a>(
     key_path: &str,
     path: &str,
 ) -> nom::IResult<&'a [u8], Vec<ShimcacheEntry>> {
+    info!("Windows 8: {path}");
     // Shimcache header on Windows 8 and 8.1 is 128 bytes in size
     let header_size: u8 = 128;
     let (mut shim_data, _) = take(header_size)(data)?;
@@ -26,7 +27,7 @@ pub(crate) fn win81_format<'a>(
 
         let sig_value = 1936994353; // 10ts
         if sig != sig_value {
-            warn!("Did not get shimcache win8.1 signature");
+            warn!("Did not get shimcache win8.1 signature. Got {sig}");
             break;
         }
 
@@ -51,15 +52,20 @@ pub(crate) fn win81_format<'a>(
             shim_vec.push(shim_entry);
             continue;
         }
+        debug!(
+            "Path size is {path_size} bytes for remaining {} bytes",
+            input.len()
+        );
         // Path is UTF16
         let (input, path_data) = take(path_size)(input)?;
         let (input, _insertion_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _shim_flags) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _unknown) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-        let (_, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
+        let (remaining, last_modified) = nom_unsigned_eight_bytes(input, Endian::Le)?;
 
         // Remaining part of entry data is raw binary data
+        debug!("Remaining binary bytes {}", remaining.len());
 
         let shim_entry = ShimcacheEntry {
             entry,

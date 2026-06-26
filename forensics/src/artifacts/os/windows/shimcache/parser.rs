@@ -15,7 +15,7 @@ use crate::{
     structs::artifacts::os::windows::ShimcacheOptions, utils::environment::get_systemdrive,
 };
 use common::windows::ShimcacheEntry;
-use tracing::error;
+use tracing::{debug, error, info};
 
 pub(crate) fn grab_shimcache(
     options: &ShimcacheOptions,
@@ -43,13 +43,14 @@ fn drive_shimcache(drive: char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
 
 /// Get `Shimcache` entries for all `ControlSets`. Then parse the `Shimcache` data
 fn parse_shimcache(path: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
+    info!("Parsing file: {path}");
     let results = get_shimcache_data(path)?;
     let mut shimcache_entries = Vec::new();
-
     for entry in results {
         let mut entries = parse_shimdata(&entry.shim_data, &entry.key_path, path)?;
         shimcache_entries.append(&mut entries);
     }
+    debug!("Got {} entries", shimcache_entries.len());
     Ok(shimcache_entries)
 }
 

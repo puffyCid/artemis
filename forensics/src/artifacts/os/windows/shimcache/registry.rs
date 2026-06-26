@@ -2,7 +2,7 @@ use super::error::ShimcacheError;
 use crate::{
     artifacts::os::windows::registry::helper::get_registry_keys, utils::regex_options::create_regex,
 };
-use tracing::error;
+use tracing::{debug, error};
 
 #[derive(Debug)]
 pub(crate) struct ShimcacheReg {
@@ -13,8 +13,8 @@ pub(crate) struct ShimcacheReg {
 /// Get `shimcache` entries for all `ControlSet` values
 pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, ShimcacheError> {
     let start_path = "";
-    let regex_value =
-        create_regex(r"controlset\d*\\control\\session manager\\appcompatcache").unwrap(); // Always valid
+    let pattern = r"controlset\d*\\control\\session manager\\appcompatcache";
+    let regex_value = create_regex(pattern).unwrap(); // Always valid
 
     let encoded_result = get_registry_keys(start_path, &regex_value, path);
     let shim_matches = match encoded_result {
@@ -24,6 +24,10 @@ pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, Shimca
             return Err(ShimcacheError::RegistryFile);
         }
     };
+    debug!(
+        "Got {} Registry values from regex '{pattern}'",
+        shim_matches.len()
+    );
 
     let mut shim_vec: Vec<ShimcacheReg> = Vec::new();
     for entry in shim_matches {
