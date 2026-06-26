@@ -18,9 +18,9 @@ use common::windows::ShellType::Variable;
 use nom::bytes::complete::{take, take_until, take_while};
 use serde_json::Value;
 use std::{collections::HashMap, mem::size_of};
-use tracing::info;
+use tracing::{debug, info};
 
-#[derive(PartialEq, Hash, Eq)]
+#[derive(PartialEq, Hash, Eq, Debug)]
 enum BeefTypes {
     Beef0000,
     Beef0019,
@@ -32,6 +32,7 @@ enum BeefTypes {
 
 /// Parse a `variable` `ShellItem`. May contain any 0xbeef00XX shell extension, zip file content, FTP URI, GUID, or Property view
 pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Variable shellitem. {} bytes", data.len());
     let mut variable_item = ShellItem {
         value: String::new(),
         shell_type: Variable,
@@ -50,7 +51,13 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
             Ok(results) => results,
             Err(_err) => continue,
         };
+        info!("Variable match for {key:?}");
         let beef_adjust = 4;
+        debug!(
+            "{key:?} size is {} for {} bytes",
+            input.len() - beef_adjust,
+            data.len()
+        );
         let (input, _) = take(input.len() - beef_adjust)(data)?;
 
         let result = match key {
@@ -74,6 +81,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 
         // If beef0000 returns dummy GUID try searching again
         if guid.contains("0000000-0000-0000-0000-00000") {
+            debug!("Got dummy GUID {guid} for {key:?}");
             return parse_variable(input);
         }
 
@@ -91,6 +99,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     if check_zip(data) {
         let (input, (is_zip, directory)) = parse_zip(data)?;
         if is_zip {
+            info!("Variable ShellItem is zip");
             variable_item.value = directory;
             return Ok((input, variable_item));
         }
@@ -101,6 +110,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         let (remaining, (modified, path)) = parse_archive(data)?;
         variable_item.modified = modified;
         variable_item.value = path;
+        info!("Variable ShellItem is archive");
         return Ok((remaining, variable_item));
     }
 
@@ -109,6 +119,7 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
         let (input, _) = take(size_of::<u8>())(data)?;
         let (is_property, stores) = get_property(input);
         if is_property {
+            info!("Variable ShellItem is PropertyStore");
             variable_item.stores = stores;
             return Ok((input, variable_item));
         }
@@ -116,12 +127,14 @@ pub(crate) fn parse_variable(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 
     let (input, (is_guid, guid)) = check_guid(data)?;
     if is_guid {
+        info!("Variable ShellItem is GUID");
         variable_item.value = guid;
         return Ok((input, variable_item));
     }
 
     // Try FTP variable now
     let (input, uri) = parse_ftp_uri(data)?;
+    info!("Variable ShellItem is FTP URI");
     variable_item.value = uri;
     Ok((input, variable_item))
 }

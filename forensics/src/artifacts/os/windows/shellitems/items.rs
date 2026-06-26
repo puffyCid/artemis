@@ -30,7 +30,7 @@ use crate::utils::{
 };
 use common::windows::ShellItem;
 use nom::{Needed, bytes::complete::take};
-use tracing::error;
+use tracing::{debug, error};
 
 /// Parse a base64 encoded `ShellItem`
 pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellItemError> {
@@ -47,6 +47,7 @@ pub(crate) fn parse_encoded_shellitem(encoded: &str) -> Result<ShellItem, ShellI
 
 /// Parse the raw `ShellItem` bytes
 pub(crate) fn parse_shellitem(data: &[u8]) -> Result<ShellItem, ShellItemError> {
+    debug!("Item total size {} bytes", data.len());
     let result = get_shellitem(data);
     let (_, shell_item) = match result {
         Ok(results) => results,
@@ -63,6 +64,7 @@ pub(crate) fn parse_shellitem(data: &[u8]) -> Result<ShellItem, ShellItemError> 
 pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, size) = nom_unsigned_two_bytes(data, Endian::Le)?;
 
+    debug!("Item size is {size} bytes");
     // Size includes size itself
     let adjust_size = 2;
     if size < adjust_size {
@@ -82,6 +84,7 @@ pub(crate) fn get_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 /// Based on the provided bytes determine the `ShellItem` type and parse it
 pub(crate) fn detect_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     let (input, item_type) = nom_unsigned_one_byte(data, Endian::Le)?;
+    debug!("Item type: {item_type}");
     // Determine `ShellItem` using known IDs, signatures, and expected `ShellItem` size
     let directory_items = [0x31, 0x30, 0x32, 0x35, 0xb1, 0xb2];
     let drive_item = [0x2f, 0x23, 0x25, 0x29, 0x2a, 0x2e];

@@ -3,9 +3,11 @@ use crate::utils::{
     uuid::format_guid_le_bytes,
 };
 use nom::{Needed, bytes::complete::take};
+use tracing::debug;
 
 /// Extract GUID from beef0003 structure
 pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], String> {
+    debug!("Got 0xbeef0003 block for {} bytes", data.len());
     let (input, sig_size) = nom_unsigned_two_bytes(data, Endian::Le)?;
 
     // Size includes size itself

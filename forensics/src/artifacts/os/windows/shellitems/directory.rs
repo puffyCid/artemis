@@ -10,9 +10,11 @@ use nom::{
     combinator::peek,
 };
 use std::mem::size_of;
+use tracing::{debug, info};
 
 /// Parse a `Directory ShellItem`. The most common `ShellItem` type
 pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Directory shellitem. {} bytes", data.len());
     let (input, _unknown) = take(size_of::<u8>())(data)?;
     let (input, _file_size) = take(size_of::<u32>())(input)?;
 
@@ -22,6 +24,7 @@ pub(crate) fn parse_directory(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
     // Primary name is either ASCII or UTF16. No size is given for name size. But the next directory `ShellItem` data is the signature 0xBEEF0004
     // We peek until we find the signature without nomming the input
     if let Ok((input, mut directory_item)) = check_beef(input) {
+        debug!("Found beef0004 value for directory shellitem");
         directory_item.modified = fattime_utc_to_iso(modified_data);
 
         return Ok((input, directory_item));

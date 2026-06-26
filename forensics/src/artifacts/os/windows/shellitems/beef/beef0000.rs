@@ -2,9 +2,11 @@ use crate::utils::nom_helper::{Endian, nom_unsigned_two_bytes};
 use crate::utils::uuid::format_guid_le_bytes;
 use nom::bytes::complete::take;
 use std::mem::size_of;
+use tracing::debug;
 
 /// Parse a `0xbeef0000` block. May contain a GUID
 pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], String> {
+    debug!("Got 0xbeef0000 block for {} bytes", data.len());
     let (input, size) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (input, _extension) = take(size_of::<u16>())(input)?;
     let (input, _signature) = take(size_of::<u32>())(input)?;

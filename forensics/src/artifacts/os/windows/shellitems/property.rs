@@ -7,9 +7,12 @@ use common::windows::ShellType;
 use nom::bytes::complete::take;
 use std::mem::size_of;
 use tracing::error;
+use tracing::info;
 
-/// Parse a `Property` `ShellItem`. These are very complex structures. Currently only getting the first GUID
+/// Parse a `Property` `ShellItem`. These are very complex structures
 pub(crate) fn parse_property(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("PropertyStore shellitem. {} bytes", data.len());
+
     let (input, _unknown) = take(size_of::<u8>())(data)?;
     let (input, _data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
     let (input, _signature) = take(size_of::<u32>())(input)?;
@@ -43,6 +46,7 @@ pub(crate) fn parse_property(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
 
 /// Parse a `Property` `ShellItem` that contains a drive letter
 pub(crate) fn parse_property_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("PropertyStore drive shellitem. {} bytes", data.len());
     let drive_offset: u8 = 10;
     let drive_size: u8 = 3;
 

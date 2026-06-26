@@ -7,9 +7,11 @@ use crate::utils::{
     time::filetime_to_iso,
 };
 use nom::bytes::complete::take;
+use tracing::info;
 
 /// Parse new Archive `ShellItem` format added in Windows 11
 pub(crate) fn parse_archive(data: &[u8]) -> nom::IResult<&[u8], (String, String)> {
+    info!("Archive shellitem. {} bytes", data.len());
     let (input, _unknown) = nom_unsigned_one_byte(data, Endian::Le)?;
     let (input, _unknown2) = nom_unsigned_one_byte(input, Endian::Le)?;
 

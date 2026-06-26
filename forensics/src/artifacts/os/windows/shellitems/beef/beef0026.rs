@@ -3,9 +3,11 @@ use crate::utils::time::filetime_to_iso;
 use nom::bytes::complete::take;
 use nom::number::complete::le_u64;
 use std::mem::size_of;
+use tracing::debug;
 
-/// Parse a 0xbeef0026 block. Contains a FILETIME timestamps. Returns: created, accessed, modified UNIXEPOCH
+/// Parse a 0xbeef0026 block. Contains a FILETIME timestamps
 pub(crate) fn parse_beef(data: &[u8]) -> nom::IResult<&[u8], (String, String, String)> {
+    debug!("Got 0xbeef0026 block for {} bytes", data.len());
     let (input, sig_size) = nom_unsigned_two_bytes(data, Endian::Le)?;
     let (remaining_data, input) = take(sig_size)(input)?;
 

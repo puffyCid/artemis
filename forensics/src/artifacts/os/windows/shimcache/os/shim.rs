@@ -8,7 +8,7 @@ use crate::{
 };
 use common::windows::ShimcacheEntry;
 use nom::{bytes::complete::take, error::ErrorKind};
-use tracing::error;
+use tracing::{debug, error};
 
 /// Parse Windows `Shimcache` data from the Registry
 pub(crate) fn parse_shimdata(
@@ -24,7 +24,10 @@ pub(crate) fn parse_shimdata(
             return Err(ShimcacheError::Base64);
         }
     };
-
+    debug!(
+        "Shimcache binary length: {}. For key: {key_path}. Evidence: {path}",
+        binary_data.len()
+    );
     let entries_result = detect_format(&binary_data, key_path, path);
     match entries_result {
         Ok((_, result)) => Ok(result),
@@ -61,7 +64,7 @@ fn detect_format<'a>(
         } else if entry_sig == win81_entry {
             win81_format(data, key_path, path)
         } else {
-            error!("Unknown Shimcache Win8 entrytype. Sig is: {entry_sig}");
+            error!("Unknown Win8 entrytype. Sig is: {entry_sig}");
             Err(nom::Err::Failure(nom::error::Error::new(
                 &[],
                 ErrorKind::Fail,
@@ -70,7 +73,7 @@ fn detect_format<'a>(
     } else if win10_size == sig || win10_creator_size == sig {
         win10_format(data, key_path, path)
     } else {
-        error!("Unknown Shimcache type. Sig is: {sig}");
+        error!("Unknown type. Sig is: {sig}");
         Err(nom::Err::Failure(nom::error::Error::new(
             &[],
             ErrorKind::Fail,

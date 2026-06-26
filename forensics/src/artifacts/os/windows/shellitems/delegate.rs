@@ -9,6 +9,7 @@ use nom::{
     combinator::peek,
 };
 use std::mem::size_of;
+use tracing::info;
 
 #[derive(Debug)]
 pub(crate) struct DelegateItem {
@@ -25,6 +26,7 @@ pub(crate) struct DelegateItem {
 
 /// Parse a `Delegate` `ShellItem` type and return a generic `ShellItem` structure
 pub(crate) fn get_delegate_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Delegate shellitem. {} bytes", data.len());
     let (input, delegate_item) = parse_delegate(data)?;
 
     let item = ShellItem {
@@ -43,6 +45,7 @@ pub(crate) fn get_delegate_shellitem(data: &[u8]) -> nom::IResult<&[u8], ShellIt
 
 /// Parse a `Delegate` `ShellItem` associated with drive item
 pub(crate) fn parse_delegate_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem> {
+    info!("Delegate Drive shellitem. {} bytes", data.len());
     let (input, _unknown) = take(size_of::<u8>())(data)?;
     let (input, inner_data_size) = nom_unsigned_two_bytes(input, Endian::Le)?;
     let (input, _inner_data) = take(inner_data_size)(input)?;
@@ -66,7 +69,7 @@ pub(crate) fn parse_delegate_drive(data: &[u8]) -> nom::IResult<&[u8], ShellItem
 }
 
 /// Parse a `Delegate` `ShellItem` type and return a Delegate structure. Same as `ShellItem` structure with addition of GUID and ID
-pub(crate) fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
+fn parse_delegate(data: &[u8]) -> nom::IResult<&[u8], DelegateItem> {
     let (input, _unknown) = take(size_of::<u8>())(data)?;
     let (input, _unknown_size) = take(size_of::<u16>())(input)?;
     let (input, _sig) = take(size_of::<u32>())(input)?;

@@ -35,7 +35,7 @@ digest-io = { version = "0.1.0", default-features = false }
 byteorder = "1.5.0"
 walkdir = "2.5.0"
 home = "0.5.12"
-tracing-subscriber = { version = "0.3.23", features = ["json", "env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["json"] }
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 quick-xml = { version = "0.40.1", default-features = false, features = [
     "escape-html",
