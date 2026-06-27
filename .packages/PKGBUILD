@@ -7,6 +7,11 @@ license=("MIT")
 arch=("x86_64")
 depends=("glibc")
 
+source=("local://artemis"
+        "local://README.md"
+        "local://LICENSE"
+        "local://artemis.man")
+
 # Skip checksums since these files change every time we compile locally
 sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
 
