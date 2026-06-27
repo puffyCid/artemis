@@ -4,6 +4,7 @@ The files listed here are used to package artemis. All commands assume you are i
 
 - artemis.spec - Generates a RPM file
 - artemis.control - Generates a DEB file
+- PKGBUILD - Generate a pacman file
 - artemis.man - Simple manpage for artemis
 - artemis.wixproj - MSI Template project
 - artemis.wxs - MSI configuration
@@ -26,6 +27,10 @@ You can validate the signed rpm by importing the public key and running rpm -K a
 4. Validate with lintian artemis*.deb
 
 You can validate the signed deb by importing the public key and configuring [dpkg](https://stackoverflow.com/questions/78421733/how-do-you-sign-and-verify-a-deb-file-using-debsigs-and-debsig-verify)
+
+## Pacman
+1. Ensure just, makepkg are installed
+2. Run `just pacman`
 
 ## macOS PKG Installer (Requires macOS)
 0. Create paid Apple Dev account ($99 per year)
