@@ -1,0 +1,25 @@
+pkgname=artemis
+pkgver=0.20.0
+pkgrel=1
+pkgdesc="A cross platform forensic parser"
+url="https://puffycid.github.io/artemis-api"
+license=("MIT")
+arch=("x86_64")
+depends=("glibc")
+
+source=("local://target/release/artemis"
+        "local://README.md"
+        "local://LICENSE"
+        "local://.packages/artemis.man")
+
+# Skip checksums since these files change every time we compile locally
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+package() {
+    install -Dm755 "${srcdir}/artemis" "${pkgdir}/usr/bin/artemis"
+    install -Dm644 "${srcdir}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    
+    install -Dm644 "${srcdir}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    
+    install -Dm644 "${srcdir}/artemis.man" "${pkgdir}/usr/share/man/man1/${pkgname}.1"
+}

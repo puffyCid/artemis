@@ -178,6 +178,18 @@ rpm: (cli)
   @echo "RPM package built you may find it at ~/rpmbuild/RPMS"
   @echo "You can sign the package with rpmsign using your own GPG key"
 
+# Package Artemis into Pacman file
+[group('package')]
+arch: (cli)
+  @cp README.md target/release
+  @cp LICENSE target/release
+  @cp .packages/artemis.man target/release
+  @cp .packages/PKGBUILD target/release
+
+  cd target/release && makepkg
+  @echo ""
+  @echo "Pacman package built you may find it at ./target/release"
+
 # Package Artemis into RPM file for CI Releases
 [group('package')]
 _ci_rpm target: (_ci_release target)
