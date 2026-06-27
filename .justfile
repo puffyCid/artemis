@@ -180,7 +180,7 @@ rpm: (cli)
 
 # Package Artemis into Pacman file
 [group('package')]
-arch: (cli)
+pacman: (cli)
   @cp README.md target/release
   @cp LICENSE target/release
   @cp .packages/artemis.man target/release
