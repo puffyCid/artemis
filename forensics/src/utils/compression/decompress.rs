@@ -163,10 +163,10 @@ pub(crate) fn decompress_xpress(
     decompress_size: u32,
     format: &XpressType,
 ) -> Result<Vec<u8>, CompressionError> {
-    if cfg!(target_os = "windows")
-        && let Ok(bytes) = decompress_huffman_api(data, format, decompress_size)
-    {
-        return Ok(bytes);
+    if cfg!(target_os = "windows") {
+        if let Ok(bytes) = decompress_huffman_api(data, format, decompress_size) {
+            return Ok(bytes);
+        }
     }
     let mut decompress_data: Vec<u8> = Vec::with_capacity(decompress_size as usize);
     match format {
