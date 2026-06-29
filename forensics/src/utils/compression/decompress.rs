@@ -163,6 +163,7 @@ pub(crate) fn decompress_xpress(
     decompress_size: u32,
     format: &XpressType,
 ) -> Result<Vec<u8>, CompressionError> {
+    #[cfg(target_os = "windows")]
     if cfg!(target_os = "windows") {
         if let Ok(bytes) = decompress_huffman_api(data, format, decompress_size) {
             return Ok(bytes);
