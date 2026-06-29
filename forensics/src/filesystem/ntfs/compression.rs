@@ -328,29 +328,6 @@ fn walk_offset_table(
     Ok((input, uncompressed_data))
 }
 
-#[cfg(target_os = "windows")]
-/// Decompress WOF compressed data on Windows systems
-fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
-    let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
-    let pf_data = match pf_data_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not decompress data: {err:?}. Will try manual decompression");
-            let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
-            match pf_data_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Could not decompress data: {err:?}");
-                    return Err(FileSystemError::FileData);
-                }
-            }
-        }
-    };
-
-    Ok(pf_data)
-}
-
-#[cfg(target_family = "unix")]
 /// Decompress WOF compressed data on non-Windows systems
 fn decompress_ntfs(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, FileSystemError> {
     let ntfs_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);

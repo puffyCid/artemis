@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "windows")]
-    #[should_panic(expected = "HuffmanCompression")]
+    #[should_panic(expected = "XpressBadOffset")]
     fn test_bad_compression() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/bad data/bad_compression.pf");
