@@ -324,31 +324,6 @@ fn get_decompressed_data(data: &[u8]) -> nom::IResult<&[u8], Vec<u8>> {
     Ok((input, decompressed_data))
 }
 
-#[cfg(target_os = "windows")]
-/// Decompress ESE data with API
-fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
-    use crate::utils::compression::xpress::api::decompress_huffman_api;
-
-    let decom_result = decompress_huffman_api(data, &XpressType::Lz77, decom_size);
-    match decom_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!(
-                "Could not decompress Lz77 data with API: {err:?}. Will try manual decompression"
-            );
-            let decom_result = decompress_xpress(data, decom_size, &XpressType::Lz77);
-            match decom_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Could not decompress Lz77 data with API or manually: {err:?}");
-                    data.to_vec()
-                }
-            }
-        }
-    }
-}
-
-#[cfg(target_family = "unix")]
 /// Decompress ESE data
 fn decompress_ese(data: &mut [u8], decom_size: u32) -> Vec<u8> {
     let decom_result = decompress_xpress(data, decom_size, &XpressType::Lz77);

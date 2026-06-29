@@ -2,7 +2,7 @@ use super::{
     error::CompressionError,
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
-use crate::filesystem::files::read_file;
+use crate::{filesystem::files::read_file};
 use flate2::bufread::{MultiGzDecoder, ZlibDecoder};
 use lz4_flex::block::decompress_with_dict;
 use miniz_oxide::{
@@ -14,6 +14,9 @@ use snap::raw::Decoder;
 use std::io::Read;
 use tracing::{error, warn};
 use xz2::read::XzDecoder;
+
+#[cfg(target_os = "windows")]
+use crate::utils::compression::xpress::api::decompress_huffman_api;
 
 /// Decompress gzip compressed file
 pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
@@ -160,6 +163,9 @@ pub(crate) fn decompress_xpress(
     decompress_size: u32,
     format: &XpressType,
 ) -> Result<Vec<u8>, CompressionError> {
+    if cfg!(target_os = "windows") {
+        return decompress_huffman_api(data, format, decompress_size);
+    }
     let mut decompress_data: Vec<u8> = Vec::with_capacity(decompress_size as usize);
     match format {
         XpressType::XpressHuffman => decompress_xpress_huffman(data, &mut decompress_data)?,

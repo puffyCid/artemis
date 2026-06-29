@@ -101,8 +101,6 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_header_api() {
-        use crate::utils::compression::xpress::api::decompress_huffman_api;
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win11/7Z.EXE-886612C8.pf");
 
@@ -112,10 +110,10 @@ mod tests {
         assert_eq!(header._signature, 0x44d414d);
         assert_eq!(header.uncompressed_size, 51060);
 
-        let result = decompress_huffman_api(
+        let result = decompress_xpress(
             &mut data.to_vec(),
-            &XpressType::XpressHuffman,
             header.uncompressed_size,
+            &XpressType::XpressHuffman,
         )
         .unwrap();
 
