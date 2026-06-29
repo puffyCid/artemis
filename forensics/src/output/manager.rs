@@ -67,6 +67,7 @@ impl OutputManager {
                     .with_line_number(true)
                     .with_target(false)
                     .flatten_event(true)
+                    .with_span_list(false)
                     .with_writer(log_output.file),
             )
             .with(log_level(config.logging.as_deref()))

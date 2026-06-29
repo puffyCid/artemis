@@ -138,19 +138,6 @@ fn get_prefetch_data(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError>
 
 /// Decompress Prefetch data
 fn decompress_pf(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, PrefetchError> {
-    #[cfg(target_os = "windows")]
-    {
-        use crate::utils::compression::xpress::api::decompress_huffman_api;
-
-        let pf_data = decompress_huffman_api(data, &XpressType::XpressHuffman, decom_size);
-        if pf_data.is_ok() {
-            return Ok(pf_data.unwrap_or_default());
-        }
-        error!(
-            "Could not decompress data: {:?}. Will try manual decompression",
-            pf_data.unwrap_err()
-        );
-    }
     let pf_data_result = decompress_xpress(data, decom_size, &XpressType::XpressHuffman);
     let pf_data = match pf_data_result {
         Ok(result) => result,
@@ -322,8 +309,6 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_decompress_win10() {
-        use crate::utils::compression::xpress::api::decompress_huffman_api;
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win10/_IU14D2N.TMP-136252D4.pf");
 
@@ -332,10 +317,10 @@ mod tests {
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
         assert_eq!(header.uncompressed_size, 153064);
 
-        let result = decompress_huffman_api(
+        let result = decompress_xpress(
             &mut data.to_vec(),
-            &XpressType::XpressHuffman,
             header.uncompressed_size,
+            &XpressType::XpressHuffman,
         )
         .unwrap();
         assert_eq!(result.len(), 153064);
@@ -343,20 +328,18 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "windows")]
-    #[should_panic(expected = "HuffmanCompression")]
+    #[should_panic(expected = "XpressBadOffset")]
     fn test_bad_compression() {
-        use crate::utils::compression::xpress::api::decompress_huffman_api;
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/bad data/bad_compression.pf");
 
         let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
 
         let (data, header) = CompressedHeader::parse_compressed_header(&buffer).unwrap();
-        let _result = decompress_huffman_api(
+        let _result = decompress_xpress(
             &mut data.to_vec(),
-            &XpressType::XpressHuffman,
             header.uncompressed_size,
+            &XpressType::XpressHuffman,
         )
         .unwrap();
     }

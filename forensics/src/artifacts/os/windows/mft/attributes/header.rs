@@ -2,7 +2,7 @@ use crate::utils::nom_helper::{
     Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
 };
 use serde::Serialize;
-use tracing::warn;
+use tracing::{debug, warn};
 
 #[derive(Debug)]
 pub(crate) struct AttributeHeader {
@@ -93,6 +93,10 @@ impl AttributeHeader {
             _data_flags: AttributeHeader::get_data_flags(flag_data),
             _attrib_id: attrib_id,
         };
+
+        if tracing::enabled!(tracing::Level::DEBUG) {
+            debug!(?header, "MFT entry attribute header");
+        }
 
         Ok((input, header))
     }

@@ -15,6 +15,9 @@ use std::io::Read;
 use tracing::{error, warn};
 use xz2::read::XzDecoder;
 
+#[cfg(target_os = "windows")]
+use crate::utils::compression::xpress::api::decompress_huffman_api;
+
 /// Decompress gzip compressed file
 pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
     let buffer_result = read_file(path);
@@ -160,6 +163,12 @@ pub(crate) fn decompress_xpress(
     decompress_size: u32,
     format: &XpressType,
 ) -> Result<Vec<u8>, CompressionError> {
+    #[cfg(target_os = "windows")]
+    if cfg!(target_os = "windows") {
+        if let Ok(bytes) = decompress_huffman_api(data, format, decompress_size) {
+            return Ok(bytes);
+        }
+    }
     let mut decompress_data: Vec<u8> = Vec::with_capacity(decompress_size as usize);
     match format {
         XpressType::XpressHuffman => decompress_xpress_huffman(data, &mut decompress_data)?,
