@@ -2,7 +2,7 @@ use super::{
     error::CompressionError,
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
-use crate::{filesystem::files::read_file};
+use crate::filesystem::files::read_file;
 use flate2::bufread::{MultiGzDecoder, ZlibDecoder};
 use lz4_flex::block::decompress_with_dict;
 use miniz_oxide::{

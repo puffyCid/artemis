@@ -13,7 +13,7 @@ use std::{cell::RefCell, fs::File, io::BufReader};
 
 #[derive(Trace, Finalize, JsData)]
 pub(crate) struct JsBufReader {
-    /// Basically tells the `BoaJS` garabage collector not to touch our `BufReader`.
+    /// Basically tells the `BoaJS` garbage collector not to touch our `BufReader`.
     /// The garbage collector cannot trace this
     #[unsafe_ignore_trace]
     reader: RefCell<Option<BufReader<File>>>,

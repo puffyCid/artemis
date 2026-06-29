@@ -23,7 +23,7 @@ use crate::{
     structs::toml::ArtemisToml,
 };
 use serde::Serialize;
-use tracing::{error, info, warn};
+use tracing::{Level, error, info, span, warn};
 
 #[cfg(feature = "boa")]
 use crate::runtime::run::execute_script;
@@ -43,6 +43,9 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
         manager.filter = artifacts.filter.unwrap_or(false);
 
         let artifact = artifacts.artifact_name.as_str();
+        let span = span!(Level::WARN, "Parsing artifact", artifact);
+        let _guard = span.enter();
+
         match artifact {
             "loginitems" if !skip(&artifacts.loginitems, &collector.marker, artifact) => {
                 let options = match &artifacts.loginitems {
