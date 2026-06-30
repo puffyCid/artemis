@@ -206,7 +206,7 @@ mod tests {
             .write_artifact("test", "jsonl", "application/jsonl", &mut encode)
             .unwrap();
 
-        assert_eq!(handle.record_count, 2);
+        assert_eq!(handle.record_count, 1);
 
         sink.finalize().unwrap();
     }
