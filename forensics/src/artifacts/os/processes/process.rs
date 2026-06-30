@@ -49,7 +49,9 @@ pub(crate) fn proc_list(
         let system_proc = proc_info(process, options, &plat);
         processes_list.push(system_proc);
         if options.metadata && processes_list.len() == binary_proc_limit {
-            let _ = output_process(processes_list, manager, options);
+            if let Err(err) = output_process(processes_list, manager, options) {
+                warn!("Could not output processes with binary data: {err:?}");
+            }
             processes_list = Vec::new();
         }
     }
