@@ -6,27 +6,16 @@ use crate::{
         record::{SingleRecordStream, serialize_to_record},
     },
 };
-use tracing::error;
 
 /// Get basic sysinfo for a system
 pub(crate) fn systeminfo(manager: &mut OutputManager) -> Result<(), SystemInfoError> {
     let entries = get_info();
-
-    let records = match serialize_to_record(entries) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to serialize systeminfo: {err:?}");
-            return Err(SystemInfoError::Serialize);
-        }
-    };
+    let records = serialize_to_record(entries).map_err(SystemInfoError::serialize_failed)?;
 
     let artifact_name = "systeminfo";
-    if let Err(err) =
-        manager.write_artifact(artifact_name, &"", &mut SingleRecordStream::new(records))
-    {
-        error!("Failed to output systeminfo: {err:?}");
-        return Err(SystemInfoError::Output);
-    }
+    manager
+        .write_artifact(artifact_name, &"", &mut SingleRecordStream::new(records))
+        .map_err(SystemInfoError::output_failed)?;
 
     Ok(())
 }

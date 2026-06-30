@@ -164,11 +164,8 @@ impl OutputSink for AzureSink {
         self.upload_bytes(&upload_filename, data, mime_type)?;
 
         Ok(OutputHandle::artifact(
-            artifact_name,
             OutputLocation::Remote(AzureSink::remote_location(&upload_filename)),
             record_count,
-            extension,
-            self.compress,
         ))
     }
 

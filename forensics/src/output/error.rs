@@ -6,10 +6,6 @@ pub(crate) type OutputResult<T> = Result<T, OutputError>;
 /// Errors produced by output workflow
 #[derive(Debug)]
 pub enum OutputError {
-    /// Got unsupported output format
-    UnsupportedFormat(String),
-    /// Got unsupported destination value
-    UnsupportedDestination(String),
     /// Record type is not supported by the selected output format
     UnsupportedRecord {
         /// Selected output format
@@ -19,20 +15,14 @@ pub enum OutputError {
     },
     /// Got bad output config
     Config(String),
-    /// Could not create an output context value
-    Context(String),
     /// Could not write an artifact record
     Record(String),
     /// Could not encode artifact record into output format
     Encode(String),
     /// Could not write encoded artifact record to destination
     Sink(String),
-    /// Issue writing Artemis reports
-    Report(String),
     /// Issue finalizing the output
     Finalize(String),
-    /// Could not initialize or write to log file
-    Logger(String),
     /// Filesystem output errors
     Io {
         /// Optional path associated with IO
@@ -69,10 +59,6 @@ impl std::error::Error for OutputError {}
 impl fmt::Display for OutputError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            OutputError::UnsupportedFormat(value) => write!(f, "Unsupported format: {value}"),
-            OutputError::UnsupportedDestination(value) => {
-                write!(f, "Unsupported destination: {value}")
-            }
             Self::UnsupportedRecord {
                 format,
                 record_type,
@@ -81,13 +67,10 @@ impl fmt::Display for OutputError {
                 "Output format '{format}' does not support record type '{record_type}'"
             ),
             Self::Config(value) => write!(f, "Output config error: {value}"),
-            Self::Context(value) => write!(f, "Output context error: {value}"),
             Self::Record(value) => write!(f, "Record stream error: {value}"),
             Self::Encode(value) => write!(f, "Encode error: {value}"),
             Self::Sink(value) => write!(f, "Sink error: {value}"),
-            Self::Report(value) => write!(f, "Report error: {value}"),
             Self::Finalize(value) => write!(f, "Finalize error: {value}"),
-            Self::Logger(value) => write!(f, "Logger error: {value}"),
             Self::Io { path, source } => {
                 if let Some(io_path) = path {
                     write!(f, "IO error at {}: {source}", io_path.display())

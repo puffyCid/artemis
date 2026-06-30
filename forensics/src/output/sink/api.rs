@@ -123,7 +123,7 @@ impl OutputSink for ApiSink {
     fn write_artifact(
         &mut self,
         artifact_name: &str,
-        extension: &str,
+        _extension: &str,
         mime_type: &str,
         encode: &mut dyn FnMut(
             &mut dyn std::io::prelude::Write,
@@ -139,11 +139,8 @@ impl OutputSink for ApiSink {
         self.upload_bytes(data, mime_type, true, &filename)?;
 
         Ok(OutputHandle::artifact(
-            artifact_name,
             OutputLocation::Remote(self.url.clone()),
             record_count,
-            extension,
-            true,
         ))
     }
 

@@ -10,7 +10,10 @@ pub(crate) fn pe_metadata(path: &str) -> Result<PeInfo, ProcessError> {
         Ok(result) => result,
         Err(err) => {
             warn!("Could not parse PE process {path}: {err:?}");
-            return Err(ProcessError::ParseProcFile);
+            return Err(ProcessError::ParseProcFile {
+                path: path.to_string(),
+                source: err.to_string(),
+            });
         }
     };
     Ok(info)
