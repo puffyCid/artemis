@@ -56,6 +56,10 @@ pub(crate) fn proc_list(
         }
     }
 
+    if processes_list.is_empty() {
+        return Ok(());
+    }
+
     output_process(processes_list, manager, options)?;
 
     Ok(())
