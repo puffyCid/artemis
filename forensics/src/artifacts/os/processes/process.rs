@@ -19,7 +19,7 @@ use common::system::Processes;
 use serde_json::Value;
 use std::ffi::OsStr;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 /// Get process listing.
 pub(crate) fn proc_list(
@@ -35,7 +35,8 @@ pub(crate) fn proc_list(
         ProcessRefreshKind::everything(),
     );
     if proc.processes().is_empty() {
-        return Err(ProcessError::Empty);
+        info!("No processes returned");
+        return Ok(());
     }
 
     // We may encounter really large binaries. So to keep memory usage low
@@ -48,14 +49,19 @@ pub(crate) fn proc_list(
         let system_proc = proc_info(process, options, &plat);
         processes_list.push(system_proc);
         if options.metadata && processes_list.len() == binary_proc_limit {
-            let _ = output_process(processes_list, manager, options);
+            if let Err(err) = output_process(processes_list, manager, options) {
+                warn!("Could not output processes with binary data: {err:?}");
+            }
             processes_list = Vec::new();
         }
     }
 
-    if !processes_list.is_empty() {
-        let _ = output_process(processes_list, manager, options);
+    if processes_list.is_empty() {
+        return Ok(());
     }
+
+    output_process(processes_list, manager, options)?;
+
     Ok(())
 }
 
@@ -69,7 +75,8 @@ pub(crate) fn proc_list_entries(options: &ProcessOptions) -> Result<Vec<Processe
         ProcessRefreshKind::everything(),
     );
     if proc.processes().is_empty() {
-        return Err(ProcessError::Empty);
+        info!("No processes returned");
+        return Ok(Vec::new());
     }
     let plat = get_platform_enum();
     for process in proc.processes().values() {
@@ -205,20 +212,13 @@ fn output_process(
     if entries.is_empty() {
         return Ok(());
     }
-
-    let mut records = match serialize_records_to_stream(entries) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to serialize process entries: {err:?}");
-            return Err(ProcessError::Serialize);
-        }
-    };
+    let mut records =
+        serialize_records_to_stream(entries).map_err(ProcessError::serialize_failed)?;
 
     let artifact_name = "processes";
-    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("Could not output process data: {err:?}");
-        return Err(ProcessError::OutputData);
-    }
+    manager
+        .write_artifact(artifact_name, options, &mut records)
+        .map_err(ProcessError::output_failed)?;
 
     Ok(())
 }

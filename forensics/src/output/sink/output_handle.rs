@@ -4,18 +4,10 @@ use std::path::PathBuf;
 ///
 /// Metadata associated with the record written by an output sink
 pub(crate) struct OutputHandle {
-    /// Artifact name
-    pub(crate) artifact_name: String,
     /// Output destination
     pub(crate) location: OutputLocation,
     /// How many records were written
     pub(crate) record_count: usize,
-    /// Output file extension
-    pub(crate) extension: String,
-    /// Whether the output compressed
-    pub(crate) compressed: bool,
-    /// Type of output item
-    pub(crate) output_type: OutputType,
 }
 
 #[derive(Debug)]
@@ -27,57 +19,20 @@ pub(crate) enum OutputLocation {
     Remote(String),
 }
 
-/// What type of file was output
-#[derive(Debug, PartialEq)]
-pub(crate) enum OutputType {
-    /// Artifact result output
-    Artifact,
-    /// Report result output
-    Report,
-    /// Log file result output
-    Log,
-}
-
 impl OutputHandle {
     /// Create `OutputHandle` for an artifact output item
-    pub(crate) fn artifact(
-        artifact_name: &str,
-        location: OutputLocation,
-        record_count: usize,
-        extension: &str,
-        compressed: bool,
-    ) -> Self {
+    pub(crate) fn artifact(location: OutputLocation, record_count: usize) -> Self {
         Self {
-            artifact_name: artifact_name.to_string(),
             location,
             record_count,
-            extension: extension.to_string(),
-            compressed,
-            output_type: OutputType::Artifact,
         }
     }
 
     /// Creates an `OutputHandle` for a collection report output item
     pub(crate) fn report(location: OutputLocation) -> Self {
         Self {
-            artifact_name: String::from("report"),
             location,
             record_count: 1,
-            extension: String::from("json"),
-            compressed: false,
-            output_type: OutputType::Report,
-        }
-    }
-
-    /// Create `OutputHandle` for a log output item
-    pub(crate) fn log(location: OutputLocation) -> Self {
-        Self {
-            artifact_name: String::from("logs"),
-            location,
-            record_count: 1,
-            extension: String::from("log"),
-            compressed: false,
-            output_type: OutputType::Log,
         }
     }
 

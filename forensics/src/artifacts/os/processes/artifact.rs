@@ -1,18 +1,12 @@
 use super::{error::ProcessError, process::proc_list};
 use crate::{output::manager::OutputManager, structs::artifacts::os::processes::ProcessOptions};
-use tracing::warn;
 
 /// Collect a process listing from a system
 pub(crate) fn processes(
     manager: &mut OutputManager,
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
-    if let Err(result) = proc_list(manager, options) {
-        warn!("Failed to get process list: {result:?}");
-        return Err(ProcessError::ProcessList);
-    }
-
-    Ok(())
+    proc_list(manager, options)
 }
 
 #[cfg(test)]

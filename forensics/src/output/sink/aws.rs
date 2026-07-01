@@ -288,11 +288,8 @@ impl OutputSink for AwsSink {
         self.upload_bytes(&upload_filename, data, mime_type)?;
 
         Ok(OutputHandle::artifact(
-            artifact_name,
             OutputLocation::Remote(upload_filename),
             record_count,
-            extension,
-            self.compress,
         ))
     }
 

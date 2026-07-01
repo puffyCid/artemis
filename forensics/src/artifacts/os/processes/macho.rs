@@ -10,7 +10,10 @@ pub(crate) fn macho_metadata(path: &str) -> Result<Vec<MachoInfo>, ProcessError>
         Ok(results) => results,
         Err(err) => {
             error!("Failed to parse process binary {path}, error: {err:?}");
-            return Err(ProcessError::ParseProcFile);
+            return Err(ProcessError::ParseProcFile {
+                path: path.to_string(),
+                source: err.to_string(),
+            });
         }
     };
     Ok(info)

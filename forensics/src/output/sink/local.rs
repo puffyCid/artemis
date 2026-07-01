@@ -151,11 +151,8 @@ impl OutputSink for LocalSink {
         };
 
         Ok(OutputHandle::artifact(
-            artifact_name,
             OutputLocation::Local(output_path),
             record_count,
-            extension,
-            self.compress,
         ))
     }
 
@@ -188,9 +185,7 @@ impl OutputSink for LocalSink {
 
 #[cfg(test)]
 mod tests {
-    use crate::output::sink::{
-        local::LocalSink, output_handle::OutputType, output_sink::OutputSink,
-    };
+    use crate::output::sink::{local::LocalSink, output_sink::OutputSink};
     use crate::structs::toml::OutputConfig;
     use std::{io::Write, path::PathBuf};
 
@@ -211,9 +206,7 @@ mod tests {
             .write_artifact("test", "jsonl", "application/jsonl", &mut encode)
             .unwrap();
 
-        assert_eq!(handle.compressed, true);
-        assert_eq!(handle.output_type, OutputType::Artifact);
-        assert_eq!(handle.extension, "jsonl");
+        assert_eq!(handle.record_count, 1);
 
         sink.finalize().unwrap();
     }
