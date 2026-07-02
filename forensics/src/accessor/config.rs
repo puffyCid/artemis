@@ -24,7 +24,7 @@ impl Default for AccessorConfig {
     fn default() -> Self {
         Self {
             access_mode: AccessMode::Live,
-            max_read_size: Some (2 * 1024 * 1024 * 1024),
+            max_read_size: Some(2 * 1024 * 1024 * 1024),
         }
     }
 }

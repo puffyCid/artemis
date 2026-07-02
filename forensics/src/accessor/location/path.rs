@@ -6,7 +6,7 @@ use std::path::{Component, Path, PathBuf};
 pub(crate) struct InnerPath(PathBuf);
 
 impl InnerPath {
-    /// Create a `InnerPath` read data
+    /// Create a `InnerPath` structure
     pub(crate) fn new(path: PathBuf) -> Self {
         Self(path)
     }
@@ -98,7 +98,7 @@ impl SourcePath {
 }
 
 /// Determine if our provided input is an abosulate path to the data
-/// 
+///
 /// Required for raw access
 pub(crate) fn is_absolute_host_path(input: &str) -> bool {
     if input.is_empty() {

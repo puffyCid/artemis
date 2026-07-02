@@ -17,7 +17,7 @@ impl Scheme {
         match self {
             Self::Host => "host",
             Self::Raw => "raw",
-            Self::Zip => "zip"
+            Self::Zip => "zip",
         }
     }
 
@@ -27,7 +27,7 @@ impl Scheme {
             "host" => Ok(Self::Host),
             "raw" => Ok(Self::Raw),
             "zip" => Ok(Self::Zip),
-            _ => Err(AccessorError::unsupported_scheme(value))
+            _ => Err(AccessorError::unsupported_scheme(value)),
         }
     }
 }

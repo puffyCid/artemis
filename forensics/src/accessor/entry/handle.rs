@@ -10,6 +10,8 @@ pub(crate) enum EntryKind {
     File,
     /// Entry is a directory
     Directory,
+    /// Entry is a symlink
+    Symlink,
     /// Entry is unsupported
     Unknown,
 }
@@ -89,7 +91,9 @@ impl DirHandle {
         match &self.locator {
             DirLocator::Host { path } => path.display().to_string(),
             DirLocator::Ntfs { display_path, .. } => display_path.clone(),
-            DirLocator::Zip { archive, prefix, .. } => {
+            DirLocator::Zip {
+                archive, prefix, ..
+            } => {
                 if prefix.is_empty() {
                     format!("zip:{}", archive.display())
                 } else {
@@ -119,7 +123,7 @@ impl GlobMatch {
 /// Handle returned for one child of a directory listing
 ///
 /// Files and symlinks use `FileHandle`. Subdirectories use `DirHandle` so callers
-/// can call `list_dir` again without re-walking from the volume root.
+/// can call `list_dir` again without re-walking from the volume root
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ItemHandle {
     File(FileHandle),

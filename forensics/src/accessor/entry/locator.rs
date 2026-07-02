@@ -2,7 +2,7 @@ use ntfs::NtfsFileReference;
 use std::path::PathBuf;
 
 /// Source of our data that we want to access
-#[derive(Debug, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum SourceId {
     /// Live OS
     Host,
