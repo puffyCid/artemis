@@ -3,7 +3,7 @@ use crate::accessor::{
     config::AccessorConfig,
     entry::{
         handle::{DirEntry, FileHandle, GlobMatch},
-        locator::SourceId,
+        locator::{FileLocator, SourceId},
     },
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
@@ -74,6 +74,14 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
     }
 }
 
+pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResult<SourceId> {
+    match locator {
+        FileLocator::Host { .. } => Ok(SourceId::Host),
+        FileLocator::Ntfs { drive, .. } => Ok(SourceId::RawNtfs(*drive)),
+        FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
+    }
+}
+
 fn source_from_cache<'a>(
     cache: &'a SourceCache,
     source_id: &SourceId,
@@ -137,4 +145,31 @@ pub(crate) fn parse_inner_path(inner: &str) -> AccessorResult<InnerPath> {
         return Ok(InnerPath::empty());
     }
     Ok(InnerPath::new(PathBuf::from(inner)))
+}
+
+pub(crate) fn validate_file_handle_for_source(
+    source_id: &SourceId,
+    locator: &FileLocator,
+) -> AccessorResult<()> {
+    match (source_id, locator) {
+        (SourceId::Host, FileLocator::Host { .. }) => Ok(()),
+        (
+            SourceId::RawNtfs(drive),
+            FileLocator::Ntfs {
+                drive: handle_drive,
+                ..
+            },
+        ) if drive == handle_drive => Ok(()),
+        (
+            SourceId::Zip(archive),
+            FileLocator::Zip {
+                archive: handle_archive,
+                ..
+            },
+        ) if archive == handle_archive => Ok(()),
+        _ => Err(AccessorError::invalid_handle(format!(
+            "file handle does not belong to open source {}",
+            source_id.display()
+        ))),
+    }
 }

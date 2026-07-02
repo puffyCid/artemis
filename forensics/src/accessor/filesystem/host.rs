@@ -135,13 +135,17 @@ impl HostFs {
                 .map_err(|err| AccessorError::io_path(entry.path(), err))?;
 
             let name = entry.file_name().to_string_lossy().into_owned();
+            // Check if file path matches our glob
             if !glob_pattern.matches(&name) {
                 continue;
             }
+
             let child_path = entry.path();
             let metadata = entry
                 .metadata()
                 .map_err(|err| AccessorError::io_path(&child_path, err))?;
+
+            // Determine our glob entry type
             let (handle, kind) = if file_type.is_dir() {
                 (
                     ItemHandle::Directory(DirHandle::host(&child_path)),
@@ -158,6 +162,8 @@ impl HostFs {
                     EntryKind::File,
                 )
             };
+
+            // Get very small bit of metadata
             let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
             matches.push(GlobMatch::new(handle, meta));
         }
@@ -230,9 +236,11 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         dir
     }
+
     fn inner(dir: &PathBuf, part: &str) -> InnerPath {
         InnerPath::new(dir.join(part))
     }
+
     fn write_file(dir: &PathBuf, name: &str, contents: &[u8]) {
         let path = dir.join(name);
         if let Some(parent) = path.parent() {
