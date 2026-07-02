@@ -233,4 +233,33 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_host_accessor_read_zip() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let mut access = Accessor::with_defaults();
+        let results = access
+            .globfs(&format!("zip:{}!./*", test_location.display().to_string()))
+            .unwrap();
+        assert_eq!(results.len(), 9);
+
+        for entry in results {
+            if entry.meta.kind != EntryKind::File {
+                continue;
+            }
+
+            if entry
+                .meta
+                .display_path
+                .contains("document.odt!manifest.rdf")
+            {
+                let bytes = access
+                    .read_file_handle(&entry.handle.as_file().unwrap())
+                    .unwrap();
+                assert_eq!(bytes.len(), 899);
+            }
+        }
+    }
 }

@@ -1,17 +1,19 @@
 use std::{
     fs::File,
-    io::{self, Read, Seek, SeekFrom},
+    io::{self, Cursor, Read, Seek, SeekFrom},
 };
 
 /// An abstract reader that can be used to read data
 #[derive(Debug)]
 pub(crate) enum AccessorReader {
     Host(File),
+    Memory(Cursor<Vec<u8>>),
 }
 impl Read for AccessorReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             Self::Host(file) => file.read(buf),
+            Self::Memory(cursor) => cursor.read(buf),
         }
     }
 }
@@ -20,6 +22,7 @@ impl Seek for AccessorReader {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         match self {
             Self::Host(file) => file.seek(pos),
+            Self::Memory(cursor) => cursor.seek(pos),
         }
     }
 }
@@ -49,5 +52,10 @@ impl AccessorReader {
         Read::read_exact(self, &mut buf)?;
 
         Ok(buf)
+    }
+
+    /// Create an in-memory reader backed by decompressed zip entry bytes
+    pub(crate) fn memory(bytes: Vec<u8>) -> Self {
+        Self::Memory(Cursor::new(bytes))
     }
 }

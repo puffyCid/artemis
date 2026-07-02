@@ -3,7 +3,7 @@ use crate::accessor::{
     error::AccessorResult,
     io::reader::AccessorReader,
     location::path::InnerPath,
-    source::{backend::SourceBackend, host::HostSource},
+    source::{backend::SourceBackend, host::HostSource, zip::ZipSource},
 };
 
 /// Supported sources that we support reading data from
@@ -14,6 +14,7 @@ use crate::accessor::{
 pub(crate) enum Source {
     /// Use the live system as the source
     Host(HostSource),
+    Zip(ZipSource),
 }
 
 impl Source {
@@ -21,6 +22,7 @@ impl Source {
     pub(crate) fn read_file(&self, inner: &InnerPath) -> AccessorResult<Vec<u8>> {
         match self {
             Self::Host(source) => source.read_file(inner),
+            Self::Zip(source) => source.read_file(inner),
         }
     }
 
@@ -28,12 +30,14 @@ impl Source {
     pub(crate) fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
         match self {
             Self::Host(source) => source.read_dir(inner),
+            Self::Zip(source) => source.read_dir(inner),
         }
     }
 
     pub(crate) fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
         match self {
             Self::Host(source) => source.read_dir_handle(handle),
+            Self::Zip(source) => source.read_dir_handle(handle),
         }
     }
 
@@ -41,6 +45,7 @@ impl Source {
     pub(crate) fn globfs(&self, dir: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
         match self {
             Self::Host(source) => source.globfs(dir, pattern),
+            Self::Zip(source) => source.globfs(dir, pattern),
         }
     }
 
@@ -48,6 +53,7 @@ impl Source {
     pub(crate) fn read_file_handle(&self, handle: &FileHandle) -> AccessorResult<Vec<u8>> {
         match self {
             Self::Host(source) => source.read_file_handle(handle),
+            Self::Zip(source) => source.read_file_handle(handle),
         }
     }
 
@@ -55,6 +61,7 @@ impl Source {
     pub(crate) fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         match self {
             Self::Host(source) => source.open_reader_handle(handle),
+            Self::Zip(source) => source.open_reader_handle(handle),
         }
     }
 
@@ -62,6 +69,7 @@ impl Source {
     pub(crate) fn open_reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
         match self {
             Self::Host(source) => source.open_reader(inner),
+            Self::Zip(source) => source.open_reader(inner),
         }
     }
 }

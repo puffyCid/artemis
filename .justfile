@@ -56,6 +56,9 @@ runtime: (_test "runtime::")
 # Test only the Output workflow
 output: (_test "output::")
 
+# Test only the Accessor workflow
+accessor: (_test "accessor::")
+
 # Test only the FileSystem functions
 filesystem: (_test "filesystem::")
 

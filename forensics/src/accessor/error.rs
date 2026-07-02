@@ -236,4 +236,11 @@ impl AccessorError {
     pub(crate) fn is_recoverable_via_raw(&self) -> bool {
         matches!(self, Self::Io { source, .. } if matches!(source.kind(), io::ErrorKind::PermissionDenied | io::ErrorKind::NotFound))
     }
+
+    pub(crate) fn zip(archive: PathBuf, reason: impl Into<String>) -> Self {
+        Self::Zip {
+            archive: Some(archive),
+            reason: reason.into(),
+        }
+    }
 }

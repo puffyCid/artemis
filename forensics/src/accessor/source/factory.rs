@@ -8,7 +8,7 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
     location::{location::Location, path::InnerPath, scheme::Scheme},
-    source::{dispatch::Source, host::HostSource},
+    source::{dispatch::Source, host::HostSource, zip::ZipSource},
 };
 use std::path::PathBuf;
 
@@ -39,11 +39,7 @@ pub(crate) fn ensure_source(
                 reason: format!("raw:{drive}: source is not implemented yet"),
             });
         }
-        SourceId::Zip(path) => {
-            return Err(AccessorError::Filesystem {
-                reason: format!("zip:{} source is not implemented yet", path.display()),
-            });
-        }
+        SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
     };
 
     cache.insert(source_id.clone(), source);
