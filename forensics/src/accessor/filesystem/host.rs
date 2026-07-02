@@ -142,17 +142,24 @@ impl HostFs {
             let metadata = entry
                 .metadata()
                 .map_err(|err| AccessorError::io_path(&child_path, err))?;
-            let kind = if file_type.is_symlink() {
-                EntryKind::Symlink
-            } else if file_type.is_file() {
-                EntryKind::File
-            } else if file_type.is_dir() {
-                EntryKind::Directory
+            let (handle, kind) = if file_type.is_dir() {
+                (
+                    ItemHandle::Directory(DirHandle::host(&child_path)),
+                    EntryKind::Directory,
+                )
+            } else if file_type.is_symlink() {
+                (
+                    ItemHandle::File(FileHandle::host(&child_path)),
+                    EntryKind::Symlink,
+                )
             } else {
-                EntryKind::Unknown
+                (
+                    ItemHandle::File(FileHandle::host(&child_path)),
+                    EntryKind::File,
+                )
             };
             let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
-            matches.push(GlobMatch::new(FileHandle::host(&child_path), meta));
+            matches.push(GlobMatch::new(handle, meta));
         }
 
         //matches.sort_by(|left, right| left.handle.display_path().cmp(&right.handle.display_path()));

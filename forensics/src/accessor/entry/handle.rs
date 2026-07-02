@@ -108,14 +108,14 @@ impl DirHandle {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct GlobMatch {
     /// Glob match to a file
-    pub(crate) handle: FileHandle,
+    pub(crate) handle: ItemHandle,
     /// Metadata associated with our file match
     pub(crate) meta: EntryMeta,
 }
 
 impl GlobMatch {
     /// Create a `GlobMatch` value
-    pub(crate) fn new(handle: FileHandle, meta: EntryMeta) -> Self {
+    pub(crate) fn new(handle: ItemHandle, meta: EntryMeta) -> Self {
         Self { handle, meta }
     }
 }
