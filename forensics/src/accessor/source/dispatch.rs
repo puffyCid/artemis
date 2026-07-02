@@ -1,5 +1,5 @@
 use crate::accessor::{
-    entry::handle::{DirEntry, FileHandle, GlobMatch},
+    entry::handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
     error::AccessorResult,
     io::reader::AccessorReader,
     location::path::InnerPath,
@@ -28,6 +28,12 @@ impl Source {
     pub(crate) fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
         match self {
             Self::Host(source) => source.read_dir(inner),
+        }
+    }
+
+    pub(crate) fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
+        match self {
+            Self::Host(source) => source.read_dir_handle(handle),
         }
     }
 

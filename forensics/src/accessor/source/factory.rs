@@ -2,8 +2,8 @@ use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, FileHandle, GlobMatch},
-        locator::{FileLocator, SourceId},
+        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        locator::{DirLocator, FileLocator, SourceId},
     },
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
@@ -169,6 +169,49 @@ pub(crate) fn validate_file_handle_for_source(
         ) if archive == handle_archive => Ok(()),
         _ => Err(AccessorError::invalid_handle(format!(
             "file handle does not belong to open source {}",
+            source_id.display()
+        ))),
+    }
+}
+
+pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult<SourceId> {
+    match locator {
+        DirLocator::Host { .. } => Ok(SourceId::Host),
+        DirLocator::Ntfs { drive, .. } => Ok(SourceId::RawNtfs(*drive)),
+        DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
+    }
+}
+
+pub(crate) fn read_dir_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &DirHandle,
+) -> AccessorResult<Vec<DirEntry>> {
+    source_from_cache(cache, source_id)?.read_dir_handle(handle)
+}
+
+pub(crate) fn validate_dir_handle_for_source(
+    source_id: &SourceId,
+    locator: &DirLocator,
+) -> AccessorResult<()> {
+    match (source_id, locator) {
+        (SourceId::Host, DirLocator::Host { .. }) => Ok(()),
+        (
+            SourceId::RawNtfs(drive),
+            DirLocator::Ntfs {
+                drive: handle_drive,
+                ..
+            },
+        ) if drive == handle_drive => Ok(()),
+        (
+            SourceId::Zip(archive),
+            DirLocator::Zip {
+                archive: handle_archive,
+                ..
+            },
+        ) if archive == handle_archive => Ok(()),
+        _ => Err(AccessorError::invalid_handle(format!(
+            "directory handle does not belong to open source {}",
             source_id.display()
         ))),
     }

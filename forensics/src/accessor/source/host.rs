@@ -1,7 +1,7 @@
 use crate::accessor::{
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::AccessorResult,
@@ -52,6 +52,10 @@ impl SourceBackend for HostSource {
 
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         HostFs::reader_handle(handle)
+    }
+
+    fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
+        HostFs::read_dir_handle(handle)
     }
 }
 

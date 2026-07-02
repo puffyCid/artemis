@@ -1,18 +1,16 @@
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
-    entry::{
-        handle::{DirEntry, FileHandle, GlobMatch},
-        locator::{FileLocator, SourceId},
-    },
+    entry::handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
     error::AccessorResult,
     io::reader::AccessorReader,
     location::location::Location,
     source::{
         factory::{
             build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
-            open_reader_on_source, parse_inner_path, read_dir_on_source,
-            read_file_handle_on_source, read_file_on_source, source_id_from_file_locator,
+            open_reader_on_source, parse_inner_path, read_dir_handle_on_source, read_dir_on_source,
+            read_file_handle_on_source, read_file_on_source, source_id_from_dir_locator,
+            source_id_from_file_locator, validate_dir_handle_for_source,
             validate_file_handle_for_source,
         },
         handle::SourceHandle,
@@ -21,7 +19,7 @@ use crate::accessor::{
 
 /// A access implementation that lets us read files from provided input
 ///
-/// This accdessor supports reading from of variety of sources depending on the `AccessorConfig`
+/// This accessor supports reading from of variety of sources depending on the `AccessorConfig`
 ///
 /// Example: live system, raw disk, zip files
 pub(crate) struct Accessor {
@@ -70,6 +68,13 @@ impl Accessor {
         read_file_handle_on_source(&self.cache, &source_id, handle)
     }
 
+    /// List a directory using a `DirHandle` from glob or directory listing
+    pub(crate) fn read_dir_handle(&mut self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
+        let source_id = source_id_from_dir_locator(&handle.locator)?;
+        ensure_source(&source_id, &self.config, &mut self.cache)?;
+        read_dir_handle_on_source(&self.cache, &source_id, handle)
+    }
+
     /// Glob files and directories in a directory
     ///
     /// Example: `C:\Users\*` or `/var/log/*.log`
@@ -107,7 +112,7 @@ impl Accessor {
         Ok(SourceHandle::new(source_id))
     }
 
-    // Read a file relative to an opened source
+    /// Read a file relative to an opened source
     pub(crate) fn read_file_on(
         &self,
         source: &SourceHandle,
@@ -123,6 +128,16 @@ impl Accessor {
         inner: &str,
     ) -> AccessorResult<Vec<DirEntry>> {
         read_dir_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
+    }
+
+    /// List a directory handle relative to an opened source
+    pub(crate) fn read_dir_handle_on(
+        &self,
+        source: &SourceHandle,
+        handle: &DirHandle,
+    ) -> AccessorResult<Vec<DirEntry>> {
+        validate_dir_handle_for_source(source.id(), &handle.locator)?;
+        read_dir_handle_on_source(&self.cache, source.id(), handle)
     }
 
     /// Read a file handle relative to an opened source
@@ -167,7 +182,7 @@ impl Accessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{access::Accessor, location::path::InnerPath};
+    use crate::accessor::{access::Accessor, entry::handle::EntryKind};
     use std::{
         fs::{self, File},
         io::Write,
@@ -199,5 +214,23 @@ mod tests {
             .read_file("./tmp/accessor_host/test_host_accessor/test.txt")
             .unwrap();
         assert_eq!(bytes, b"my first test");
+    }
+
+    #[test]
+    fn test_host_accessor_read_glob() {
+        let mut access = Accessor::with_defaults();
+        let results = access.globfs(".*").unwrap();
+
+        for entry in results {
+            if entry.meta.kind != EntryKind::Directory {
+                continue;
+            }
+            let sub_dir = access
+                .read_dir_handle(entry.handle.as_directory().unwrap())
+                .unwrap();
+            if !sub_dir.is_empty() {
+                break;
+            }
+        }
     }
 }

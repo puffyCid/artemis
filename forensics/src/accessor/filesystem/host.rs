@@ -1,7 +1,7 @@
 use crate::accessor::{
     entry::{
         handle::{DirEntry, DirHandle, EntryKind, EntryMeta, FileHandle, GlobMatch, ItemHandle},
-        locator::FileLocator,
+        locator::{DirLocator, FileLocator},
     },
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
@@ -109,6 +109,17 @@ impl HostFs {
 
         //entries.sort_by(|left, right| left.name.cmp(&right.name));
         Ok(entries)
+    }
+
+    /// List the directory referenced by `DirHandle`
+    pub(crate) fn read_dir_handle(handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
+        match &handle.locator {
+            DirLocator::Host { path } => HostFs::read_dir(&InnerPath::new(path.clone())),
+            _ => Err(AccessorError::invalid_handle(format!(
+                "host source cannot list directory handle for {}",
+                handle.display_path()
+            ))),
+        }
     }
 
     /// Apply a glob pattern and return matches

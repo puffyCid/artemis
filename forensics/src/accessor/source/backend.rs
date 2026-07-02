@@ -1,6 +1,6 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::AccessorResult,
@@ -21,6 +21,8 @@ pub(crate) trait SourceBackend {
 
     /// Read a directory and return directory contents
     fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>>;
+
+    fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>>;
 
     /// Apply a glob like pattern and return matches
     fn globfs(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>>;
