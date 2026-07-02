@@ -34,11 +34,11 @@ impl Location {
             return parse_schemed_location(&format!("{scheme}:{remainder}"), None);
         }
 
-        if is_host_path(input) {
+        if is_host_path(value) {
             return Ok(Self {
                 scheme: Scheme::Host,
                 source: None,
-                inner_path: InnerPath::new(PathBuf::from(input)),
+                inner_path: InnerPath::new(PathBuf::from(value)),
             });
         }
 

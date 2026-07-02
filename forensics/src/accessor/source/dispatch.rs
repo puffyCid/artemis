@@ -32,9 +32,9 @@ impl Source {
     }
 
     /// Apply a glob pattern and return matches
-    pub(crate) fn glob(&self, dir: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
+    pub(crate) fn globfs(&self, dir: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
         match self {
-            Self::Host(source) => source.glob(dir, pattern),
+            Self::Host(source) => source.globfs(dir, pattern),
         }
     }
 

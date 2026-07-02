@@ -6,8 +6,6 @@ use std::collections::HashMap;
 /// If we want to read the file `zip:./test.zip!./home/test.txt` and `zip:./test.zip!./home/abc.txt`
 ///
 /// Instead of reading the zip file twice. We parse it once and then use the cache `Source` for faster content reads
-///
-/// This cache does not apply when reading data on a live system
 pub(crate) struct SourceCache {
     /// HashMap of `SourceId` and `Source`
     sources: HashMap<SourceId, Source>,

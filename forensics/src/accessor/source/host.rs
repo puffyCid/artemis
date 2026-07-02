@@ -38,7 +38,7 @@ impl SourceBackend for HostSource {
         HostFs::read_dir(inner)
     }
 
-    fn glob(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
+    fn globfs(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
         HostFs::globfs(directory, pattern)
     }
 

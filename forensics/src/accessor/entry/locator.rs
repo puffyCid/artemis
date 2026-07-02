@@ -17,7 +17,7 @@ impl SourceId {
     pub(crate) fn display(&self) -> String {
         match self {
             SourceId::Host => String::from("host"),
-            SourceId::RawNtfs(drive) => format!("raw:{drive}"),
+            SourceId::RawNtfs(drive) => format!("raw:{drive}:"),
             SourceId::Zip(path) => format!("zip:{}", path.display()),
         }
     }

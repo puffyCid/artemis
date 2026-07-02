@@ -106,7 +106,7 @@ pub(crate) fn glob_on_source(
     dir: &InnerPath,
     pattern: &str,
 ) -> AccessorResult<Vec<GlobMatch>> {
-    source_from_cache(cache, source_id)?.glob(dir, pattern)
+    source_from_cache(cache, source_id)?.globfs(dir, pattern)
 }
 pub(crate) fn read_file_handle_on_source(
     cache: &SourceCache,

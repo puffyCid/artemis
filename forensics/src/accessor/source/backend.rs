@@ -23,7 +23,7 @@ pub(crate) trait SourceBackend {
     fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>>;
 
     /// Apply a glob like pattern and return matches
-    fn glob(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>>;
+    fn globfs(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>>;
 
     /// Read a file using provided `FileHandle`. Can be used to read a file directly instead of walking the filesystem
     fn read_file_handle(&self, handle: &FileHandle) -> AccessorResult<Vec<u8>>;
