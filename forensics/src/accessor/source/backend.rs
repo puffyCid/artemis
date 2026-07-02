@@ -22,6 +22,7 @@ pub(crate) trait SourceBackend {
     /// Read a directory and return directory contents
     fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>>;
 
+    // Read a file using provided `DirHandle`. Can be used to read a directory directly instead of walking the filesystem
     fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>>;
 
     /// Apply a glob like pattern and return matches

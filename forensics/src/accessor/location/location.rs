@@ -10,7 +10,7 @@ use std::path::PathBuf;
 /// Parsed accessor location string
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Location {
-    /// Scheme used to acccess the data
+    /// `Scheme` used to acccess the data
     pub(crate) scheme: Scheme,
     /// Optional source of the path
     pub(crate) source: Option<SourcePath>,
@@ -30,10 +30,14 @@ impl Location {
             return parse_schemed_location(source_part, Some(inner_part));
         }
 
+        // Determine the scheme of the data
+        // Can be raw, host, zip, or others
         if let Some((scheme, remainder)) = split_scheme_prefix(value) {
             return parse_schemed_location(&format!("{scheme}:{remainder}"), None);
         }
 
+        // If we do not have a location scheme
+        // We try to represent the input as data on a live system
         if is_host_path(value) {
             return Ok(Self {
                 scheme: Scheme::Host,
@@ -62,6 +66,8 @@ impl Location {
             ));
         }
 
+        // Determine the scheme of the data
+        // Can be raw, host, zip, or others
         if let Some((scheme, remainder)) = split_scheme_prefix(value) {
             let scheme_value = Scheme::parse(scheme)?;
             if scheme_value == Scheme::Host && !remainder.is_empty() {

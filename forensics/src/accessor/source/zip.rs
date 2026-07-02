@@ -12,13 +12,18 @@ use crate::accessor::{
 };
 use std::path::PathBuf;
 
+/// Use a zip file as our source for data access
 pub(crate) struct ZipSource {
+    /// Path to the zip file
     archive_path: PathBuf,
+    /// Max file size to read
     max_read_size: Option<u64>,
+    /// Parsed zip metadata
     index: ZipIndex,
 }
 
 impl ZipSource {
+    /// Create a new `ZipSource` instance
     pub(crate) fn new(config: &AccessorConfig, archive_path: PathBuf) -> AccessorResult<Self> {
         let index = ZipIndex::open(archive_path.clone())?;
         Ok(Self {
@@ -28,13 +33,14 @@ impl ZipSource {
         })
     }
 
+    /// Return a `ZipFs` structure
     fn zipfs(&self) -> ZipFs {
         ZipFs::new(self.index.clone())
     }
 }
 
 impl SourceBackend for ZipSource {
-    fn source_id(&self) -> crate::accessor::entry::locator::SourceId {
+    fn source_id(&self) -> SourceId {
         SourceId::Zip(self.archive_path.clone())
     }
 
@@ -70,7 +76,7 @@ impl SourceBackend for ZipSource {
 #[cfg(test)]
 mod tests {
     use crate::accessor::config::AccessorConfig;
-    use crate::accessor::entry::handle::FileHandle;
+    use crate::accessor::entry::handle::{DirHandle, FileHandle};
     use crate::accessor::entry::locator::{DirLocator, FileLocator};
     use crate::accessor::error::AccessorError;
     use crate::accessor::location::path::InnerPath;
@@ -108,21 +114,25 @@ mod tests {
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("inner.txt", b"zip source payload")]);
         let source = ZipSource::new(&AccessorConfig::default(), archive).unwrap();
+
         let bytes = source
             .read_file(&InnerPath::new(PathBuf::from("inner.txt")))
             .unwrap();
         assert_eq!(bytes, b"zip source payload");
     }
+
     #[test]
     fn test_zip_source_read_file_handle_rejects_host_locator() {
         let dir = setup("test_zip_source_read_file_handle_rejects_host_locator");
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("inner.txt", b"zip source payload")]);
         let source = ZipSource::new(&AccessorConfig::default(), archive).unwrap();
+
         let handle = FileHandle::host(dir.join("inner.txt"));
         let err = source.read_file_handle(&handle).unwrap_err();
         assert!(matches!(err, AccessorError::InvalidHandle { .. }));
     }
+
     #[test]
     fn test_zip_source_read_dir_handle() {
         let dir = setup("test_zip_source_read_dir_handle");
@@ -134,20 +144,24 @@ mod tests {
                 ("home/nested/other.txt", b"other"),
             ],
         );
+
         let source = ZipSource::new(&AccessorConfig::default(), archive.clone()).unwrap();
-        let handle = crate::accessor::entry::handle::DirHandle::new(DirLocator::Zip {
+        let handle = DirHandle::new(DirLocator::Zip {
             archive,
             entry_index: 0,
             prefix: String::from("home"),
         });
+
         let entries = source.read_dir_handle(&handle).unwrap();
         assert_eq!(entries.len(), 2);
     }
+
     #[test]
     fn test_zip_source_enforces_max_read_size() {
         let dir = setup("test_zip_source_enforces_max_read_size");
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("big.bin", &[0u8; 32])]);
+
         let source = ZipSource::new(
             &AccessorConfig {
                 max_read_size: Some(16),
@@ -156,9 +170,11 @@ mod tests {
             archive,
         )
         .unwrap();
+
         let err = source
             .read_file(&InnerPath::new(PathBuf::from("big.bin")))
             .unwrap_err();
+
         assert!(matches!(
             err,
             AccessorError::FileTooLarge {
@@ -167,18 +183,33 @@ mod tests {
             }
         ));
     }
+
     #[test]
     fn test_zip_source_read_file_handle() {
         let dir = setup("test_zip_source_read_file_handle");
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("inner.txt", b"handle payload")]);
+
         let source = ZipSource::new(&AccessorConfig::default(), archive.clone()).unwrap();
         let handle = FileHandle::new(FileLocator::Zip {
             archive,
             entry_index: 0,
             entry: String::from("inner.txt"),
         });
+
         let bytes = source.read_file_handle(&handle).unwrap();
         assert_eq!(bytes, b"handle payload");
+    }
+
+    #[test]
+    fn test_zipfs_read_document() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let source = ZipSource::new(&AccessorConfig::default(), test_location.clone()).unwrap();
+        let bytes = source
+            .read_file(&InnerPath::new(PathBuf::from("meta.xml")))
+            .unwrap();
+        assert_eq!(bytes.len(), 974);
     }
 }

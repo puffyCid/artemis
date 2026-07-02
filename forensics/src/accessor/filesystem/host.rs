@@ -29,7 +29,7 @@ impl HostFs {
             return Err(AccessorError::not_found(HostFs::display_path(&path)));
         }
 
-        if path.is_dir() {
+        if !path.is_file() {
             return Err(AccessorError::not_a_file(HostFs::display_path(&path)));
         }
         let metadata = metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
@@ -89,15 +89,15 @@ impl HostFs {
                     ItemHandle::Directory(DirHandle::host(&child_path)),
                     EntryKind::Directory,
                 )
-            } else if file_type.is_symlink() {
+            } else if file_type.is_file() {
                 (
                     ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::Symlink,
+                    EntryKind::File,
                 )
             } else {
                 (
                     ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::File,
+                    EntryKind::Unsupported,
                 )
             };
             let metadata = entry
@@ -162,15 +162,15 @@ impl HostFs {
                     ItemHandle::Directory(DirHandle::host(&child_path)),
                     EntryKind::Directory,
                 )
-            } else if file_type.is_symlink() {
+            } else if file_type.is_file() {
                 (
                     ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::Symlink,
+                    EntryKind::File,
                 )
             } else {
                 (
                     ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::File,
+                    EntryKind::Unsupported,
                 )
             };
 
@@ -191,7 +191,7 @@ impl HostFs {
         if !path.exists() {
             return Err(AccessorError::not_found(path.display().to_string()));
         }
-        if path.is_dir() {
+        if !path.is_file() {
             return Err(AccessorError::not_a_file(path.display().to_string()));
         }
 

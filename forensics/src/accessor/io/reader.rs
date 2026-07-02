@@ -6,7 +6,9 @@ use std::{
 /// An abstract reader that can be used to read data
 #[derive(Debug)]
 pub(crate) enum AccessorReader {
+    /// `AccessorReader` for a file on a live host
     Host(File),
+    /// `AccessorReader` for a file read into memory
     Memory(Cursor<Vec<u8>>),
 }
 impl Read for AccessorReader {
@@ -54,7 +56,7 @@ impl AccessorReader {
         Ok(buf)
     }
 
-    /// Create an in-memory reader backed by decompressed zip entry bytes
+    /// Create an in-memory reader
     pub(crate) fn memory(bytes: Vec<u8>) -> Self {
         Self::Memory(Cursor::new(bytes))
     }

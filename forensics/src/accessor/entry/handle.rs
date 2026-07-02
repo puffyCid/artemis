@@ -10,10 +10,8 @@ pub(crate) enum EntryKind {
     File,
     /// Entry is a directory
     Directory,
-    /// Entry is a symlink
-    Symlink,
     /// Entry is unsupported
-    Unknown,
+    Unsupported,
 }
 
 /// Metadata returned from stat, glob, and directory listing.
@@ -128,6 +126,7 @@ impl GlobMatch {
 pub(crate) enum ItemHandle {
     File(FileHandle),
     Directory(DirHandle),
+    Unsupported(FileHandle),
 }
 
 impl ItemHandle {
@@ -136,6 +135,7 @@ impl ItemHandle {
         match self {
             Self::File(_) => EntryKind::File,
             Self::Directory(_) => EntryKind::Directory,
+            Self::Unsupported(_) => EntryKind::Unsupported,
         }
     }
 
@@ -144,6 +144,7 @@ impl ItemHandle {
         match self {
             Self::File(handle) => handle.display_path(),
             Self::Directory(handle) => handle.display_path(),
+            Self::Unsupported(handle) => handle.display_path(),
         }
     }
 
@@ -152,6 +153,7 @@ impl ItemHandle {
         match self {
             Self::File(handle) => Some(handle),
             Self::Directory(_) => None,
+            Self::Unsupported(_) => None,
         }
     }
 
@@ -160,6 +162,7 @@ impl ItemHandle {
         match self {
             Self::Directory(handle) => Some(handle),
             Self::File(_) => None,
+            Self::Unsupported(_) => None,
         }
     }
 }

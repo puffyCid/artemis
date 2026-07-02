@@ -19,15 +19,14 @@ use crate::accessor::{
 
 /// A access implementation that lets us read files from provided input
 ///
-/// This accessor supports reading from of variety of sources depending on the `AccessorConfig`
+/// This accessor supports reading from of variety of sources depending on the `Location Scheme` type. Example: `zip:test.zip!home/test.txt`, `/home/test.txt`, `raw:C::\Users\test.txt`
 ///
 /// Example: live system, raw disk, zip files
 pub(crate) struct Accessor {
     /// The configuration for the `Accessor`
     config: AccessorConfig,
-    /// Small cache used when accessing the `Source` of the data
-    ///
-    /// Example: For `zip:./test.zip!./home/test.txt` instead of constantly reading the zip file we cache our zip reader and reuse it
+    /// Caches opened `Source` metadata (Example: `ZipSource` and zip index)
+    /// so repeated reads under the same source avoid re-parsing `Source` metadata.
     cache: SourceCache,
 }
 
