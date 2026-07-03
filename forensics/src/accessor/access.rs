@@ -17,7 +17,7 @@ use crate::accessor::{
     },
 };
 
-/// A access implementation that lets us read files from provided input
+/// An access implementation that lets us read files from provided input
 ///
 /// This accessor supports reading from of variety of sources depending on the `Location Scheme` type. Example: `zip:test.zip!home/test.txt`, `/home/test.txt`, `raw:C::\Users\test.txt`
 ///
@@ -240,7 +240,7 @@ mod tests {
 
         let mut access = Accessor::with_defaults();
         let results = access
-            .globfs(&format!("zip:{}!./*", test_location.display().to_string()))
+            .globfs(&format!("zip:{}!*", test_location.display().to_string()))
             .unwrap();
         assert_eq!(results.len(), 9);
 

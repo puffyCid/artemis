@@ -8,7 +8,7 @@ use crate::accessor::{
     location::path::InnerPath,
 };
 use glob::Pattern;
-use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf};
+use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Mutex};
 use zip::ZipArchive;
 
 /// A record representing a zip content entry
@@ -72,6 +72,13 @@ impl ZipIndex {
             let size = entry.size();
 
             if !is_dir && !path.is_empty() {
+                // If a zip file contains duplicate path. Something could be wrong with the zip file, ex: corruption
+                if file_paths.contains_key(&path) {
+                    return Err(AccessorError::zip(
+                        archive_path.clone(),
+                        format!("duplicate zip entry path: {path}"),
+                    ));
+                }
                 file_paths.insert(path.clone(), entries.len());
             }
 
@@ -111,12 +118,21 @@ impl ZipIndex {
 pub(crate) struct ZipFs {
     /// Index of the file we want to access
     index: ZipIndex,
+    archive: Mutex<ZipArchive<File>>,
 }
 
 impl ZipFs {
     /// Create a new `ZipFs` instance
-    pub(crate) fn new(index: ZipIndex) -> Self {
-        Self { index }
+    pub(crate) fn new(archive_path: PathBuf) -> AccessorResult<Self> {
+        let index = ZipIndex::open(archive_path.clone())?;
+        let file =
+            File::open(&archive_path).map_err(|err| AccessorError::io_path(&archive_path, err))?;
+        let archive = ZipArchive::new(file)
+            .map_err(|err| AccessorError::zip(archive_path.clone(), err.to_string()))?;
+        Ok(Self {
+            index,
+            archive: Mutex::new(archive),
+        })
     }
 
     /// Read the file inside the zip file into memory
@@ -235,7 +251,8 @@ impl ZipFs {
         pattern: &str,
     ) -> AccessorResult<Vec<GlobMatch>> {
         // Convert the inner path to our zip file path
-        // zip:test.zip!/home/*.txt -> prefix is 'home/*.txt'
+        // zip:test.zip!/home/*.txt -> pattern is 'home/*.txt'
+        // Prefix is home/
         // If the prefix is empty then root directory is the default
         let prefix = Self::inner_to_prefix(directory);
         if !prefix.is_empty()
@@ -295,37 +312,26 @@ impl ZipFs {
 
     /// Open a `AccessorReader` to the provided `InnerPath`
     ///
-    /// Due to the zip file crate limitations this readers reads the file into memory
-    pub(crate) fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
-        let path = Self::inner_to_prefix(inner);
-        let record = self
-            .index
-            .record_at(&path)
-            .ok_or_else(|| AccessorError::not_found(self.display_entry_path(&path)))?;
-
-        if record.is_dir {
-            return Err(AccessorError::not_a_file(self.display_entry_path(&path)));
-        }
-
-        // Reads the entire file into memory!
-        let bytes = self.read_entry_bytes(record.index)?;
+    /// Due to the zip file crate limitations this reader reads the file into memory
+    pub(crate) fn reader(
+        &self,
+        inner: &InnerPath,
+        max_read_size: Option<u64>,
+    ) -> AccessorResult<AccessorReader> {
+        let bytes = self.read_file(inner, max_read_size)?;
         Ok(AccessorReader::memory(bytes))
     }
 
     /// Open a `AccessorReader` to the provided `FileHandle`
     ///
-    /// Due to the zip file crate limitations this readers reads the file into memory
-    pub(crate) fn reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
-        match &handle.locator {
-            FileLocator::Zip { archive, .. } if archive == &self.index.archive_path => {
-                let bytes = self.read_handle(handle, None)?;
-                Ok(AccessorReader::memory(bytes))
-            }
-            _ => Err(AccessorError::invalid_handle(format!(
-                "zip source cannot open reader handle for {}",
-                handle.display_path()
-            ))),
-        }
+    /// Due to the zip file crate limitations this reader reads the file into memory
+    pub(crate) fn reader_handle(
+        &self,
+        handle: &FileHandle,
+        max_read_size: Option<u64>,
+    ) -> AccessorResult<AccessorReader> {
+        let bytes = self.read_handle(handle, max_read_size)?;
+        Ok(AccessorReader::memory(bytes))
     }
 
     /// Helper to convert `InnerPath` to String for zip content file access
@@ -356,10 +362,12 @@ impl ZipFs {
 
     /// Read the zip content file
     fn read_entry_bytes(&self, index: usize) -> AccessorResult<Vec<u8>> {
-        let file = File::open(&self.index.archive_path)
-            .map_err(|err| AccessorError::io_path(&self.index.archive_path, err))?;
-        let mut archive = ZipArchive::new(file)
-            .map_err(|err| AccessorError::zip(self.index.archive_path.clone(), err.to_string()))?;
+        let mut archive = self.archive.lock().map_err(|_| {
+            AccessorError::zip(
+                self.index.archive_path.clone(),
+                "zip archive lock poisoned".to_string(),
+            )
+        })?;
 
         let mut entry = archive
             .by_index(index)
@@ -392,7 +400,7 @@ impl ZipFs {
 
         for (name, child) in children {
             let (handle, kind, size, display_path) = match child {
-                // Symblic links are treated as a file
+                // Symbolic links are treated as a file
                 ZipChild::File { record, .. } => (
                     ItemHandle::File(FileHandle::new(FileLocator::Zip {
                         archive: self.index.archive_path.clone(),
@@ -574,8 +582,7 @@ mod tests {
             ],
         );
 
-        let index = ZipIndex::open(archive.clone()).unwrap();
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(archive).unwrap();
         let bytes = zipfs.read_file(&inner("home/test.txt"), None).unwrap();
         assert_eq!(bytes, b"zip payload");
     }
@@ -592,8 +599,7 @@ mod tests {
             ],
         );
 
-        let index = ZipIndex::open(archive).unwrap();
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(archive).unwrap();
         let entries = zipfs.read_dir_inner(&inner("home")).unwrap();
 
         assert_eq!(entries.len(), 2);
@@ -612,8 +618,7 @@ mod tests {
             ],
         );
 
-        let index = ZipIndex::open(archive).unwrap();
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(archive).unwrap();
         let matches = zipfs.globfs(&inner("home"), "*.txt").unwrap();
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0].meta.kind, EntryKind::File);
@@ -623,9 +628,8 @@ mod tests {
         let dir = setup("test_zipfs_read_file_not_found");
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("home/test.txt", b"zip payload")]);
-        let index = ZipIndex::open(archive).unwrap();
 
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(archive).unwrap();
         let err = zipfs.read_file(&inner("missing.txt"), None).unwrap_err();
         assert!(matches!(err, AccessorError::NotFound { .. }));
     }
@@ -634,16 +638,15 @@ mod tests {
         let dir = setup("test_zipfs_reader_handle");
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("home/test.txt", b"abcdef")]);
-        let index = ZipIndex::open(archive).unwrap();
 
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(archive).unwrap();
         let handle = FileHandle::new(FileLocator::Zip {
             archive: dir.join("archive.zip"),
             entry_index: 0,
             entry: String::from("home/test.txt"),
         });
 
-        let mut reader = zipfs.reader_handle(&handle).unwrap();
+        let mut reader = zipfs.reader_handle(&handle, None).unwrap();
         assert_eq!(reader.read_bytes(2, 2).unwrap(), b"cd");
     }
 
@@ -652,8 +655,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/archives/document.odt");
 
-        let index = ZipIndex::open(test_location).unwrap();
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(test_location).unwrap();
 
         let entries = zipfs.read_dir(&inner("")).unwrap();
         assert_eq!(entries.len(), 9);
@@ -673,8 +675,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/archives/document.odt");
 
-        let index = ZipIndex::open(test_location).unwrap();
-        let zipfs = ZipFs::new(index);
+        let zipfs = ZipFs::new(test_location).unwrap();
         let err = zipfs
             .read_file(&inner("content.xml"), Some(10))
             .unwrap_err();

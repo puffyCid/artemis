@@ -5,7 +5,7 @@ use crate::accessor::{
         locator::SourceId,
     },
     error::AccessorResult,
-    filesystem::zip::{ZipFs, ZipIndex},
+    filesystem::zip::ZipFs,
     io::reader::AccessorReader,
     location::path::InnerPath,
     source::backend::SourceBackend,
@@ -18,24 +18,18 @@ pub(crate) struct ZipSource {
     archive_path: PathBuf,
     /// Max file size to read
     max_read_size: Option<u64>,
-    /// Parsed zip metadata
-    index: ZipIndex,
+    /// Reader for the zip archive
+    fs: ZipFs,
 }
 
 impl ZipSource {
     /// Create a new `ZipSource` instance
     pub(crate) fn new(config: &AccessorConfig, archive_path: PathBuf) -> AccessorResult<Self> {
-        let index = ZipIndex::open(archive_path.clone())?;
         Ok(Self {
+            fs: ZipFs::new(archive_path.clone())?,
             archive_path,
             max_read_size: config.max_read_size,
-            index,
         })
-    }
-
-    /// Return a `ZipFs` structure
-    fn zipfs(&self) -> ZipFs {
-        ZipFs::new(self.index.clone())
     }
 }
 
@@ -45,31 +39,31 @@ impl SourceBackend for ZipSource {
     }
 
     fn read_file(&self, inner: &InnerPath) -> AccessorResult<Vec<u8>> {
-        self.zipfs().read_file(inner, self.max_read_size)
+        self.fs.read_file(inner, self.max_read_size)
     }
 
     fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
-        self.zipfs().read_dir(inner)
+        self.fs.read_dir(inner)
     }
 
     fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
-        self.zipfs().read_dir_handle(handle)
+        self.fs.read_dir_handle(handle)
     }
 
     fn globfs(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
-        self.zipfs().globfs(directory, pattern)
+        self.fs.globfs(directory, pattern)
     }
 
     fn read_file_handle(&self, handle: &FileHandle) -> AccessorResult<Vec<u8>> {
-        self.zipfs().read_handle(handle, self.max_read_size)
+        self.fs.read_handle(handle, self.max_read_size)
     }
 
     fn open_reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
-        self.zipfs().reader(inner)
+        self.fs.reader(inner, self.max_read_size)
     }
 
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
-        self.zipfs().reader_handle(handle)
+        self.fs.reader_handle(handle, self.max_read_size)
     }
 }
 
@@ -202,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn test_zipfs_read_document() {
+    fn test_zip_source_read_document() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/archives/document.odt");
 
