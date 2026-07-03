@@ -124,6 +124,9 @@ pub(crate) struct ZipFs {
 impl ZipFs {
     /// Create a new `ZipFs` instance
     pub(crate) fn new(archive_path: PathBuf) -> AccessorResult<Self> {
+        // Open archive twice:
+        // First to extract file path metadata and indexes
+        // Second to access `ZipArchive` reader for reading content
         let index = ZipIndex::open(archive_path.clone())?;
         let file =
             File::open(&archive_path).map_err(|err| AccessorError::io_path(&archive_path, err))?;
@@ -360,8 +363,9 @@ impl ZipFs {
         }
     }
 
-    /// Read the zip content file
+    /// Read the zip content file. Currently who file is decompressed into memory
     fn read_entry_bytes(&self, index: usize) -> AccessorResult<Vec<u8>> {
+        // Access the `ZipArchive` file reader
         let mut archive = self.archive.lock().map_err(|_| {
             AccessorError::zip(
                 self.index.archive_path.clone(),
