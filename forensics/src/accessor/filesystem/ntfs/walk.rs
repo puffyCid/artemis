@@ -7,7 +7,7 @@ use crate::accessor::{
     filesystem::ntfs::volume::NtfsVolume,
 };
 use ntfs::{
-    Ntfs, NtfsAttributeType, NtfsFile, NtfsIndexEntryFlags, indexes::NtfsFileNameIndex,
+    Ntfs, NtfsFile, NtfsIndexEntryFlags, indexes::NtfsFileNameIndex,
     structured_values::NtfsFileNamespace,
 };
 use std::io::{Read, Seek};
@@ -197,7 +197,7 @@ fn normalize_display_path(path: &str) -> String {
 }
 
 /// Handle `NTFSError` to `AccessorError`
-fn ntfs_err(err: ntfs::NtfsError) -> AccessorError {
+pub(crate) fn ntfs_err(err: ntfs::NtfsError) -> AccessorError {
     AccessorError::Ntfs {
         path: None,
         reason: err.to_string(),
