@@ -93,7 +93,7 @@ pub(crate) fn get_raw_file_size(
         None => {
             return Err(NtfsError::Io(Error::new(
                 ErrorKind::InvalidData,
-                "Could determine file size",
+                "Could not determine file size",
             )));
         }
     };
