@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn test_ntfs_volume() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/filesystems/ntfs/test.img");
+        test_location.push("tests/test_data/filesystems/ntfs/test.raw");
 
         let reader = NtfsVolume::open_image(test_location).unwrap();
         let result = list_children(&reader, 'C', &"", &"").unwrap();
