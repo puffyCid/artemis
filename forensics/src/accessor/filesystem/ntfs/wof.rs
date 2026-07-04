@@ -16,8 +16,6 @@ use std::io::{Read, Seek};
 const WOF_ADS: &str = "WofCompressedData";
 /// WOF reparse tag (`IO_REPARSE_TAG_WOF`)
 const WOF_REPARSE_TAG: u32 = 0x80000017;
-/// Minimum bytes in a WOF `$REPARSE_POINT` buffer we need to read compression method
-const WOF_REPARSE_MIN_SIZE: usize = 24;
 /// 4-byte offset table entries below this uncompressed size; 8-byte entries at/above
 const LARGE_UNCOMPRESSED_THRESHOLD: usize = 4 * 1024 * 1024 * 1024;
 /// Skipping files that have compressed data larger than 2GB
@@ -70,28 +68,21 @@ pub(crate) fn is_wof_file<R: Read + Seek>(
     file: &NtfsFile<'_>,
 ) -> AccessorResult<bool> {
     let reparse = read_reparse_data(reader, file)?;
-    // If bytes are empty. File is not WOF copmressed
+    // If bytes are empty. File is not WOF compressed
     if reparse.is_empty() || !is_wof_reparse(&reparse)? {
         return Ok(false);
     }
 
-    /// Read the `WofCompressedData` ADS attribute
+    // Read the `WofCompressedData` ADS attribute
     let compressed = read_named_data(reader, file, WOF_ADS)?;
     Ok(!compressed.is_empty())
 }
 
+/// Decompress WOF bytes
 pub(crate) fn decompress_wof<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
 ) -> AccessorResult<Vec<u8>> {
-    if !is_wof_file(reader, file)? {
-        return Err(wof_err("file is not WOF-compressed"));
-    }
-
-    /*
-     * We now have the compressed data, however before we can decompress it we need to figure out the compression method used.
-     * We can find out by parsing the `ReparsePoint` attribute  type from the file. This binary data will contain the compression algorithm (unit)
-     */
     let reparse = read_reparse_data(reader, file)?;
     let (_, wof_reparse) = parse_reparse(&reparse).map_err(nom_err)?;
     let unit = WofCompressionUnit::from_method(wof_reparse.compression_method)?;
@@ -99,7 +90,17 @@ pub(crate) fn decompress_wof<R: Read + Seek>(
         return Err(wof_err("WOF LZX compression is not supported"));
     }
 
+    /*
+     * We now have the compressed data, however before we can decompress it we need to figure out the compression method used.
+     * We can find out by parsing the `ReparsePoint` attribute type from the file. This binary data will contain the compression algorithm (unit)
+     */
     let compressed_blob = read_named_data(reader, file, WOF_ADS)?;
+    if compressed_blob.len() > WOF_MAX_SIZE as usize {
+        return Err(AccessorError::FileTooLarge {
+            size: compressed_blob.len() as u64,
+            limit: WOF_MAX_SIZE,
+        });
+    }
     let uncompressed_size = default_data_logical_size(reader, file)? as usize;
 
     /*
