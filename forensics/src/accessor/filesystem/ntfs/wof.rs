@@ -14,8 +14,6 @@ use std::io::{Read, Seek};
 
 /// ADS stream that holds WOF-compressed payload
 const WOF_ADS: &str = "WofCompressedData";
-/// WOF reparse tag (`IO_REPARSE_TAG_WOF`)
-const WOF_REPARSE_TAG: u32 = 0x80000017;
 /// 4-byte offset table entries below this uncompressed size; 8-byte entries at/above
 const LARGE_UNCOMPRESSED_THRESHOLD: usize = 4 * 1024 * 1024 * 1024;
 /// Skipping files that have compressed data larger than 2GB
@@ -82,17 +80,16 @@ pub(crate) fn decompress_wof<R: Read + Seek>(
         return Err(wof_err("WOF LZX compression is not supported"));
     }
 
-    /*
-     * We now have the compressed data, however before we can decompress it we need to figure out the compression method used.
-     * We can find out by parsing the `ReparsePoint` attribute type from the file. This binary data will contain the compression algorithm (unit)
-     */
-    let compressed_blob = read_named_data(reader, file, WOF_ADS)?;
-    if compressed_blob.len() > WOF_MAX_SIZE as usize {
+    let wof_size = named_data_logical_size(reader, file, WOF_ADS)?;
+    if wof_size > WOF_MAX_SIZE {
         return Err(AccessorError::FileTooLarge {
-            size: compressed_blob.len() as u64,
+            size: wof_size,
             limit: WOF_MAX_SIZE,
         });
     }
+
+    // Contains the compressed data
+    let compressed_blob = read_named_data(reader, file, WOF_ADS)?;
     let uncompressed_size = default_data_logical_size(reader, file)? as usize;
 
     /*
@@ -127,15 +124,6 @@ pub(crate) fn decompress_wof<R: Read + Seek>(
         )));
     }
     Ok(decompressed)
-}
-
-/// Check for `WOF_REPARSE_TAG` signature
-fn is_wof_reparse(data: &[u8]) -> AccessorResult<bool> {
-    if data.len() < 4 {
-        return Ok(false);
-    }
-    let (_, sig) = nom_unsigned_four_bytes(data, Endian::Le).map_err(nom_err)?;
-    Ok(sig == WOF_REPARSE_TAG)
 }
 
 /// Parse WOF `$REPARSE_POINT` header (first 24 bytes).
