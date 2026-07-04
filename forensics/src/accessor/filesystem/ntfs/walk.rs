@@ -174,18 +174,11 @@ fn get_file_size<R: Read + Seek>(
     // Get direct access to the file via file reference
     let file = ntfs.file(reader, record_number).map_err(ntfs_err)?;
 
-    for attr_result in file.attributes_raw() {
-        let attr = attr_result.map_err(ntfs_err)?;
-        if attr.ty().map_err(ntfs_err)? != NtfsAttributeType::Data {
-            continue;
-        }
-        // We want the size of the $DATA attribute
-        let name = attr.name().map_err(ntfs_err)?;
-        if name.is_empty() {
-            return Ok(attr.value_length());
-        }
+    match file.data(reader, "") {
+        Some(Ok(item)) => Ok(item.to_attribute().map_err(ntfs_err)?.value_length()),
+        Some(Err(err)) => Err(ntfs_err(err)),
+        None => Ok(0),
     }
-    Ok(0)
 }
 
 /// Split the target directory we want to read into array of strings
