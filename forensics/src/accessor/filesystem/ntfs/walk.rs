@@ -211,3 +211,30 @@ fn ntfs_err(err: ntfs::NtfsError) -> AccessorError {
         reason: err.to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::accessor::{
+        entry::handle::EntryKind,
+        filesystem::ntfs::{volume::NtfsVolume, walk::list_children},
+    };
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_ntfs_volume() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/filesystems/ntfs/test.img");
+
+        let reader = NtfsVolume::open_image(test_location).unwrap();
+        let result = list_children(&reader, 'C', &"", &"").unwrap();
+        println!("{result:?}");
+
+        assert_eq!(result.len(), 15);
+
+        for entry in result {
+            if entry.name == "main.ts" {
+                assert_eq!(entry.meta.kind, EntryKind::File);
+            }
+        }
+    }
+}
