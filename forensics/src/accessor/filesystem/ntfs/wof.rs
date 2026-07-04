@@ -67,15 +67,7 @@ pub(crate) fn is_wof_file<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
 ) -> AccessorResult<bool> {
-    let reparse = read_reparse_data(reader, file)?;
-    // If bytes are empty. File is not WOF compressed
-    if reparse.is_empty() || !is_wof_reparse(&reparse)? {
-        return Ok(false);
-    }
-
-    // Read the `WofCompressedData` ADS attribute
-    let compressed = read_named_data(reader, file, WOF_ADS)?;
-    Ok(!compressed.is_empty())
+    Ok(named_data_logical_size(reader, file, WOF_ADS)? > 0)
 }
 
 /// Decompress WOF bytes
@@ -288,6 +280,18 @@ fn default_data_logical_size<R: Read + Seek>(
         .ok_or_else(|| wof_err("WOF file missing default $DATA attribute"))?
         .map_err(ntfs_err)?;
 
+    Ok(item.to_attribute().map_err(ntfs_err)?.value_length())
+}
+
+fn named_data_logical_size<R: Read + Seek>(
+    reader: &mut R,
+    file: &NtfsFile<'_>,
+    stream_name: &str,
+) -> AccessorResult<u64> {
+    let Some(item) = file.data(reader, stream_name) else {
+        return Ok(0);
+    };
+    let item = item.map_err(ntfs_err)?;
     Ok(item.to_attribute().map_err(ntfs_err)?.value_length())
 }
 
