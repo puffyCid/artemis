@@ -148,10 +148,15 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
     /// Create a `NtfsVolume` reader from a provided reader
     pub(crate) fn open(mut reader: R, display_id: impl Into<String>) -> AccessorResult<Self> {
         let display_id_value = display_id.into();
-        let ntfs = Ntfs::new(&mut reader).map_err(|err| AccessorError::Ntfs {
+        let mut ntfs = Ntfs::new(&mut reader).map_err(|err| AccessorError::Ntfs {
             path: Some(display_id_value.clone()),
             reason: err.to_string(),
         })?;
+        ntfs.read_upcase_table(&mut reader)
+            .map_err(|err| AccessorError::Ntfs {
+                path: Some(display_id_value.clone()),
+                reason: err.to_string(),
+            })?;
 
         Ok(Self {
             display_id: display_id_value,

@@ -42,10 +42,9 @@ pub(crate) fn list_children<R: Read + Seek + Send>(
         let mut entries = Vec::with_capacity(pending.len());
         for child in pending {
             let size = match child.kind {
-                EntryKind::Directory => 0,
+                EntryKind::Directory | EntryKind::Unsupported => 0,
                 // Only files have sizes
                 EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
-                EntryKind::Unsupported => 0,
             };
             let meta = EntryMeta::new(child.kind.clone(), size, child.display_path.clone());
             let handle = match child.kind {
@@ -89,7 +88,7 @@ fn collect_index_children<R: Read + Seek>(
                 let key = match entry.key() {
                     Some(Ok(key)) => key,
                     Some(Err(err)) => return Err(ntfs_err(err)),
-                    None => return Ok(pending),
+                    None => continue,
                 };
                 // Skip DOS names
                 if key.namespace() == NtfsFileNamespace::Dos {
@@ -199,7 +198,7 @@ fn split_inner_path(inner_path: &str) -> Vec<String> {
         .collect()
 }
 
-/// Remove any slashes at end of directoy we want to read
+/// Remove any slashes at end of directory we want to read
 fn normalize_display_path(path: &str) -> String {
     path.trim_end_matches(['\\', '/']).to_string()
 }
@@ -227,7 +226,6 @@ mod tests {
 
         let reader = NtfsVolume::open_image(test_location).unwrap();
         let result = list_children(&reader, 'C', &"", &"").unwrap();
-        println!("{result:?}");
 
         assert_eq!(result.len(), 15);
 
@@ -236,5 +234,8 @@ mod tests {
                 assert_eq!(entry.meta.kind, EntryKind::File);
             }
         }
+
+        let result = list_children(&reader, 'c', &"C:\\hello", &"hello").unwrap();
+        assert_eq!(result[0].name, "hello world.txt");
     }
 }
