@@ -304,7 +304,7 @@ fn read_reparse_data<R: Read + Seek>(
 }
 
 /// Read attribute data
-fn read_named_data<R: Read + Seek>(
+pub(crate) fn read_named_data<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
     stream_name: &str,

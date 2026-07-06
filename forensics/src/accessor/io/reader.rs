@@ -1,7 +1,12 @@
 use std::{
+    fmt::Debug,
     fs::File,
     io::{self, Cursor, Read, Seek, SeekFrom},
 };
+
+/// Combines Read + Seek into a single trait object
+pub(crate) trait ReadSeek: Read + Seek + Debug {}
+impl<T: Read + Seek + Debug> ReadSeek for T {}
 
 /// An abstract reader that can be used to read data
 #[derive(Debug)]
@@ -10,12 +15,15 @@ pub(crate) enum AccessorReader {
     Host(File),
     /// `AccessorReader` for a file read into memory
     Memory(Cursor<Vec<u8>>),
+    /// Stream a large file without reading the entire file into memory
+    Stream(Box<dyn ReadSeek + Send>),
 }
 impl Read for AccessorReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             Self::Host(file) => file.read(buf),
             Self::Memory(cursor) => cursor.read(buf),
+            Self::Stream(stream) => stream.read(buf),
         }
     }
 }
@@ -25,6 +33,7 @@ impl Seek for AccessorReader {
         match self {
             Self::Host(file) => file.seek(pos),
             Self::Memory(cursor) => cursor.seek(pos),
+            Self::Stream(stream) => stream.seek(pos),
         }
     }
 }
@@ -59,5 +68,10 @@ impl AccessorReader {
     /// Create an in-memory reader
     pub(crate) fn memory(bytes: Vec<u8>) -> Self {
         Self::Memory(Cursor::new(bytes))
+    }
+
+    /// Stream large files without reading into memory
+    pub(crate) fn stream(reader: impl ReadSeek + Send + 'static) -> Self {
+        Self::Stream(Box::new(reader))
     }
 }

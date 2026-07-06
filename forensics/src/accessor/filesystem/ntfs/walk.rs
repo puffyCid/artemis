@@ -66,6 +66,40 @@ pub(crate) fn list_children<R: Read + Seek + Send>(
     })
 }
 
+/// Return a `NtfsFile` from provided file path
+pub(crate) fn resolve_file<'n, R: Read + Seek>(
+    ntfs: &'n Ntfs,
+    reader: &mut R,
+    inner_path: &str,
+) -> AccessorResult<NtfsFile<'n>> {
+    let components = split_inner_path(inner_path);
+    if components.is_empty() {
+        return Err(AccessorError::not_a_file(inner_path));
+    }
+
+    let mut current = ntfs.root_directory(reader).map_err(ntfs_err)?;
+
+    for component in components {
+        let index = current.directory_index(reader).map_err(ntfs_err)?;
+        let mut finder = index.finder();
+        let entry = match NtfsFileNameIndex::find(&mut finder, ntfs, reader, &component) {
+            Some(Ok(entry)) => entry,
+            Some(Err(err)) => return Err(ntfs_err(err)),
+            None => {
+                return Err(AccessorError::NotFound { path: component });
+            }
+        };
+
+        current = entry.to_file(ntfs, reader).map_err(ntfs_err)?;
+    }
+
+    if current.is_directory() {
+        return Err(AccessorError::not_a_file(inner_path));
+    }
+
+    Ok(current)
+}
+
 /// Walk the directory index and return children
 ///
 /// Required before any `$DATA` size lookup
@@ -166,7 +200,7 @@ fn resolve_directory<'n, R: Read + Seek>(
 }
 
 /// Return the size of a file
-fn get_file_size<R: Read + Seek>(
+pub(crate) fn get_file_size<R: Read + Seek>(
     ntfs: &Ntfs,
     reader: &mut R,
     record_number: u64,
@@ -182,7 +216,7 @@ fn get_file_size<R: Read + Seek>(
 }
 
 /// Split the target directory we want to read into array of strings
-fn split_inner_path(inner_path: &str) -> Vec<String> {
+pub(crate) fn split_inner_path(inner_path: &str) -> Vec<String> {
     inner_path
         .trim_matches(['\\', '/'])
         .split(['\\', '/'])
