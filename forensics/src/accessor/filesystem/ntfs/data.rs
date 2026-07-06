@@ -12,6 +12,7 @@ use crate::accessor::{
     io::reader::AccessorReader,
     location::path::InnerPath,
 };
+use chrono::offset;
 use ntfs::{NtfsFile, NtfsReadSeek};
 use std::fmt;
 use std::{
@@ -46,6 +47,7 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
     ) -> AccessorResult<Vec<u8>> {
         let inner_path = inner_to_ntfs_path(inner, self.drive);
         let display_path = display_ntfs_path(self.drive, &inner_path);
+
         self.volume.with_reader(|ntfs, reader| {
             let file = resolve_file(ntfs, reader, &inner_path)?;
             read_ntfs_file(reader, &file, &display_path, max_read_size)
@@ -138,6 +140,10 @@ pub(crate) struct NtfsStreamReader<R: Read + Seek + Send> {
     size: u64,
     /// Position of the reader
     position: u64,
+    /// Small look ahead cache
+    cache: Vec<u8>,
+    /// Offset where our cache read to
+    cache_offset: u64,
 }
 
 /// Open the file for streaming
@@ -168,17 +174,33 @@ fn open_stream_reader<R: Read + Seek + Send>(
         file_record_number: file.file_record_number(),
         size,
         position: 0,
+        cache: Vec::new(),
+        cache_offset: 0,
     })
 }
 
-impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        // If buffer is empty or file is 0 bytes in size return 0
-        if buf.is_empty() || self.position >= self.size {
-            return Ok(0);
-        }
+/// How much cache to read in between file reads
+const READ_AHEAD: usize = 1024 * 1024;
 
-        let to_read = buf.len().min((self.size - self.position) as usize);
+impl<R: Read + Seek + Send> NtfsStreamReader<R> {
+    /// Reset the cache data
+    fn invalidate_cache(&mut self) {
+        self.cache.clear();
+        self.cache_offset = 0;
+    }
+
+    /// Check if we can use our cache for reading next data
+    fn cache_has_byte(&self, offset: u64) -> bool {
+        !self.cache.is_empty()
+            && offset >= self.cache_offset
+            && offset < self.cache_offset + self.cache.len() as u64
+    }
+
+    /// Update our cache
+    fn refill_cache(&mut self) -> io::Result<()> {
+        let remaining = self.size - self.position;
+        let to_read = READ_AHEAD.min(remaining as usize);
+
         let bytes = self
             .volume
             .with_reader(|ntfs, reader| {
@@ -189,12 +211,45 @@ impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
             })
             .map_err(accessor_to_io)?;
 
-        buf[..bytes.len()].copy_from_slice(&bytes);
-        self.position += bytes.len() as u64;
+        self.cache = bytes;
+        self.cache_offset = self.position;
 
-        Ok(bytes.len())
+        Ok(())
     }
 }
+
+impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        // If buffer is empty or file is 0 bytes in size return 0
+        if buf.is_empty() || self.position >= self.size {
+            return Ok(0);
+        }
+
+        let mut total = 0;
+        while total < buf.len() && self.position < self.size {
+            if !self.cache_has_byte(self.position) {
+                self.refill_cache()?;
+
+                if self.cache.is_empty() {
+                    break;
+                }
+            }
+
+            let offset = (self.position - self.cache_offset) as usize;
+            let in_cache = self.cache.len() - offset;
+
+            let remaining = (self.size - self.position) as usize;
+            let want = buf.len() - total;
+
+            let bytes = in_cache.min(remaining).min(want);
+
+            buf[total..total + bytes].copy_from_slice(&self.cache[offset..offset + bytes]);
+        }
+
+        return Ok(total);
+    }
+}
+
 impl<R: Read + Seek + Send> Seek for NtfsStreamReader<R> {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         let new_pos = match pos {
@@ -222,6 +277,7 @@ impl<R: Read + Seek + Send> Seek for NtfsStreamReader<R> {
             ));
         }
         self.position = new_pos;
+        self.invalidate_cache();
 
         Ok(self.position)
     }
@@ -317,7 +373,7 @@ fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> String {
     strip_drive_prefix(&inner.display(), drive)
 }
 
-/// Remove driver characters if
+/// Remove drive characters if present
 fn strip_drive_prefix(path: &str, drive: char) -> String {
     let trimmed = path.trim();
     let lower = format!("{}:", drive.to_ascii_lowercase());

@@ -310,7 +310,10 @@ pub(crate) fn read_named_data<R: Read + Seek>(
     stream_name: &str,
 ) -> AccessorResult<Vec<u8>> {
     let Some(item) = file.data(reader, stream_name) else {
-        return Ok(Vec::new());
+        return Err(AccessorError::Ntfs {
+            path: None,
+            reason: String::from("file has no default $DATA stream"),
+        });
     };
     let item = item.map_err(ntfs_err)?;
     let attr = item.to_attribute().map_err(ntfs_err)?;
