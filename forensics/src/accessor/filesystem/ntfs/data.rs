@@ -250,7 +250,7 @@ impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
             total += bytes;
         }
 
-        return Ok(total);
+        Ok(total)
     }
 }
 
@@ -405,16 +405,28 @@ mod tests {
     };
     use std::{io::Read, path::PathBuf};
 
+    fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let volume = NtfsVolume::open_image(path).unwrap();
+        NtfsFs::new(volume, 'C')
+    }
+
+    fn hello_path() -> InnerPath {
+        InnerPath::new(PathBuf::from("hello/hello world.txt"))
+    }
+
+    fn main_ts_path() -> InnerPath {
+        InnerPath::new(PathBuf::from("main.ts"))
+    }
+
     #[test]
     fn test_ntfs_read() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/filesystems/ntfs/test.raw");
 
-        let reader = NtfsVolume::open_image(test_location).unwrap();
-        let ntfs_reader = NtfsFs::new(reader, 'C');
-        let bytes = ntfs_reader
-            .read_file(&InnerPath::new(PathBuf::from("main.ts")), Some(1000))
-            .unwrap();
+        let reader = test_fs();
+        let bytes = reader.read_file(&main_ts_path(), Some(1000)).unwrap();
         assert_eq!(bytes.len(), 514);
     }
 
@@ -423,21 +435,70 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/filesystems/ntfs/test.raw");
 
-        let reader = NtfsVolume::open_image(test_location).unwrap();
-        let result = list_children(&reader, 'C', &"", &"").unwrap();
-        let ntfs_reader = NtfsFs::new(reader, 'C');
+        let volume = NtfsVolume::open_image(test_location).unwrap();
+        let result = list_children(&volume, 'C', &"", &"").unwrap();
+        let reader = NtfsFs::new(volume, 'C');
 
         for entry in result {
             if !entry.is_file() || entry.meta.size == 0 {
                 continue;
             }
 
-            let mut file_reader = ntfs_reader
+            let mut file_reader = reader
                 .reader_handle(entry.handle.as_file().unwrap())
                 .unwrap();
             let mut buf = [0; 10];
             let bytes = file_reader.read(&mut buf).unwrap();
+
             assert_eq!(buf.len(), bytes);
         }
+    }
+
+    #[test]
+    fn test_stream_partial_read_small_file() {
+        let fs = test_fs();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        let mut buf = [0u8; 10];
+        let result = stream.read(&mut buf).unwrap();
+
+        assert_eq!(result, 10);
+        assert_eq!(&buf[..result], b"hello worl");
+
+        let result = stream.read(&mut buf).unwrap();
+
+        assert_eq!(result, 2);
+        assert_eq!(&buf[..result], b"d\n");
+        assert_eq!(stream.read(&mut buf).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_stream_chunked_read_matches_full() {
+        let fs = test_fs();
+        let expected = fs.read_file(&main_ts_path(), None).unwrap();
+        let mut stream = fs.reader(&main_ts_path()).unwrap();
+        let mut results = Vec::new();
+        let mut chunk = [0u8; 64];
+
+        loop {
+            let bytes = stream.read(&mut chunk).unwrap();
+            if bytes == 0 {
+                break;
+            }
+            results.extend_from_slice(&chunk[..bytes]);
+        }
+
+        assert_eq!(results, expected);
+    }
+
+    #[test]
+    fn test_stream_eof_returns_zero() {
+        let fs = test_fs();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        let mut buf = [0u8; 64];
+        
+        let results = stream.read(&mut buf).unwrap();
+
+        assert_eq!(results, 12);
+        assert_eq!(stream.read(&mut buf).unwrap(), 0);
     }
 }

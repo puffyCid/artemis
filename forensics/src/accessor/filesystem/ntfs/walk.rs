@@ -251,8 +251,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/filesystems/ntfs/test.raw");
 
-        let reader = NtfsVolume::open_image(test_location).unwrap();
-        let result = list_children(&reader, 'C', &"", &"").unwrap();
+        let volume = NtfsVolume::open_image(test_location).unwrap();
+        let result = list_children(&volume, 'C', &"", &"").unwrap();
 
         assert_eq!(result.len(), 15);
 
@@ -262,7 +262,7 @@ mod tests {
             }
         }
 
-        let result = list_children(&reader, 'c', &"C:\\hello", &"hello").unwrap();
+        let result = list_children(&volume, 'c', &"C:\\hello", &"hello").unwrap();
         assert_eq!(result[0].name, "hello world.txt");
     }
 }
