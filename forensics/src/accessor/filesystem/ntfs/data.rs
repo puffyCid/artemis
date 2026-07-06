@@ -12,7 +12,6 @@ use crate::accessor::{
     io::reader::AccessorReader,
     location::path::InnerPath,
 };
-use chrono::offset;
 use ntfs::{NtfsFile, NtfsReadSeek};
 use std::fmt;
 use std::{
@@ -200,6 +199,8 @@ impl<R: Read + Seek + Send> NtfsStreamReader<R> {
     fn refill_cache(&mut self) -> io::Result<()> {
         let remaining = self.size - self.position;
         let to_read = READ_AHEAD.min(remaining as usize);
+        let mut buf = std::mem::take(&mut self.cache);
+        buf.resize(to_read, 0);
 
         let bytes = self
             .volume
@@ -207,11 +208,12 @@ impl<R: Read + Seek + Send> NtfsStreamReader<R> {
                 let file = ntfs
                     .file(reader, self.file_record_number)
                     .map_err(ntfs_err)?;
-                read_data_attribute_bytes(reader, &file, self.position, to_read)
+                read_data_attribute_bytes(reader, &file, self.position, &mut buf)
             })
             .map_err(accessor_to_io)?;
 
-        self.cache = bytes;
+        buf.truncate(bytes);
+        self.cache = buf;
         self.cache_offset = self.position;
 
         Ok(())
@@ -244,6 +246,8 @@ impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
             let bytes = in_cache.min(remaining).min(want);
 
             buf[total..total + bytes].copy_from_slice(&self.cache[offset..offset + bytes]);
+            self.position += bytes as u64;
+            total += bytes;
         }
 
         return Ok(total);
@@ -298,8 +302,8 @@ fn read_data_attribute_bytes<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
     offset: u64,
-    length: usize,
-) -> AccessorResult<Vec<u8>> {
+    buf: &mut [u8],
+) -> AccessorResult<usize> {
     let Some(item) = file.data(reader, "") else {
         return Err(AccessorError::Ntfs {
             path: None,
@@ -315,13 +319,7 @@ fn read_data_attribute_bytes<R: Read + Seek>(
         .seek(reader, SeekFrom::Start(offset))
         .map_err(ntfs_err)?;
 
-    // Read requested bytes
-    let mut out = vec![0u8; length];
-    let bytes = value.read(reader, &mut out).map_err(ntfs_err)?;
-
-    out.truncate(bytes);
-
-    Ok(out)
+    Ok(value.read(reader, buf).map_err(ntfs_err)?)
 }
 
 /// Handle `AccessorError` errors to `io::Error`

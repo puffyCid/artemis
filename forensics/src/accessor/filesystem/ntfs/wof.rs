@@ -312,7 +312,7 @@ pub(crate) fn read_named_data<R: Read + Seek>(
     let Some(item) = file.data(reader, stream_name) else {
         return Err(AccessorError::Ntfs {
             path: None,
-            reason: String::from("file has no default $DATA stream"),
+            reason: format!("file has no `{stream_name}` data stream"),
         });
     };
     let item = item.map_err(ntfs_err)?;
