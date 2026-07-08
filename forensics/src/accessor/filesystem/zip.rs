@@ -272,8 +272,19 @@ impl ZipFs {
             ));
         }
 
+        let normalized = normalize_glob_pattern(pattern);
+
         let glob_pattern = Pattern::new(pattern)
             .map_err(|err| AccessorError::bad_glob(pattern, err.to_string()))?;
+
+        if normalized.contains('/') {
+            let components = path_component_count(&normalized);
+            let mut matches = Vec::new();
+            glob_path_pattern(self, &prefix, &glob_pattern, "", components, &mut matches)?;
+
+            return Ok(matches);
+        }
+
         let children = self.list_children(&prefix)?;
         let mut matches = Vec::new();
 
@@ -281,36 +292,37 @@ impl ZipFs {
             if !glob_pattern.matches(&name) {
                 continue;
             }
-            let (handle, kind, size, display_path) = match child {
-                ZipChild::File { record, .. } => (
-                    ItemHandle::File(FileHandle::new(FileLocator::Zip {
-                        archive: self.index.archive_path.clone(),
-                        entry_index: record.index as u32,
-                        entry: record.path.clone(),
-                    })),
-                    EntryKind::File,
-                    record.size,
-                    self.display_entry_path(&record.path),
-                ),
-                ZipChild::Directory { prefix, .. } => (
-                    ItemHandle::Directory(DirHandle::new(DirLocator::Zip {
-                        archive: self.index.archive_path.clone(),
-                        entry_index: self.index.dir_entry_index(&prefix),
-                        prefix: prefix.clone(),
-                    })),
-                    EntryKind::Directory,
-                    0,
-                    self.display_entry_path(&prefix),
-                ),
-            };
-
-            matches.push(GlobMatch::new(
-                handle,
-                EntryMeta::new(kind, size, display_path),
-            ));
+            matches.push(self.zip_child_to_glob_match(child));
         }
 
         Ok(matches)
+    }
+
+    fn zip_child_to_glob_match(&self, child: ZipChild) -> GlobMatch {
+        let (handle, kind, size, display_path) = match child {
+            ZipChild::File { record, .. } => (
+                ItemHandle::File(FileHandle::new(FileLocator::Zip {
+                    archive: self.index.archive_path.clone(),
+                    entry_index: record.index as u32,
+                    entry: record.path.clone(),
+                })),
+                EntryKind::File,
+                record.size,
+                self.display_entry_path(&record.path),
+            ),
+            ZipChild::Directory { prefix, .. } => (
+                ItemHandle::Directory(DirHandle::new(DirLocator::Zip {
+                    archive: self.index.archive_path.clone(),
+                    entry_index: self.index.dir_entry_index(&prefix),
+                    prefix: prefix.clone(),
+                })),
+                EntryKind::Directory,
+                0,
+                self.display_entry_path(&prefix),
+            ),
+        };
+
+        GlobMatch::new(handle, EntryMeta::new(kind, size, display_path))
     }
 
     /// Open a `AccessorReader` to the provided `InnerPath`
@@ -496,6 +508,66 @@ impl ZipFs {
             }
         }
         Ok(children)
+    }
+}
+
+fn glob_path_pattern(
+    fs: &ZipFs,
+    prefix: &str,
+    pattern: &Pattern,
+    relative_prefix: &str,
+    components: usize,
+    matches: &mut Vec<GlobMatch>,
+) -> AccessorResult<()> {
+    let children = fs.list_children(prefix)?;
+
+    for (name, child) in children {
+        let relative = join_relative(relative_prefix, &name);
+        let depth = path_component_count(&relative);
+
+        match &child {
+            ZipChild::Directory {
+                prefix: child_prefix,
+                ..
+            } => {
+                if pattern.matches(&relative) {
+                    matches.push(fs.zip_child_to_glob_match(child.clone()));
+                }
+                if depth < components {
+                    glob_path_pattern(fs, child_prefix, pattern, &relative, components, matches)?;
+                }
+            }
+            ZipChild::File { .. } => {
+                if pattern.matches(&relative) {
+                    matches.push(fs.zip_child_to_glob_match(child));
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Apply a consistent glob separator
+fn normalize_glob_pattern(pattern: &str) -> String {
+    pattern.replace('\\', "/")
+}
+
+/// Builds the path to compare against our glob pattern
+fn join_relative(prefix: &str, name: &str) -> String {
+    if prefix.is_empty() {
+        name.to_string()
+    } else {
+        format!("{prefix}/{name}")
+    }
+}
+
+/// Determine depth of starting directory
+fn path_component_count(path: &str) -> usize {
+    if path.is_empty() {
+        0
+    } else {
+        path.split('/').count()
     }
 }
 

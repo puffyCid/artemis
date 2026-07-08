@@ -128,55 +128,38 @@ impl HostFs {
         if !dir_path.exists() {
             return Err(AccessorError::not_found(HostFs::display_path(&dir_path)));
         }
+
         if !dir_path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(
                 &dir_path,
             )));
         }
-        let glob_pattern = Pattern::new(pattern)
+        let normalized = normalize_glob_pattern(pattern);
+
+        let glob_pattern = Pattern::new(&normalized)
             .map_err(|err| AccessorError::bad_glob(pattern, err.to_string()))?;
 
-        let mut matches = Vec::new();
-        for entry in
-            fs::read_dir(&dir_path).map_err(|err| AccessorError::io_path(&dir_path, err))?
-        {
-            let entry = entry.map_err(|err| AccessorError::io_path(&dir_path, err))?;
-            let file_type = entry
-                .file_type()
-                .map_err(|err| AccessorError::io_path(entry.path(), err))?;
+        if normalized.contains('/') {
+            let mut matches = Vec::new();
+            HostFs::glob_path_pattern(
+                directory,
+                &glob_pattern,
+                "",
+                path_component_count(&normalized),
+                &mut matches,
+            )?;
 
-            let name = entry.file_name().to_string_lossy().into_owned();
+            return Ok(matches);
+        }
+
+        let mut matches = Vec::new();
+        for entry in HostFs::read_dir(directory)? {
             // Check if file path matches our glob
-            if !glob_pattern.matches(&name) {
+            if !glob_pattern.matches(&entry.name) {
                 continue;
             }
 
-            let child_path = entry.path();
-            let metadata = entry
-                .metadata()
-                .map_err(|err| AccessorError::io_path(&child_path, err))?;
-
-            // Determine our glob entry type
-            let (handle, kind) = if file_type.is_dir() {
-                (
-                    ItemHandle::Directory(DirHandle::host(&child_path)),
-                    EntryKind::Directory,
-                )
-            } else if file_type.is_file() {
-                (
-                    ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::File,
-                )
-            } else {
-                (
-                    ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::Unsupported,
-                )
-            };
-
-            // Get very small bit of metadata
-            let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
-            matches.push(GlobMatch::new(handle, meta));
+            matches.push(GlobMatch::new(entry.handle, entry.meta));
         }
 
         //matches.sort_by(|left, right| left.handle.display_path().cmp(&right.handle.display_path()));
@@ -226,6 +209,79 @@ impl HostFs {
     /// Return target path as a String
     fn display_path(path: &Path) -> String {
         path.display().to_string()
+    }
+
+    fn glob_path_pattern(
+        directory: &InnerPath,
+        pattern: &Pattern,
+        relative_prefix: &str,
+        components: usize,
+        matches: &mut Vec<GlobMatch>,
+    ) -> AccessorResult<()> {
+        let entries = HostFs::read_dir(directory)?;
+
+        for entry in entries {
+            let relative = join_relative(relative_prefix, &entry.name);
+            let depth = path_component_count(&relative);
+
+            match entry.meta.kind {
+                EntryKind::File | EntryKind::Unsupported => {
+                    if pattern.matches(&relative) {
+                        matches.push(GlobMatch::new(entry.handle, entry.meta))
+                    }
+                }
+                EntryKind::Directory => {
+                    if pattern.matches(&relative) {
+                        matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()))
+                    }
+
+                    if depth < components {
+                        let child_inner = append_inner_path(directory, &entry.name);
+                        HostFs::glob_path_pattern(
+                            &child_inner,
+                            pattern,
+                            &relative,
+                            components,
+                            matches,
+                        )?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Apply a consistent glob separator
+fn normalize_glob_pattern(pattern: &str) -> String {
+    pattern.replace('\\', "/")
+}
+
+/// Builds the path to compare against our glob pattern
+fn join_relative(prefix: &str, name: &str) -> String {
+    if prefix.is_empty() {
+        name.to_string()
+    } else {
+        format!("{prefix}/{name}")
+    }
+}
+
+/// Determine depth of starting directory
+fn path_component_count(path: &str) -> usize {
+    if path.is_empty() {
+        0
+    } else {
+        path.split('/').count()
+    }
+}
+
+/// Combine starting directory with any directory matches from glob
+fn append_inner_path(base: &InnerPath, name: &str) -> InnerPath {
+    if base.is_empty() {
+        InnerPath::new(PathBuf::from(name))
+    } else {
+        InnerPath::new(base.as_path().join(name))
     }
 }
 

@@ -126,6 +126,7 @@ fn join_relative(prefix: &str, name: &str) -> String {
     }
 }
 
+/// Determine depth of starting directory
 fn path_component_count(path: &str) -> usize {
     if path.is_empty() {
         0
