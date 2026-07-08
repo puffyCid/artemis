@@ -442,7 +442,7 @@ mod tests {
 
         let volume = NtfsVolume::open_image(test_location).unwrap();
         let result = list_children(&volume, 'C', &"", &"").unwrap();
-        let reader = NtfsFs::new(volume, 'C');
+        let reader = test_fs();
 
         for entry in result {
             if !entry.is_file() || entry.meta.size == 0 {
