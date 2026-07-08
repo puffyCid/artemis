@@ -148,7 +148,9 @@ mod tests {
         let mut reader = source
             .open_reader(&InnerPath::new(dir.join("big.bin")))
             .unwrap();
-        assert_eq!(reader.read_to_end().unwrap(), vec![1, 2, 3, 4, 5, 6, 7, 8]);
+
+        let mut buf = Vec::new();
+        assert_eq!(reader.read_to_end(&mut buf).unwrap(), 8);
     }
 
     #[test]

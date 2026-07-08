@@ -298,8 +298,10 @@ mod tests {
         let dir = setup("test_open_reader_skips_max_read_size");
         write_file(&dir, "big.bin", &[1, 2, 3, 4]);
         let mut reader = HostFs::reader(&inner(&dir, "big.bin")).unwrap();
-        let buf = reader.read_to_end().unwrap();
+        let mut buf = Vec::new();
+        let size = reader.read_to_end(&mut buf).unwrap();
         assert_eq!(buf, vec![1, 2, 3, 4]);
+        assert_eq!(size, 4)
     }
 
     #[test]

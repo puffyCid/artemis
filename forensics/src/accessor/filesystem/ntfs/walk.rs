@@ -25,15 +25,18 @@ struct PendingChild {
     display_path: String,
 }
 
+/// List files and directories from provided path.
+///
+/// `display` is the human readable directory path. `inner_path` is the directory that that we should target for listing files and directories
 pub(crate) fn list_children<R: Read + Seek + Send>(
     volume: &NtfsVolume<R>,
     drive: char,
-    dir_display_path: &str,
+    display: &str,
     inner_path: &str,
 ) -> AccessorResult<Vec<DirEntry>> {
     volume.with_reader(|ntfs, reader| {
         // Make sure the directory we are reading does not end with slash
-        let parent_display = normalize_display_path(dir_display_path);
+        let parent_display = normalize_display_path(display);
 
         // Children walk only. Gets all files and directories in provided directory
         let pending = collect_index_children(ntfs, reader, drive, inner_path, &parent_display)?;

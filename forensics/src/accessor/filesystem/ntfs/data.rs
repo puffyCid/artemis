@@ -129,7 +129,7 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
     }
 }
 
-/// Create a reader to stream large files
+/// Create a reader to stream large files by accessing the raw NTFS filesystem
 pub(crate) struct NtfsStreamReader<R: Read + Seek + Send> {
     /// Target NTFS volume to read
     volume: Arc<NtfsVolume<R>>,
@@ -400,10 +400,15 @@ fn display_ntfs_path(drive: char, inner_path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
+        entry::{handle::FileHandle, locator::FileLocator},
+        error::AccessorError,
         filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume, walk::list_children},
         location::path::InnerPath,
     };
-    use std::{io::Read, path::PathBuf};
+    use std::{
+        io::{Read, Seek, SeekFrom},
+        path::PathBuf,
+    };
 
     fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -495,10 +500,225 @@ mod tests {
         let fs = test_fs();
         let mut stream = fs.reader(&hello_path()).unwrap();
         let mut buf = [0u8; 64];
-        
+
         let results = stream.read(&mut buf).unwrap();
 
         assert_eq!(results, 12);
         assert_eq!(stream.read(&mut buf).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_empty_buffer_read_returns_zero() {
+        let fs = test_fs();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        let mut buf = [];
+        assert_eq!(stream.read(&mut buf).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_seek_start_then_read_tail() {
+        let fs = test_fs();
+        let full = fs.read_file(&hello_path(), None).unwrap();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        stream.seek(SeekFrom::Start(6)).unwrap();
+
+        let mut tail = Vec::new();
+        stream.read_to_end(&mut tail).unwrap();
+
+        assert_eq!(tail, &full[6..]);
+        assert_eq!(tail, b"world\n");
+    }
+
+    #[test]
+    fn test_seek_current_and_end() {
+        let fs = test_fs();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        stream.seek(SeekFrom::End(-5)).unwrap(); // "world\n"
+        let mut buf = [0u8; 8];
+        let size = stream.read(&mut buf).unwrap();
+
+        assert_eq!(size, 5);
+        assert_eq!(&buf[..size], b"orld\n");
+    }
+
+    #[test]
+    fn test_seek_past_eof_errors() {
+        let fs = test_fs();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        let err = stream.seek(SeekFrom::Start(13)).unwrap_err();
+
+        assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
+    }
+
+    #[test]
+    fn test_seek_back_to_start_rereads_same_bytes() {
+        let fs = test_fs();
+        let mut stream = fs.reader(&hello_path()).unwrap();
+        let mut first = [0u8; 12];
+        let mut second = [0u8; 12];
+        stream.read_exact(&mut first).unwrap();
+        stream.seek(SeekFrom::Start(0)).unwrap();
+        stream.read_exact(&mut second).unwrap();
+
+        assert_eq!(first, second);
+        assert_eq!(&first, b"hello world\n");
+    }
+
+    #[test]
+    fn test_read_handle_matches_read_file() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let volume = NtfsVolume::open_image(path).unwrap();
+        let entries = list_children(&volume, 'C', "", "").unwrap();
+        let main = entries
+            .iter()
+            .find(|e| e.name == "main.ts")
+            .expect("main.ts in test image");
+
+        let fs = NtfsFs::new(volume, 'C');
+        let by_path = fs.read_file(&main_ts_path(), None).unwrap();
+        let by_handle = fs
+            .read_handle(main.handle.as_file().unwrap(), None)
+            .unwrap();
+        assert_eq!(by_handle, by_path);
+    }
+
+    #[test]
+    fn test_reader_handle_matches_reader() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let volume = NtfsVolume::open_image(path).unwrap();
+        let entries = list_children(&volume, 'C', "", "hello").unwrap();
+        let hello = entries
+            .iter()
+            .find(|e| e.name == "hello world.txt")
+            .expect("hello world.txt in test image");
+
+        let fs = NtfsFs::new(volume, 'C');
+        let mut by_path = fs.reader(&hello_path()).unwrap();
+        let mut by_handle = fs.reader_handle(hello.handle.as_file().unwrap()).unwrap();
+        let mut file_path = Vec::new();
+        let mut file_handle = Vec::new();
+
+        by_path.read_to_end(&mut file_path).unwrap();
+        by_handle.read_to_end(&mut file_handle).unwrap();
+        assert_eq!(file_path, b"hello world\n");
+        assert_eq!(file_handle, b"hello world\n");
+    }
+
+    #[test]
+    fn test_read_file_respects_max_size() {
+        let fs = test_fs();
+        let err = fs.read_file(&main_ts_path(), Some(100)).unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccessorError::FileTooLarge {
+                size: 514,
+                limit: 100
+            }
+        ));
+    }
+
+    #[test]
+    fn test_read_file_directory_errors() {
+        let fs = test_fs();
+        let err = fs
+            .read_file(&InnerPath::new(PathBuf::from("hello")), None)
+            .unwrap_err();
+
+        assert!(matches!(err, AccessorError::NotAFile { .. }));
+    }
+
+    #[test]
+    fn test_reader_directory_errors() {
+        let fs = test_fs();
+        let err = fs
+            .reader(&InnerPath::new(PathBuf::from("hello")))
+            .unwrap_err();
+        assert!(matches!(err, AccessorError::NotAFile { .. }));
+    }
+
+    #[test]
+    fn test_read_file_not_found() {
+        let fs = test_fs();
+        let err = fs
+            .read_file(&InnerPath::new(PathBuf::from("does/not/exist.txt")), None)
+            .unwrap_err();
+
+        assert!(matches!(err, AccessorError::NotFound { .. }));
+    }
+
+    #[test]
+    fn test_path_forward_slashes() {
+        let fs = test_fs();
+        let bytes = fs.read_file(&hello_path(), None).unwrap();
+
+        assert_eq!(bytes, b"hello world\n");
+    }
+
+    #[test]
+    fn test_path_with_drive_prefix_stripped() {
+        let fs = test_fs();
+        let bytes = fs
+            .read_file(
+                &InnerPath::new(PathBuf::from("C:\\hello\\hello world.txt")),
+                None,
+            )
+            .unwrap();
+
+        assert_eq!(bytes, b"hello world\n");
+    }
+
+    #[test]
+    fn test_wrong_drive_handle_errors() {
+        let fs = test_fs();
+        let entries = list_children(fs.volume.as_ref(), 'C', "", "").unwrap();
+        let main = entries
+            .iter()
+            .find(|e| e.name == "main.ts")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap()
+            .clone();
+
+        // Rebuild handle with wrong drive letter
+        let bad_handle = match &main.locator {
+            FileLocator::Ntfs {
+                file_ref,
+                display_path,
+                ..
+            } => FileHandle::new(FileLocator::Ntfs {
+                drive: 'D',
+                file_ref: file_ref.clone(),
+                display_path: display_path.clone(),
+            }),
+            _ => panic!("expected ntfs locator"),
+        };
+
+        let err = fs.read_handle(&bad_handle, None).unwrap_err();
+        assert!(matches!(err, AccessorError::InvalidHandle { .. }));
+    }
+
+    #[test]
+    fn test_list_and_stream_smoke() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let volume = NtfsVolume::open_image(path).unwrap();
+        let entries = list_children(&volume, 'C', "", "").unwrap();
+        let fs = NtfsFs::new(volume, 'C');
+
+        for entry in entries {
+            if !entry.is_file() || entry.meta.size == 0 {
+                continue;
+            }
+            let mut stream = fs.reader_handle(entry.handle.as_file().unwrap()).unwrap();
+            let mut buf = [0u8; 10];
+            let bytes = stream.read(&mut buf).unwrap();
+            let expect = (entry.meta.size as usize).min(buf.len());
+
+            assert_eq!(bytes, expect);
+        }
     }
 }

@@ -40,10 +40,8 @@ impl Seek for AccessorReader {
 
 impl AccessorReader {
     /// Read all bytes from current position
-    pub(crate) fn read_to_end(&mut self) -> io::Result<Vec<u8>> {
-        let mut buf = Vec::new();
-        Read::read_to_end(self, &mut buf)?;
-        Ok(buf)
+    pub(crate) fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
+        Read::read_to_end(self, buf)
     }
 
     /// Seek to absolute offset
