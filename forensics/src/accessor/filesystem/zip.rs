@@ -537,7 +537,7 @@ mod tests {
             locator::FileLocator,
         },
         error::AccessorError,
-        filesystem::zip::{ZipFs, ZipIndex},
+        filesystem::zip::ZipFs,
         location::path::InnerPath,
     };
     use std::{
@@ -590,6 +590,7 @@ mod tests {
         let bytes = zipfs.read_file(&inner("home/test.txt"), None).unwrap();
         assert_eq!(bytes, b"zip payload");
     }
+
     #[test]
     fn test_zipfs_read_dir() {
         let dir = setup("test_zipfs_read_dir");
@@ -610,6 +611,7 @@ mod tests {
         assert!(entries.iter().any(|entry| entry.name == "test.txt"));
         assert!(entries.iter().any(|entry| entry.name == "nested"));
     }
+
     #[test]
     fn test_zipfs_globfs() {
         let dir = setup("test_zipfs_globfs");
@@ -627,6 +629,7 @@ mod tests {
         assert_eq!(matches.len(), 1);
         assert_eq!(matches[0].meta.kind, EntryKind::File);
     }
+
     #[test]
     fn test_zipfs_read_file_not_found() {
         let dir = setup("test_zipfs_read_file_not_found");
@@ -637,6 +640,7 @@ mod tests {
         let err = zipfs.read_file(&inner("missing.txt"), None).unwrap_err();
         assert!(matches!(err, AccessorError::NotFound { .. }));
     }
+
     #[test]
     fn test_zipfs_reader_handle() {
         let dir = setup("test_zipfs_reader_handle");

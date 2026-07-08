@@ -22,9 +22,9 @@ use std::{
 /// A filesystem like accessor that can be used to read files from the raw NTFS
 pub(crate) struct NtfsFs<R: Read + Seek + Send> {
     /// Target NTFS volume to read
-    volume: Arc<NtfsVolume<R>>,
+    pub(crate) volume: Arc<NtfsVolume<R>>,
     /// Drive letter if we want to read a live NTFS filesystem
-    drive: char,
+    pub(crate) drive: char,
 }
 
 impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
@@ -363,7 +363,7 @@ fn open_by_ref<'n, R: Read + Seek>(
 }
 
 /// Convert target `InnerPath` value to expected NTFS path
-fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> String {
+pub(crate) fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> String {
     if inner.is_empty() {
         return String::new();
     }
@@ -389,7 +389,7 @@ fn strip_drive_prefix(path: &str, drive: char) -> String {
 }
 
 /// Convert to a NTFS path
-fn display_ntfs_path(drive: char, inner_path: &str) -> String {
+pub(crate) fn display_ntfs_path(drive: char, inner_path: &str) -> String {
     if inner_path.is_empty() {
         format!("{drive}:\\")
     } else {
@@ -398,7 +398,7 @@ fn display_ntfs_path(drive: char, inner_path: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use crate::accessor::{
         entry::{handle::FileHandle, locator::FileLocator},
         error::AccessorError,
@@ -410,7 +410,7 @@ mod tests {
         path::PathBuf,
     };
 
-    fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
+    pub(crate) fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ntfs/test.raw");
         let volume = NtfsVolume::open_image(path).unwrap();
