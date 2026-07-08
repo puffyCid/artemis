@@ -11,6 +11,7 @@ use glob::Pattern;
 use std::io::{Read, Seek};
 
 impl<R: Read + Seek + Send> NtfsFs<R> {
+    /// Apply a glob pattern and return matches
     pub(crate) fn globfs(
         &self,
         directory: &InnerPath,
@@ -55,6 +56,7 @@ impl<R: Read + Seek + Send> NtfsFs<R> {
     }
 }
 
+/// List child files and directories and check if they match our glob pattern
 fn glob_path_pattern<R: Read + Seek + Send>(
     fs: &NtfsFs<R>,
     inner_path: &str,
@@ -101,10 +103,12 @@ fn glob_path_pattern<R: Read + Seek + Send>(
     Ok(())
 }
 
+/// Apply a consistent glob separator
 fn normalize_glob_pattern(pattern: &str) -> String {
     pattern.replace('\\', "/")
 }
 
+/// Combine starting directory with any directory matches from glob
 fn join_inner(base: &str, name: &str) -> String {
     if base.is_empty() {
         name.to_string()
@@ -113,6 +117,7 @@ fn join_inner(base: &str, name: &str) -> String {
     }
 }
 
+/// Builds the path to compare against our glob pattern
 fn join_relative(prefix: &str, name: &str) -> String {
     if prefix.is_empty() {
         name.to_string()
@@ -131,7 +136,10 @@ fn path_component_count(path: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{filesystem::ntfs::data::tests::test_fs, location::path::InnerPath};
+    use crate::accessor::{
+        filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
+        location::path::InnerPath,
+    };
     use std::path::PathBuf;
 
     fn inner(part: &str) -> InnerPath {
@@ -140,6 +148,13 @@ mod tests {
         } else {
             InnerPath::new(PathBuf::from(part))
         }
+    }
+
+    fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let volume = NtfsVolume::open_image(path).unwrap();
+        NtfsFs::new(volume, 'C')
     }
 
     #[test]

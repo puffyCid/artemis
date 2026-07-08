@@ -398,7 +398,7 @@ pub(crate) fn display_ntfs_path(drive: char, inner_path: &str) -> String {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use crate::accessor::{
         entry::{handle::FileHandle, locator::FileLocator},
         error::AccessorError,
@@ -410,7 +410,7 @@ pub(crate) mod tests {
         path::PathBuf,
     };
 
-    pub(crate) fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
+    fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ntfs/test.raw");
         let volume = NtfsVolume::open_image(path).unwrap();
