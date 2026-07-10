@@ -1,12 +1,12 @@
 use crate::accessor::{
     entry::{
-        handle::FileHandle,
-        locator::{FileLocator, NtfsEntryRef},
+        handle::{DirEntry, DirHandle, FileHandle},
+        locator::{DirLocator, FileLocator, NtfsEntryRef},
     },
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::{
         volume::NtfsVolume,
-        walk::{get_file_size, ntfs_err, resolve_file},
+        walk::{get_file_size, list_children, ntfs_err, resolve_file},
         wof::{decompress_wof, is_wof_file, read_named_data},
     },
     io::reader::AccessorReader,
@@ -123,6 +123,40 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
             }
             _ => Err(AccessorError::invalid_handle(format!(
                 "ntfs source cannot open reader handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
+    /// List files and directories in provided path
+    pub(crate) fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
+        let inner_path = inner_to_ntfs_path(inner, self.drive);
+        let display = display_ntfs_path(self.drive, &inner_path);
+
+        list_children(&self.volume, self.drive, &display, &inner_path)
+    }
+
+    /// List files and directories from provided `DirHandle`
+    pub(crate) fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
+        match &handle.locator {
+            DirLocator::Ntfs {
+                drive,
+                display_path,
+                ..
+            } => {
+                if *drive != self.drive {
+                    return Err(AccessorError::invalid_handle(format!(
+                        "ntfs source cannot list directory handle for {}",
+                        handle.display_path()
+                    )));
+                }
+                let inner_path = strip_drive_prefix(display_path, self.drive);
+                let display = display_ntfs_path(self.drive, &inner_path);
+
+                list_children(&self.volume, self.drive, &display, &inner_path)
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "ntfs source cannot list directory handle for {}",
                 handle.display_path()
             ))),
         }

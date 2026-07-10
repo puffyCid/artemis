@@ -36,7 +36,7 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
     location::{location::Location, path::InnerPath, scheme::Scheme},
-    source::{dispatch::Source, host::HostSource, zip::ZipSource},
+    source::{dispatch::Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
 };
 use std::path::PathBuf;
 
@@ -67,11 +67,7 @@ pub(crate) fn ensure_source(
 
     let source = match source_id {
         SourceId::Host => Source::Host(HostSource::new(config)),
-        SourceId::RawNtfs(drive) => {
-            return Err(AccessorError::Filesystem {
-                reason: format!("raw:{drive}: source is not implemented yet"),
-            });
-        }
+        SourceId::RawNtfs(drive) => Source::RawNtfs(NtfsSource::new(config, *drive)?),
         SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
     };
 
