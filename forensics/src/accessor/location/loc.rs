@@ -260,7 +260,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
 mod tests {
     use crate::accessor::{
         error::AccessorError,
-        location::{location::Location, scheme::Scheme},
+        location::{loc::Location, scheme::Scheme},
     };
 
     #[test]

@@ -28,6 +28,7 @@ enum WofCompressionUnit {
 }
 
 impl WofCompressionUnit {
+    /// Map WOF compression method to enum
     fn from_method(method: u32) -> AccessorResult<Self> {
         match method {
             0 => Ok(Self::XpressHuffman4k),
@@ -40,6 +41,7 @@ impl WofCompressionUnit {
         }
     }
 
+    /// Return WOF compression enum to integer
     fn as_u32(self) -> u32 {
         self as u32
     }
@@ -201,7 +203,7 @@ fn walk_offset_table(
             compressed_data = compressed_input.to_vec();
         } else {
             if first_chunk && !first_chunk_data.is_empty() {
-                let chunk = decompress_chunk(first_chunk_data, decom_size).map_err(|_| {
+                let chunk = decompress_chunk(first_chunk_data, decom_size).map_err(|_err| {
                     nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
                 })?;
                 first_chunk = false;
@@ -211,7 +213,7 @@ fn walk_offset_table(
             compressed_data = offset_start.to_vec();
             decom_size = (uncompressed_size - uncompressed_data.len())
                 .try_into()
-                .map_err(|_| {
+                .map_err(|_err| {
                     nom::Err::Failure(nom::error::Error::new(
                         input,
                         nom::error::ErrorKind::TooLarge,
@@ -220,7 +222,7 @@ fn walk_offset_table(
         }
 
         if first_chunk && !first_chunk_data.is_empty() {
-            let chunk = decompress_chunk(first_chunk_data, decom_size).map_err(|_| {
+            let chunk = decompress_chunk(first_chunk_data, decom_size).map_err(|_err| {
                 nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
             })?;
 
@@ -233,7 +235,7 @@ fn walk_offset_table(
             continue;
         }
 
-        let chunk = decompress_chunk(&compressed_data, decom_size).map_err(|_| {
+        let chunk = decompress_chunk(&compressed_data, decom_size).map_err(|_err| {
             nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Fail))
         })?;
         uncompressed_data.extend_from_slice(&chunk);
@@ -283,7 +285,7 @@ fn named_data_logical_size<R: Read + Seek>(
     Ok(item.to_attribute().map_err(ntfs_err)?.value_length())
 }
 
-/// Walk the attribute list and grab the ReparsePoint attribute
+/// Walk the attribute list and grab the `ReparsePoint` attribute
 fn read_reparse_data<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
@@ -327,7 +329,7 @@ fn read_value_bytes<R: Read + Seek>(
     reader: &mut R,
 ) -> AccessorResult<Vec<u8>> {
     let mut out = Vec::new();
-    let mut chunk = [0u8; 65_536];
+    let mut chunk = vec![0u8; 65536].into_boxed_slice();
 
     loop {
         let bytes = value.read(reader, &mut chunk).map_err(ntfs_err)?;

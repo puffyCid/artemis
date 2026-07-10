@@ -186,9 +186,9 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
 
     /// Ensure our `NTFS` reader is properly locked. Should always be safe since artemis will always be single-threaded
     fn lock_reader(&self) -> AccessorResult<MutexGuard<'_, R>> {
-        self.reader.lock().map_err(|_| AccessorError::Ntfs {
+        self.reader.lock().map_err(|err| AccessorError::Ntfs {
             path: Some(self.display_id.clone()),
-            reason: String::from("ntfs volume reader lock poisoned"),
+            reason: format!("ntfs volume reader lock poisoned: {err:?}"),
         })
     }
 }

@@ -35,7 +35,7 @@ use crate::accessor::{
     },
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
-    location::{location::Location, path::InnerPath, scheme::Scheme},
+    location::{loc::Location, path::InnerPath, scheme::Scheme},
     source::{dispatch::Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
 };
 use std::path::PathBuf;

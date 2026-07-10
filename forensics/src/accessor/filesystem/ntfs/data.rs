@@ -38,7 +38,7 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
 
     /// Read a file into memory. Max size is 2GB
     ///
-    /// Supports both forward and back slashes. Example: C:\\Users\\test.txt or C:/Users/test.txt
+    /// Supports both forward and back slashes. Example: C:\\Users\\test.txt or `C:/Users/test.txt`
     pub(crate) fn read_file(
         &self,
         inner: &InnerPath,
@@ -86,7 +86,7 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
 
     /// Create an `AccessorReader` to stream a file
     ///
-    /// Supports both forward and back slashes. Example: C:\\Users\\test.txt or C:/Users/test.txt
+    /// Supports both forward and back slashes. Example: C:\\Users\\test.txt or `C:/Users/test.txt`
     pub(crate) fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
         let inner_path = inner_to_ntfs_path(inner, self.drive);
         let display_path = display_ntfs_path(self.drive, &inner_path);
@@ -353,12 +353,12 @@ fn read_data_attribute_bytes<R: Read + Seek>(
         .seek(reader, SeekFrom::Start(offset))
         .map_err(ntfs_err)?;
 
-    Ok(value.read(reader, buf).map_err(ntfs_err)?)
+    value.read(reader, buf).map_err(ntfs_err)
 }
 
 /// Handle `AccessorError` errors to `io::Error`
 fn accessor_to_io(err: AccessorError) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, err.to_string())
+    io::Error::other(err.to_string())
 }
 
 /// Read the entire file into memory. Handles WOF compression
@@ -373,10 +373,10 @@ fn read_ntfs_file<R: Read + Seek>(
     }
 
     let size = get_file_size(file.ntfs(), reader, file.file_record_number())?;
-    if let Some(limit) = max_read_size {
-        if size > limit {
-            return Err(AccessorError::file_too_large(size, limit));
-        }
+    if let Some(limit) = max_read_size
+        && size > limit
+    {
+        return Err(AccessorError::file_too_large(size, limit));
     }
 
     if is_wof_file(reader, file)? {

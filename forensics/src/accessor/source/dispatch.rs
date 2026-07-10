@@ -16,6 +16,7 @@ pub(crate) enum Source {
     Host(HostSource),
     /// Use a zip file as the source
     Zip(ZipSource),
+    /// Use raw NTFS Windows drive as the source
     RawNtfs(NtfsSource),
 }
 

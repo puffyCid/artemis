@@ -7,7 +7,7 @@ use std::collections::HashMap;
 ///
 /// Instead of reading the zip file twice. We parse it once and then use the cache `Source` for faster content reads
 pub(crate) struct SourceCache {
-    /// HashMap of `SourceId` and `Source`
+    /// `HashMap` of `SourceId` and `Source`
     sources: HashMap<SourceId, Source>,
 }
 

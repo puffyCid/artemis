@@ -142,9 +142,8 @@ impl ItemHandle {
     /// Return the path for the `ItemHandle`
     pub(crate) fn display_path(&self) -> String {
         match self {
-            Self::File(handle) => handle.display_path(),
+            Self::File(handle) | Self::Unsupported(handle) => handle.display_path(),
             Self::Directory(handle) => handle.display_path(),
-            Self::Unsupported(handle) => handle.display_path(),
         }
     }
 
@@ -152,8 +151,7 @@ impl ItemHandle {
     pub(crate) fn as_file(&self) -> Option<&FileHandle> {
         match self {
             Self::File(handle) => Some(handle),
-            Self::Directory(_) => None,
-            Self::Unsupported(_) => None,
+            Self::Directory(_) | Self::Unsupported(_) => None,
         }
     }
 
@@ -161,8 +159,7 @@ impl ItemHandle {
     pub(crate) fn as_directory(&self) -> Option<&DirHandle> {
         match self {
             Self::Directory(handle) => Some(handle),
-            Self::File(_) => None,
-            Self::Unsupported(_) => None,
+            Self::File(_) | Self::Unsupported(_) => None,
         }
     }
 }

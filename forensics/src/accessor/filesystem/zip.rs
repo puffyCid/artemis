@@ -109,8 +109,7 @@ impl ZipIndex {
         self.entries
             .iter()
             .find(|entry| entry.is_dir && entry.path == prefix)
-            .map(|entry| entry.index as u32)
-            .unwrap_or(0)
+            .map_or(0, |entry| entry.index as u32)
     }
 }
 
@@ -155,10 +154,10 @@ impl ZipFs {
             return Err(AccessorError::not_a_file(self.display_entry_path(&path)));
         }
 
-        if let Some(limit) = max_read_size {
-            if record.size > limit {
-                return Err(AccessorError::file_too_large(record.size, limit));
-            }
+        if let Some(limit) = max_read_size
+            && record.size > limit
+        {
+            return Err(AccessorError::file_too_large(record.size, limit));
         }
         self.read_entry_bytes(record.index)
     }
@@ -203,10 +202,10 @@ impl ZipFs {
                     return Err(AccessorError::not_a_file(handle.display_path()));
                 }
 
-                if let Some(limit) = max_read_size {
-                    if record.size > limit {
-                        return Err(AccessorError::file_too_large(record.size, limit));
-                    }
+                if let Some(limit) = max_read_size
+                    && record.size > limit
+                {
+                    return Err(AccessorError::file_too_large(record.size, limit));
                 }
 
                 self.read_entry_bytes(record.index)
@@ -378,10 +377,10 @@ impl ZipFs {
     /// Read the zip content file. Currently who file is decompressed into memory
     fn read_entry_bytes(&self, index: usize) -> AccessorResult<Vec<u8>> {
         // Access the `ZipArchive` file reader
-        let mut archive = self.archive.lock().map_err(|_| {
+        let mut archive = self.archive.lock().map_err(|err| {
             AccessorError::zip(
                 self.index.archive_path.clone(),
-                "zip archive lock poisoned".to_string(),
+                format!("zip archive lock poisoned: {err:?}"),
             )
         })?;
 

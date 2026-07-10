@@ -34,10 +34,10 @@ impl HostFs {
         }
         let metadata = metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
         let size = metadata.len();
-        if let Some(limit) = max_read_size {
-            if size > limit {
-                return Err(AccessorError::file_too_large(size, limit));
-            }
+        if let Some(limit) = max_read_size
+            && size > limit
+        {
+            return Err(AccessorError::file_too_large(size, limit));
         }
         read(&path).map_err(|err| AccessorError::io_path(&path, err))
     }
@@ -227,12 +227,12 @@ impl HostFs {
             match entry.meta.kind {
                 EntryKind::File | EntryKind::Unsupported => {
                     if pattern.matches(&relative) {
-                        matches.push(GlobMatch::new(entry.handle, entry.meta))
+                        matches.push(GlobMatch::new(entry.handle, entry.meta));
                     }
                 }
                 EntryKind::Directory => {
                     if pattern.matches(&relative) {
-                        matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()))
+                        matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()));
                     }
 
                     if depth < components {

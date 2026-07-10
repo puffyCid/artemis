@@ -1,3 +1,3 @@
-pub(crate) mod location;
+pub(crate) mod loc;
 pub(crate) mod path;
 pub(crate) mod scheme;

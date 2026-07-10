@@ -189,6 +189,7 @@ fn resolve_directory<'n, R: Read + Seek>(
                 return Err(AccessorError::NotFound { path: component });
             }
         };
+
         // Continue until we arrive at final directory component
         current = entry.to_file(ntfs, reader).map_err(ntfs_err)?;
     }

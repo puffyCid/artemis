@@ -1,17 +1,14 @@
-use crate::{
-    accessor::{
-        config::AccessorConfig,
-        entry::{
-            handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
-            locator::SourceId,
-        },
-        error::{AccessorError, AccessorResult},
-        filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
-        io::reader::AccessorReader,
-        location::path::InnerPath,
-        source::backend::SourceBackend,
+use crate::accessor::{
+    config::AccessorConfig,
+    entry::{
+        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        locator::SourceId,
     },
-    artifacts::os::systeminfo::info::{PlatformType, get_platform_enum},
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
+    io::reader::AccessorReader,
+    location::path::InnerPath,
+    source::backend::SourceBackend,
 };
 use std::{
     io::{Read, Seek},
@@ -151,13 +148,32 @@ impl SourceBackend for NtfsSource {
 
 /// Open the raw NTFS disk on Windows system. Will not work on non-Windows platforms
 fn open_ntfs_fs(drive: char) -> AccessorResult<Box<dyn NtfsFsBackend>> {
-    if get_platform_enum() != PlatformType::Windows {
-        return Err(AccessorError::Ntfs {
-            path: None,
-            reason: String::from("Cannot read live NTFS on non-Windows platform"),
-        });
-    }
     let volume = NtfsVolume::open_live_drive(drive)?;
 
-    return Ok(Box::new(NtfsFs::new(volume, drive)));
+    Ok(Box::new(NtfsFs::new(volume, drive)))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::accessor::{
+        config::AccessorConfig,
+        location::path::InnerPath,
+        source::{backend::SourceBackend, ntfs::NtfsSource},
+    };
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_ntfs_image() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let config = AccessorConfig::default();
+
+        let accessor = NtfsSource::from_image(&config, path).unwrap();
+
+        let matches = accessor
+            .globfs(&InnerPath::new(PathBuf::from("hello")), "*.txt")
+            .unwrap();
+
+        assert_eq!(matches.len(), 1);
+    }
 }

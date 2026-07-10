@@ -51,7 +51,7 @@ impl AccessorReader {
 
     /// Return current offset
     pub(crate) fn position(&mut self) -> io::Result<u64> {
-        self.seek(SeekFrom::Current(0))
+        self.stream_position()
     }
 
     /// Read provided bytes from absolute offset

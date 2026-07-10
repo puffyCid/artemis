@@ -4,7 +4,7 @@ use crate::accessor::{
     entry::handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
     error::AccessorResult,
     io::reader::AccessorReader,
-    location::location::Location,
+    location::loc::Location,
     source::{
         factory::{
             build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
@@ -45,8 +45,6 @@ impl Accessor {
     }
 
     /// Read an entire file into memory
-    ///
-    /// Examples: `/etc/passwd`, `host:/etc/passwd`, `../SAM`
     pub(crate) fn read_file(&mut self, location: &str) -> AccessorResult<Vec<u8>> {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
