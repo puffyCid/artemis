@@ -72,16 +72,17 @@ where
         // We can only read from a sector boundary, and `self.stream_position` specifies the position where the
         // caller thinks we are.
         // Align down to a sector boundary to determine the position where we really are (see our `seek` implementation).
-        let aligned_postition = self.align_down_to_sector_size(self.stream_position);
+        let aligned_position = self.align_down_to_sector_size(self.stream_position);
 
         // We have to read more bytes now to make up for the alignment difference.
         // We can also only read in multiples of the sector size, so align up to the next sector boundary.
-        let start = (self.stream_position - aligned_postition) as usize;
+        let start = (self.stream_position - aligned_position) as usize;
         let end = start + buf.len();
         let aligend_bytes_to_read = self.align_up_to_sector_size(end as u64) as usize;
 
         // Perform the sector-sized read and copy the actually requested bytes into the given buffer.
         self.temp_buf.resize(aligend_bytes_to_read, 0);
+        self.inner.seek(SeekFrom::Start(aligned_position))?;
         self.inner.read_exact(&mut self.temp_buf)?;
         buf.copy_from_slice(&self.temp_buf[start..end]);
 
