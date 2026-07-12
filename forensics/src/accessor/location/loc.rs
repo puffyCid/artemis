@@ -101,6 +101,22 @@ impl Location {
     ///
     /// Example: `/var/log/*.log` -> (`/var/log/`, `*.log`)
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
+        let (directory, pattern) = Location::parse_glob_pattern(input)?;
+        let location = if directory.is_empty() {
+            Self {
+                scheme: Scheme::Host,
+                source: None,
+                inner_path: InnerPath::empty(),
+            }
+        } else {
+            Self::parse(directory.trim_end_matches('/').trim_end_matches('\\'))?
+        };
+
+        Ok((location, pattern))
+    }
+
+    /// Parse the provided glob pattern
+    pub(crate) fn parse_glob_pattern(input: &str) -> AccessorResult<(String, String)> {
         let value = input.trim();
         if value.is_empty() {
             return Err(AccessorError::location(value, "glob input cannot be empty"));
@@ -118,7 +134,6 @@ impl Location {
             Some(sep) => (value[..sep].to_string(), value[sep + 1..].to_string()),
             None => (String::new(), value[glob_at..].to_string()),
         };
-        //let pattern = pattern.trim_start_matches('/').trim_start_matches('\\');
 
         if pattern.is_empty() {
             return Err(AccessorError::location(
@@ -127,17 +142,7 @@ impl Location {
             ));
         }
 
-        let location = if location_part.is_empty() {
-            Self {
-                scheme: Scheme::Host,
-                source: None,
-                inner_path: InnerPath::empty(),
-            }
-        } else {
-            Self::parse(location_part.trim_end_matches('/').trim_end_matches('\\'))?
-        };
-
-        Ok((location, pattern.to_string()))
+        Ok((location_part, pattern))
     }
 }
 
@@ -323,5 +328,13 @@ mod tests {
         assert!(
             matches!(err, AccessorError::Location { reason,.. } if reason.contains("location cannot be empty"))
         );
+    }
+
+    #[test]
+    fn test_location_glob_windows_nested() {
+        let (loc, pattern) = Location::split_glob_pattern(r"C:\Users\*\NTUSER*").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), r"C:\Users");
+        assert_eq!(pattern, r"*\NTUSER*");
     }
 }

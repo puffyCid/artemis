@@ -217,15 +217,20 @@ impl Accessor {
     pub(crate) fn source_globfs(
         &self,
         source: &SourceHandle,
-        dir: &str,
-        pattern: &str,
+        input: &str,
     ) -> AccessorResult<Vec<GlobMatch>> {
         info!(
-            "globbing at '{dir}' with pattern {pattern} with source {}",
+            "globbing with pattern {input} with source {}",
             source.display()
         );
+        let (directory, pattern) = Location::parse_glob_pattern(input)?;
 
-        glob_on_source(&self.cache, source.id(), &parse_inner_path(dir)?, pattern)
+        glob_on_source(
+            &self.cache,
+            source.id(),
+            &parse_inner_path(&directory)?,
+            &pattern,
+        )
     }
 
     /// Open a reader relative to an opened source
@@ -359,7 +364,7 @@ mod tests {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"raw:C").unwrap();
 
-        let files = access.source_globfs(&source, "", "*").unwrap();
+        let files = access.source_globfs(&source, "*").unwrap();
         assert!(!files.is_empty());
 
         for file in files {
