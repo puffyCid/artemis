@@ -1,12 +1,14 @@
 use crate::accessor::{
     entry::{
         handle::{DirEntry, DirHandle, FileHandle},
-        locator::{DirLocator, FileLocator, NtfsEntryRef},
+        locator::{DirLocator, FileLocator},
     },
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::{
         volume::NtfsVolume,
-        walk::{get_file_size, list_children, list_children_handle, ntfs_err, resolve_file},
+        walk::{
+            get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref, resolve_file,
+        },
         wof::{decompress_wof, is_wof_file, read_named_data},
     },
     io::reader::AccessorReader,
@@ -382,16 +384,6 @@ fn read_ntfs_file<R: Read + Seek>(
     }
 
     read_named_data(reader, file, "")
-}
-
-/// Returns a `NtfsFile` by its file reference
-pub(crate) fn open_by_ref<'a, R: Read + Seek>(
-    ntfs: &'a ntfs::Ntfs,
-    reader: &mut R,
-    file_ref: &NtfsEntryRef,
-) -> AccessorResult<NtfsFile<'a>> {
-    ntfs.file(reader, file_ref.file_record_number)
-        .map_err(ntfs_err)
 }
 
 /// Convert target `InnerPath` value to expected NTFS path

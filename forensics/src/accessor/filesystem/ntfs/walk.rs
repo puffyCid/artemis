@@ -4,7 +4,7 @@ use crate::accessor::{
         locator::{DirLocator, FileLocator, NtfsEntryRef},
     },
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{data::open_by_ref, volume::NtfsVolume},
+    filesystem::ntfs::volume::NtfsVolume,
 };
 use ntfs::{
     Ntfs, NtfsFile, NtfsIndexEntryFlags, indexes::NtfsFileNameIndex,
@@ -47,14 +47,16 @@ pub(crate) fn list_children<R: Read + Seek + Send>(
 
 /// List files and directories from provided directory file reference
 ///
-/// `parent_display` is the parent path to the directory
+/// `display` is the parent path to the directory
 pub(crate) fn list_children_handle<R: Read + Seek + Send>(
     volume: &NtfsVolume<R>,
     file_ref: &NtfsEntryRef,
-    parent_display: &str,
+    display: &str,
     drive: char,
 ) -> AccessorResult<Vec<DirEntry>> {
     volume.with_reader(|ntfs, reader| {
+        // Make sure the directory we are reading does not end with slash
+        let parent_display = normalize_display_path(display);
         let dir_file = open_by_ref(ntfs, reader, file_ref)?;
 
         // Children walk only. Gets all files and directories in provided directory
@@ -130,6 +132,16 @@ pub(crate) fn resolve_file<'a, R: Read + Seek>(
     }
 
     Ok(current)
+}
+
+/// Returns a `NtfsFile` by its file reference
+pub(crate) fn open_by_ref<'a, R: Read + Seek>(
+    ntfs: &'a ntfs::Ntfs,
+    reader: &mut R,
+    file_ref: &NtfsEntryRef,
+) -> AccessorResult<NtfsFile<'a>> {
+    ntfs.file(reader, file_ref.file_record_number)
+        .map_err(ntfs_err)
 }
 
 /// Walk the directory index and return children
