@@ -362,7 +362,9 @@ mod tests {
         test_location.push("tests/test_data/archives/document.odt");
 
         let mut access = Accessor::with_defaults();
-        let source = access.open_source(&"raw:C").unwrap();
+        let source = access
+            .open_source(&format!("raw:{}", test_location.display().to_string()))
+            .unwrap();
 
         let bytes = access
             .source_read_file(&source, &test_location.display().to_string())

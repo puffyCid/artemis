@@ -399,21 +399,14 @@ impl ZipFs {
     /// Read the zip content directory and return entries
     fn read_dir_inner(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
         let prefix = Self::inner_to_prefix(inner);
-        if !prefix.is_empty()
-            && !self.index.file_paths.contains_key(&prefix)
-            && !self
-                .index
-                .entries
-                .iter()
-                .any(|entry| entry.is_dir && entry.path == prefix)
-            && self.list_children(&prefix)?.is_empty()
+        let children = self.list_children(&prefix)?;
+
+        if !prefix.is_empty() && !self.index.file_paths.contains_key(&prefix) && children.is_empty()
         {
             return Err(AccessorError::not_found(self.display_entry_path(&prefix)));
         }
 
-        let children = self.list_children(&prefix)?;
         let mut entries = Vec::with_capacity(children.len());
-
         for (name, child) in children {
             let (handle, kind, size, display_path) = match child {
                 // Symbolic links are treated as a file
@@ -438,6 +431,7 @@ impl ZipFs {
                     self.display_entry_path(&prefix),
                 ),
             };
+
             entries.push(DirEntry::new(
                 name,
                 handle,
@@ -507,6 +501,7 @@ impl ZipFs {
                 );
             }
         }
+
         Ok(children)
     }
 }
