@@ -1,3 +1,5 @@
+use tracing::info;
+
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
@@ -19,9 +21,11 @@ use crate::accessor::{
 
 /// An access implementation that lets us read files from provided input
 ///
-/// This accessor supports reading from of variety of sources depending on the `Location Scheme` type. Example: `zip:test.zip!home/test.txt`, `/home/test.txt`, `raw:C::\Users\test.txt`
+/// This accessor supports reading from of variety of sources depending on the `Location` and `Scheme` type. Example: `zip:test.zip!home/test.txt`, `/home/test.txt`, `raw:C::\Users\test.txt`
 ///
-/// Example: live system, raw disk, zip files
+/// Supported schemes are: `zip`, `raw`, `host`
+///
+/// Location is optional path to source data. For example the zip `Scheme` requires a `Location` path to the zip file. `zip:/path/to/file.zip`
 pub(crate) struct Accessor {
     /// The configuration for the `Accessor`
     config: AccessorConfig,
@@ -48,6 +52,12 @@ impl Accessor {
     pub(crate) fn read_file(&mut self, location: &str) -> AccessorResult<Vec<u8>> {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
+        info!(
+            "reading file {location} using source '{}'. Scheme: {}",
+            source_id.display(),
+            loc.scheme.as_str()
+        );
+
         read_file_on_source(&self.cache, &source_id, &loc.inner_path)
     }
 
@@ -55,6 +65,12 @@ impl Accessor {
     pub(crate) fn read_dir(&mut self, location: &str) -> AccessorResult<Vec<DirEntry>> {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
+        info!(
+            "reading directory {location} using source '{}'. Scheme: {}",
+            source_id.display(),
+            loc.scheme.as_str()
+        );
+
         read_dir_on_source(&self.cache, &source_id, &loc.inner_path)
     }
 
@@ -62,6 +78,12 @@ impl Accessor {
     pub(crate) fn read_file_handle(&mut self, handle: &FileHandle) -> AccessorResult<Vec<u8>> {
         let source_id = source_id_from_file_locator(&handle.locator)?;
         ensure_source(&source_id, &self.config, &mut self.cache)?;
+        info!(
+            "reading file {} via handle using source '{}'",
+            handle.display_path(),
+            source_id.display(),
+        );
+
         read_file_handle_on_source(&self.cache, &source_id, handle)
     }
 
@@ -69,6 +91,12 @@ impl Accessor {
     pub(crate) fn read_dir_handle(&mut self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
         let source_id = source_id_from_dir_locator(&handle.locator)?;
         ensure_source(&source_id, &self.config, &mut self.cache)?;
+        info!(
+            "reading directory {} via handle using source '{}'",
+            handle.display_path(),
+            source_id.display(),
+        );
+
         read_dir_handle_on_source(&self.cache, &source_id, handle)
     }
 
@@ -78,6 +106,12 @@ impl Accessor {
     pub(crate) fn globfs(&mut self, input: &str) -> AccessorResult<Vec<GlobMatch>> {
         let (loc, pattern) = Location::split_glob_pattern(input)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
+        info!(
+            "glob {input} using source '{}'. Scheme: {}",
+            source_id.display(),
+            loc.scheme.as_str(),
+        );
+
         glob_on_source(&self.cache, &source_id, &loc.inner_path, &pattern)
     }
 
@@ -87,6 +121,12 @@ impl Accessor {
     pub(crate) fn open_reader(&mut self, location: &str) -> AccessorResult<AccessorReader> {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
+        info!(
+            "reader for {location} using source '{}'. Scheme: {}",
+            source_id.display(),
+            loc.scheme.as_str(),
+        );
+
         open_reader_on_source(&self.cache, &source_id, &loc.inner_path)
     }
 
@@ -97,81 +137,119 @@ impl Accessor {
     ) -> AccessorResult<AccessorReader> {
         let source_id = source_id_from_file_locator(&handle.locator)?;
         ensure_source(&source_id, &self.config, &mut self.cache)?;
+        info!(
+            "reader for {} file handle using source '{}'",
+            handle.display_path(),
+            source_id.display(),
+        );
+
         open_reader_handle_on_source(&self.cache, &source_id, handle)
     }
 
     /// Open a source for repeated reads
     ///
     /// Examples: `host:`, `raw:C:`, `zip:/path/archive.zip`
-    pub(crate) fn open(&mut self, source: &str) -> AccessorResult<SourceHandle> {
+    pub(crate) fn open_source(&mut self, source: &str) -> AccessorResult<SourceHandle> {
         let loc = Location::parse_source(source)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
+        info!(
+            "opened source {source} using source '{}'. Scheme: {}",
+            source_id.display(),
+            loc.scheme.as_str(),
+        );
+
         Ok(SourceHandle::new(source_id))
     }
 
     /// Read a file relative to an opened source
-    pub(crate) fn read_file_on(
+    pub(crate) fn source_read_file(
         &self,
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<Vec<u8>> {
+        info!("reading file {inner} with source {}", source.display());
         read_file_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
     /// List a directory relative to an opened source
-    pub(crate) fn read_dir_on(
+    pub(crate) fn source_read_dir(
         &self,
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<Vec<DirEntry>> {
+        info!("reading directory {inner} with source {}", source.display());
         read_dir_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
     /// List a directory handle relative to an opened source
-    pub(crate) fn read_dir_handle_on(
+    pub(crate) fn source_read_dir_handle(
         &self,
         source: &SourceHandle,
         handle: &DirHandle,
     ) -> AccessorResult<Vec<DirEntry>> {
+        info!(
+            "reading directory handle {} with source {}",
+            handle.display_path(),
+            source.display()
+        );
+
         validate_dir_handle_for_source(source.id(), &handle.locator)?;
         read_dir_handle_on_source(&self.cache, source.id(), handle)
     }
 
     /// Read a file handle relative to an opened source
-    pub(crate) fn read_file_handle_on(
+    pub(crate) fn source_read_file_handle(
         &self,
         source: &SourceHandle,
         handle: &FileHandle,
     ) -> AccessorResult<Vec<u8>> {
+        info!(
+            "reading file handle {} with source {}",
+            handle.display_path(),
+            source.display()
+        );
+
         validate_file_handle_for_source(source.id(), &handle.locator)?;
         read_file_handle_on_source(&self.cache, source.id(), handle)
     }
 
     /// Glob relative to an opened source directory
-    pub(crate) fn globfs_on(
+    pub(crate) fn source_globfs(
         &self,
         source: &SourceHandle,
         dir: &str,
         pattern: &str,
     ) -> AccessorResult<Vec<GlobMatch>> {
+        info!(
+            "globbing at '{dir}' with pattern {pattern} with source {}",
+            source.display()
+        );
+
         glob_on_source(&self.cache, source.id(), &parse_inner_path(dir)?, pattern)
     }
 
     /// Open a reader relative to an opened source
-    pub(crate) fn open_reader_on(
+    pub(crate) fn source_open_reader(
         &self,
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<AccessorReader> {
+        info!("reader for file {inner} with source {}", source.display());
         open_reader_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
     /// Open a reader for a file handle relative to an opened source
-    pub(crate) fn open_reader_handle_on(
+    pub(crate) fn source_open_reader_handle(
         &self,
         source: &SourceHandle,
         handle: &FileHandle,
     ) -> AccessorResult<AccessorReader> {
+        info!(
+            "reader for file handle {} with source {}",
+            handle.display_path(),
+            source.display()
+        );
+
         validate_file_handle_for_source(source.id(), &handle.locator)?;
         open_reader_handle_on_source(&self.cache, source.id(), handle)
     }
@@ -258,5 +336,60 @@ mod tests {
                 assert_eq!(bytes.len(), 899);
             }
         }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_raw_accessor_read_zip() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source(&"raw:C").unwrap();
+
+        let bytes = access
+            .source_read_file(&source, &test_location.display().to_string())
+            .unwrap();
+        assert_eq!(bytes.len(), 10493);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_raw_accessor_live() {
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source(&"raw:C").unwrap();
+
+        let files = access.source_globfs(&source, "", "*").unwrap();
+        assert!(!files.is_empty());
+
+        for file in files {
+            if file.meta.display_path == "C:\\$MFT" {
+                assert!(file.meta.size > 100);
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_raw_accessor_mft_reader() {
+        use std::io::Read;
+
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source(&"raw:C").unwrap();
+
+        let mut reader = access.source_open_reader(&source, "$MFT").unwrap();
+        let mut buf = [0u8; 1024];
+        let bytes = reader.read(&mut buf).unwrap();
+
+        assert_eq!(bytes, 1024);
+        assert!(buf.starts_with(b"FILE0"));
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_windows_globfs() {
+        let mut access = Accessor::with_defaults();
+        let entries = access.globfs("C:\\Users\\*\\NTUSER*").unwrap();
+        assert!(!entries.is_empty());
     }
 }

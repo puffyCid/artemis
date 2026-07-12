@@ -10,7 +10,7 @@ use std::path::PathBuf;
 /// Parsed accessor location string
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Location {
-    /// `Scheme` used to acccess the data
+    /// `Scheme` used to access the data
     pub(crate) scheme: Scheme,
     /// Optional source of the path
     pub(crate) source: Option<SourcePath>,
@@ -106,11 +106,19 @@ impl Location {
             return Err(AccessorError::location(value, "glob input cannot be empty"));
         }
 
-        let split_at = value.rfind(['*', '?', '[']).ok_or_else(|| {
-            AccessorError::location(input, "glob pattern must contain a wildcard")
-        })?;
-        let (location_part, pattern) = value.split_at(split_at);
-        let pattern = pattern.trim_start_matches('/').trim_start_matches('\\');
+        let glob_at = value
+            .char_indices()
+            .find(|(_, ch)| matches!(ch, '*' | '?' | '['))
+            .map(|(index, _)| index)
+            .ok_or_else(|| {
+                AccessorError::location(input, "glob pattern must contain a wildcard")
+            })?;
+
+        let (location_part, pattern) = match value[..glob_at].rfind(['/', '\\']) {
+            Some(sep) => (value[..sep].to_string(), value[sep + 1..].to_string()),
+            None => (String::new(), value[glob_at..].to_string()),
+        };
+        //let pattern = pattern.trim_start_matches('/').trim_start_matches('\\');
 
         if pattern.is_empty() {
             return Err(AccessorError::location(
@@ -161,7 +169,9 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
 /// Example: `raw:C:\Users\test.txt` into ('raw', and 'C:\Users\test.txt')
 fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
     let (scheme, remainder) = input.split_once(':')?;
-    if scheme.is_empty() || !scheme.chars().all(|ch| ch.is_ascii_alphabetic()) {
+    // If we get a drive letter for Windows treat that as live system
+    // Ex: 'C:\\Users\\test.txt' The scheme would be 'C'
+    if scheme.is_empty() || scheme.len() == 1 {
         return None;
     }
     Some((scheme, remainder))

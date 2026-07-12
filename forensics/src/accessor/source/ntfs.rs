@@ -176,4 +176,30 @@ mod tests {
 
         assert_eq!(matches.len(), 1);
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_ntfs_read_root_dirs() {
+        use crate::accessor::entry::handle::EntryKind;
+
+        let config = AccessorConfig::default();
+        let source = NtfsSource::new(&config, 'C').unwrap();
+
+        let matches = source.globfs(&InnerPath::new(PathBuf::new()), "*").unwrap();
+        for entry in matches {
+            if entry.meta.kind != EntryKind::Directory {
+                continue;
+            }
+
+            let entries = source
+                .read_dir(&InnerPath::new(PathBuf::from(
+                    entry.handle.as_directory().unwrap().display_path(),
+                )))
+                .unwrap();
+
+            if entry.meta.display_path == "C:\\Users" {
+                assert!(!entries.is_empty());
+            }
+        }
+    }
 }

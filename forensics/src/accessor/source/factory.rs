@@ -6,13 +6,13 @@
 //! - Opens backends once and stores them in [`SourceCache`]
 //! - Dispatches read/list/glob/reader calls to the cached [`Source`]
 //!
-//! # One-shot vs two-step access
+//! # One-step and two-step access
 //!
-//! **One-shot** (`read_file("zip:arc.zip!foo")`):
-//! `build_source` → resolve `SourceId` → `ensure_source` → operate using `Location.inner_path`
+//! **One-step** (`read_file("zip:arc.zip!foo")`).
+//! Helpful when we only need to access a few files
 //!
-//! **Two-step** (`open("zip:arc.zip")` then `read_file_on(..., "foo")`):
-//! `ensure_source` at open time; later calls use `parse_inner_path` + `read_*_on_source`
+//! **Two-step** (`open("zip:arc.zip")` and then `read_file_on(..., "foo")`).
+//! Useful if we need to read lots of files
 //!
 //! # What the cache stores
 //!
@@ -155,6 +155,7 @@ pub(crate) fn glob_on_source(
     directory: &InnerPath,
     pattern: &str,
 ) -> AccessorResult<Vec<GlobMatch>> {
+    println!("{} {pattern}", directory.display());
     source_from_cache(cache, source_id)?.globfs(directory, pattern)
 }
 

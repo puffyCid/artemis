@@ -1,6 +1,6 @@
 use crate::accessor::entry::locator::SourceId;
 
-/// Handle to an opened accessor source returned by opening a file.
+/// Handle to an opened accessor source returned by opening a source scheme.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SourceHandle {
     pub(crate) id: SourceId,
