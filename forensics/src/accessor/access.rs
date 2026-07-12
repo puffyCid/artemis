@@ -165,7 +165,7 @@ impl Accessor {
         let loc = Location::parse_source(source)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
         info!(
-            "opened source {source} using source '{}'. Scheme: {}",
+            "opened input {source} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str(),
         );

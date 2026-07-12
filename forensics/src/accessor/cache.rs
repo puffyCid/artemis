@@ -1,7 +1,7 @@
 use crate::accessor::{entry::locator::SourceId, source::dispatch::Source};
 use std::collections::HashMap;
 
-/// A small cache that is used to cache reading of a data
+/// A small cache that is used to cache reading of a `Source`
 ///
 /// If we want to read the file `zip:./test.zip!./home/test.txt` and `zip:./test.zip!./home/abc.txt`
 ///

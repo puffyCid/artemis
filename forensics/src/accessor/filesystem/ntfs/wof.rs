@@ -273,6 +273,7 @@ fn default_data_logical_size<R: Read + Seek>(
     Ok(item.to_attribute().map_err(ntfs_err)?.value_length())
 }
 
+/// Check the size of of a data attribute stream
 fn named_data_logical_size<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
@@ -317,9 +318,11 @@ pub(crate) fn read_named_data<R: Read + Seek>(
             reason: format!("file has no `{stream_name}` data stream"),
         });
     };
+
     let item = item.map_err(ntfs_err)?;
     let attr = item.to_attribute().map_err(ntfs_err)?;
     let mut value = attr.value(reader).map_err(ntfs_err)?;
+
     read_value_bytes(&mut value, reader)
 }
 

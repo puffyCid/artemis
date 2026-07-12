@@ -14,7 +14,7 @@ pub(crate) enum AccessMode {
 /// Limits and behavior for an `Accessor` instance
 #[derive(Debug, Clone)]
 pub(crate) struct AccessorConfig {
-    /// How the file or directory be accessed
+    /// How the file or directory should be accessed
     pub(crate) access_mode: AccessMode,
     /// Maximum size for `read_file` reads. Default is 2GB
     pub(crate) max_read_size: Option<u64>,

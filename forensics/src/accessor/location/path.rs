@@ -1,7 +1,7 @@
 use crate::accessor::error::{AccessorError, AccessorResult};
 use std::path::{Component, Path, PathBuf};
 
-/// Path to the file or directory to acccess
+/// Path to the file or directory to access
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct InnerPath(PathBuf);
 
@@ -97,7 +97,7 @@ impl SourcePath {
     }
 }
 
-/// Determine if our provided input is an abosulate path to the data
+/// Determine if our provided input is an absolute path to the data
 ///
 /// Required for raw access
 pub(crate) fn is_absolute_host_path(input: &str) -> bool {
@@ -138,7 +138,35 @@ pub(crate) fn is_relative_host_path(input: &str) -> bool {
     true
 }
 
-/// Determine if our proivded input can be represented as a path on a live system
+/// Determine if our provided input can be represented as a path on a live system
 pub(crate) fn is_host_path(input: &str) -> bool {
     is_absolute_host_path(input) || is_relative_host_path(input)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::accessor::location::path::{
+        is_absolute_host_path, is_host_path, is_relative_host_path,
+    };
+
+    #[test]
+    fn test_is_relative_host_path() {
+        assert!(is_relative_host_path("../test"));
+        assert!(!is_relative_host_path("/test"));
+        assert!(!is_relative_host_path(""));
+    }
+
+    #[test]
+    fn test_is_host_path() {
+        assert!(is_host_path("../test"));
+        assert!(is_host_path("/test"));
+        assert!(!is_host_path(""));
+    }
+
+    #[test]
+    fn test_is_absolute_host_path() {
+        assert!(!is_absolute_host_path("../test"));
+        assert!(is_absolute_host_path("/test"));
+        assert!(!is_absolute_host_path(""));
+    }
 }
