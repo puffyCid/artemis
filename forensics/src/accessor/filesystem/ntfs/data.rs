@@ -6,7 +6,7 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::{
         volume::NtfsVolume,
-        walk::{get_file_size, list_children, ntfs_err, resolve_file},
+        walk::{get_file_size, list_children, list_children_handle, ntfs_err, resolve_file},
         wof::{decompress_wof, is_wof_file, read_named_data},
     },
     io::reader::AccessorReader,
@@ -141,8 +141,8 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
         match &handle.locator {
             DirLocator::Ntfs {
                 drive,
+                dir_ref,
                 display_path,
-                ..
             } => {
                 if *drive != self.drive {
                     return Err(AccessorError::invalid_handle(format!(
@@ -150,10 +150,8 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
                         handle.display_path()
                     )));
                 }
-                let inner_path = strip_drive_prefix(display_path, self.drive);
-                let display = display_ntfs_path(self.drive, &inner_path);
 
-                list_children(&self.volume, self.drive, &display, &inner_path)
+                list_children_handle(&self.volume, dir_ref, display_path, self.drive)
             }
             _ => Err(AccessorError::invalid_handle(format!(
                 "ntfs source cannot list directory handle for {}",
@@ -387,11 +385,11 @@ fn read_ntfs_file<R: Read + Seek>(
 }
 
 /// Returns a `NtfsFile` by its file reference
-fn open_by_ref<'n, R: Read + Seek>(
-    ntfs: &'n ntfs::Ntfs,
+pub(crate) fn open_by_ref<'a, R: Read + Seek>(
+    ntfs: &'a ntfs::Ntfs,
     reader: &mut R,
     file_ref: &NtfsEntryRef,
-) -> AccessorResult<NtfsFile<'n>> {
+) -> AccessorResult<NtfsFile<'a>> {
     ntfs.file(reader, file_ref.file_record_number)
         .map_err(ntfs_err)
 }

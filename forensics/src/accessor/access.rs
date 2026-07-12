@@ -388,6 +388,29 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
+    fn test_raw_accessor_live_read_dir_handle() {
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source(&"raw:C").unwrap();
+
+        let files = access.source_globfs(&source, "*").unwrap();
+        assert!(!files.is_empty());
+
+        for file in files {
+            if file.meta.kind != EntryKind::Directory {
+                continue;
+            }
+
+            let results = access
+                .source_read_dir_handle(&source, &file.handle.as_directory().unwrap())
+                .unwrap();
+            if file.meta.display_path == "C:\\Users" {
+                assert!(!results.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
     fn test_raw_accessor_mft_reader() {
         use std::io::Read;
 

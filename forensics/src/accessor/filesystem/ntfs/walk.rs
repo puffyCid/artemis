@@ -4,7 +4,7 @@ use crate::accessor::{
         locator::{DirLocator, FileLocator, NtfsEntryRef},
     },
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::volume::NtfsVolume,
+    filesystem::ntfs::{data::open_by_ref, volume::NtfsVolume},
 };
 use ntfs::{
     Ntfs, NtfsFile, NtfsIndexEntryFlags, indexes::NtfsFileNameIndex,
@@ -25,7 +25,7 @@ struct PendingChild {
     display_path: String,
 }
 
-/// List files and directories from provided path.
+/// List files and directories from provided path
 ///
 /// `display` is the human readable directory path. `inner_path` is the directory that that we should target for listing files and directories
 pub(crate) fn list_children<R: Read + Seek + Send>(
@@ -37,44 +37,73 @@ pub(crate) fn list_children<R: Read + Seek + Send>(
     volume.with_reader(|ntfs, reader| {
         // Make sure the directory we are reading does not end with slash
         let parent_display = normalize_display_path(display);
+        let dir_file = resolve_directory(ntfs, reader, inner_path)?;
 
         // Children walk only. Gets all files and directories in provided directory
-        let pending = collect_index_children(ntfs, reader, drive, inner_path, &parent_display)?;
-
-        // Now get the size for files in the directory
-        let mut entries = Vec::with_capacity(pending.len());
-        for child in pending {
-            let size = match child.kind {
-                EntryKind::Directory | EntryKind::Unsupported => 0,
-                // Only files have sizes
-                EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
-            };
-            let meta = EntryMeta::new(child.kind.clone(), size, child.display_path.clone());
-            let handle = match child.kind {
-                EntryKind::Directory => ItemHandle::Directory(DirHandle::new(DirLocator::Ntfs {
-                    drive,
-                    dir_ref: child.file_ref,
-                    display_path: child.display_path,
-                })),
-                EntryKind::File => ItemHandle::File(FileHandle::new(FileLocator::Ntfs {
-                    drive,
-                    file_ref: child.file_ref,
-                    display_path: child.display_path,
-                })),
-                EntryKind::Unsupported => continue,
-            };
-            entries.push(DirEntry::new(child.name, handle, meta));
-        }
-        Ok(entries)
+        let pending = collect_index_children(reader, drive, &dir_file, &parent_display)?;
+        process_child_entries(ntfs, reader, pending, drive)
     })
 }
 
+/// List files and directories from provided directory file reference
+///
+/// `parent_display` is the parent path to the directory
+pub(crate) fn list_children_handle<R: Read + Seek + Send>(
+    volume: &NtfsVolume<R>,
+    file_ref: &NtfsEntryRef,
+    parent_display: &str,
+    drive: char,
+) -> AccessorResult<Vec<DirEntry>> {
+    volume.with_reader(|ntfs, reader| {
+        let dir_file = open_by_ref(ntfs, reader, file_ref)?;
+
+        // Children walk only. Gets all files and directories in provided directory
+        let pending = collect_index_children(reader, drive, &dir_file, &parent_display)?;
+        process_child_entries(ntfs, reader, pending, drive)
+    })
+}
+
+/// Process children of the directory we just read
+fn process_child_entries<R: Read + Seek>(
+    ntfs: &Ntfs,
+    reader: &mut R,
+    pending: Vec<PendingChild>,
+    drive: char,
+) -> AccessorResult<Vec<DirEntry>> {
+    // Now get the size for files in the directory
+    let mut entries = Vec::with_capacity(pending.len());
+    for child in pending {
+        let size = match child.kind {
+            EntryKind::Directory | EntryKind::Unsupported => 0,
+            // Only files have sizes
+            EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
+        };
+        let meta = EntryMeta::new(child.kind.clone(), size, child.display_path.clone());
+        let handle = match child.kind {
+            EntryKind::Directory => ItemHandle::Directory(DirHandle::new(DirLocator::Ntfs {
+                drive,
+                dir_ref: child.file_ref,
+                display_path: child.display_path,
+            })),
+            EntryKind::File => ItemHandle::File(FileHandle::new(FileLocator::Ntfs {
+                drive,
+                file_ref: child.file_ref,
+                display_path: child.display_path,
+            })),
+            EntryKind::Unsupported => continue,
+        };
+        entries.push(DirEntry::new(child.name, handle, meta));
+    }
+
+    Ok(entries)
+}
+
 /// Return a `NtfsFile` from provided file path
-pub(crate) fn resolve_file<'n, R: Read + Seek>(
-    ntfs: &'n Ntfs,
+pub(crate) fn resolve_file<'a, R: Read + Seek>(
+    ntfs: &'a Ntfs,
     reader: &mut R,
     inner_path: &str,
-) -> AccessorResult<NtfsFile<'n>> {
+) -> AccessorResult<NtfsFile<'a>> {
     let components = split_inner_path(inner_path);
     if components.is_empty() {
         return Err(AccessorError::not_a_file(inner_path));
@@ -106,17 +135,16 @@ pub(crate) fn resolve_file<'n, R: Read + Seek>(
 /// Walk the directory index and return children
 ///
 /// Required before any `$DATA` size lookup
-fn collect_index_children<R: Read + Seek>(
-    ntfs: &Ntfs,
+fn collect_index_children<'a, R: Read + Seek>(
     reader: &mut R,
     drive: char,
-    inner_path: &str,
+    dir_file: &NtfsFile<'a>,
     parent_display: &str,
 ) -> AccessorResult<Vec<PendingChild>> {
-    let dir_file = resolve_directory(ntfs, reader, inner_path)?;
     let index = dir_file.directory_index(reader).map_err(ntfs_err)?;
     let mut iter = index.entries();
     let mut pending = Vec::new();
+
     while let Some(Ok(entry)) = iter.next(reader) {
         let child = {
             if entry.flags().contains(NtfsIndexEntryFlags::LAST_ENTRY) {
@@ -163,6 +191,7 @@ fn collect_index_children<R: Read + Seek>(
             pending.push(child);
         }
     }
+
     Ok(pending)
 }
 

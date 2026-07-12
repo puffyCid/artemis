@@ -274,7 +274,7 @@ impl ZipFs {
         let normalized = normalize_glob_pattern(pattern);
 
         let glob_pattern = Pattern::new(&normalized)
-            .map_err(|err| AccessorError::bad_glob(normalized, err.to_string()))?;
+            .map_err(|err| AccessorError::bad_glob(&normalized, err.to_string()))?;
 
         if normalized.contains('/') {
             let components = path_component_count(&normalized);
