@@ -15,7 +15,7 @@ use crate::accessor::{
     location::path::InnerPath,
 };
 use ntfs::{NtfsFile, NtfsReadSeek};
-use std::fmt;
+use std::{fmt, mem};
 use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
@@ -233,7 +233,7 @@ impl<T: Read + Seek + Send> NtfsStreamReader<T> {
     fn refill_cache(&mut self) -> io::Result<()> {
         let remaining = self.size - self.position;
         let to_read = READ_AHEAD.min(remaining as usize);
-        let mut buf = std::mem::take(&mut self.cache);
+        let mut buf = mem::take(&mut self.cache);
         buf.resize(to_read, 0);
 
         let bytes = self
@@ -267,6 +267,16 @@ impl<T: Read + Seek + Send> Read for NtfsStreamReader<T> {
                 self.refill_cache()?;
 
                 if self.cache.is_empty() {
+                    // If we are reading a file not fully written to disk. Return an error
+                    if self.position < self.size {
+                        return Err(io::Error::new(
+                            io::ErrorKind::UnexpectedEof,
+                            format!(
+                                "no data at offset {} (file size {})",
+                                self.position, self.size
+                            ),
+                        ));
+                    }
                     break;
                 }
             }
