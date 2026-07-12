@@ -277,7 +277,7 @@ mod tests {
     use crate::accessor::{access::Accessor, entry::handle::EntryKind};
     use std::{
         fs::{self, File},
-        io::Write,
+        io::{Read, Write},
         path::PathBuf,
     };
 
@@ -320,10 +320,57 @@ mod tests {
             let sub_dir = access
                 .read_dir_handle(entry.handle.as_directory().unwrap())
                 .unwrap();
-            if !sub_dir.is_empty() {
-                break;
-            }
+
+            assert!(!sub_dir.is_empty())
         }
+    }
+
+    #[test]
+    fn test_host_accessor_source_reader_handle() {
+        let mut access = Accessor::with_defaults();
+        let host_source = access.open_source("host:").unwrap();
+        let results = access.source_globfs(&host_source, ".*").unwrap();
+
+        for entry in results {
+            if entry.meta.kind != EntryKind::File {
+                continue;
+            }
+            let mut file_reader = access
+                .source_open_reader_handle(&host_source, &entry.handle.as_file().unwrap())
+                .unwrap();
+
+            let mut buf = [0u8; 10];
+            let bytes = file_reader.read(&mut buf).unwrap();
+            assert_eq!(bytes, 10);
+        }
+    }
+
+    #[test]
+    fn test_host_accessor_source_read_file_handle() {
+        let mut access = Accessor::with_defaults();
+        let host_source = access.open_source("host:").unwrap();
+        let results = access.source_globfs(&host_source, ".*").unwrap();
+
+        for entry in results {
+            if entry.meta.kind != EntryKind::File {
+                continue;
+            }
+            let bytes = access
+                .source_read_file_handle(&host_source, &entry.handle.as_file().unwrap())
+                .unwrap();
+
+            assert!(!bytes.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_read_dir() {
+        let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut access = Accessor::with_defaults();
+        let results = access
+            .read_dir(&test_location.display().to_string())
+            .unwrap();
+        assert!(!results.is_empty())
     }
 
     #[test]
@@ -353,6 +400,21 @@ mod tests {
                 assert_eq!(bytes.len(), 899);
             }
         }
+    }
+
+    #[test]
+    fn test_host_accessor_zip_reader() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let mut access = Accessor::with_defaults();
+        let mut file_reader = access
+            .open_reader(&format!("host:{}", test_location.display().to_string()))
+            .unwrap();
+        let mut buf = [0u8; 10];
+
+        let bytes = file_reader.read(&mut buf).unwrap();
+        assert_eq!(bytes, 10);
     }
 
     #[test]
@@ -405,8 +467,14 @@ mod tests {
             let results = access
                 .source_read_dir_handle(&source, &file.handle.as_directory().unwrap())
                 .unwrap();
+
+            let path_results = access
+                .source_read_dir(&source, &file.meta.display_path)
+                .unwrap();
+            assert_eq!(path_results, results);
             if file.meta.display_path == "C:\\Users" {
                 assert!(!results.is_empty());
+                assert!(!path_results.is_empty());
             }
         }
     }

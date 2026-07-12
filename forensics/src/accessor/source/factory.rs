@@ -157,7 +157,7 @@ pub(crate) fn open_reader_on_source(
     source_from_cache(cache, source_id)?.open_reader(inner)
 }
 
-/// Parse a relative inner path for two-step APIs (`read_file_on`, `globfs_on`, etc.)
+/// Parse a relative inner path
 ///
 /// Used after `open("host:")` or `open("zip:/path/archive.zip")`
 /// Empty string means the source root (archive root for zip, `.` semantics for host)
@@ -174,7 +174,7 @@ pub(crate) fn parse_inner_path(inner: &str) -> AccessorResult<InnerPath> {
 /// Ensure a handle's locator matches the currently open source
 ///
 /// Prevents reading a zip handle while `host:` is open, or a handle from one
-/// archive while another zip source is open. Used by file handle two-step APIs only
+/// archive while another zip source is open.
 pub(crate) fn validate_file_handle_for_source(
     source_id: &SourceId,
     locator: &FileLocator,
@@ -223,7 +223,7 @@ pub(crate) fn read_dir_handle_on_source(
 /// Ensure a handle's locator matches the currently open source
 ///
 /// Prevents reading a zip handle while `host:` is open, or a handle from one
-/// archive while another zip source is open. Used by directory handle two-step APIs only
+/// archive while another zip source is open.
 pub(crate) fn validate_dir_handle_for_source(
     source_id: &SourceId,
     locator: &DirLocator,
