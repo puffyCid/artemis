@@ -22,16 +22,16 @@ use std::{
 };
 
 /// A filesystem like accessor that can be used to read files from the raw NTFS
-pub(crate) struct NtfsFs<R: Read + Seek + Send> {
+pub(crate) struct NtfsFs<T: Read + Seek + Send> {
     /// Target NTFS volume to read
-    pub(crate) volume: Arc<NtfsVolume<R>>,
+    pub(crate) volume: Arc<NtfsVolume<T>>,
     /// Drive letter if we want to read a live NTFS filesystem
     pub(crate) drive: char,
 }
 
-impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
+impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
     /// Create a new `NtfsFs` instance
-    pub(crate) fn new(volume: NtfsVolume<R>, drive: char) -> Self {
+    pub(crate) fn new(volume: NtfsVolume<T>, drive: char) -> Self {
         Self {
             volume: Arc::new(volume),
             drive,
@@ -164,9 +164,9 @@ impl<R: Read + Seek + Send + 'static> NtfsFs<R> {
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem
-pub(crate) struct NtfsStreamReader<R: Read + Seek + Send> {
+pub(crate) struct NtfsStreamReader<T: Read + Seek + Send> {
     /// Target NTFS volume to read
-    volume: Arc<NtfsVolume<R>>,
+    volume: Arc<NtfsVolume<T>>,
     /// Target file by file reference
     file_record_number: u64,
     /// Size of the file
@@ -180,12 +180,12 @@ pub(crate) struct NtfsStreamReader<R: Read + Seek + Send> {
 }
 
 /// Open the file for streaming
-fn open_stream_reader<R: Read + Seek + Send>(
-    volume: Arc<NtfsVolume<R>>,
-    reader: &mut R,
+fn open_stream_reader<T: Read + Seek + Send>(
+    volume: Arc<NtfsVolume<T>>,
+    reader: &mut T,
     file: &NtfsFile<'_>,
     display_path: &str,
-) -> AccessorResult<NtfsStreamReader<R>> {
+) -> AccessorResult<NtfsStreamReader<T>> {
     if file.is_directory() {
         return Err(AccessorError::not_a_file(display_path));
     }
@@ -215,7 +215,7 @@ fn open_stream_reader<R: Read + Seek + Send>(
 /// How much cache to read in between file reads
 const READ_AHEAD: usize = 1024 * 1024;
 
-impl<R: Read + Seek + Send> NtfsStreamReader<R> {
+impl<T: Read + Seek + Send> NtfsStreamReader<T> {
     /// Reset the cache data
     fn invalidate_cache(&mut self) {
         self.cache.clear();
@@ -254,7 +254,7 @@ impl<R: Read + Seek + Send> NtfsStreamReader<R> {
     }
 }
 
-impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
+impl<T: Read + Seek + Send> Read for NtfsStreamReader<T> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         // If buffer is empty or file is 0 bytes in size return 0
         if buf.is_empty() || self.position >= self.size {
@@ -288,7 +288,7 @@ impl<R: Read + Seek + Send> Read for NtfsStreamReader<R> {
     }
 }
 
-impl<R: Read + Seek + Send> Seek for NtfsStreamReader<R> {
+impl<T: Read + Seek + Send> Seek for NtfsStreamReader<T> {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         let new_pos = match pos {
             SeekFrom::Start(offset) => offset,
@@ -321,7 +321,7 @@ impl<R: Read + Seek + Send> Seek for NtfsStreamReader<R> {
     }
 }
 
-impl<R: Read + Seek + Send> fmt::Debug for NtfsStreamReader<R> {
+impl<T: Read + Seek + Send> fmt::Debug for NtfsStreamReader<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("NtfsStreamReader")
             .field("file_record_number", &self.file_record_number)
@@ -332,8 +332,8 @@ impl<R: Read + Seek + Send> fmt::Debug for NtfsStreamReader<R> {
 }
 
 /// Read bytes at provided offset for the $DATA attribute
-fn read_data_attribute_bytes<R: Read + Seek>(
-    reader: &mut R,
+fn read_data_attribute_bytes<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
     offset: u64,
     buf: &mut [u8],
@@ -362,8 +362,8 @@ fn accessor_to_io(err: AccessorError) -> io::Error {
 }
 
 /// Read the entire file into memory. Handles WOF compression
-fn read_ntfs_file<R: Read + Seek>(
-    reader: &mut R,
+fn read_ntfs_file<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
     display_path: &str,
     max_read_size: Option<u64>,

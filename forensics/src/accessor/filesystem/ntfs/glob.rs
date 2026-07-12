@@ -10,7 +10,7 @@ use crate::accessor::{
 use glob::Pattern;
 use std::io::{Read, Seek};
 
-impl<R: Read + Seek + Send> NtfsFs<R> {
+impl<T: Read + Seek + Send> NtfsFs<T> {
     /// Apply a glob pattern and return matches
     pub(crate) fn globfs(
         &self,
@@ -57,8 +57,8 @@ impl<R: Read + Seek + Send> NtfsFs<R> {
 }
 
 /// List child files and directories and check if they match our glob pattern
-fn glob_path_pattern<R: Read + Seek + Send>(
-    fs: &NtfsFs<R>,
+fn glob_path_pattern<T: Read + Seek + Send>(
+    fs: &NtfsFs<T>,
     inner_path: &str,
     display: &str,
     pattern: &Pattern,

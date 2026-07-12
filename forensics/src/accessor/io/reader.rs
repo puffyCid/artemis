@@ -4,7 +4,7 @@ use std::{
     io::{self, Cursor, Read, Seek, SeekFrom},
 };
 
-/// Combines Read + Seek into a single trait object
+/// Combines Read + Seek + Debug into a single trait object
 pub(crate) trait ReadSeek: Read + Seek + Debug {}
 impl<T: Read + Seek + Debug> ReadSeek for T {}
 
@@ -18,6 +18,7 @@ pub(crate) enum AccessorReader {
     /// Stream a large file without reading the entire file into memory
     Stream(Box<dyn ReadSeek + Send>),
 }
+
 impl Read for AccessorReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {

@@ -63,16 +63,16 @@ struct WofReparse {
  * The actual file data is compressed in the Alternative Data Stream (ADS) `WofCompressedData`
  * We need to decompress the data in order to get the actual file contents
  */
-pub(crate) fn is_wof_file<R: Read + Seek>(
-    reader: &mut R,
+pub(crate) fn is_wof_file<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
 ) -> AccessorResult<bool> {
     Ok(named_data_logical_size(reader, file, WOF_ADS)? > 0)
 }
 
 /// Decompress WOF bytes
-pub(crate) fn decompress_wof<R: Read + Seek>(
-    reader: &mut R,
+pub(crate) fn decompress_wof<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
 ) -> AccessorResult<Vec<u8>> {
     let reparse = read_reparse_data(reader, file)?;
@@ -261,8 +261,8 @@ fn decompress_chunk(chunk: &[u8], decom_size: u32) -> AccessorResult<Vec<u8>> {
 }
 
 /// Size of decompressed bytes
-fn default_data_logical_size<R: Read + Seek>(
-    reader: &mut R,
+fn default_data_logical_size<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
 ) -> AccessorResult<u64> {
     let item = file
@@ -274,8 +274,8 @@ fn default_data_logical_size<R: Read + Seek>(
 }
 
 /// Check the size of of a data attribute stream
-fn named_data_logical_size<R: Read + Seek>(
-    reader: &mut R,
+fn named_data_logical_size<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
     stream_name: &str,
 ) -> AccessorResult<u64> {
@@ -287,8 +287,8 @@ fn named_data_logical_size<R: Read + Seek>(
 }
 
 /// Walk the attribute list and grab the `ReparsePoint` attribute
-fn read_reparse_data<R: Read + Seek>(
-    reader: &mut R,
+fn read_reparse_data<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
 ) -> AccessorResult<Vec<u8>> {
     let mut attrs = file.attributes();
@@ -307,8 +307,8 @@ fn read_reparse_data<R: Read + Seek>(
 }
 
 /// Read attribute data
-pub(crate) fn read_named_data<R: Read + Seek>(
-    reader: &mut R,
+pub(crate) fn read_named_data<T: Read + Seek>(
+    reader: &mut T,
     file: &NtfsFile<'_>,
     stream_name: &str,
 ) -> AccessorResult<Vec<u8>> {
@@ -327,9 +327,9 @@ pub(crate) fn read_named_data<R: Read + Seek>(
 }
 
 /// Get the attribute bytes
-fn read_value_bytes<R: Read + Seek>(
+fn read_value_bytes<T: Read + Seek>(
     value: &mut NtfsAttributeValue<'_, '_>,
-    reader: &mut R,
+    reader: &mut T,
 ) -> AccessorResult<Vec<u8>> {
     let mut out = Vec::new();
     let mut chunk = vec![0u8; 65536].into_boxed_slice();

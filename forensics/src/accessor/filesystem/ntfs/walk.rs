@@ -29,8 +29,8 @@ struct PendingChild {
 /// List files and directories from provided path
 ///
 /// `display` is the human readable directory path. `inner_path` is the directory that that we should target for listing files and directories
-pub(crate) fn list_children<R: Read + Seek + Send>(
-    volume: &NtfsVolume<R>,
+pub(crate) fn list_children<T: Read + Seek + Send>(
+    volume: &NtfsVolume<T>,
     drive: char,
     display: &str,
     inner_path: &str,
@@ -49,8 +49,8 @@ pub(crate) fn list_children<R: Read + Seek + Send>(
 /// List files and directories from provided directory file reference
 ///
 /// `display` is the parent path to the directory
-pub(crate) fn list_children_handle<R: Read + Seek + Send>(
-    volume: &NtfsVolume<R>,
+pub(crate) fn list_children_handle<T: Read + Seek + Send>(
+    volume: &NtfsVolume<T>,
     file_ref: &NtfsEntryRef,
     display: &str,
     drive: char,
@@ -67,9 +67,9 @@ pub(crate) fn list_children_handle<R: Read + Seek + Send>(
 }
 
 /// Process children of the directory we just read
-fn process_child_entries<R: Read + Seek>(
+fn process_child_entries<T: Read + Seek>(
     ntfs: &Ntfs,
-    reader: &mut R,
+    reader: &mut T,
     pending: Vec<PendingChild>,
     drive: char,
 ) -> AccessorResult<Vec<DirEntry>> {
@@ -252,9 +252,9 @@ fn resolve_directory<'n, R: Read + Seek>(
 }
 
 /// Return the size of a file
-pub(crate) fn get_file_size<R: Read + Seek>(
+pub(crate) fn get_file_size<T: Read + Seek>(
     ntfs: &Ntfs,
-    reader: &mut R,
+    reader: &mut T,
     record_number: u64,
 ) -> AccessorResult<u64> {
     // Get direct access to the file via file reference

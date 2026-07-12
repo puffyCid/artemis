@@ -47,9 +47,9 @@ trait NtfsFsBackend: Send {
     fn reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
 }
 
-impl<R> NtfsFsBackend for NtfsFs<R>
+impl<T> NtfsFsBackend for NtfsFs<T>
 where
-    R: Read + Seek + Send + 'static,
+    T: Read + Seek + Send + 'static,
 {
     fn read_file(&self, inner: &InnerPath, max_read_size: Option<u64>) -> AccessorResult<Vec<u8>> {
         self.read_file(inner, max_read_size)
