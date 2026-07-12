@@ -1,31 +1,3 @@
-//! Source lifecycle and dispatch helpers for the accessor
-//!
-//! This module sits between `Accessor` and the backend `Source` enum. The module helps with:
-//!
-//! - Maps parsed [`Location`] values and entry handles to a [`SourceId`]
-//! - Opens backends once and stores them in [`SourceCache`]
-//! - Dispatches read/list/glob/reader calls to the cached [`Source`]
-//!
-//! # One-step and two-step access
-//!
-//! **One-step** (`read_file("zip:arc.zip!foo")`).
-//! Helpful when we only need to access a few files
-//!
-//! **Two-step** (`open("zip:arc.zip")` and then `read_file_on(..., "foo")`).
-//! Useful if we need to read lots of files
-//!
-//! # What the cache stores
-//!
-//! One [`Source`] per [`SourceId`] (example: `ZipSource` and zip index metadata)
-//! Entry reads might still reopen the underlying archive; the cache tries to avoid rebuilding
-//! source metadata on every call
-//!
-//! # Handle validation
-//!
-//! Handles from `globfs` / `read_dir` carry a locator (`Host`, `Zip`, `Ntfs`)
-//! `read_*_handle_on` paths validate that the handle matches the open `SourceId`
-//! before dispatching
-
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
@@ -155,7 +127,6 @@ pub(crate) fn glob_on_source(
     directory: &InnerPath,
     pattern: &str,
 ) -> AccessorResult<Vec<GlobMatch>> {
-    println!("{} {pattern}", directory.display());
     source_from_cache(cache, source_id)?.globfs(directory, pattern)
 }
 

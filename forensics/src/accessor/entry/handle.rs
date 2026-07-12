@@ -14,7 +14,7 @@ pub(crate) enum EntryKind {
     Unsupported,
 }
 
-/// Metadata returned from stat, glob, and directory listing.
+/// Metadata returned from glob and directory listing.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct EntryMeta {
     /// `EntryKind` type
@@ -102,7 +102,7 @@ impl DirHandle {
     }
 }
 
-/// Result of a glob operation. The handle can be passed directly to read APIs
+/// Result of a glob operation
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct GlobMatch {
     /// Glob match to a file
@@ -120,12 +120,14 @@ impl GlobMatch {
 
 /// Handle returned for one child of a directory listing
 ///
-/// Files and symlinks use `FileHandle`. Subdirectories use `DirHandle` so callers
-/// can call `list_dir` again without re-walking from the volume root
+/// Files use `FileHandle`. Directories use `DirHandle`
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ItemHandle {
+    /// A file handle to read data
     File(FileHandle),
+    /// A directory handle to list additional files or directories
     Directory(DirHandle),
+    /// Unsupported handle
     Unsupported(FileHandle),
 }
 
@@ -164,7 +166,7 @@ impl ItemHandle {
     }
 }
 
-/// One row from a directory listing
+/// Directory value from a directory listing
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct DirEntry {
     /// Name of entry
@@ -174,6 +176,7 @@ pub(crate) struct DirEntry {
     /// Metadata associated with our entry
     pub(crate) meta: EntryMeta,
 }
+
 impl DirEntry {
     /// Create a `DirEntry` value
     pub(crate) fn new(name: impl Into<String>, handle: ItemHandle, meta: EntryMeta) -> Self {

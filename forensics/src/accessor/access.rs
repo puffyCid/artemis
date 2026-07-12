@@ -21,11 +21,23 @@ use crate::accessor::{
 
 /// An access implementation that lets us read files from provided input
 ///
-/// This accessor supports reading from of variety of sources depending on the `Location` and `Scheme` type. Example: `zip:test.zip!home/test.txt`, `/home/test.txt`, `raw:C::\Users\test.txt`
+/// This accessor supports reading from a variety of sources
+///
+/// Input is parsed into [`Location`] structure which is composed of (scheme, optional source path, and inner path)
+///
+/// Example: `zip:test.zip!/home/test.txt`
+///
+/// `Scheme` - `zip`
+/// `Source path` - `test.zip`
+/// `Inner path` - `/home/test.txt`
+///
+/// Example `C:\\Users\\test.txt`
+///
+/// `Scheme` - `host`. Live system
+/// `Source path` - None
+/// `Inner path` - `C:\\Users\\test.txt`
 ///
 /// Supported schemes are: `zip`, `raw`, `host`
-///
-/// Location is optional path to source data. For example the zip `Scheme` requires a `Location` path to the zip file. `zip:/path/to/file.zip`
 pub(crate) struct Accessor {
     /// The configuration for the `Accessor`
     config: AccessorConfig,

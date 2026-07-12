@@ -162,7 +162,6 @@ impl HostFs {
             matches.push(GlobMatch::new(entry.handle, entry.meta));
         }
 
-        //matches.sort_by(|left, right| left.handle.display_path().cmp(&right.handle.display_path()));
         Ok(matches)
     }
 

@@ -101,7 +101,21 @@ impl Location {
     ///
     /// Example: `/var/log/*.log` -> (`/var/log/`, `*.log`)
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
-        let (directory, pattern) = Location::parse_glob_pattern(input)?;
+        // Check for disk images or container files
+        // 'zip:test.zip!*' or 'raw:image.raw!/users/*/*.txt'
+        if let Some((source_path, inner_glob)) = input.split_once('!') {
+            let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
+            let location_str = if directory.is_empty() {
+                source_path.to_string()
+            } else {
+                format!("{source_path}!{directory}")
+            };
+            let location = Self::parse(&location_str)?;
+
+            return Ok((location, pattern));
+        }
+
+        let (directory, pattern) = Self::parse_glob_pattern(input)?;
         let location = if directory.is_empty() {
             Self {
                 scheme: Scheme::Host,
@@ -283,7 +297,10 @@ mod tests {
         let test = "zip:data.zip!./home/test.txt";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
-        assert_eq!(result.inner_path.display(), "home/test.txt");
+        assert_eq!(
+            result.inner_path.display().replace('\\', "/"),
+            "home/test.txt"
+        );
         assert_eq!(result.source.unwrap().display(), "data.zip");
     }
 

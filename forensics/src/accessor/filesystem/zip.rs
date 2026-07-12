@@ -297,6 +297,7 @@ impl ZipFs {
         Ok(matches)
     }
 
+    /// Return a zip entry match for our glob
     fn zip_child_to_glob_match(&self, child: ZipChild) -> GlobMatch {
         let (handle, kind, size, display_path) = match child {
             ZipChild::File { record, .. } => (
@@ -510,6 +511,7 @@ impl ZipFs {
     }
 }
 
+/// Walk the zip file and apply our glob pattern
 fn glob_path_pattern(
     fs: &ZipFs,
     prefix: &str,
