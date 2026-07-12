@@ -65,7 +65,7 @@ impl Accessor {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
         info!(
-            "reading file {location} using source '{}'. Scheme: {}",
+            "Reading file {location} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str()
         );
@@ -78,7 +78,7 @@ impl Accessor {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
         info!(
-            "reading directory {location} using source '{}'. Scheme: {}",
+            "Reading directory {location} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str()
         );
@@ -91,7 +91,7 @@ impl Accessor {
         let source_id = source_id_from_file_locator(&handle.locator)?;
         ensure_source(&source_id, &self.config, &mut self.cache)?;
         info!(
-            "reading file {} via handle using source '{}'",
+            "Reading file {} via handle using source '{}'",
             handle.display_path(),
             source_id.display(),
         );
@@ -104,7 +104,7 @@ impl Accessor {
         let source_id = source_id_from_dir_locator(&handle.locator)?;
         ensure_source(&source_id, &self.config, &mut self.cache)?;
         info!(
-            "reading directory {} via handle using source '{}'",
+            "Reading directory {} via handle using source '{}'",
             handle.display_path(),
             source_id.display(),
         );
@@ -119,7 +119,7 @@ impl Accessor {
         let (loc, pattern) = Location::split_glob_pattern(input)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
         info!(
-            "glob {input} using source '{}'. Scheme: {}",
+            "Glob {input} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str(),
         );
@@ -134,7 +134,7 @@ impl Accessor {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
         info!(
-            "reader for {location} using source '{}'. Scheme: {}",
+            "Reader for {location} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str(),
         );
@@ -150,7 +150,7 @@ impl Accessor {
         let source_id = source_id_from_file_locator(&handle.locator)?;
         ensure_source(&source_id, &self.config, &mut self.cache)?;
         info!(
-            "reader for {} file handle using source '{}'",
+            "Reader for {} file handle using source '{}'",
             handle.display_path(),
             source_id.display(),
         );
@@ -165,7 +165,7 @@ impl Accessor {
         let loc = Location::parse_source(source)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
         info!(
-            "opened input {source} using source '{}'. Scheme: {}",
+            "Opened input {source} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str(),
         );
@@ -179,7 +179,7 @@ impl Accessor {
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<Vec<u8>> {
-        info!("reading file {inner} with source {}", source.display());
+        info!("Reading file {inner} with source {}", source.display());
         read_file_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
@@ -189,7 +189,7 @@ impl Accessor {
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<Vec<DirEntry>> {
-        info!("reading directory {inner} with source {}", source.display());
+        info!("Reading directory {inner} with source {}", source.display());
         read_dir_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
@@ -200,7 +200,7 @@ impl Accessor {
         handle: &DirHandle,
     ) -> AccessorResult<Vec<DirEntry>> {
         info!(
-            "reading directory handle {} with source {}",
+            "Reading directory handle {} with source {}",
             handle.display_path(),
             source.display()
         );
@@ -216,7 +216,7 @@ impl Accessor {
         handle: &FileHandle,
     ) -> AccessorResult<Vec<u8>> {
         info!(
-            "reading file handle {} with source {}",
+            "Reading file handle {} with source {}",
             handle.display_path(),
             source.display()
         );
@@ -232,7 +232,7 @@ impl Accessor {
         input: &str,
     ) -> AccessorResult<Vec<GlobMatch>> {
         info!(
-            "globbing with pattern {input} with source {}",
+            "Globbing with pattern {input} with source {}",
             source.display()
         );
         let (directory, pattern) = Location::parse_glob_pattern(input)?;
@@ -251,7 +251,7 @@ impl Accessor {
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<AccessorReader> {
-        info!("reader for file {inner} with source {}", source.display());
+        info!("Reader for file {inner} with source {}", source.display());
         open_reader_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
@@ -262,7 +262,7 @@ impl Accessor {
         handle: &FileHandle,
     ) -> AccessorResult<AccessorReader> {
         info!(
-            "reader for file handle {} with source {}",
+            "Reader for file handle {} with source {}",
             handle.display_path(),
             source.display()
         );

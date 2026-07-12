@@ -11,6 +11,7 @@ use ntfs::{
     structured_values::NtfsFileNamespace,
 };
 use std::io::{Read, Seek};
+use tracing::error;
 
 /// Files and directories associated with directory we are reading
 #[derive(Debug)]
@@ -113,14 +114,20 @@ pub(crate) fn resolve_file<'a, R: Read + Seek>(
 
     let mut current = ntfs.root_directory(reader).map_err(ntfs_err)?;
 
-    for component in components {
+    for (component_index, component) in components.iter().enumerate() {
         let index = current.directory_index(reader).map_err(ntfs_err)?;
         let mut finder = index.finder();
-        let entry = match NtfsFileNameIndex::find(&mut finder, ntfs, reader, &component) {
+        let entry = match NtfsFileNameIndex::find(&mut finder, ntfs, reader, component) {
             Some(Ok(entry)) => entry,
             Some(Err(err)) => return Err(ntfs_err(err)),
             None => {
-                return Err(AccessorError::NotFound { path: component });
+                error!(
+                    "Failed to find '{}' from '{inner_path}'",
+                    components[..component_index].join("\\")
+                );
+                return Err(AccessorError::NotFound {
+                    path: components[..component_index].join("\\"),
+                });
             }
         };
 

@@ -33,7 +33,6 @@ pub(crate) fn get_attribute_data(
     fs: &mut BufReader<SectorReader<File>>,
     attribute: &str,
 ) -> Result<Vec<u8>, NtfsError> {
-    //let ntfs_file = ntfs_ref.to_file(ntfs, fs)?;
     let attr_raw = ntfs_file.attributes_raw();
 
     let mut attr_data = Vec::new();
