@@ -5,8 +5,8 @@ use crate::accessor::error::{AccessorError, AccessorResult};
 pub(crate) enum Scheme {
     /// Access the data using OS APIs
     Host,
-    /// Access the data using raw disk access
-    Raw,
+    /// Access the data using raw NTFS disk access
+    RawNtfs,
     /// Access the data inside a zip file
     Zip,
 }
@@ -16,7 +16,7 @@ impl Scheme {
     pub(crate) fn as_str(&self) -> &str {
         match self {
             Self::Host => "host",
-            Self::Raw => "raw",
+            Self::RawNtfs => "ntfs",
             Self::Zip => "zip",
         }
     }
@@ -25,7 +25,7 @@ impl Scheme {
     pub(crate) fn parse(value: &str) -> AccessorResult<Self> {
         match value.to_ascii_lowercase().as_str() {
             "host" => Ok(Self::Host),
-            "raw" => Ok(Self::Raw),
+            "ntfs" => Ok(Self::RawNtfs),
             "zip" => Ok(Self::Zip),
             _ => Err(AccessorError::unsupported_scheme(value)),
         }

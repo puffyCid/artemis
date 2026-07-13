@@ -27,23 +27,23 @@ pub(crate) struct NtfsSource {
 
 /// NTFS accessor backend for reading files and directories
 trait NtfsFsBackend: Send {
-    /// Read a file via raw disk access by file path
+    /// Read a file via ntfs disk access by file path
     fn read_file(&self, inner: &InnerPath, max_read_size: Option<u64>) -> AccessorResult<Vec<u8>>;
-    /// Read a file via raw disk access by file reference
+    /// Read a file via ntfs disk access by file reference
     fn read_handle(
         &self,
         handle: &FileHandle,
         max_read_size: Option<u64>,
     ) -> AccessorResult<Vec<u8>>;
-    /// List files and directories via raw disk access by file path
+    /// List files and directories via ntfs disk access by file path
     fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>>;
-    /// List files and directories via raw disk access by directory reference
+    /// List files and directories via ntfs disk access by directory reference
     fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>>;
     /// Apply a glob pattern
     fn globfs(&self, directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>>;
-    /// Open a file for streaming via raw disk access by file path
+    /// Open a file for streaming via ntfs disk access by file path
     fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader>;
-    /// Open a file for streaming via raw disk access by file reference
+    /// Open a file for streaming via ntfs disk access by file reference
     fn reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
 }
 
@@ -89,8 +89,8 @@ impl NtfsSource {
     pub(crate) fn new(config: &AccessorConfig, drive: char) -> AccessorResult<Self> {
         if !drive.is_ascii_alphabetic() {
             return Err(AccessorError::location(
-                format!("raw:{drive}:"),
-                "raw source drive letter must be alphabetic",
+                format!("ntfs:{drive}:"),
+                "ntfs source drive letter must be alphabetic",
             ));
         }
 
@@ -101,7 +101,7 @@ impl NtfsSource {
         })
     }
 
-    /// Create a new `NtfsSource` instance via a raw disk image
+    /// Create a new `NtfsSource` instance via a ntfs disk image
     pub(crate) fn from_image(config: &AccessorConfig, image_path: PathBuf) -> AccessorResult<Self> {
         let volume = NtfsVolume::open_image(image_path)?;
         Ok(Self {
@@ -146,7 +146,7 @@ impl SourceBackend for NtfsSource {
     }
 }
 
-/// Open the raw NTFS disk on Windows system. Will not work on non-Windows platforms
+/// Open the NTFS disk on Windows system. Will not work on non-Windows platforms
 fn open_ntfs_fs(drive: char) -> AccessorResult<Box<dyn NtfsFsBackend>> {
     let volume = NtfsVolume::open_live_drive(drive)?;
 

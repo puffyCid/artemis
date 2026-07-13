@@ -207,7 +207,7 @@ impl NtfsVolume<BufReader<SectorReader<File>>> {
     pub(crate) fn open_live_drive(drive: char) -> AccessorResult<Self> {
         if !drive.is_ascii_alphabetic() {
             return Err(AccessorError::location(
-                format!("raw:{drive}:"),
+                format!("ntfs:{drive}:"),
                 "raw source drive letter must be alphabetic",
             ));
         }
@@ -218,6 +218,6 @@ impl NtfsVolume<BufReader<SectorReader<File>>> {
             File::open(&device_path).map_err(|err| AccessorError::io_path(&device_path, err))?;
         let sector_reader =
             SectorReader::new(file, VOLUME_SECTOR_SIZE).map_err(AccessorError::from)?;
-        Self::open(BufReader::new(sector_reader), format!("raw:{drive}:"))
+        Self::open(BufReader::new(sector_reader), format!("ntfs:{drive}:"))
     }
 }

@@ -31,7 +31,7 @@ impl Location {
         }
 
         // Determine the scheme of the data
-        // Can be raw, host, zip, or others
+        // Can be ntfs, host, zip, or others
         if let Some((scheme, remainder)) = split_scheme_prefix(value) {
             return parse_schemed_location(&format!("{scheme}:{remainder}"), None);
         }
@@ -48,7 +48,7 @@ impl Location {
 
         Err(AccessorError::location(
             value,
-            "expected an absolute host path or a scheme prefix such as host:, raw:, or zip:",
+            "expected an absolute host path or a scheme prefix such as host:, ntfs:, or zip:",
         ))
     }
 
@@ -67,7 +67,7 @@ impl Location {
         }
 
         // Determine the scheme of the data
-        // Can be raw, host, zip, or others
+        // Can be ntfs, host, zip, or others
         if let Some((scheme, remainder)) = split_scheme_prefix(value) {
             let scheme_value = Scheme::parse(scheme)?;
             if scheme_value == Scheme::Host && !remainder.is_empty() {
@@ -87,13 +87,13 @@ impl Location {
         if is_absolute_host_path(value) {
             return Err(AccessorError::location(
                 input,
-                "expected a source spec such as host:, raw:C:, or zip:/path/archive.zip",
+                "expected a source spec such as host:, ntfs:C:, or zip:/path/archive.zip",
             ));
         }
 
         Err(AccessorError::location(
             input,
-            "expected a source spec such as host:, raw:C:, or zip:/path/archive.zip",
+            "expected a source spec such as host:, ntfs:C:, or zip:/path/archive.zip",
         ))
     }
 
@@ -102,7 +102,7 @@ impl Location {
     /// Example: `/var/log/*.log` -> (`/var/log/`, `*.log`)
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
         // Check for disk images or container files
-        // 'zip:test.zip!*' or 'raw:image.raw!/users/*/*.txt'
+        // 'zip:test.zip!*' or 'ntfs:image.raw!/users/*/*.txt'
         if let Some((source_path, inner_glob)) = input.split_once('!') {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
             let location_str = if directory.is_empty() {
@@ -165,7 +165,7 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
     let (scheme, remainder) = split_scheme_prefix(source_part).ok_or_else(|| {
         AccessorError::location(
             source_part,
-            "expected a scheme prefix such as host:, raw:, or zip:",
+            "expected a scheme prefix such as host:, ntfs:, or zip:",
         )
     })?;
 
@@ -185,7 +185,7 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
 
 /// Split the scheme part of the input
 ///
-/// Example: `raw:C:\Users\test.txt` into ('raw', and 'C:\Users\test.txt')
+/// Example: `ntfs:C:\Users\test.txt` into ('ntfs', and 'C:\Users\test.txt')
 fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
     let (scheme, remainder) = input.split_once(':')?;
     // If we get a drive letter for Windows treat that as live system
@@ -200,7 +200,7 @@ fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
 fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<SourcePath>> {
     match scheme {
         Scheme::Host => Ok(None),
-        Scheme::Raw => parse_raw_source(remainder),
+        Scheme::RawNtfs => parse_raw_source(remainder, RawFileSystem::Ntfs),
         Scheme::Zip => {
             if remainder.is_empty() {
                 return Err(AccessorError::location(
@@ -219,12 +219,25 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
     }
 }
 
+/// Supported raw filesystem access
+#[derive(Debug, PartialEq)]
+enum RawFileSystem {
+    /// Windows NTFS
+    Ntfs,
+}
+
 /// Parse `SourcePath` if using raw access
-fn parse_raw_source(remainder: &str) -> AccessorResult<Option<SourcePath>> {
+fn parse_raw_source(remainder: &str, raw: RawFileSystem) -> AccessorResult<Option<SourcePath>> {
+    if raw != RawFileSystem::Ntfs {
+        return Err(AccessorError::RawAccessNotSupported {
+            reason: format!("Unsupported raw filesystem: {raw:?}"),
+        });
+    }
+
     if remainder.is_empty() {
         return Err(AccessorError::location(
             remainder,
-            "raw source requires a drive letter such as raw:C:",
+            "raw source requires a source such as ntfs:C:",
         ));
     }
 
@@ -232,7 +245,7 @@ fn parse_raw_source(remainder: &str) -> AccessorResult<Option<SourcePath>> {
         let drive = remainder
             .chars()
             .next()
-            .ok_or_else(|| AccessorError::location(remainder, "raw path missing drive letter"))?;
+            .ok_or_else(|| AccessorError::location(remainder, "ntfs path missing drive letter"))?;
         return Ok(Some(SourcePath::new(PathBuf::from(format!("{drive}:")))));
     }
 
@@ -240,12 +253,12 @@ fn parse_raw_source(remainder: &str) -> AccessorResult<Option<SourcePath>> {
         .trim_end_matches(':')
         .chars()
         .next()
-        .ok_or_else(|| AccessorError::location(remainder, "raw source requires a drive letter"))?;
+        .ok_or_else(|| AccessorError::location(remainder, "ntfs source requires a drive letter"))?;
 
     if !drive.is_ascii_alphabetic() {
         return Err(AccessorError::location(
             remainder,
-            "raw source drive letter must be alphabetic",
+            "ntfs source drive letter must be alphabetic",
         ));
     }
 
@@ -266,17 +279,17 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
-        Scheme::Raw => {
+        Scheme::RawNtfs => {
             if remainder.is_empty() {
                 return Err(AccessorError::location(
                     remainder,
-                    "raw location requires a path",
+                    "ntfs location requires a path",
                 ));
             }
             if is_relative_host_path(remainder) {
                 return Err(AccessorError::location(
                     remainder,
-                    "raw locations require an absolute path",
+                    "ntfs locations require an absolute path",
                 ));
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
@@ -306,9 +319,9 @@ mod tests {
 
     #[test]
     fn test_location_raw() {
-        let test = "raw:C:\\home\\test.txt";
+        let test = "ntfs:C:\\home\\test.txt";
         let result = Location::parse(test).unwrap();
-        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.scheme, Scheme::RawNtfs);
         assert_eq!(result.inner_path.display(), "C:\\home\\test.txt");
         assert_eq!(result.source.unwrap().display(), "C:");
     }
