@@ -1,0 +1,76 @@
+use std::{
+    fmt::Debug,
+    fs::File,
+    io::{self, Cursor, Read, Seek, SeekFrom},
+};
+
+/// Combines Read + Seek + Debug into a single trait object
+pub(crate) trait ReadSeek: Read + Seek + Debug {}
+impl<T: Read + Seek + Debug> ReadSeek for T {}
+
+/// An abstract reader that can be used to read data
+#[derive(Debug)]
+pub(crate) enum AccessorReader {
+    /// `AccessorReader` for a file on a live host
+    Host(File),
+    /// `AccessorReader` for a file read into memory
+    Memory(Cursor<Vec<u8>>),
+    /// Stream a large file without reading the entire file into memory
+    Stream(Box<dyn ReadSeek + Send>),
+}
+
+impl Read for AccessorReader {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self {
+            Self::Host(file) => file.read(buf),
+            Self::Memory(cursor) => cursor.read(buf),
+            Self::Stream(stream) => stream.read(buf),
+        }
+    }
+}
+
+impl Seek for AccessorReader {
+    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
+        match self {
+            Self::Host(file) => file.seek(pos),
+            Self::Memory(cursor) => cursor.seek(pos),
+            Self::Stream(stream) => stream.seek(pos),
+        }
+    }
+}
+
+impl AccessorReader {
+    /// Read all bytes from current position
+    pub(crate) fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
+        Read::read_to_end(self, buf)
+    }
+
+    /// Seek to absolute offset
+    pub(crate) fn seek_from_start(&mut self, offset: u64) -> io::Result<u64> {
+        self.seek(SeekFrom::Start(offset))
+    }
+
+    /// Return current offset
+    pub(crate) fn position(&mut self) -> io::Result<u64> {
+        self.stream_position()
+    }
+
+    /// Read provided bytes from absolute offset
+    pub(crate) fn read_bytes(&mut self, offset: u64, length: usize) -> io::Result<Vec<u8>> {
+        self.seek_from_start(offset)?;
+        let mut buf = vec![0u8; length];
+        Read::read_exact(self, &mut buf)?;
+
+        Ok(buf)
+    }
+
+    /// Create an in-memory reader
+    pub(crate) fn memory(bytes: Vec<u8>) -> Self {
+        Self::Memory(Cursor::new(bytes))
+    }
+
+    /// Stream large files without reading into memory
+    pub(crate) fn stream(reader: impl ReadSeek + Send + 'static) -> Self {
+        Self::Stream(Box::new(reader))
+    }
+}

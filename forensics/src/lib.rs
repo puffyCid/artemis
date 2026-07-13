@@ -70,6 +70,7 @@
     nonstandard_style,
     rust_2018_idioms
 )]
+mod accessor;
 pub mod artifacts;
 pub mod core;
 mod error;
