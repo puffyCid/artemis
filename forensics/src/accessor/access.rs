@@ -37,7 +37,7 @@ use crate::accessor::{
 /// `Source path` - None
 /// `Inner path` - `C:\\Users\\test.txt`
 ///
-/// Supported schemes are: `zip`, `raw`, `host`
+/// Supported schemes are: `zip`, `ntfs`, `host`
 pub(crate) struct Accessor {
     /// The configuration for the `Accessor`
     config: AccessorConfig,
@@ -129,7 +129,7 @@ impl Accessor {
 
     /// Open a seekable reader for a parsed location
     ///
-    /// Useful for hard-coded paths like `raw:C:\$MFT`.
+    /// Useful for hard-coded paths like `ntfs:C:\$MFT`.
     pub(crate) fn open_reader(&mut self, location: &str) -> AccessorResult<AccessorReader> {
         let loc = Location::parse(location)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
@@ -160,7 +160,7 @@ impl Accessor {
 
     /// Open a source for repeated reads
     ///
-    /// Examples: `host:`, `raw:C:`, `zip:/path/archive.zip`
+    /// Examples: `host:`, `ntfs:C:`, `zip:/path/archive.zip`
     pub(crate) fn open_source(&mut self, source: &str) -> AccessorResult<SourceHandle> {
         let loc = Location::parse_source(source)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
@@ -425,7 +425,7 @@ mod tests {
 
         let mut access = Accessor::with_defaults();
         let source = access
-            .open_source(&format!("raw:{}", test_location.display().to_string()))
+            .open_source(&format!("ntfs:{}", test_location.display().to_string()))
             .unwrap();
 
         let bytes = access
@@ -438,7 +438,7 @@ mod tests {
     #[cfg(windows)]
     fn test_raw_accessor_live() {
         let mut access = Accessor::with_defaults();
-        let source = access.open_source(&"raw:C").unwrap();
+        let source = access.open_source(&"ntfs:C").unwrap();
 
         let files = access.source_globfs(&source, "*").unwrap();
         assert!(!files.is_empty());
@@ -454,7 +454,7 @@ mod tests {
     #[cfg(windows)]
     fn test_raw_accessor_live_read_dir_handle() {
         let mut access = Accessor::with_defaults();
-        let source = access.open_source(&"raw:C").unwrap();
+        let source = access.open_source(&"ntfs:C").unwrap();
 
         let files = access.source_globfs(&source, "*").unwrap();
         assert!(!files.is_empty());
@@ -485,7 +485,7 @@ mod tests {
         use std::io::Read;
 
         let mut access = Accessor::with_defaults();
-        let source = access.open_source(&"raw:C").unwrap();
+        let source = access.open_source(&"ntfs:C").unwrap();
 
         let mut reader = access.source_open_reader(&source, "$MFT").unwrap();
         let mut buf = [0u8; 1024];

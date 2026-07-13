@@ -51,18 +51,18 @@ pub(crate) fn ensure_source(
 ///
 /// - `Host` → [`SourceId::Host`]
 /// - `Zip` → [`SourceId::Zip`]
-/// - `Raw` → [`SourceId::RawNtfs`]
+/// - `RawNtfs` → [`SourceId::RawNtfs`]
 pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<SourceId> {
     match location.scheme {
         Scheme::Host => Ok(SourceId::Host),
-        Scheme::Raw => {
+        Scheme::RawNtfs => {
             let source = location
                 .source
                 .as_ref()
-                .ok_or_else(|| AccessorError::location("", "raw location missing drive source"))?;
+                .ok_or_else(|| AccessorError::location("", "ntfs location missing drive source"))?;
             let drive =
                 source.display().chars().next().ok_or_else(|| {
-                    AccessorError::location("", "raw source missing drive letter")
+                    AccessorError::location("", "ntfs source missing drive letter")
                 })?;
             Ok(SourceId::RawNtfs(drive))
         }
