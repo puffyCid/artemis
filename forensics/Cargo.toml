@@ -29,7 +29,7 @@ nom = "8.0.0"
 md-5 = "0.11.0"
 sha1 = "0.11.0"
 sha2 = "0.11.0"
-regex = "1.12.4"
+regex = "1.13.0"
 base16ct = { version = "1.0.0", default-features = false }
 digest-io = { version = "0.1.0", default-features = false }
 byteorder = "1.5.0"
@@ -37,10 +37,9 @@ walkdir = "2.5.0"
 home = "0.5.12"
 tracing-subscriber = { version = "0.3.23", features = ["json"] }
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
-quick-xml = { version = "0.40.1", default-features = false, features = [
+quick-xml = { version = "0.41.0", default-features = false, features = [
     "escape-html",
 ] }
-xml2json-rs = "1.0.1"
 evtx = { version = "0.12.2", default-features = false, features = [
     "multithreading",
 ] }
@@ -51,7 +50,7 @@ ruzstd = "0.8.3"
 lz4_flex = "0.13.1"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 macos-unifiedlogs = "0.6.0"
-plist = "1.9.0"
+plist = "1.10.0"
 aes = "0.9.1"
 cbc = "0.2.1"
 csv = "1.4.0"
@@ -63,7 +62,7 @@ lumination = "0.2.0"
 snap = "1.1.1"
 ext4-fs = "0.2.0"
 calf = "0.3.0"
-parquet = { version = "59.0.0", default-features = false, features = [
+parquet = { version = "59.1.0", default-features = false, features = [
     "json",
     "snap",
     "simdutf8",
