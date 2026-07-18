@@ -19,7 +19,7 @@ pub(crate) fn js_read_xml(
     let xml = match read_xml(&path) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Could not get read xml {path}: {err:?}");
+            let issue = format!("Could not get read xml at '{path}': {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
@@ -32,7 +32,7 @@ pub(crate) fn js_read_xml(
 
 // Parse XML string into generic serde Value
 fn xml_to_json(xml_string: &str) -> JsResult<Value> {
-    let mut xml_reader = Reader::from_str(&xml_string);
+    let mut xml_reader = Reader::from_str(xml_string);
     let mut buf = Vec::new();
 
     let mut json_stack: Vec<(String, Map<String, Value>)> = Vec::new();
@@ -40,82 +40,50 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
 
     loop {
         buf.clear();
-        if let Ok(value) = xml_reader.read_event_into(&mut buf) {
-            match value {
-                Event::Start(bytes_start) => {
-                    let tag_name = extract_utf8_string(bytes_start.name().0);
-                    let mut current_map = Map::new();
-                    for attr in bytes_start.attributes() {
-                        if let Ok(attr_value) = attr {
-                            let key = format!(
-                                "@{}",
-                                String::from_utf8(attr_value.key.0.to_vec()).unwrap_or_default()
-                            );
-                            let value = attr_value
-                                .normalized_value(XmlVersion::Implicit1_0)
-                                .map_err(|err| {
-                                    JsError::from_opaque(
-                                        js_string!(format!(
-                                            "Failed to normalize start attribute: {err:?}"
-                                        ))
-                                        .into(),
-                                    )
-                                })?;
-                            current_map.insert(key, Value::String(value.into()));
-                        }
-                    }
-                    json_stack.push((tag_name, current_map));
+
+        let value = match xml_reader.read_event_into(&mut buf) {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Could not get parse xml: {err:?}");
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
+
+        match value {
+            Event::Start(bytes_start) => {
+                let tag_name = extract_utf8_string(bytes_start.name().0);
+                let mut current_map = Map::new();
+                for attr_value in bytes_start.attributes().flatten() {
+                    let key = format!(
+                        "@{}",
+                        String::from_utf8(attr_value.key.0.to_vec()).unwrap_or_default()
+                    );
+                    let value = attr_value
+                        .normalized_value(XmlVersion::Implicit1_0)
+                        .map_err(|err| {
+                            JsError::from_opaque(
+                                js_string!(format!("Failed to normalize start attribute: {err:?}"))
+                                    .into(),
+                            )
+                        })?;
+                    current_map.insert(key, Value::String(value.into()));
                 }
-                Event::End(bytes_end) => {
-                    let tag_name = extract_utf8_string(bytes_end.name().0);
-                    if let Some((popped_tag, mut popped_map)) = json_stack.pop() {
-                        if popped_tag != tag_name {
-                            let issue = format!("Got unexpected closing XML tag '{popped_tag}'");
-                            return Err(JsError::from_opaque(js_string!(issue).into()));
-                        }
-
-                        let final_value =
-                            if popped_map.len() == 1 && popped_map.contains_key("#text") {
-                                popped_map.remove("#text").unwrap_or_default()
-                            } else if popped_map.is_empty() {
-                                Value::String(String::new())
-                            } else {
-                                Value::Object(popped_map)
-                            };
-
-                        if let Some((_, parent_map)) = json_stack.last_mut() {
-                            insert_into_json(parent_map, tag_name, final_value);
-                        } else {
-                            insert_into_json(&mut root_elements, tag_name, final_value);
-                        }
-                    }
-                }
-                Event::Empty(bytes_start) => {
-                    let tag_name = extract_utf8_string(bytes_start.name().0);
-                    let mut current_map = Map::new();
-
-                    for attr in bytes_start.attributes() {
-                        if let Ok(attr_value) = attr {
-                            let key = format!("@{}", extract_utf8_string(attr_value.key.0));
-                            let value = attr_value
-                                .normalized_value(XmlVersion::Implicit1_0)
-                                .map_err(|err| {
-                                    JsError::from_opaque(
-                                        js_string!(format!(
-                                            "Failed to normalize empty element tag: {err:?}"
-                                        ))
-                                        .into(),
-                                    )
-                                })?;
-
-                            current_map.insert(key, Value::String(value.into()));
-                        }
+                json_stack.push((tag_name, current_map));
+            }
+            Event::End(bytes_end) => {
+                let tag_name = extract_utf8_string(bytes_end.name().0);
+                if let Some((popped_tag, mut popped_map)) = json_stack.pop() {
+                    if popped_tag != tag_name {
+                        let issue = format!("Got unexpected closing XML tag '{popped_tag}'");
+                        return Err(JsError::from_opaque(js_string!(issue).into()));
                     }
 
-                    let final_value = if current_map.is_empty() {
+                    let final_value = if popped_map.len() == 1 && popped_map.contains_key("text") {
+                        popped_map.remove("text").unwrap_or_default()
+                    } else if popped_map.is_empty() {
                         Value::String(String::new())
                     } else {
-                        Value::Object(current_map)
+                        Value::Object(popped_map)
                     };
 
                     if let Some((_, parent_map)) = json_stack.last_mut() {
@@ -124,29 +92,63 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                         insert_into_json(&mut root_elements, tag_name, final_value);
                     }
                 }
-                Event::Text(bytes_text) => {
-                    let text = bytes_text.decode().map_err(|err| {
-                        JsError::from_opaque(
-                            js_string!(format!("Failed to text between tags: {err:?}")).into(),
-                        )
-                    })?;
-                    if text.is_empty() || text.trim_ascii().is_empty() {
-                        continue;
-                    }
-
-                    if let Some((_, current_map)) = json_stack.last_mut() {
-                        current_map.insert(String::from("#text"), Value::String(text.into()));
-                    }
-                }
-                Event::CData(bytes_cdata) => {
-                    let text = extract_utf8_string(bytes_cdata.as_bytes());
-                    if let Some((_, current_map)) = json_stack.last_mut() {
-                        current_map.insert(String::from("#text"), Value::String(text));
-                    }
-                }
-                Event::Eof => break,
-                _ => {}
             }
+            Event::Empty(bytes_start) => {
+                let tag_name = extract_utf8_string(bytes_start.name().0);
+                let mut current_map = Map::new();
+
+                for attr_value in bytes_start.attributes().flatten() {
+                    let key = format!("@{}", extract_utf8_string(attr_value.key.0));
+                    let value = attr_value
+                        .normalized_value(XmlVersion::Implicit1_0)
+                        .map_err(|err| {
+                            JsError::from_opaque(
+                                js_string!(format!(
+                                    "Failed to normalize empty element tag: {err:?}"
+                                ))
+                                .into(),
+                            )
+                        })?;
+
+                    current_map.insert(key, Value::String(value.into()));
+                }
+
+                let final_value = if current_map.is_empty() {
+                    Value::String(String::new())
+                } else {
+                    Value::Object(current_map)
+                };
+
+                if let Some((_, parent_map)) = json_stack.last_mut() {
+                    insert_into_json(parent_map, tag_name, final_value);
+                } else {
+                    insert_into_json(&mut root_elements, tag_name, final_value);
+                }
+            }
+            Event::Text(bytes_text) => {
+                let text = extract_utf8_string(bytes_text.as_bytes());
+                if text.is_empty() || text.trim_ascii().is_empty() {
+                    continue;
+                }
+
+                if let Some((_, current_map)) = json_stack.last_mut() {
+                    current_map.insert(String::from("text"), Value::String(text));
+                }
+            }
+            Event::CData(bytes_cdata) => {
+                let text = extract_utf8_string(bytes_cdata.as_bytes());
+                if let Some((_, current_map)) = json_stack.last_mut() {
+                    current_map.insert(String::from("text"), Value::String(text));
+                }
+            }
+            Event::GeneralRef(bytes_general) => {
+                let text = extract_utf8_string(bytes_general.as_bytes());
+                if let Some((_, current_map)) = json_stack.last_mut() {
+                    current_map.insert(String::from("text"), Value::String(text));
+                }
+            }
+            Event::Eof => break,
+            _ => {}
         }
     }
 
