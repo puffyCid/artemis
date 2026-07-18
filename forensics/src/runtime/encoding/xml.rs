@@ -78,8 +78,8 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                         return Err(JsError::from_opaque(js_string!(issue).into()));
                     }
 
-                    let final_value = if popped_map.len() == 1 && popped_map.contains_key("text") {
-                        popped_map.remove("text").unwrap_or_default()
+                    let final_value = if popped_map.len() == 1 && popped_map.contains_key("#text") {
+                        popped_map.remove("#text").unwrap_or_default()
                     } else if popped_map.is_empty() {
                         Value::String(String::new())
                     } else {
@@ -132,19 +132,19 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 }
 
                 if let Some((_, current_map)) = json_stack.last_mut() {
-                    current_map.insert(String::from("text"), Value::String(text));
+                    current_map.insert(String::from("#text"), Value::String(text));
                 }
             }
             Event::CData(bytes_cdata) => {
                 let text = extract_utf8_string(bytes_cdata.as_bytes());
                 if let Some((_, current_map)) = json_stack.last_mut() {
-                    current_map.insert(String::from("text"), Value::String(text));
+                    current_map.insert(String::from("#text"), Value::String(text));
                 }
             }
             Event::GeneralRef(bytes_general) => {
                 let text = extract_utf8_string(bytes_general.as_bytes());
                 if let Some((_, current_map)) = json_stack.last_mut() {
-                    current_map.insert(String::from("text"), Value::String(text));
+                    current_map.insert(String::from("#text"), Value::String(text));
                 }
             }
             Event::Eof => break,
