@@ -74,7 +74,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 let tag_name = extract_utf8_string(bytes_end.name().0);
                 if let Some((popped_tag, mut popped_map)) = json_stack.pop() {
                     if popped_tag != tag_name {
-                        let issue = format!("Got unexpected closing XML tag '{popped_tag}'");
+                        let issue = format!("Got unexpected closing XML tag '{tag_name}'");
                         return Err(JsError::from_opaque(js_string!(issue).into()));
                     }
 
