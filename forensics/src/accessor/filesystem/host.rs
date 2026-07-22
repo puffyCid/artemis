@@ -141,7 +141,7 @@ impl HostFs {
         let glob_pattern = Pattern::new(&normalized)
             .map_err(|err| AccessorError::bad_glob(pattern, err.to_string()))?;
 
-        // Support nested glob patterns. Such as '/home/*/*/*.txt'
+        // Support nested and recursive glob patterns. Such as '/home/*/*/*.txt' or '/home/**/*.txt'
         if normalized.contains('/') || is_recursive(&normalized) {
             let mut matches = Vec::new();
             HostFs::glob_path_pattern(
@@ -215,7 +215,7 @@ impl HostFs {
 
     /// Glob all nested patterns
     ///
-    /// Example: `/home/*/*/*.txt``
+    /// Example: `/home/*/*/*.txt`
     fn glob_path_pattern(
         directory: &InnerPath,
         pattern: &Pattern,

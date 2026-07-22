@@ -276,10 +276,16 @@ impl ZipFs {
         let glob_pattern = Pattern::new(&normalized)
             .map_err(|err| AccessorError::bad_glob(&normalized, err.to_string()))?;
 
-        if normalized.contains('/') {
-            let components = path_component_count(&normalized);
+        if normalized.contains('/') || is_recursive(&normalized) {
             let mut matches = Vec::new();
-            glob_path_pattern(self, &prefix, &glob_pattern, "", components, &mut matches)?;
+            glob_path_pattern(
+                self,
+                &prefix,
+                &glob_pattern,
+                "",
+                glob_max_depth(&normalized),
+                &mut matches,
+            )?;
 
             return Ok(matches);
         }
@@ -512,7 +518,7 @@ fn glob_path_pattern(
     prefix: &str,
     pattern: &Pattern,
     relative_prefix: &str,
-    components: usize,
+    max_depth: Option<usize>,
     matches: &mut Vec<GlobMatch>,
 ) -> AccessorResult<()> {
     let children = fs.list_children(prefix)?;
@@ -529,8 +535,8 @@ fn glob_path_pattern(
                 if pattern.matches(&relative) {
                     matches.push(fs.zip_child_to_glob_match(child.clone()));
                 }
-                if depth < components {
-                    glob_path_pattern(fs, child_prefix, pattern, &relative, components, matches)?;
+                if descend(depth, max_depth) {
+                    glob_path_pattern(fs, child_prefix, pattern, &relative, max_depth, matches)?;
                 }
             }
             ZipChild::File { .. } => {
@@ -564,6 +570,30 @@ fn path_component_count(path: &str) -> usize {
         0
     } else {
         path.split('/').count()
+    }
+}
+
+/// Max directory depth to descend for a pattern
+///
+/// Recursive globs '**' do not have a depth cap
+fn glob_max_depth(path: &str) -> Option<usize> {
+    if is_recursive(path) {
+        None
+    } else {
+        Some(path_component_count(path))
+    }
+}
+
+/// Determine if our normalized glob pattern is a recursive glob
+fn is_recursive(path: &str) -> bool {
+    path.split('/').any(|p| p == "**")
+}
+
+/// Determine if we should descend to next directory if doing recursive glob or nested glob pattern
+fn descend(depth: usize, max_depth: Option<usize>) -> bool {
+    match max_depth {
+        None => true,
+        Some(max) => depth < max,
     }
 }
 
@@ -762,5 +792,16 @@ mod tests {
                 limit: 10
             }
         ));
+    }
+
+    #[test]
+    fn test_zipfs_globfs_recursive() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let zipfs = ZipFs::new(test_location).unwrap();
+
+        let entries = zipfs.globfs(&inner(""), "**/*").unwrap();
+        assert_eq!(entries.len(), 11);
     }
 }
