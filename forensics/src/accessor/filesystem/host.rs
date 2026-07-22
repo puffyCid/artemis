@@ -135,7 +135,7 @@ impl HostFs {
             )));
         }
 
-        // Normalize all path separators to forward slash '/'
+        // Normalize all pattern separators to forward slash '/'
         let normalized = normalize_glob_pattern(pattern);
 
         let glob_pattern = Pattern::new(&normalized)

@@ -270,12 +270,13 @@ impl ZipFs {
                 self.display_entry_path(&prefix),
             ));
         }
-
+        // Normalize all pattern separators to forward slash '/'
         let normalized = normalize_glob_pattern(pattern);
 
         let glob_pattern = Pattern::new(&normalized)
             .map_err(|err| AccessorError::bad_glob(&normalized, err.to_string()))?;
 
+        // Support nested and recursive glob patterns. Such as '/home/*/*/*.txt' or '/home/**/*.txt'
         if normalized.contains('/') || is_recursive(&normalized) {
             let mut matches = Vec::new();
             glob_path_pattern(

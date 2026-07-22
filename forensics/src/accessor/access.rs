@@ -419,7 +419,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_raw_accessor_read_zip() {
+    fn test_ntfs_accessor_read_zip() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/archives/document.odt");
 
@@ -436,7 +436,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_raw_accessor_live() {
+    fn test_ntfs_accessor_live() {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"ntfs:C").unwrap();
 
@@ -452,7 +452,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_raw_accessor_live_read_dir_handle() {
+    fn test_ntfs_accessor_live_read_dir_handle() {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"ntfs:C").unwrap();
 
@@ -481,7 +481,7 @@ mod tests {
 
     #[test]
     #[cfg(windows)]
-    fn test_raw_accessor_mft_reader() {
+    fn test_ntfs_accessor_mft_reader() {
         use std::io::Read;
 
         let mut access = Accessor::with_defaults();
@@ -493,6 +493,16 @@ mod tests {
 
         assert_eq!(bytes, 1024);
         assert!(buf.starts_with(b"FILE0"));
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_ntfs_glob_recursive() {
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source(&"ntfs:C").unwrap();
+
+        let results = access.source_globfs(&source, "Windows/**/*.evtx").unwrap();
+        assert!(results.len() > 0);
     }
 
     #[test]
