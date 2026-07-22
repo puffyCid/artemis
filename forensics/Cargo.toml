@@ -29,7 +29,7 @@ nom = "8.0.0"
 md-5 = "0.11.0"
 sha1 = "0.11.0"
 sha2 = "0.11.0"
-regex = "1.13.0"
+regex = "1.13.1"
 base16ct = { version = "1.0.0", default-features = false }
 digest-io = { version = "0.1.0", default-features = false }
 byteorder = "1.5.0"
@@ -47,7 +47,7 @@ ntfs = "0.4.0"
 pelite = "0.10.0"
 elf = "0.8.0"
 ruzstd = "0.8.3"
-lz4_flex = "0.13.1"
+lz4_flex = "0.14.0"
 xz2 = { version = "0.1.7", default-features = false, features = ["static"] }
 macos-unifiedlogs = "0.6.0"
 plist = "1.10.0"
@@ -59,7 +59,7 @@ timeline = { path = "../timeline" }
 sunlight = "0.2.0"
 miniz_oxide = { version = "0.9.1", features = ["std", "with-alloc"] }
 lumination = "0.2.0"
-snap = "1.1.1"
+snap = "1.1.2"
 ext4-fs = "0.2.0"
 calf = "0.3.0"
 parquet = { version = "59.1.0", default-features = false, features = [
@@ -87,7 +87,7 @@ yara-x = { version = "1.19.0", optional = true, default-features = false, featur
 ] }
 
 # AWS Support
-rusty-s3 = { version = "0.10.0", optional = true }
+rusty-s3 = { version = "0.10.1", optional = true }
 
 # GCP Support
 jsonwebtoken = { version = "10.4.0", optional = true, features = ["aws_lc_rs"] }

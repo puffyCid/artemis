@@ -134,18 +134,21 @@ impl HostFs {
                 &dir_path,
             )));
         }
+
+        // Normalize all pattern separators to forward slash '/'
         let normalized = normalize_glob_pattern(pattern);
 
         let glob_pattern = Pattern::new(&normalized)
             .map_err(|err| AccessorError::bad_glob(pattern, err.to_string()))?;
 
-        if normalized.contains('/') {
+        // Support nested and recursive glob patterns. Such as '/home/*/*/*.txt' or '/home/**/*.txt'
+        if normalized.contains('/') || is_recursive(&normalized) {
             let mut matches = Vec::new();
             HostFs::glob_path_pattern(
                 directory,
                 &glob_pattern,
                 "",
-                path_component_count(&normalized),
+                glob_max_depth(&normalized),
                 &mut matches,
             )?;
 
@@ -210,11 +213,14 @@ impl HostFs {
         path.display().to_string()
     }
 
+    /// Glob all nested patterns
+    ///
+    /// Example: `/home/*/*/*.txt`
     fn glob_path_pattern(
         directory: &InnerPath,
         pattern: &Pattern,
         relative_prefix: &str,
-        components: usize,
+        max_depth: Option<usize>,
         matches: &mut Vec<GlobMatch>,
     ) -> AccessorResult<()> {
         let entries = HostFs::read_dir(directory)?;
@@ -234,13 +240,13 @@ impl HostFs {
                         matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()));
                     }
 
-                    if depth < components {
+                    if descend(depth, max_depth) {
                         let child_inner = append_inner_path(directory, &entry.name);
                         HostFs::glob_path_pattern(
                             &child_inner,
                             pattern,
                             &relative,
-                            components,
+                            max_depth,
                             matches,
                         )?;
                     }
@@ -266,12 +272,36 @@ fn join_relative(prefix: &str, name: &str) -> String {
     }
 }
 
+/// Max directory depth to descend for a pattern
+///
+/// Recursive globs '**' do not have a depth cap
+fn glob_max_depth(path: &str) -> Option<usize> {
+    if is_recursive(path) {
+        None
+    } else {
+        Some(path_component_count(path))
+    }
+}
+
+/// Determine if our normalized glob pattern is a recursive glob
+fn is_recursive(path: &str) -> bool {
+    path.split('/').any(|p| p == "**")
+}
+
 /// Determine depth of starting directory
 fn path_component_count(path: &str) -> usize {
     if path.is_empty() {
         0
     } else {
         path.split('/').count()
+    }
+}
+
+/// Determine if we should descend to next directory if doing recursive glob or nested glob pattern
+fn descend(depth: usize, max_depth: Option<usize>) -> bool {
+    match max_depth {
+        None => true,
+        Some(max) => depth < max,
     }
 }
 
@@ -384,5 +414,14 @@ mod tests {
         let test = PathBuf::from("./tmp");
         let dir = HostFs::globfs(&inner(&test, ""), "*").unwrap();
         assert!(!dir.is_empty());
+    }
+
+    #[test]
+    fn test_hostfs_globfs_recursive() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests");
+        let results = HostFs::globfs(&inner(&test_location, ""), "**/*.toml").unwrap();
+
+        assert!(results.len() >= 10);
     }
 }

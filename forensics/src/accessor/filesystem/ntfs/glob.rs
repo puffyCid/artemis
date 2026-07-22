@@ -1,14 +1,18 @@
 use crate::accessor::{
-    entry::handle::{EntryKind, GlobMatch},
+    entry::{
+        handle::{DirEntry, EntryKind, GlobMatch},
+        locator::DirLocator,
+    },
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::{
         data::{NtfsFs, display_ntfs_path, inner_to_ntfs_path},
-        walk::list_children,
+        walk::{list_children, list_children_handle},
     },
     location::path::InnerPath,
 };
 use glob::Pattern;
 use std::io::{Read, Seek};
+use tracing::warn;
 
 impl<T: Read + Seek + Send> NtfsFs<T> {
     /// Apply a glob pattern and return matches
@@ -19,23 +23,23 @@ impl<T: Read + Seek + Send> NtfsFs<T> {
     ) -> AccessorResult<Vec<GlobMatch>> {
         let inner_path = inner_to_ntfs_path(directory, self.drive);
         let display = display_ntfs_path(self.drive, &inner_path);
-
+        // Normalize all pattern separators to forward slash '/'
         let normalized = normalize_glob_pattern(pattern);
 
         let glob_pattern = Pattern::new(&normalized)
             .map_err(|err| AccessorError::bad_glob(pattern, err.to_string()))?;
 
-        if normalized.contains('/') {
-            let components = path_component_count(&normalized);
+        // Support nested and recursive glob patterns. Such as '/home/*/*/*.txt' or '/home/**/*.txt'
+        if normalized.contains('/') || is_recursive(&normalized) {
+            let entries = list_children(&self.volume, self.drive, &display, &inner_path)?;
             let mut matches = Vec::new();
 
             glob_path_pattern(
                 self,
-                &inner_path,
-                &display,
+                entries,
                 &glob_pattern,
                 "",
-                components,
+                glob_max_depth(&normalized),
                 &mut matches,
             )?;
 
@@ -59,15 +63,12 @@ impl<T: Read + Seek + Send> NtfsFs<T> {
 /// List child files and directories and check if they match our glob pattern
 fn glob_path_pattern<T: Read + Seek + Send>(
     fs: &NtfsFs<T>,
-    inner_path: &str,
-    display: &str,
+    entries: Vec<DirEntry>,
     pattern: &Pattern,
     relative_prefix: &str,
-    components: usize,
+    max_depth: Option<usize>,
     matches: &mut Vec<GlobMatch>,
 ) -> AccessorResult<()> {
-    let entries = list_children(&fs.volume, fs.drive, display, inner_path)?;
-
     for entry in entries {
         let relative = join_relative(relative_prefix, &entry.name);
         let depth = path_component_count(&relative);
@@ -83,18 +84,30 @@ fn glob_path_pattern<T: Read + Seek + Send>(
                     matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()));
                 }
 
-                if depth < components {
-                    let child_inner = join_inner(inner_path, &entry.name);
-                    let child_display = entry.meta.display_path.clone();
-                    glob_path_pattern(
-                        fs,
-                        &child_inner,
-                        &child_display,
-                        pattern,
-                        &relative,
-                        components,
-                        matches,
-                    )?;
+                if descend(depth, max_depth) {
+                    let Some(dir_handle) = entry.handle.as_directory() else {
+                        continue;
+                    };
+                    let DirLocator::Ntfs {
+                        dir_ref,
+                        display_path,
+                        ..
+                    } = &dir_handle.locator
+                    else {
+                        return Err(AccessorError::invalid_handle(format!(
+                            "ntfs glob expected ntfs directory handle for {}",
+                            entry.meta.display_path
+                        )));
+                    };
+                    let children =
+                        match list_children_handle(&fs.volume, dir_ref, display_path, fs.drive) {
+                            Ok(result) => result,
+                            Err(err) => {
+                                warn!("Could not glob '{pattern}' for: {display_path}: {err:?}");
+                                continue;
+                            }
+                        };
+                    glob_path_pattern(fs, children, pattern, &relative, max_depth, matches)?;
                 }
             }
         }
@@ -124,6 +137,30 @@ fn join_relative(prefix: &str, name: &str) -> String {
     } else {
         format!("{prefix}/{name}")
     }
+}
+
+/// Max directory depth to descend for a pattern
+///
+/// Recursive globs '**' do not have a depth cap
+fn glob_max_depth(path: &str) -> Option<usize> {
+    if is_recursive(path) {
+        None
+    } else {
+        Some(path_component_count(path))
+    }
+}
+
+/// Determine if we should descend to next directory if doing recursive glob or nested glob pattern
+fn descend(depth: usize, max_depth: Option<usize>) -> bool {
+    match max_depth {
+        None => true,
+        Some(max) => depth < max,
+    }
+}
+
+/// Determine if our normalized glob pattern is a recursive glob
+fn is_recursive(path: &str) -> bool {
+    path.split('/').any(|p| p == "**")
 }
 
 /// Determine depth of starting directory
@@ -173,5 +210,12 @@ mod tests {
 
         let matches = fs.globfs(&inner(""), "*/*.ts").unwrap();
         assert!(matches.is_empty());
+    }
+
+    #[test]
+    fn test_ntfs_globfs_recursive() {
+        let fs = test_fs();
+        let results = fs.globfs(&inner(""), "**").unwrap();
+        assert_eq!(results.len(), 19);
     }
 }
