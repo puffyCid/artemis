@@ -1,5 +1,3 @@
-use tracing::info;
-
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
@@ -18,6 +16,7 @@ use crate::accessor::{
         handle::SourceHandle,
     },
 };
+use tracing::info;
 
 /// An access implementation that lets us read files from provided input
 ///
