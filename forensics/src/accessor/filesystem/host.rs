@@ -4,6 +4,10 @@ use crate::accessor::{
         locator::{DirLocator, FileLocator},
     },
     error::{AccessorError, AccessorResult},
+    filesystem::helper::glob::{
+        append_inner_path, descend, glob_max_depth, is_recursive, join_relative,
+        normalize_glob_pattern, path_component_count,
+    },
     io::reader::AccessorReader,
     location::path::InnerPath,
 };
@@ -255,62 +259,6 @@ impl HostFs {
         }
 
         Ok(())
-    }
-}
-
-/// Apply a consistent glob separator
-fn normalize_glob_pattern(pattern: &str) -> String {
-    pattern.replace('\\', "/")
-}
-
-/// Builds the path to compare against our glob pattern
-fn join_relative(prefix: &str, name: &str) -> String {
-    if prefix.is_empty() {
-        name.to_string()
-    } else {
-        format!("{prefix}/{name}")
-    }
-}
-
-/// Max directory depth to descend for a pattern
-///
-/// Recursive globs '**' do not have a depth cap
-fn glob_max_depth(path: &str) -> Option<usize> {
-    if is_recursive(path) {
-        None
-    } else {
-        Some(path_component_count(path))
-    }
-}
-
-/// Determine if our normalized glob pattern is a recursive glob
-fn is_recursive(path: &str) -> bool {
-    path.split('/').any(|p| p == "**")
-}
-
-/// Determine depth of starting directory
-fn path_component_count(path: &str) -> usize {
-    if path.is_empty() {
-        0
-    } else {
-        path.split('/').count()
-    }
-}
-
-/// Determine if we should descend to next directory if doing recursive glob or nested glob pattern
-fn descend(depth: usize, max_depth: Option<usize>) -> bool {
-    match max_depth {
-        None => true,
-        Some(max) => depth < max,
-    }
-}
-
-/// Combine starting directory with any directory matches from glob
-fn append_inner_path(base: &InnerPath, name: &str) -> InnerPath {
-    if base.is_empty() {
-        InnerPath::new(PathBuf::from(name))
-    } else {
-        InnerPath::new(base.as_path().join(name))
     }
 }
 

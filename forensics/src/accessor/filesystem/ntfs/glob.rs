@@ -4,9 +4,15 @@ use crate::accessor::{
         locator::DirLocator,
     },
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{
-        data::{NtfsFs, display_ntfs_path, inner_to_ntfs_path},
-        walk::{list_children, list_children_handle},
+    filesystem::{
+        helper::glob::{
+            descend, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
+            path_component_count,
+        },
+        ntfs::{
+            data::{NtfsFs, display_ntfs_path, inner_to_ntfs_path},
+            walk::{list_children, list_children_handle},
+        },
     },
     location::path::InnerPath,
 };
@@ -114,62 +120,6 @@ fn glob_path_pattern<T: Read + Seek + Send>(
     }
 
     Ok(())
-}
-
-/// Apply a consistent glob separator
-fn normalize_glob_pattern(pattern: &str) -> String {
-    pattern.replace('\\', "/")
-}
-
-/// Combine starting directory with any directory matches from glob
-fn join_inner(base: &str, name: &str) -> String {
-    if base.is_empty() {
-        name.to_string()
-    } else {
-        format!("{base}\\{name}")
-    }
-}
-
-/// Builds the path to compare against our glob pattern
-fn join_relative(prefix: &str, name: &str) -> String {
-    if prefix.is_empty() {
-        name.to_string()
-    } else {
-        format!("{prefix}/{name}")
-    }
-}
-
-/// Max directory depth to descend for a pattern
-///
-/// Recursive globs '**' do not have a depth cap
-fn glob_max_depth(path: &str) -> Option<usize> {
-    if is_recursive(path) {
-        None
-    } else {
-        Some(path_component_count(path))
-    }
-}
-
-/// Determine if we should descend to next directory if doing recursive glob or nested glob pattern
-fn descend(depth: usize, max_depth: Option<usize>) -> bool {
-    match max_depth {
-        None => true,
-        Some(max) => depth < max,
-    }
-}
-
-/// Determine if our normalized glob pattern is a recursive glob
-fn is_recursive(path: &str) -> bool {
-    path.split('/').any(|p| p == "**")
-}
-
-/// Determine depth of starting directory
-fn path_component_count(path: &str) -> usize {
-    if path.is_empty() {
-        0
-    } else {
-        path.split('/').count()
-    }
 }
 
 #[cfg(test)]
