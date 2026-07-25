@@ -410,7 +410,7 @@ fn read_data_runs<T: Read + Seek>(
     stream_name: &str,
 ) -> AccessorResult<Vec<u8>> {
     if let NtfsAttributeValue::NonResident(non_resident) = value {
-        let mut out = Vec::with_capacity(non_resident.len() as usize);
+        let mut out = Vec::with_capacity(50 * 1024 * 1024);
         let mut chunk = vec![0u8; 65536].into_boxed_slice();
 
         for data_run in non_resident.data_runs() {
