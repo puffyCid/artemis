@@ -47,12 +47,12 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
         inner: &InnerPath,
         max_read_size: Option<u64>,
     ) -> AccessorResult<Vec<u8>> {
-        let inner_path = inner_to_ntfs_path(inner, self.drive);
+        let (inner_path, attribute_name) = inner_to_ntfs_path(inner, self.drive);
         let display_path = display_ntfs_path(self.drive, &inner_path);
 
         self.volume.with_reader(|ntfs, reader| {
             let file = resolve_file(ntfs, reader, &inner_path)?;
-            read_ntfs_file(reader, &file, &display_path, max_read_size)
+            read_ntfs_file(reader, &file, &display_path, max_read_size, &attribute_name)
         })
     }
 
@@ -77,7 +77,8 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
 
                 self.volume.with_reader(|ntfs, reader| {
                     let file = open_by_ref(ntfs, reader, file_ref)?;
-                    read_ntfs_file(reader, &file, display_path, max_read_size)
+                    let data = "";
+                    read_ntfs_file(reader, &file, display_path, max_read_size, data)
                 })
             }
             _ => Err(AccessorError::invalid_handle(format!(
@@ -91,7 +92,7 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
     ///
     /// Supports both forward and back slashes. Example: C:\\Users\\test.txt or `C:/Users/test.txt`
     pub(crate) fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
-        let inner_path = inner_to_ntfs_path(inner, self.drive);
+        let (inner_path, _) = inner_to_ntfs_path(inner, self.drive);
         let display_path = display_ntfs_path(self.drive, &inner_path);
 
         let stream = self.volume.with_reader(|ntfs, reader| {
@@ -133,7 +134,7 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
 
     /// List files and directories in provided path
     pub(crate) fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
-        let inner_path = inner_to_ntfs_path(inner, self.drive);
+        let (inner_path, _) = inner_to_ntfs_path(inner, self.drive);
         let display = display_ntfs_path(self.drive, &inner_path);
 
         list_children(&self.volume, self.drive, &display, &inner_path)
@@ -378,6 +379,7 @@ fn read_ntfs_file<T: Read + Seek>(
     file: &NtfsFile<'_>,
     display_path: &str,
     max_read_size: Option<u64>,
+    attribute_name: &str,
 ) -> AccessorResult<Vec<u8>> {
     if file.is_directory() {
         return Err(AccessorError::not_a_file(display_path));
@@ -394,20 +396,26 @@ fn read_ntfs_file<T: Read + Seek>(
         return decompress_wof(reader, file);
     }
 
-    read_named_data(reader, file, "")
+    read_named_data(reader, file, attribute_name)
 }
 
-/// Convert target `InnerPath` value to expected NTFS path
-pub(crate) fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> String {
+/// Convert target `InnerPath` value to expected NTFS path and attribute to read
+///
+/// By default the $DATA attribute is read ('""').
+///
+/// However if the user provides a ADS attribute we will read that
+///
+/// Example: C:\Users\test.txt:TEST
+pub(crate) fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> (String, String) {
     if inner.is_empty() {
-        return String::new();
+        return (String::new(), String::new());
     }
 
     strip_drive_prefix(&inner.display(), drive)
 }
 
 /// Remove drive characters if present
-fn strip_drive_prefix(path: &str, drive: char) -> String {
+fn strip_drive_prefix(path: &str, drive: char) -> (String, String) {
     let trimmed = path.trim();
     let lower = format!("{}:", drive.to_ascii_lowercase());
     let upper = format!("{}:", drive.to_ascii_uppercase());
@@ -420,7 +428,15 @@ fn strip_drive_prefix(path: &str, drive: char) -> String {
         trimmed
     };
 
-    remainder.trim_start_matches(['\\', '/']).to_string()
+    let attribute_name = match path.rsplit_once(':') {
+        Some((_, attribute_name)) => attribute_name.to_string(),
+        None => String::new(),
+    };
+
+    (
+        remainder.trim_start_matches(['\\', '/']).to_string(),
+        attribute_name,
+    )
 }
 
 /// Convert to a NTFS path
