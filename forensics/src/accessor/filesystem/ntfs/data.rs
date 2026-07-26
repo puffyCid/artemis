@@ -392,7 +392,7 @@ fn read_ntfs_file<T: Read + Seek>(
         return Err(AccessorError::file_too_large(size, limit));
     }
 
-    if is_wof_file(reader, file)? {
+    if is_wof_file(reader, file)? && attribute_name.is_empty() {
         return decompress_wof(reader, file);
     }
 
@@ -411,11 +411,11 @@ pub(crate) fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> (String, Str
         return (String::new(), String::new());
     }
 
-    strip_drive_prefix(&inner.display(), drive)
+    strip_drive_prefix_and_ads(&inner.display(), drive)
 }
 
-/// Remove drive characters if present
-fn strip_drive_prefix(path: &str, drive: char) -> (String, String) {
+/// Remove drive characters and ADS if present
+fn strip_drive_prefix_and_ads(path: &str, drive: char) -> (String, String) {
     let trimmed = path.trim();
     let lower = format!("{}:", drive.to_ascii_lowercase());
     let upper = format!("{}:", drive.to_ascii_uppercase());
@@ -453,7 +453,11 @@ mod tests {
     use crate::accessor::{
         entry::{handle::FileHandle, locator::FileLocator},
         error::AccessorError,
-        filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume, walk::list_children},
+        filesystem::ntfs::{
+            data::{NtfsFs, strip_drive_prefix_and_ads},
+            volume::NtfsVolume,
+            walk::list_children,
+        },
         location::path::InnerPath,
     };
     use std::{
@@ -771,5 +775,24 @@ mod tests {
 
             assert_eq!(bytes, expect);
         }
+    }
+
+    #[test]
+    fn test_strip_drive_prefix_and_ads() {
+        let test = "C:\\Users\\test.txt:TEST";
+        let (path, ads) = strip_drive_prefix_and_ads(test, 'c');
+        assert_eq!(path, "Users\\test.txt");
+        assert_eq!(ads, "TEST");
+    }
+
+    #[test]
+    fn test_ntfs_read_ads() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/filesystems/ntfs/test.raw");
+
+        let reader = test_fs();
+        let path = InnerPath::new(PathBuf::from("$Secure:$SDS"));
+        let bytes = reader.read_file(&path, None).unwrap();
+        assert_eq!(bytes.len(), 262512);
     }
 }
