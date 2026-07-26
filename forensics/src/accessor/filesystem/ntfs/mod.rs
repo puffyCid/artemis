@@ -1,5 +1,6 @@
 pub(crate) mod data;
-pub(crate) mod glob;
+mod glob;
 pub(crate) mod volume;
-pub(crate) mod walk;
-pub(crate) mod wof;
+mod walk;
+mod wof;
+mod attributes;
