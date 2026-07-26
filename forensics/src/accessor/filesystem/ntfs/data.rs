@@ -2,11 +2,18 @@ use crate::accessor::{
     entry::{
         handle::{DirEntry, DirHandle, FileHandle},
         locator::{DirLocator, FileLocator},
-    }, error::{AccessorError, AccessorResult}, filesystem::ntfs::{
-        attributes::read_named_data, volume::NtfsVolume, walk::{
+    },
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::{
+        attributes::read_named_data,
+        volume::NtfsVolume,
+        walk::{
             get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref, resolve_file,
-        }, wof::{decompress_wof, is_wof_file},
-    }, io::reader::AccessorReader, location::path::InnerPath,
+        },
+        wof::{decompress_wof, is_wof_file},
+    },
+    io::reader::AccessorReader,
+    location::path::InnerPath,
 };
 use ntfs::{NtfsFile, NtfsReadSeek};
 use std::{fmt, mem};

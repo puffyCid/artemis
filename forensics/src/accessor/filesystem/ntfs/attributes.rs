@@ -1,7 +1,12 @@
+use crate::accessor::{
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::walk::ntfs_err,
+};
+use ntfs::{
+    NtfsAttributeType, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
+    structured_values::NtfsAttributeList,
+};
 use std::io::{Read, Seek};
-use ntfs::{NtfsAttributeType, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue, structured_values::NtfsAttributeList};
-use crate::accessor::{error::{AccessorError, AccessorResult}, filesystem::ntfs::walk::ntfs_err};
-
 
 /// Walk the attribute list and grab the `ReparsePoint` attribute
 pub(crate) fn read_reparse_data<T: Read + Seek>(
@@ -70,6 +75,7 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
                 .structured_value::<_, NtfsAttributeList<'_, '_>>(reader)
                 .map_err(ntfs_err)?;
             let mut attr_bytes = Vec::new();
+            let mut found = false;
 
             let mut list_iter = list.entries();
             while let Some(entry) = list_iter.next(reader) {
@@ -79,6 +85,8 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
                     continue;
                 }
 
+                // We found our attribute
+                found = true;
                 let temp_file = entry.to_file(file.ntfs(), reader).map_err(ntfs_err)?;
 
                 let entry_attr = entry.to_attribute(&temp_file).map_err(ntfs_err)?;
@@ -100,7 +108,10 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
                 attr_bytes.append(&mut bytes);
             }
 
-            return Ok(attr_bytes);
+            // Attribute was found in the Attribute list
+            if found {
+                return Ok(attr_bytes);
+            }
         } else if item.ty().map_err(ntfs_err)? == NtfsAttributeType::Data {
             if item.name().map_err(ntfs_err)?.to_string_lossy() != stream_name {
                 continue;
@@ -181,4 +192,29 @@ pub(crate) fn read_value_bytes<T: Read + Seek>(
     }
 
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_usnjrnl() {
+        use crate::accessor::filesystem::ntfs::attributes::read_named_data;
+        use crate::accessor::filesystem::ntfs::{volume::NtfsVolume, walk::resolve_file};
+
+        let volume = NtfsVolume::open_live_drive('c').unwrap();
+        let bytes = volume
+            .with_reader(|ntfs, reader| {
+                let file = resolve_file(ntfs, reader, "$Extend\\$UsnJrnl").unwrap();
+                read_named_data(reader, &file, "$J")
+            })
+            .unwrap();
+
+        // The UsnJrnl "should" be ~30 MB in size
+        assert!(bytes.len() > 1024 * 1024 * 10);
+
+        // The UsnJrnl has sparse data that is often ~10GB in size
+        // We should be skipping sparse data
+        assert!(bytes.len() < 1024 * 1024 * 1024);
+    }
 }

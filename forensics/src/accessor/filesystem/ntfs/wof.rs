@@ -1,7 +1,12 @@
 use crate::{
     accessor::{
-        error::{AccessorError, AccessorResult}, filesystem::ntfs::{attributes::{read_named_data, read_reparse_data}, walk::ntfs_err},
-    }, utils::{
+        error::{AccessorError, AccessorResult},
+        filesystem::ntfs::{
+            attributes::{read_named_data, read_reparse_data},
+            walk::ntfs_err,
+        },
+    },
+    utils::{
         compression::decompress::{XpressType, decompress_xpress},
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
     },
@@ -503,27 +508,5 @@ mod tests {
 
         let (_, result) = walk_offset_table(&test_data, length, unit, uncompressed_size).unwrap();
         assert_eq!(result.len(), 8192);
-    }
-
-    #[test]
-    #[cfg(target_os = "windows")]
-    fn test_read_usnjrnl() {
-        use crate::accessor::filesystem::ntfs::wof::read_named_data;
-        use crate::accessor::filesystem::ntfs::{volume::NtfsVolume, walk::resolve_file};
-
-        let volume = NtfsVolume::open_live_drive('c').unwrap();
-        let bytes = volume
-            .with_reader(|ntfs, reader| {
-                let file = resolve_file(ntfs, reader, "$Extend\\$UsnJrnl").unwrap();
-                read_named_data(reader, &file, "$J")
-            })
-            .unwrap();
-
-        // The UsnJrnl "should" be ~30 MB in size
-        assert!(bytes.len() > 1024 * 1024 * 10);
-
-        // The UsnJrnl has sparse data that is often ~10GB in size
-        // We should be skipping sparse data
-        assert!(bytes.len() < 1024 * 1024 * 1024);
     }
 }
