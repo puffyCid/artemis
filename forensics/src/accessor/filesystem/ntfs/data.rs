@@ -428,13 +428,13 @@ fn strip_drive_prefix(path: &str, drive: char) -> (String, String) {
         trimmed
     };
 
-    let attribute_name = match path.rsplit_once(':') {
-        Some((_, attribute_name)) => attribute_name.to_string(),
-        None => String::new(),
+    let (clean_path, attribute_name) = match remainder.rsplit_once(':') {
+        Some((clean_path, attribute_name)) => (clean_path.to_string(), attribute_name.to_string()),
+        None => (remainder.to_string(), String::new()),
     };
 
     (
-        remainder.trim_start_matches(['\\', '/']).to_string(),
+        clean_path.trim_start_matches(['\\', '/']).to_string(),
         attribute_name,
     )
 }
