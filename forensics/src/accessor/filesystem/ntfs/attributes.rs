@@ -101,15 +101,17 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
                 if bytes.is_empty() {
                     continue;
                 }
+
                 let logical = entry_attr.value_length() as usize;
-                if bytes.len() > logical {
+                if logical > 0 && bytes.len() > logical {
                     bytes.truncate(logical);
                 }
+
                 attr_bytes.append(&mut bytes);
             }
 
             // Attribute was found in the Attribute list
-            if found {
+            if found && !attr_bytes.is_empty() {
                 return Ok(attr_bytes);
             }
         } else if item.ty().map_err(ntfs_err)? == NtfsAttributeType::Data {
@@ -124,8 +126,12 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
             }
 
             let mut bytes = read_data_runs(&mut attr_value, reader, stream_name)?;
+            if bytes.is_empty() {
+                continue;
+            }
+
             let logical = item.value_length() as usize;
-            if bytes.len() > logical {
+            if logical > 0 && bytes.len() > logical {
                 bytes.truncate(logical);
             }
             return Ok(bytes);
@@ -209,6 +215,7 @@ mod tests {
                 read_named_data(reader, &file, "$J")
             })
             .unwrap();
+        println!("{}", bytes.len());
 
         // The UsnJrnl "should" be ~30 MB in size
         assert!(bytes.len() > 1024 * 1024 * 10);

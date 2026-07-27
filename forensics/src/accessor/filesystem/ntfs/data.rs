@@ -779,10 +779,17 @@ mod tests {
 
     #[test]
     fn test_strip_drive_prefix_and_ads() {
-        let test = "C:\\Users\\test.txt:TEST";
-        let (path, ads) = strip_drive_prefix_and_ads(test, 'c');
+        let (path, ads) = strip_drive_prefix_and_ads("C:\\Users\\test.txt:TEST", 'c');
         assert_eq!(path, "Users\\test.txt");
         assert_eq!(ads, "TEST");
+
+        let (path, ads) = strip_drive_prefix_and_ads("C:\\Users\\test.txt", 'C');
+        assert_eq!(path, r"Users\test.txt");
+        assert_eq!(ads, "");
+
+        let (path, ads) = strip_drive_prefix_and_ads("$Secure:$SDS", 'C');
+        assert_eq!(path, "$Secure");
+        assert_eq!(ads, "$SDS");
     }
 
     #[test]
