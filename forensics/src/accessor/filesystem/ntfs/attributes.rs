@@ -103,6 +103,8 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
                 }
 
                 let logical = entry_attr.value_length() as usize;
+                // We skip sparse data when reading attribute data
+                // Sparse data is treated as 0 bytes when calling `value_length()`
                 if logical > 0 && bytes.len() > logical {
                     bytes.truncate(logical);
                 }
@@ -111,7 +113,7 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
             }
 
             // Attribute was found in the Attribute list
-            if found && !attr_bytes.is_empty() {
+            if found {
                 return Ok(attr_bytes);
             }
         } else if item.ty().map_err(ntfs_err)? == NtfsAttributeType::Data {
@@ -126,11 +128,10 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
             }
 
             let mut bytes = read_data_runs(&mut attr_value, reader, stream_name)?;
-            if bytes.is_empty() {
-                continue;
-            }
 
             let logical = item.value_length() as usize;
+            // We skip sparse data when reading attribute data
+            // Sparse data is treated as 0 bytes when calling `value_length()`
             if logical > 0 && bytes.len() > logical {
                 bytes.truncate(logical);
             }
