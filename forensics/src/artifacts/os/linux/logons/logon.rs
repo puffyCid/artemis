@@ -208,8 +208,10 @@ mod tests {
 
     #[test]
     fn test_get_logon_type() {
-        let test = 9;
-        let logon_type = get_logon_type(test);
-        assert_eq!(logon_type, LogonType::Accounting);
+        let test = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        for entry in test {
+            assert_ne!(get_logon_type(entry), LogonType::Unknown);
+        }
+        assert_eq!(get_logon_type(100), LogonType::Unknown);
     }
 }

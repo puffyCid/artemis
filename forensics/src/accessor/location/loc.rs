@@ -152,7 +152,7 @@ impl Location {
         if pattern.is_empty() {
             return Err(AccessorError::location(
                 value,
-                "glob pattern must contain a wildcard",
+                "empty glob pattern must contain a wildcard",
             ));
         }
 
