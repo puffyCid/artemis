@@ -215,7 +215,6 @@ mod tests {
                 read_named_data(reader, &file, "$J")
             })
             .unwrap();
-        println!("{}", bytes.len());
 
         // The UsnJrnl "should" be ~30 MB in size
         assert!(bytes.len() > 1024 * 1024 * 10);
