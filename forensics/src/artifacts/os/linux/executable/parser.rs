@@ -1,3 +1,4 @@
+use crate::accessor::access::Accessor;
 /**
  * Linux Executable and Linkable Format `ELF` is the native executable format of Linux programs  
  * We currently parse out basic amount of metadata
@@ -9,17 +10,16 @@
  *   `https://github.com/radareorg/radare2`  
  *   `https://lief-project.github.io/`
  */
-use crate::filesystem::files::{file_reader, file_too_large};
 use common::linux::ElfInfo;
-use elf::ElfBytes;
 use elf::endian::AnyEndian;
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
+use elf::{ElfBytes, ParseError};
+use std::io::{Error, ErrorKind, Read};
 use tracing::error;
 
 /// Parse an `ELF` file at provided path
-pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseError> {
-    let reader_result = file_reader(path);
-    let mut reader = match reader_result {
+pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, ParseError> {
+    let mut accessor = Accessor::with_defaults();
+    let mut reader = match accessor.open_reader(path) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not get reader for {path}: {err:?}");
@@ -29,6 +29,8 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseErr
             )));
         }
     };
+
+    // Read a few bytes to check for magic signature
     let mut buff = [0; 4];
     if reader.read(&mut buff).is_err() {
         return Err(elf::ParseError::IOError(Error::new(
@@ -41,31 +43,14 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, elf::parse::ParseErr
         return Err(elf::ParseError::BadMagic(buff));
     }
 
-    if reader.seek(SeekFrom::Start(0)).is_err() {
-        return Err(elf::ParseError::IOError(Error::new(
-            ErrorKind::InvalidData,
-            "Could not seek to start",
-        )));
-    }
-
-    if file_too_large(path) {
-        return Err(elf::ParseError::IOError(Error::new(
-            ErrorKind::InvalidInput,
-            "File larger than 2GB",
-        )));
-    }
-
-    let mut data = Vec::new();
-
-    // Allow File read_to_end because we partially read the file above to check for Magic Header
-    #[allow(clippy::verbose_file_reads)]
-    let data_result = reader.read_to_end(&mut data);
-    match data_result {
-        Ok(_) => {}
-        Err(_) => {
+    // Read the ELF binary
+    // The `Accessor` will auto reject files larger than 2GB
+    let data = match accessor.read_file(path) {
+        Ok(result) => result,
+        Err(err) => {
             return Err(elf::ParseError::IOError(Error::new(
-                ErrorKind::InvalidInput,
-                "Could not read file to end",
+                ErrorKind::InvalidData,
+                err,
             )));
         }
     };
