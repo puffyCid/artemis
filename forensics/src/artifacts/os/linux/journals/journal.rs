@@ -7,24 +7,28 @@ use super::{
     },
 };
 use crate::{
-    filesystem::files::file_reader, output::manager::OutputManager,
+    accessor::{access::Accessor, entry::handle::FileHandle, io::reader::AccessorReader},
+    output::manager::OutputManager,
     structs::artifacts::os::linux::JournalOptions,
 };
 use common::linux::Journal;
-use std::{collections::HashSet, fs::File, io::Read};
+use std::{collections::HashSet, io::Read};
 use tracing::error;
 
 /// Parse provided `Journal` file path. Will output results when finished. Use `parse_journal_file` if you want the results
 pub(crate) fn parse_journal(
-    path: &str,
+    accessor: &mut Accessor,
+    file: &FileHandle,
     manager: &mut OutputManager,
     options: &JournalOptions,
 ) -> Result<(), JournalError> {
-    let reader_result = file_reader(path);
-    let mut reader = match reader_result {
+    let mut reader = match accessor.open_reader_handle(file) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not create reader for file {path}: {err:?}");
+            error!(
+                "Could not create reader for file {}: {err:?}",
+                file.display_path()
+            );
             return Err(JournalError::ReaderError);
         }
     };
@@ -32,7 +36,7 @@ pub(crate) fn parse_journal(
     // We technically only need first 232 bytes but version 252 is 264 bytes in size
     let mut header_buff = [0; 264];
     if reader.read(&mut header_buff).is_err() {
-        error!("Could not read file header {path}");
+        error!("Could not read file header {}", file.display_path());
         return Err(JournalError::ReadError);
     }
 
@@ -40,7 +44,7 @@ pub(crate) fn parse_journal(
     let journal_header = match header_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("Could not parser file header {path}");
+            error!("Could not parser file header {}", file.display_path());
             return Err(JournalError::JournalHeader);
         }
     };
@@ -55,27 +59,21 @@ pub(crate) fn parse_journal(
         is_compact,
         manager,
         options,
-        path,
+        file,
     )?;
 
     Ok(())
 }
 
 /// Parse provided `Journal` file path. Returns parsed entries.
-pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalError> {
-    let reader_result = file_reader(path);
-    let mut reader = match reader_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not create reader for file {path}: {err:?}");
-            return Err(JournalError::ReaderError);
-        }
-    };
-
+pub(crate) fn parse_journal_file(
+    reader: &mut AccessorReader,
+    file: &FileHandle,
+) -> Result<Vec<Journal>, JournalError> {
     // We technically only need first 232 bytes but version 252 is 264 bytes in size
     let mut header_buff = [0; 264];
     if reader.read(&mut header_buff).is_err() {
-        error!("Could not read file header {path}");
+        error!("Could not read file header {}", file.display_path());
         return Err(JournalError::ReadError);
     }
 
@@ -83,10 +81,16 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
     let journal_header = match header_result {
         Ok((_, result)) => result,
         Err(_err) => {
-            error!("Could not parser file header {path}");
+            error!("Could not parse file header {}", file.display_path());
             return Err(JournalError::JournalHeader);
         }
     };
+
+    let signature = 5211307194293375052;
+    if journal_header.sig != signature {
+        error!("Bad journal header signature {}", file.display_path());
+        return Err(JournalError::JournalHeader);
+    }
 
     let is_compact = journal_header
         .incompatible_flags
@@ -105,17 +109,17 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
     };
 
     while offset != last_entry {
-        let object_header = ObjectHeader::parse_header(&mut reader, offset)?;
+        let object_header = ObjectHeader::parse_header(reader, offset)?;
         if object_header.obj_type != ObjectType::EntryArray {
             error!(
-                "Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {path}",
-                object_header.obj_type
+                "Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {}",
+                object_header.obj_type,
+                file.display_path()
             );
             break;
         }
 
-        let entry_result =
-            EntryArray::walk_all_entries(&mut reader, &object_header.payload, is_compact);
+        let entry_result = EntryArray::walk_all_entries(reader, &object_header.payload, is_compact);
         let mut entry_array = match entry_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -133,19 +137,19 @@ pub(crate) fn parse_journal_file(path: &str) -> Result<Vec<Journal>, JournalErro
         }
     }
 
-    let messages = EntryArray::parse_messages(&entries.entries, path);
+    let messages = EntryArray::parse_messages(&entries.entries, file);
 
     Ok(messages)
 }
 
 /// Loop through the `Journal` entries and get the data
 fn get_entries(
-    reader: &mut File,
+    reader: &mut AccessorReader,
     array_offset: u64,
     is_compact: bool,
     manager: &mut OutputManager,
     options: &JournalOptions,
-    evidence: &str,
+    evidence: &FileHandle,
 ) -> Result<(), JournalError> {
     let mut offset = array_offset;
     let last_entry = 0;
@@ -158,8 +162,9 @@ fn get_entries(
         let object_header = ObjectHeader::parse_header(reader, offset)?;
         if object_header.obj_type != ObjectType::EntryArray {
             error!(
-                "Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {evidence}",
-                object_header.obj_type
+                "Did not get Entry Array type at entry_array_offset. Got: {:?}. Exiting for {}",
+                object_header.obj_type,
+                evidence.display_path()
             );
             break;
         }
@@ -195,8 +200,8 @@ fn get_entries(
 mod tests {
     use super::{get_entries, parse_journal};
     use crate::{
+        accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::linux::journals::journal::parse_journal_file,
-        filesystem::files::file_reader,
         output::manager::OutputManager,
         structs::{
             artifacts::os::linux::JournalOptions,
@@ -224,8 +229,11 @@ mod tests {
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
         let mut output = output_options("journal_test", "./tmp", false);
 
+        let mut accessor = Accessor::with_defaults();
+        let file = FileHandle::host(test_location);
         parse_journal(
-            &test_location.display().to_string(),
+            &mut accessor,
+            &file,
             &mut output,
             &JournalOptions { alt_dir: None },
         )
@@ -237,7 +245,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut output = output_options("journal_test", "./tmp", false);
         get_entries(
             &mut reader,
@@ -245,7 +255,7 @@ mod tests {
             true,
             &mut output,
             &JournalOptions { alt_dir: None },
-            test_location.to_str().unwrap(),
+            &FileHandle::host(test_location),
         )
         .unwrap();
     }
@@ -254,8 +264,10 @@ mod tests {
     fn test_parse_journal_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
-
-        let result = parse_journal_file(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
+        let result = parse_journal_file(&mut reader, &FileHandle::host(test_location)).unwrap();
         assert_eq!(result.len(), 410);
     }
 
@@ -263,8 +275,10 @@ mod tests {
     fn test_parse_journal_bad_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/bad_recursive.journal");
-
-        let result = parse_journal_file(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
+        let result = parse_journal_file(&mut reader, &FileHandle::host(test_location)).unwrap();
         assert_eq!(result.len(), 4);
     }
 
@@ -273,9 +287,11 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/bad_recursive.journal");
         let mut output = output_options("journal_test", "./tmp", false);
+        let mut accessor = Accessor::with_defaults();
 
         parse_journal(
-            &test_location.display().to_string(),
+            &mut accessor,
+            &FileHandle::host(test_location),
             &mut output,
             &JournalOptions { alt_dir: None },
         )

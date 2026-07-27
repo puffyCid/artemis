@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 /**
  * Linux `Journal` files are the logs associated with the Systemd service
  * Systemd is a popular system service that is common on most Linux distros
@@ -17,14 +19,18 @@ use super::{
     journal::{parse_journal, parse_journal_file},
 };
 use crate::{
-    filesystem::{
-        directory::is_directory,
-        files::{is_file, list_files, list_files_directories},
+    accessor::{
+        access::Accessor,
+        entry::{
+            handle::{EntryKind, FileHandle},
+            locator::FileLocator,
+        },
     },
     output::manager::OutputManager,
     structs::artifacts::os::linux::JournalOptions,
 };
 use common::linux::Journal;
+use tracing::{error, warn};
 
 /// Parse and grab `Journal` entries at default paths. This can be changed though via /etc/systemd/journald.conf
 pub(crate) fn grab_journal(
@@ -34,35 +40,33 @@ pub(crate) fn grab_journal(
     let paths = if let Some(alt_dir) = &options.alt_dir {
         vec![alt_dir.clone()]
     } else {
-        let persist = "/var/log/journal/";
-        let tmp = "/run/log/journal/";
-        let mut logs = list_files_directories(persist).unwrap_or_default();
-        let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
-
-        logs.append(&mut tmp_files);
-        logs
+        vec![
+            String::from("/var/log/journal/*/*"),
+            String::from("/run/log/journal/*/*"),
+        ]
     };
 
+    let mut accessor = Accessor::with_defaults();
     for path in paths {
-        if is_file(&path) && !path.contains(".journal") {
-            continue;
-        }
-        if is_file(&path) {
-            let _ = parse_journal(&path, manager, options);
-            continue;
-        }
-
-        // Journal files may be stored in a namespace folder. Check one more directory
-        if is_directory(&path) {
-            let log_files = list_files(&path).unwrap_or_default();
-            for log in log_files {
-                if is_file(&log) && !log.contains(".journal") {
-                    continue;
-                }
-                if is_file(&log) {
-                    let _ = parse_journal(&log, manager, options);
-                }
+        let journals = match accessor.globfs(&path) {
+            Ok(results) => results,
+            Err(err) => {
+                warn!("Could not glob journals '{path}': {err:?}");
+                continue;
             }
+        };
+
+        for journal in journals {
+            if journal.meta.kind != EntryKind::File {
+                continue;
+            }
+
+            // Should always be a file since we check above
+            let Some(file_handle) = journal.handle.as_file() else {
+                continue;
+            };
+
+            let _ = parse_journal(&mut accessor, file_handle, manager, options);
         }
     }
 
@@ -71,18 +75,27 @@ pub(crate) fn grab_journal(
 
 /// Parse a `Journal` file and return its entries
 pub(crate) fn grab_journal_file(path: &str) -> Result<Vec<Journal>, JournalError> {
-    if !is_file(path) || !path.contains(".journal") {
-        return Err(JournalError::NotJournal);
-    }
+    let mut accessor = Accessor::with_defaults();
+    let mut reader = match accessor.open_reader(path) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not read journal file '{path}': {err:?}");
+            return Err(JournalError::NotJournal);
+        }
+    };
 
-    parse_journal_file(path)
+    let file = FileHandle::new(FileLocator::Host {
+        path: PathBuf::from(path),
+    });
+
+    parse_journal_file(&mut reader, &file)
 }
 
 #[cfg(test)]
 mod tests {
     use super::grab_journal;
     use crate::{
-        artifacts::os::linux::journals::parser::grab_journal_file,
+        artifacts::os::linux::journals::{error::JournalError, parser::grab_journal_file},
         output::manager::OutputManager,
         structs::{
             artifacts::os::linux::JournalOptions,
@@ -120,12 +133,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "NotJournal")]
     fn test_grab_journal_file_bad() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows.toml");
 
-        let result = grab_journal_file(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.len(), 410);
+        let err = grab_journal_file(&test_location.display().to_string()).unwrap_err();
+        assert!(matches!(err, JournalError::JournalHeader))
     }
 }

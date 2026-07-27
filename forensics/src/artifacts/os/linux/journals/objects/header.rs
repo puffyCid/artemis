@@ -1,12 +1,10 @@
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::linux::journals::error::JournalError,
     utils::nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_one_byte},
 };
 use nom::bytes::complete::take;
-use std::{
-    fs::File,
-    io::{Read, Seek, SeekFrom},
-};
+use std::io::{Read, Seek, SeekFrom};
 use tracing::error;
 
 #[derive(Debug)]
@@ -41,7 +39,7 @@ pub(crate) enum ObjectFlag {
 impl ObjectHeader {
     /// Get the `Journal` object header
     pub(crate) fn parse_header(
-        reader: &mut File,
+        reader: &mut AccessorReader,
         offset: u64,
     ) -> Result<ObjectHeader, JournalError> {
         if reader.seek(SeekFrom::Start(offset)).is_err() {
@@ -157,8 +155,8 @@ impl ObjectHeader {
 mod tests {
     use super::ObjectHeader;
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::linux::journals::objects::header::{ObjectFlag, ObjectType},
-        filesystem::files::file_reader,
     };
     use std::path::PathBuf;
 
@@ -167,7 +165,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/objects/objectheader.raw");
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let result = ObjectHeader::parse_header(&mut reader, 0).unwrap();
         assert_eq!(result.flag, ObjectFlag::None);

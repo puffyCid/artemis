@@ -1,7 +1,12 @@
-use crate::utils::{
-    nom_helper::{Endian, nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes},
-    strings::extract_utf8_string,
-    time::unixepoch_to_iso_with_nano,
+use crate::{
+    accessor::{entry::handle::FileHandle, io::reader::AccessorReader},
+    utils::{
+        nom_helper::{
+            Endian, nom_signed_four_bytes, nom_signed_two_bytes, nom_unsigned_four_bytes,
+        },
+        strings::extract_utf8_string,
+        time::unixepoch_to_iso_with_nano,
+    },
 };
 use common::linux::{Logon, LogonType, Status};
 use nom::{
@@ -10,7 +15,6 @@ use nom::{
     bytes::complete::{take, take_until},
 };
 use std::{
-    fs::File,
     io::Read,
     mem::size_of,
     net::{Ipv4Addr, Ipv6Addr},
@@ -18,7 +22,11 @@ use std::{
 use tracing::error;
 
 /// Stream the logon info
-pub(crate) fn logon_reader(reader: &mut File, status: Status, evidence: &str) -> Vec<Logon> {
+pub(crate) fn logon_reader(
+    reader: &mut AccessorReader,
+    status: Status,
+    evidence: &FileHandle,
+) -> Vec<Logon> {
     let mut logon_buff = [0; 384];
     let mut logon_size = logon_buff.len();
     let mut logons = Vec::new();
@@ -53,7 +61,7 @@ fn parse_logon<'a>(
     data: &'a [u8],
     status: Status,
     logons: &mut Vec<Logon>,
-    evidence: &str,
+    evidence: &FileHandle,
 ) -> nom::IResult<&'a [u8], ()> {
     let (remaining, logon_type) = nom_unsigned_four_bytes(data, Endian::Le)?;
     let (remaining, pid) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
@@ -121,7 +129,7 @@ fn parse_logon<'a>(
         microseconds,
         ip,
         status,
-        evidence: evidence.to_string(),
+        evidence: evidence.display_path(),
     };
 
     let nano = 1000;
@@ -151,10 +159,10 @@ fn get_logon_type(logon: u32) -> LogonType {
 #[cfg(test)]
 mod tests {
     use crate::{
+        accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::linux::logons::logon::{
             LogonType, Status, get_logon_type, logon_reader, parse_logon,
         },
-        filesystem::files::{file_reader, read_file},
     };
     use std::path::PathBuf;
 
@@ -163,11 +171,13 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/logons/ubuntu18.04/wtmp");
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let results = logon_reader(
             &mut reader,
             Status::Success,
-            test_location.to_str().unwrap(),
+            &FileHandle::host(test_location),
         );
         assert_eq!(results.len(), 13);
 
@@ -181,14 +191,16 @@ mod tests {
     fn test_parse_logon() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/logons/ubuntu18.04/wtmp");
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
-        let data = read_file(&test_location.display().to_string()).unwrap();
         let mut results = Vec::new();
         let (_, _) = parse_logon(
             &data,
             Status::Success,
             &mut results,
-            test_location.to_str().unwrap(),
+            &FileHandle::host(test_location),
         )
         .unwrap();
         assert_eq!(results.len(), 1);

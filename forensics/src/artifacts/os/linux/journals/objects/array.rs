@@ -3,6 +3,7 @@ use super::{
     header::{ObjectHeader, ObjectType},
 };
 use crate::{
+    accessor::{entry::handle::FileHandle, io::reader::AccessorReader},
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::linux::JournalOptions,
     utils::{
@@ -11,7 +12,6 @@ use crate::{
     },
 };
 use common::linux::{Facility, Journal, Priority};
-use std::fs::File;
 use tracing::{error, warn};
 
 #[derive(Debug)]
@@ -25,12 +25,12 @@ impl EntryArray {
     /// Walk through Array of entries and output the results
     /// Returns offset to next array of data
     pub(crate) fn walk_entries<'a>(
-        reader: &mut File,
+        reader: &mut AccessorReader,
         data: &'a [u8],
         is_compact: bool,
         manager: &mut OutputManager,
         options: &JournalOptions,
-        evidence: &str,
+        evidence: &FileHandle,
     ) -> nom::IResult<&'a [u8], u64> {
         let (mut input, next_entry_array_offset) = nom_unsigned_eight_bytes(data, Endian::Le)?;
 
@@ -76,7 +76,10 @@ impl EntryArray {
             let entry = match entry_result {
                 Ok((_, result)) => result,
                 Err(_err) => {
-                    error!("Could not parse log entry data for {evidence}");
+                    error!(
+                        "Could not parse log entry data for {}",
+                        evidence.display_path()
+                    );
                     continue;
                 }
             };
@@ -128,7 +131,7 @@ impl EntryArray {
     /// Walk through Array of entries and return to caller.
     /// Used for JS runtime
     pub(crate) fn walk_all_entries<'a>(
-        reader: &mut File,
+        reader: &mut AccessorReader,
         data: &'a [u8],
         is_compact: bool,
     ) -> nom::IResult<&'a [u8], EntryArray> {
@@ -184,13 +187,13 @@ impl EntryArray {
     }
 
     /// Parse the `Journal` message
-    pub(crate) fn parse_messages(entries: &[Entry], evidence: &str) -> Vec<Journal> {
+    pub(crate) fn parse_messages(entries: &[Entry], evidence: &FileHandle) -> Vec<Journal> {
         let mut journal_entries: Vec<Journal> = Vec::new();
 
         for entry in entries {
             let mut journal = Journal {
                 realtime: unixepoch_microseconds_to_iso(entry.realtime as i64),
-                evidence: evidence.to_string(),
+                evidence: evidence.display_path(),
                 seqnum: entry.seqnum,
                 ..Default::default()
             };
@@ -342,8 +345,9 @@ impl EntryArray {
                         .insert(field.to_string(), field_data.to_string());
                 } else {
                     warn!(
-                        "Message missing '=' delimiter for entry at {evidence}:seqnum - {}",
-                        entry.seqnum
+                        "Message missing '=' delimiter for entry at {}:seqnum - {}",
+                        entry.seqnum,
+                        evidence.display_path()
                     );
                     // Possible binary blob?
                     journal.custom.insert(data.message.clone(), String::new());
@@ -406,11 +410,11 @@ impl EntryArray {
 mod tests {
     use super::EntryArray;
     use crate::{
+        accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::linux::journals::{
             header::{IncompatFlags, JournalHeader},
             objects::header::{ObjectHeader, ObjectType},
         },
-        filesystem::files::file_reader,
         output::manager::OutputManager,
         structs::{
             artifacts::os::linux::JournalOptions,
@@ -438,7 +442,10 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
+        let file = FileHandle::host(test_location);
         let mut buff = [0; 264];
         let _ = reader.read(&mut buff).unwrap();
 
@@ -458,7 +465,7 @@ mod tests {
             is_compact,
             &mut output,
             &JournalOptions { alt_dir: None },
-            test_location.to_str().unwrap(),
+            &file,
         )
         .unwrap();
         assert_eq!(result, 3744448);
@@ -469,7 +476,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut buff = [0; 264];
         let _ = reader.read(&mut buff).unwrap();
 
@@ -493,7 +502,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut buff = [0; 264];
         let _ = reader.read(&mut buff).unwrap();
 
@@ -511,8 +522,8 @@ mod tests {
         assert_eq!(result.entries.len(), 4);
         assert_eq!(result.entries[2].realtime, 1688346965580106);
 
-        let messages =
-            EntryArray::parse_messages(&result.entries, &test_location.to_str().unwrap());
+        let file = FileHandle::host(test_location);
+        let messages = EntryArray::parse_messages(&result.entries, &file);
         assert_eq!(
             messages[2].message,
             "Started grub-boot-success.timer - Mark boot as successful after the user session has run 2 minutes."
