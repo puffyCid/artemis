@@ -1,7 +1,10 @@
 use crate::{
     accessor::{
         error::{AccessorError, AccessorResult},
-        filesystem::ntfs::walk::ntfs_err,
+        filesystem::ntfs::{
+            attributes::{read_named_data, read_reparse_data},
+            walk::ntfs_err,
+        },
     },
     utils::{
         compression::decompress::{XpressType, decompress_xpress},
@@ -9,7 +12,7 @@ use crate::{
     },
 };
 use nom::bytes::complete::take;
-use ntfs::{NtfsAttributeType, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue};
+use ntfs::NtfsFile;
 use std::io::{Read, Seek};
 
 /// ADS stream that holds WOF-compressed payload
@@ -284,65 +287,6 @@ fn named_data_logical_size<T: Read + Seek>(
     };
     let item = item.map_err(ntfs_err)?;
     Ok(item.to_attribute().map_err(ntfs_err)?.value_length())
-}
-
-/// Walk the attribute list and grab the `ReparsePoint` attribute
-fn read_reparse_data<T: Read + Seek>(
-    reader: &mut T,
-    file: &NtfsFile<'_>,
-) -> AccessorResult<Vec<u8>> {
-    let mut attrs = file.attributes();
-    while let Some(item) = attrs.next(reader) {
-        let item = item.map_err(ntfs_err)?;
-        let attr = item.to_attribute().map_err(ntfs_err)?;
-        if attr.ty().map_err(ntfs_err)? != NtfsAttributeType::ReparsePoint {
-            continue;
-        }
-        let mut value = attr.value(reader).map_err(ntfs_err)?;
-        return read_value_bytes(&mut value, reader);
-    }
-
-    // No Reparse attribute
-    Ok(Vec::new())
-}
-
-/// Read attribute data
-pub(crate) fn read_named_data<T: Read + Seek>(
-    reader: &mut T,
-    file: &NtfsFile<'_>,
-    stream_name: &str,
-) -> AccessorResult<Vec<u8>> {
-    let Some(item) = file.data(reader, stream_name) else {
-        return Err(AccessorError::Ntfs {
-            path: None,
-            reason: format!("file has no `{stream_name}` data stream"),
-        });
-    };
-
-    let item = item.map_err(ntfs_err)?;
-    let attr = item.to_attribute().map_err(ntfs_err)?;
-    let mut value = attr.value(reader).map_err(ntfs_err)?;
-
-    read_value_bytes(&mut value, reader)
-}
-
-/// Get the attribute bytes
-fn read_value_bytes<T: Read + Seek>(
-    value: &mut NtfsAttributeValue<'_, '_>,
-    reader: &mut T,
-) -> AccessorResult<Vec<u8>> {
-    let mut out = Vec::new();
-    let mut chunk = vec![0u8; 65536].into_boxed_slice();
-
-    loop {
-        let bytes = value.read(reader, &mut chunk).map_err(ntfs_err)?;
-        if bytes == 0 {
-            break;
-        }
-        out.extend_from_slice(&chunk[..bytes]);
-    }
-
-    Ok(out)
 }
 
 /// Handle generic errors to `AccessorError`

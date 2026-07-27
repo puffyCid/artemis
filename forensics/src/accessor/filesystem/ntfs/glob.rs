@@ -27,7 +27,7 @@ impl<T: Read + Seek + Send> NtfsFs<T> {
         directory: &InnerPath,
         pattern: &str,
     ) -> AccessorResult<Vec<GlobMatch>> {
-        let inner_path = inner_to_ntfs_path(directory, self.drive);
+        let (inner_path, _) = inner_to_ntfs_path(directory, self.drive);
         let display = display_ntfs_path(self.drive, &inner_path);
         // Normalize all pattern separators to forward slash '/'
         let normalized = normalize_glob_pattern(pattern);
