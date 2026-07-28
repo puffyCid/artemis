@@ -447,7 +447,7 @@ mod tests {
     }
 
     #[test]
-    fn test_glob_zip_root() {
+    fn test_glob_zip_root_path() {
         let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!/").unwrap();
         assert_eq!(pattern, "*");
         assert_eq!(loc.scheme, Scheme::Zip);
