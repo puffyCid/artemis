@@ -155,6 +155,10 @@ impl Location {
             None => (String::new(), value.to_string()),
         };
 
+        if value.ends_with(['/', '\\']) && pattern.is_empty() {
+            return Ok((location_part, String::from("*")));
+        }
+
         if pattern.is_empty() {
             return Err(AccessorError::location(
                 value,
@@ -308,8 +312,9 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
 mod tests {
     use crate::accessor::{
         error::AccessorError,
-        location::{loc::Location, scheme::Scheme},
+        location::{loc::Location, path::SourcePath, scheme::Scheme},
     };
+    use std::path::PathBuf;
 
     #[test]
     fn test_location() {
@@ -376,10 +381,13 @@ mod tests {
 
     #[test]
     fn test_location_glob_exact_path() {
-        let (loc, pattern) = Location::split_glob_pattern("/var/log/wtmp").unwrap();
-        assert!(loc.source.is_none());
-        assert_eq!(loc.scheme, Scheme::Host);
-        assert_eq!(loc.inner_path.display(), "/var/log");
+        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/wtmp").unwrap();
+        assert_eq!(
+            loc.source.unwrap(),
+            SourcePath::new(PathBuf::from("test.zip"))
+        );
+        assert_eq!(loc.scheme, Scheme::Zip);
+        assert_eq!(loc.inner_path.display(), "var/log");
         assert_eq!(pattern, "wtmp");
     }
 
@@ -413,5 +421,35 @@ mod tests {
         assert_eq!(loc.scheme, Scheme::Host);
         assert_eq!(loc.inner_path.display(), r"C:\Windows\System32\config");
         assert_eq!(pattern, "SAM");
+    }
+
+    #[test]
+    fn test_glob_root() {
+        let (loc, pattern) = Location::split_glob_pattern("/").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.inner_path.display(), "/");
+    }
+
+    #[test]
+    fn test_glob_zip_root() {
+        let err = Location::split_glob_pattern("zip:test.zip!").unwrap_err();
+        assert!(
+            matches!(err, AccessorError::Location { input, reason } if input == "" && reason == "glob input cannot be empty")
+        );
+    }
+
+    #[test]
+    fn test_glob_zip_bad_root() {
+        let err = Location::split_glob_pattern("zip:test.zip!/").unwrap_err();
+        assert!(
+            matches!(err, AccessorError::Location { input, reason } if input == "/" && reason == "container paths must be relative to the archive root")
+        );
+    }
+
+    #[test]
+    fn test_glob_zip_folder() {
+        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.inner_path.display(), "var/log");
     }
 }
