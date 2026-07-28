@@ -105,6 +105,9 @@ impl Location {
         // 'zip:test.zip!*' or 'ntfs:image.raw!/users/*/*.txt'
         if let Some((source_path, inner_glob)) = input.split_once('!') {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
+            // If the user provides a glob path of "zip:test.zip!/"
+            // Trim forward or backslash and just glob the root directory
+            let directory = directory.trim_start_matches(['/', '\\']);
             let location_str = if directory.is_empty() {
                 source_path.to_string()
             } else {
@@ -155,6 +158,7 @@ impl Location {
             None => (String::new(), value.to_string()),
         };
 
+        // If the user provide a directory path but no pattern. Treat as a single glob
         if value.ends_with(['/', '\\']) && pattern.is_empty() {
             return Ok((location_part, String::from("*")));
         }
@@ -312,7 +316,11 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
 mod tests {
     use crate::accessor::{
         error::AccessorError,
-        location::{loc::Location, path::SourcePath, scheme::Scheme},
+        location::{
+            loc::Location,
+            path::{InnerPath, SourcePath},
+            scheme::Scheme,
+        },
     };
     use std::path::PathBuf;
 
@@ -440,10 +448,10 @@ mod tests {
 
     #[test]
     fn test_glob_zip_bad_root() {
-        let err = Location::split_glob_pattern("zip:test.zip!/").unwrap_err();
-        assert!(
-            matches!(err, AccessorError::Location { input, reason } if input == "/" && reason == "container paths must be relative to the archive root")
-        );
+        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!/").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.scheme, Scheme::Zip);
+        assert_eq!(loc.inner_path, InnerPath::new(PathBuf::from("")));
     }
 
     #[test]
@@ -451,5 +459,12 @@ mod tests {
         let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/").unwrap();
         assert_eq!(pattern, "*");
         assert_eq!(loc.inner_path.display(), "var/log");
+    }
+
+    #[test]
+    fn test_glob_folder() {
+        let (loc, pattern) = Location::split_glob_pattern("C:\\Windows\\System32\\").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.inner_path.display(), "C:\\Windows\\System32");
     }
 }
