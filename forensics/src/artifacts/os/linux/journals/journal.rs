@@ -49,6 +49,12 @@ pub(crate) fn parse_journal(
         }
     };
 
+    let signature = 5211307194293375052;
+    if journal_header.sig != signature {
+        error!("Bad journal header signature {}", file.display_path());
+        return Err(JournalError::JournalHeader);
+    }
+
     let is_compact = journal_header
         .incompatible_flags
         .contains(&IncompatFlags::Compact);

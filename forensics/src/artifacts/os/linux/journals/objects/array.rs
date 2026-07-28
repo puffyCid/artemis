@@ -346,8 +346,8 @@ impl EntryArray {
                 } else {
                     warn!(
                         "Message missing '=' delimiter for entry at {}:seqnum - {}",
+                        evidence.display_path(),
                         entry.seqnum,
-                        evidence.display_path()
                     );
                     // Possible binary blob?
                     journal.custom.insert(data.message.clone(), String::new());

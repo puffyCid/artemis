@@ -24,7 +24,7 @@ pub(crate) fn grab_sudo_logs(options: &LinuxSudoOptions) -> Result<Vec<Journal>,
         let journals = match accessor.globfs(&path) {
             Ok(results) => results,
             Err(err) => {
-                warn!("[sudo] Could not glob '{path}': {err:?}");
+                warn!("Could not glob '{path}': {err:?}");
                 continue;
             }
         };
@@ -40,11 +40,17 @@ pub(crate) fn grab_sudo_logs(options: &LinuxSudoOptions) -> Result<Vec<Journal>,
             let mut reader = match accessor.open_reader_handle(file_handle) {
                 Ok(result) => result,
                 Err(err) => {
-                    warn!("[sudo] Could not open reader for '{path}': {err:?}");
+                    warn!("Could not open reader for '{path}': {err:?}");
                     continue;
                 }
             };
-            let journal_entries = parse_journal_file(&mut reader, file_handle)?;
+            let journal_entries = match parse_journal_file(&mut reader, file_handle) {
+                Ok(results) => results,
+                Err(err) => {
+                    warn!("Could not parse journal file for sudo '{path}': {err:?}");
+                    continue;
+                }
+            };
             filter_logs(journal_entries, &mut sudo_logs);
         }
     }

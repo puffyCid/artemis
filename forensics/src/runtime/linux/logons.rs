@@ -1,8 +1,5 @@
-use std::path::PathBuf;
-
 use crate::{
-    accessor::{access::Accessor, entry::handle::FileHandle},
-    artifacts::os::linux::logons::parser::grab_logon_file,
+    accessor::access::Accessor, artifacts::os::linux::logons::parser::logon_file_path,
     runtime::helper::string_arg,
 };
 use boa_engine::{Context, JsResult, JsValue};
@@ -17,8 +14,7 @@ pub(crate) fn js_get_logon(
 
     let mut logons = Vec::new();
     let mut accessor = Accessor::with_defaults();
-    let file_handle = FileHandle::host(PathBuf::from(path));
-    grab_logon_file(&mut accessor, &file_handle, &mut logons);
+    logon_file_path(&mut accessor, &path, &mut logons);
 
     let results = serde_json::to_value(&logons).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;

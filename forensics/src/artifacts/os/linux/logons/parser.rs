@@ -38,26 +38,31 @@ pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
 
     let mut accessor = Accessor::with_defaults();
     for path in paths {
-        let files = match accessor.globfs(&path) {
-            Ok(result) => result,
-            Err(err) => {
-                warn!("Could not glob '{path}': {err:?}");
-                continue;
-            }
-        };
-
-        for file in files {
-            if file.meta.kind != EntryKind::File {
-                continue;
-            }
-            let Some(file_handle) = file.handle.as_file() else {
-                continue;
-            };
-            grab_logon_file(&mut accessor, file_handle, &mut logons);
-        }
+        logon_file_path(&mut accessor, &path, &mut logons);
     }
 
     logons
+}
+
+/// Parse the provided logon file
+pub(crate) fn logon_file_path(accessor: &mut Accessor, path: &str, logons: &mut Vec<Logon>) {
+    let files = match accessor.globfs(path) {
+        Ok(result) => result,
+        Err(err) => {
+            warn!("Could not glob '{path}': {err:?}");
+            return;
+        }
+    };
+
+    for file in files {
+        if file.meta.kind != EntryKind::File {
+            continue;
+        }
+        let Some(file_handle) = file.handle.as_file() else {
+            continue;
+        };
+        grab_logon_file(accessor, file_handle, logons);
+    }
 }
 
 /// Parse logon files at provided path
@@ -102,9 +107,9 @@ pub(crate) fn grab_logon_file(
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
-    use super::{grab_logon_file, grab_logons};
     use crate::{
         accessor::{access::Accessor, entry::handle::FileHandle},
+        artifacts::os::linux::logons::parser::{grab_logon_file, grab_logons, logon_file_path},
         structs::artifacts::os::linux::LogonOptions,
     };
     use std::path::PathBuf;
@@ -122,6 +127,14 @@ mod tests {
         let file_handle = FileHandle::host(PathBuf::from("/var/log/wtmp"));
 
         grab_logon_file(&mut accessor, &file_handle, &mut logons);
+        assert!(!logons.is_empty());
+    }
+
+    #[test]
+    fn test_logon_file_path() {
+        let mut logons = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+        logon_file_path(&mut accessor, "/var/log/wtmp", &mut logons);
         assert!(!logons.is_empty());
     }
 
