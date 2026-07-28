@@ -122,6 +122,12 @@ impl Location {
                 source: None,
                 inner_path: InnerPath::empty(),
             }
+        } else if matches!(directory.as_str(), "\\" | "/") {
+            Self {
+                scheme: Scheme::Host,
+                source: None,
+                inner_path: InnerPath::new(PathBuf::from(&directory)),
+            }
         } else {
             Self::parse(directory.trim_end_matches('/').trim_end_matches('\\'))?
         };
@@ -139,14 +145,14 @@ impl Location {
         let glob_at = value
             .char_indices()
             .find(|(_, ch)| matches!(ch, '*' | '?' | '['))
-            .map(|(index, _)| index)
-            .ok_or_else(|| {
-                AccessorError::location(input, "glob pattern must contain a wildcard")
-            })?;
+            .map_or(value.len(), |(index, _)| index);
 
         let (location_part, pattern) = match value[..glob_at].rfind(['/', '\\']) {
+            Some(0) if matches!(value.as_bytes().first(), Some(b'/' | b'\\')) => {
+                (value[..1].to_string(), value[1..].to_string())
+            }
             Some(sep) => (value[..sep].to_string(), value[sep + 1..].to_string()),
-            None => (String::new(), value[glob_at..].to_string()),
+            None => (String::new(), value.to_string()),
         };
 
         if pattern.is_empty() {
@@ -366,5 +372,46 @@ mod tests {
         assert_eq!(loc.scheme, Scheme::Host);
         assert_eq!(loc.inner_path.display(), r"C:\Users");
         assert_eq!(pattern, r"*\NTUSER*");
+    }
+
+    #[test]
+    fn test_location_glob_exact_path() {
+        let (loc, pattern) = Location::split_glob_pattern("/var/log/wtmp").unwrap();
+        assert!(loc.source.is_none());
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), "/var/log");
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_location_glob_exact_root_child() {
+        let (loc, pattern) = Location::split_glob_pattern("/wtmp").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), "/");
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_location_glob_exact_backslash_root_child() {
+        let (loc, pattern) = Location::split_glob_pattern(r"\wtmp").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), r"\");
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_parse_glob_pattern_exact_relative() {
+        let (directory, pattern) = Location::parse_glob_pattern("wtmp").unwrap();
+        assert!(directory.is_empty());
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_location_glob_exact_windows_path() {
+        let (loc, pattern) =
+            Location::split_glob_pattern(r"C:\Windows\System32\config\SAM").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), r"C:\Windows\System32\config");
+        assert_eq!(pattern, "SAM");
     }
 }
