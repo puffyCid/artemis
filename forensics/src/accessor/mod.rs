@@ -1,9 +1,9 @@
 pub(crate) mod access;
 mod cache;
 pub(crate) mod config;
-mod entry;
+pub(crate) mod entry;
 pub(crate) mod error;
 mod filesystem;
-mod io;
+pub(crate) mod io;
 mod location;
 pub(crate) mod source;

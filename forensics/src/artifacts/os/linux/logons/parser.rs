@@ -12,7 +12,11 @@
  *  `https://github.com/Velocidex/velociraptor`
  */
 use crate::{
-    artifacts::os::linux::logons::logon::logon_reader, filesystem::files::file_reader,
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, FileHandle},
+    },
+    artifacts::os::linux::logons::logon::logon_reader,
     structs::artifacts::os::linux::LogonOptions,
 };
 use common::linux::{Logon, Status};
@@ -22,46 +26,80 @@ use tracing::{error, warn};
 pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
     let mut logons = Vec::new();
 
-    if let Some(alt_file) = &options.alt_file {
-        grab_logon_file(alt_file, &mut logons);
-        return logons;
-    }
-    let paths = vec![
-        String::from("/var/run/utmp"),
-        String::from("/var/log/wtmp"),
-        String::from("/var/log/btmp"),
-    ];
+    let paths = if let Some(alt_file) = &options.alt_file {
+        vec![alt_file.clone()]
+    } else {
+        vec![
+            String::from("/var/run/utmp"),
+            String::from("/var/log/wtmp"),
+            String::from("/var/log/btmp"),
+        ]
+    };
 
+    let mut accessor = Accessor::with_defaults();
     for path in paths {
-        grab_logon_file(&path, &mut logons);
+        logon_file_path(&mut accessor, &path, &mut logons);
     }
 
     logons
 }
 
-/// Parse logon files at provided path
-pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
-    if !path.ends_with("wtmp") && !path.ends_with("utmp") && !path.ends_with("btmp") {
-        warn!("Provided unsupported logon file {path}");
-        return;
-    }
-
-    let read_result = file_reader(path);
-    let mut reader = match read_result {
+/// Parse the provided logon file
+pub(crate) fn logon_file_path(accessor: &mut Accessor, path: &str, logons: &mut Vec<Logon>) {
+    let files = match accessor.globfs(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read file {path}: {err:?}");
+            warn!("Could not glob '{path}': {err:?}");
             return;
         }
     };
 
-    let status = if path.ends_with("btmp") {
+    for file in files {
+        if file.meta.kind != EntryKind::File {
+            continue;
+        }
+        let Some(file_handle) = file.handle.as_file() else {
+            continue;
+        };
+        grab_logon_file(accessor, file_handle, logons);
+    }
+}
+
+/// Parse logon files at provided path
+pub(crate) fn grab_logon_file(
+    accessor: &mut Accessor,
+    file_handle: &FileHandle,
+    logons: &mut Vec<Logon>,
+) {
+    if !file_handle.display_path().ends_with("wtmp")
+        && !file_handle.display_path().ends_with("utmp")
+        && !file_handle.display_path().ends_with("btmp")
+    {
+        warn!(
+            "Provided unsupported logon file {}",
+            file_handle.display_path()
+        );
+        return;
+    }
+
+    let mut reader = match accessor.open_reader_handle(file_handle) {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "Could not read file {}: {err:?}",
+                file_handle.display_path()
+            );
+            return;
+        }
+    };
+
+    let status = if file_handle.display_path().ends_with("btmp") {
         Status::Failed
     } else {
         Status::Success
     };
 
-    let mut logon = logon_reader(&mut reader, status, path);
+    let mut logon = logon_reader(&mut reader, status, file_handle);
 
     logons.append(&mut logon);
 }
@@ -69,9 +107,12 @@ pub(crate) fn grab_logon_file(path: &str, logons: &mut Vec<Logon>) {
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
-    use crate::structs::artifacts::os::linux::LogonOptions;
-
-    use super::{grab_logon_file, grab_logons};
+    use crate::{
+        accessor::{access::Accessor, entry::handle::FileHandle},
+        artifacts::os::linux::logons::parser::{grab_logon_file, grab_logons, logon_file_path},
+        structs::artifacts::os::linux::LogonOptions,
+    };
+    use std::path::PathBuf;
 
     #[test]
     fn test_grab_logons() {
@@ -82,16 +123,28 @@ mod tests {
     #[test]
     fn test_grab_logon_file() {
         let mut logons = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+        let file_handle = FileHandle::host(PathBuf::from("/var/log/wtmp"));
 
-        grab_logon_file("/var/log/wtmp", &mut logons);
+        grab_logon_file(&mut accessor, &file_handle, &mut logons);
+        assert!(!logons.is_empty());
+    }
+
+    #[test]
+    fn test_logon_file_path() {
+        let mut logons = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+        logon_file_path(&mut accessor, "/var/log/wtmp", &mut logons);
         assert!(!logons.is_empty());
     }
 
     #[test]
     fn test_grab_logon_file_bad_file() {
         let mut logons = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+        let file_handle = FileHandle::host(PathBuf::from("/var/log/asdfasdfasdf"));
 
-        grab_logon_file("/var/log/asdfasdfasdf", &mut logons);
+        grab_logon_file(&mut accessor, &file_handle, &mut logons);
         assert!(logons.is_empty());
     }
 }

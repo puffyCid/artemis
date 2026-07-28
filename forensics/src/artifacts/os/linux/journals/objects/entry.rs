@@ -1,9 +1,9 @@
 use super::header::{ObjectHeader, ObjectType};
+use crate::accessor::io::reader::AccessorReader;
 use crate::artifacts::os::linux::journals::objects::data::DataObject;
 use crate::utils::nom_helper::{
     Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_sixteen_bytes,
 };
-use std::fs::File;
 use tracing::{error, warn};
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub(crate) struct Entry {
 impl Entry {
     /// Parse Entry data in `Journal`
     pub(crate) fn parse_entry<'a>(
-        reader: &mut File,
+        reader: &mut AccessorReader,
         data: &'a [u8],
         is_compact: bool,
     ) -> nom::IResult<&'a [u8], Entry> {
@@ -88,15 +88,17 @@ impl Entry {
 #[cfg(test)]
 mod tests {
     use super::Entry;
-    use crate::filesystem::files::file_reader;
+    use crate::accessor::access::Accessor;
     use std::path::PathBuf;
 
     #[test]
     fn test_parse_entry() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/linux/journal/user-1000@e755452aab34485787b6d73f3035fb8c-000000000000068d-0005ff8ae923c73b.journal");
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
-        let mut reader = file_reader(&test_location.display().to_string()).unwrap();
         let test_data = [
             141, 6, 0, 0, 0, 0, 0, 0, 59, 199, 35, 233, 138, 255, 5, 0, 174, 136, 41, 4, 0, 0, 0,
             0, 5, 169, 105, 239, 87, 254, 73, 52, 144, 11, 89, 140, 131, 246, 45, 118, 31, 75, 110,

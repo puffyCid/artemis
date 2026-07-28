@@ -6,7 +6,7 @@ use nom::bytes::complete::take;
 
 #[derive(Debug)]
 pub(crate) struct JournalHeader {
-    _sig: u64,
+    pub(crate) sig: u64,
     _compatible_flags: Vec<CompatFlags>,
     pub(crate) incompatible_flags: Vec<IncompatFlags>,
     _state: State,
@@ -107,7 +107,7 @@ impl JournalHeader {
         let version_252 = 264;
 
         let mut journal_header = JournalHeader {
-            _sig: sig,
+            sig,
             _compatible_flags: JournalHeader::compat_flags(compatible_flags),
             incompatible_flags: JournalHeader::incompat_flags(incompatible_flags),
             _state: JournalHeader::journal_state(state),
@@ -271,7 +271,7 @@ mod tests {
             120, 59, 0, 174, 1, 0, 0,
         ];
         let (_, result) = JournalHeader::parse_header(&test_data).unwrap();
-        assert_eq!(result._sig, 5211307194293375052);
+        assert_eq!(result.sig, 5211307194293375052);
         assert!(result._compatible_flags.is_empty());
         assert_eq!(
             result.incompatible_flags,

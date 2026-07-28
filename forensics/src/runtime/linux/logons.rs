@@ -1,4 +1,7 @@
-use crate::{artifacts::os::linux::logons::parser::grab_logon_file, runtime::helper::string_arg};
+use crate::{
+    accessor::access::Accessor, artifacts::os::linux::logons::parser::logon_file_path,
+    runtime::helper::string_arg,
+};
 use boa_engine::{Context, JsResult, JsValue};
 
 /// Expose parsing logon file  to `BoaJS`
@@ -10,7 +13,8 @@ pub(crate) fn js_get_logon(
     let path = string_arg(args, 0)?;
 
     let mut logons = Vec::new();
-    grab_logon_file(&path, &mut logons);
+    let mut accessor = Accessor::with_defaults();
+    logon_file_path(&mut accessor, &path, &mut logons);
 
     let results = serde_json::to_value(&logons).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;

@@ -65,8 +65,8 @@ pub(crate) fn read_attribute_data<T: Read + Seek>(
 ) -> AccessorResult<Vec<u8>> {
     // We need to walk the raw Attribute List
     // In case the attribute we want to really large
-    let mut attrs_raw = file.attributes_raw();
-    while let Some(item) = attrs_raw.next() {
+    let attrs_raw = file.attributes_raw();
+    for item in attrs_raw {
         let item = item.map_err(ntfs_err)?;
 
         // Large attribute, need to iterate through the AttributeList to find it
@@ -175,10 +175,10 @@ pub(crate) fn read_data_runs<T: Read + Seek>(
         return Ok(out);
     }
 
-    return Err(AccessorError::Ntfs {
+    Err(AccessorError::Ntfs {
         path: None,
         reason: format!("file has no non-resident `{stream_name}` stream"),
-    });
+    })
 }
 
 /// Get the attribute bytes

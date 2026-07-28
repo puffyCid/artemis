@@ -105,6 +105,9 @@ impl Location {
         // 'zip:test.zip!*' or 'ntfs:image.raw!/users/*/*.txt'
         if let Some((source_path, inner_glob)) = input.split_once('!') {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
+            // If the user provides a glob path of "zip:test.zip!/"
+            // Trim forward or backslash and just glob the root directory
+            let directory = directory.trim_start_matches(['/', '\\']);
             let location_str = if directory.is_empty() {
                 source_path.to_string()
             } else {
@@ -121,6 +124,12 @@ impl Location {
                 scheme: Scheme::Host,
                 source: None,
                 inner_path: InnerPath::empty(),
+            }
+        } else if matches!(directory.as_str(), "\\" | "/") {
+            Self {
+                scheme: Scheme::Host,
+                source: None,
+                inner_path: InnerPath::new(PathBuf::from(&directory)),
             }
         } else {
             Self::parse(directory.trim_end_matches('/').trim_end_matches('\\'))?
@@ -139,20 +148,25 @@ impl Location {
         let glob_at = value
             .char_indices()
             .find(|(_, ch)| matches!(ch, '*' | '?' | '['))
-            .map(|(index, _)| index)
-            .ok_or_else(|| {
-                AccessorError::location(input, "glob pattern must contain a wildcard")
-            })?;
+            .map_or(value.len(), |(index, _)| index);
 
         let (location_part, pattern) = match value[..glob_at].rfind(['/', '\\']) {
+            Some(0) if matches!(value.as_bytes().first(), Some(b'/' | b'\\')) => {
+                (value[..1].to_string(), value[1..].to_string())
+            }
             Some(sep) => (value[..sep].to_string(), value[sep + 1..].to_string()),
-            None => (String::new(), value[glob_at..].to_string()),
+            None => (String::new(), value.to_string()),
         };
+
+        // If the user provide a directory path but no pattern. Treat as a single glob
+        if value.ends_with(['/', '\\']) && pattern.is_empty() {
+            return Ok((location_part, String::from("*")));
+        }
 
         if pattern.is_empty() {
             return Err(AccessorError::location(
                 value,
-                "glob pattern must contain a wildcard",
+                "empty glob pattern must contain a wildcard",
             ));
         }
 
@@ -302,8 +316,13 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
 mod tests {
     use crate::accessor::{
         error::AccessorError,
-        location::{loc::Location, scheme::Scheme},
+        location::{
+            loc::Location,
+            path::{InnerPath, SourcePath},
+            scheme::Scheme,
+        },
     };
+    use std::path::PathBuf;
 
     #[test]
     fn test_location() {
@@ -366,5 +385,86 @@ mod tests {
         assert_eq!(loc.scheme, Scheme::Host);
         assert_eq!(loc.inner_path.display(), r"C:\Users");
         assert_eq!(pattern, r"*\NTUSER*");
+    }
+
+    #[test]
+    fn test_location_glob_exact_path() {
+        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/wtmp").unwrap();
+        assert_eq!(
+            loc.source.unwrap(),
+            SourcePath::new(PathBuf::from("test.zip"))
+        );
+        assert_eq!(loc.scheme, Scheme::Zip);
+        assert!(loc.inner_path.display().contains("var"));
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_location_glob_exact_root_child() {
+        let (loc, pattern) = Location::split_glob_pattern("/wtmp").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), "/");
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_location_glob_exact_backslash_root_child() {
+        let (loc, pattern) = Location::split_glob_pattern(r"\wtmp").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), r"\");
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_parse_glob_pattern_exact_relative() {
+        let (directory, pattern) = Location::parse_glob_pattern("wtmp").unwrap();
+        assert!(directory.is_empty());
+        assert_eq!(pattern, "wtmp");
+    }
+
+    #[test]
+    fn test_location_glob_exact_windows_path() {
+        let (loc, pattern) =
+            Location::split_glob_pattern(r"C:\Windows\System32\config\SAM").unwrap();
+        assert_eq!(loc.scheme, Scheme::Host);
+        assert_eq!(loc.inner_path.display(), r"C:\Windows\System32\config");
+        assert_eq!(pattern, "SAM");
+    }
+
+    #[test]
+    fn test_glob_root() {
+        let (loc, pattern) = Location::split_glob_pattern("/").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.inner_path.display(), "/");
+    }
+
+    #[test]
+    fn test_glob_zip_root() {
+        let err = Location::split_glob_pattern("zip:test.zip!").unwrap_err();
+        assert!(
+            matches!(err, AccessorError::Location { input, reason } if input == "" && reason == "glob input cannot be empty")
+        );
+    }
+
+    #[test]
+    fn test_glob_zip_root_path() {
+        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!/").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.scheme, Scheme::Zip);
+        assert_eq!(loc.inner_path, InnerPath::new(PathBuf::from("")));
+    }
+
+    #[test]
+    fn test_glob_zip_folder() {
+        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/").unwrap();
+        assert_eq!(pattern, "*");
+        assert!(loc.inner_path.display().contains("var"));
+    }
+
+    #[test]
+    fn test_glob_folder() {
+        let (loc, pattern) = Location::split_glob_pattern("C:\\Windows\\System32\\").unwrap();
+        assert_eq!(pattern, "*");
+        assert_eq!(loc.inner_path.display(), "C:\\Windows\\System32");
     }
 }

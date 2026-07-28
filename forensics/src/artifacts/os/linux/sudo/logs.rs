@@ -1,49 +1,57 @@
 use crate::{
+    accessor::{access::Accessor, entry::handle::EntryKind},
     artifacts::os::linux::journals::{error::JournalError, journal::parse_journal_file},
-    filesystem::{
-        directory::is_directory,
-        files::{is_file, list_files, list_files_directories},
-    },
     structs::artifacts::os::linux::LinuxSudoOptions,
 };
 use common::linux::Journal;
+use tracing::warn;
 
 /// Grab sudo log entries in the Journal files
 pub(crate) fn grab_sudo_logs(options: &LinuxSudoOptions) -> Result<Vec<Journal>, JournalError> {
     let paths = if let Some(alt_dir) = &options.alt_dir {
         vec![alt_dir.clone()]
     } else {
-        let persist = "/var/log/journal/";
-        let tmp = "/run/log/journal";
-        let mut logs = list_files_directories(persist).unwrap_or_default();
-        let mut tmp_files = list_files_directories(tmp).unwrap_or_default();
-
-        logs.append(&mut tmp_files);
-        logs
+        vec![
+            String::from("/var/log/journal/*/*"),
+            String::from("/run/log/journal/*/*"),
+        ]
     };
 
     let mut sudo_logs: Vec<Journal> = Vec::new();
-    for path in paths {
-        if is_file(&path) && !path.ends_with("journal") {
-            continue;
-        }
-        if is_file(&path) {
-            let journal_entries = parse_journal_file(&path)?;
-            filter_logs(journal_entries, &mut sudo_logs);
-            continue;
-        }
+    let mut accessor = Accessor::with_defaults();
 
-        if is_directory(&path) {
-            let log_files = list_files(&path).unwrap_or_default();
-            for log in log_files {
-                if is_file(&log) && !log.ends_with("journal") {
+    for path in paths {
+        let journals = match accessor.globfs(&path) {
+            Ok(results) => results,
+            Err(err) => {
+                warn!("Could not glob '{path}': {err:?}");
+                continue;
+            }
+        };
+        for journal in journals {
+            if journal.meta.kind != EntryKind::File {
+                continue;
+            }
+
+            // Should always be a file since we check above
+            let Some(file_handle) = journal.handle.as_file() else {
+                continue;
+            };
+            let mut reader = match accessor.open_reader_handle(file_handle) {
+                Ok(result) => result,
+                Err(err) => {
+                    warn!("Could not open reader for '{path}': {err:?}");
                     continue;
                 }
-                if is_file(&log) {
-                    let journal_entries = parse_journal_file(&log)?;
-                    filter_logs(journal_entries, &mut sudo_logs);
+            };
+            let journal_entries = match parse_journal_file(&mut reader, file_handle) {
+                Ok(results) => results,
+                Err(err) => {
+                    warn!("Could not parse journal file for sudo '{path}': {err:?}");
+                    continue;
                 }
-            }
+            };
+            filter_logs(journal_entries, &mut sudo_logs);
         }
     }
 
