@@ -2,7 +2,10 @@
  * Grab local macOS `Groups` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/groups`
  */
 use super::opendirectory::parse_groups_plist;
-use crate::{filesystem::files::list_files, structs::artifacts::os::macos::MacosGroupsOptions};
+use crate::{
+    accessor::{access::Accessor, entry::handle::EntryKind},
+    structs::artifacts::os::macos::MacosGroupsOptions,
+};
 use common::macos::OpendirectoryGroups;
 use tracing::{error, warn};
 
@@ -12,12 +15,12 @@ pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGrou
         alt_dir
     } else {
         // Need root permissions to access files in dslocal directories
-        "/var/db/dslocal/nodes/Default/groups"
+        "/var/db/dslocal/nodes/Default/groups/*"
     };
 
-    let mut group_data: Vec<OpendirectoryGroups> = Vec::new();
-    let files_result = list_files(path);
-    let files = match files_result {
+    let mut group_data = Vec::new();
+    let mut accessor = Accessor::with_defaults();
+    let files = match accessor.globfs(path) {
         Ok(result) => result,
         Err(err) => {
             warn!("Failed to list files, error: {err:?}");
@@ -25,12 +28,21 @@ pub(crate) fn grab_groups(options: &MacosGroupsOptions) -> Vec<OpendirectoryGrou
         }
     };
     for group in files {
-        let opendirectoryd_users = parse_groups_plist(&group);
+        if group.meta.kind != EntryKind::File {
+            continue;
+        }
+        let Some(group_file) = group.handle.as_file() else {
+            continue;
+        };
+        let opendirectoryd_users = parse_groups_plist(group_file, &mut accessor);
         match opendirectoryd_users {
             Ok(results) => {
                 group_data.push(results);
             }
-            Err(err) => error!("Failed to parse groups {group}: {err:?}"),
+            Err(err) => error!(
+                "Failed to parse group '{}': {err:?}",
+                group_file.display_path()
+            ),
         }
     }
 

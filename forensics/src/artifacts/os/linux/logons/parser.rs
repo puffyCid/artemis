@@ -27,18 +27,14 @@ pub(crate) fn grab_logons(options: &LogonOptions) -> Vec<Logon> {
     let mut logons = Vec::new();
 
     let paths = if let Some(alt_file) = &options.alt_file {
-        vec![alt_file.clone()]
+        vec![alt_file.as_str()]
     } else {
-        vec![
-            String::from("/var/run/utmp"),
-            String::from("/var/log/wtmp"),
-            String::from("/var/log/btmp"),
-        ]
+        vec!["/var/run/utmp", "/var/log/wtmp", "/var/log/btmp"]
     };
 
     let mut accessor = Accessor::with_defaults();
     for path in paths {
-        logon_file_path(&mut accessor, &path, &mut logons);
+        logon_file_path(&mut accessor, path, &mut logons);
     }
 
     logons

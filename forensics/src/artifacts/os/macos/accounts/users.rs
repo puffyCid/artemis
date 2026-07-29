@@ -2,7 +2,10 @@
  * Grab local macOS `Users` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/users`
  */
 use super::opendirectory::parse_users_plist;
-use crate::{filesystem::files::list_files, structs::artifacts::os::macos::MacosUsersOptions};
+use crate::{
+    accessor::{access::Accessor, entry::handle::EntryKind},
+    structs::artifacts::os::macos::MacosUsersOptions,
+};
 use common::macos::OpendirectoryUsers;
 use tracing::{error, warn};
 
@@ -12,12 +15,13 @@ pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers>
         alt_dir
     } else {
         // Need root permissions to access files in dslocal directories
-        "/var/db/dslocal/nodes/Default/users"
+        "/var/db/dslocal/nodes/Default/users/*"
     };
 
-    let mut user_data: Vec<OpendirectoryUsers> = Vec::new();
-    let files_result = list_files(path);
-    let files = match files_result {
+    let mut user_data = Vec::new();
+    let mut accessor = Accessor::with_defaults();
+
+    let files = match accessor.globfs(path) {
         Ok(result) => result,
         Err(err) => {
             warn!("Failed to list files, error: {err:?}");
@@ -25,10 +29,19 @@ pub(crate) fn grab_users(options: &MacosUsersOptions) -> Vec<OpendirectoryUsers>
         }
     };
     for user in files {
-        let opendirectoryd_users = parse_users_plist(&user);
+        if user.meta.kind != EntryKind::File {
+            continue;
+        }
+        let Some(user_file) = user.handle.as_file() else {
+            continue;
+        };
+        let opendirectoryd_users = parse_users_plist(user_file, &mut accessor);
         match opendirectoryd_users {
             Ok(results) => user_data.push(results),
-            Err(err) => error!("Failed to parse file {user}. Error: {err:?}"),
+            Err(err) => error!(
+                "Failed to parse user '{}'. Error: {err:?}",
+                user_file.display_path()
+            ),
         }
     }
     user_data

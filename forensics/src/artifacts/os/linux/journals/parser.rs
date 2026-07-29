@@ -38,17 +38,14 @@ pub(crate) fn grab_journal(
     options: &JournalOptions,
 ) -> Result<(), JournalError> {
     let paths = if let Some(alt_dir) = &options.alt_dir {
-        vec![alt_dir.clone()]
+        vec![alt_dir.as_str()]
     } else {
-        vec![
-            String::from("/var/log/journal/*/*"),
-            String::from("/run/log/journal/*/*"),
-        ]
+        vec!["/var/log/journal/*/*", "/run/log/journal/*/*"]
     };
 
     let mut accessor = Accessor::with_defaults();
     for path in paths {
-        let journals = match accessor.globfs(&path) {
+        let journals = match accessor.globfs(path) {
             Ok(results) => results,
             Err(err) => {
                 warn!("Could not glob journals '{path}': {err:?}");

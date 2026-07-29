@@ -27,7 +27,7 @@ pub(crate) fn grab_emond(options: &EmondOptions) -> Result<Vec<EmondData>, Plist
     }
 
     let paths = get_emond_rules_paths()?;
-    let mut emond_data: Vec<EmondData> = Vec::new();
+    let mut emond_data = Vec::new();
     for path in paths {
         let mut data = parse_emond_rules(&path)?;
         emond_data.append(&mut data);
@@ -47,7 +47,7 @@ fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
     let emond_plist = match emond_plist_result {
         Ok(results) => results,
         Err(err) => {
-            error!("Failed to parse Emond Config PLIST file: {err:?}");
+            error!("Failed to parse Emond Config plist file: {err:?}");
             return Ok(Vec::new());
         }
     };
