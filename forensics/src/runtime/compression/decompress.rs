@@ -41,7 +41,7 @@ pub(crate) fn js_decompress_gzip(
 ) -> JsResult<JsValue> {
     let data = bytes_arg(args, 0, context)?;
 
-    let decom_data = match decompress_gzip_data(&data) {
+    let decom_data = match decompress_gzip_data(data) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not get decompress data: {err:?}");
