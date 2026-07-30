@@ -4,7 +4,7 @@ use super::{
     emond::js_emond,
     execpolicy::js_execpolicy,
     fsevents::js_fsevents,
-    launchd::{js_launchd_agents, js_launchd_daemons},
+    launchd::js_launchd,
     loginitems::js_loginitems,
     macho::js_macho,
     plist::{js_plist, js_plist_data},
@@ -41,15 +41,9 @@ pub(crate) fn macos_functions(context: &mut Context) {
     );
 
     let _ = context.register_global_callable(
-        JsString::from("js_launchd_daemons"),
+        JsString::from("js_launchd"),
         0,
-        NativeFunction::from_fn_ptr(js_launchd_daemons),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_launchd_agents"),
-        0,
-        NativeFunction::from_fn_ptr(js_launchd_agents),
+        NativeFunction::from_fn_ptr(js_launchd),
     );
 
     let _ = context.register_global_callable(

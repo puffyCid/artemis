@@ -16,6 +16,7 @@ use std::{
     fs::{self, File, metadata, read},
     path::{Path, PathBuf},
 };
+use tracing::debug;
 
 /// Filesystem reader for a live OS
 ///
@@ -243,6 +244,10 @@ impl HostFs {
                     if pattern.matches(&relative) {
                         matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()));
                     }
+                    debug!(
+                        "Globbing path '{}' with pattern '{pattern}' at relative '{relative}'. Current depth is {depth:?}/{max_depth:?}",
+                        entry.meta.display_path
+                    );
 
                     if descend(depth, max_depth) {
                         let child_inner = append_inner_path(directory, &entry.name);

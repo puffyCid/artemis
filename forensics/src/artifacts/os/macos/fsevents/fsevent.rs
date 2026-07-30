@@ -20,6 +20,7 @@ struct FsEventsHeader {
     stream_size: u32,
 }
 
+/// Extract the `FsEvent` data from bytes
 pub(crate) fn extract_fsevents(
     data: Vec<u8>,
     evidence: String,

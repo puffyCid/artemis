@@ -1,34 +1,16 @@
-use crate::artifacts::os::macos::launchd::launchdaemon::{
-    grab_launchd_agents, grab_launchd_daemons,
+use crate::{
+    artifacts::os::macos::launchd::launchdaemon::grab_launchd,
+    structs::artifacts::os::macos::LaunchdOptions,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing launchd daemons to `BoaJS`
-pub(crate) fn js_launchd_daemons(
+pub(crate) fn js_launchd(
     _this: &JsValue,
     _args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let launchd = match grab_launchd_daemons() {
-        Ok(result) => result,
-        Err(err) => {
-            let issue = format!("Failed to get launch daemons: {err:?}");
-            return Err(JsError::from_opaque(js_string!(issue).into()));
-        }
-    };
-    let results = serde_json::to_value(&launchd).unwrap_or_default();
-    let value = JsValue::from_json(&results, context)?;
-
-    Ok(value)
-}
-
-/// Expose parsing launchd agents to `BoaJS`
-pub(crate) fn js_launchd_agents(
-    _this: &JsValue,
-    _args: &[JsValue],
-    context: &mut Context,
-) -> JsResult<JsValue> {
-    let launchd = match grab_launchd_agents() {
+    let launchd = match grab_launchd(&LaunchdOptions { alt_file: None }) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to get launch daemons: {err:?}");
@@ -64,8 +46,8 @@ mod tests {
     }
 
     #[test]
-    fn test_js_launchd_daemons_agents() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbGF1bmNoZC50cwpmdW5jdGlvbiBnZXRfbGF1bmNoZF9kYWVtb25zKCkgewogIGNvbnN0IGRhdGEgPSBqc19sYXVuY2hkX2RhZW1vbnMoKTsKICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRfbGF1bmNoZF9hZ2VudHMoKSB7CiAgY29uc3QgZGF0YSA9IGpzX2xhdW5jaGRfYWdlbnRzKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYXN0ZXIvbW9kLnRzCmZ1bmN0aW9uIGdldExhdW5jaGRBZ2VudHMoKSB7CiAgcmV0dXJuIGdldF9sYXVuY2hkX2FnZW50cygpOwp9CmZ1bmN0aW9uIGdldExhdW5jaGREYWVtb25zKCkgewogIHJldHVybiBnZXRfbGF1bmNoZF9kYWVtb25zKCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBhZ2VudHMgPSBnZXRMYXVuY2hkQWdlbnRzKCk7CiAgY29uc3QgZGFlbW9ucyA9IGdldExhdW5jaGREYWVtb25zKCk7CiAgcmV0dXJuIGFnZW50cy5jb25jYXQoZGFlbW9ucyk7Cn0KbWFpbigpOwo=";
+    fn test_js_launchd() {
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbGF1bmNoZC50cwpmdW5jdGlvbiBnZXRfbGF1bmNoZF9kYWVtb25zKCkgewogIGNvbnN0IGRhdGEgPSBqc19sYXVuY2hkKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYWVtb25zID0gZ2V0X2xhdW5jaGRfZGFlbW9ucygpOwogIHJldHVybiBkYWVtb25zOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("launchd_daemons"),
