@@ -2,7 +2,7 @@ use crate::{
     accessor::{access::Accessor, entry::handle::FileHandle},
     artifacts::os::macos::plist::{
         error::PlistError,
-        property_list::{get_array, get_float, parse_plist_data},
+        property_list::{get_array, get_float, parse_plist_data, parse_plist_file_handle},
     },
     utils::{
         encoding::{base64_decode_standard, base64_encode_standard},
@@ -18,17 +18,7 @@ pub(crate) fn parse_users_plist(
     file: &FileHandle,
     accessor: &mut Accessor,
 ) -> Result<OpendirectoryUsers, PlistError> {
-    let bytes = match accessor.read_file_handle(file) {
-        Ok(result) => result,
-        Err(err) => {
-            error!(
-                "Could not read user plist '{}': {err:?}",
-                file.display_path()
-            );
-            return Err(PlistError::File);
-        }
-    };
-    let plist_value = parse_plist_data(&bytes)?;
+    let plist_value = parse_plist_file_handle(accessor, file)?;
     let mut users_data = OpendirectoryUsers {
         uid: Vec::new(),
         gid: Vec::new(),
@@ -262,18 +252,7 @@ pub(crate) fn parse_groups_plist(
     file: &FileHandle,
     accessor: &mut Accessor,
 ) -> Result<OpendirectoryGroups, PlistError> {
-    let bytes = match accessor.read_file_handle(file) {
-        Ok(result) => result,
-        Err(err) => {
-            error!(
-                "Could not read user plist '{}': {err:?}",
-                file.display_path()
-            );
-            return Err(PlistError::File);
-        }
-    };
-    let plist_value = parse_plist_data(&bytes)?;
-
+    let plist_value = parse_plist_file_handle(accessor, file)?;
     let mut group_data = OpendirectoryGroups {
         gid: Vec::new(),
         name: Vec::new(),

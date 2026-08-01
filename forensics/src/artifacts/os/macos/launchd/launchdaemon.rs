@@ -11,7 +11,7 @@ use crate::{
         access::Accessor,
         entry::handle::{EntryKind, GlobMatch},
     },
-    artifacts::os::macos::plist::property_list::parse_plist_data,
+    artifacts::os::macos::plist::property_list::parse_plist_file_handle,
     filesystem::metadata::get_timestamps,
     structs::artifacts::os::macos::LaunchdOptions,
 };
@@ -64,18 +64,7 @@ fn extract_launchd_data(paths: Vec<GlobMatch>, accessor: &mut Accessor) -> Vec<L
             continue;
         };
 
-        let bytes = match accessor.read_file_handle(file_handle) {
-            Ok(result) => result,
-            Err(err) => {
-                warn!(
-                    "Could not read file '{}': {err:?}",
-                    file_handle.display_path()
-                );
-                continue;
-            }
-        };
-
-        let plist_value = match parse_plist_data(&bytes) {
+        let plist_value = match parse_plist_file_handle(accessor, file_handle) {
             Ok(result) => result,
             Err(err) => {
                 warn!(
