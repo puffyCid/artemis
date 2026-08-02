@@ -1,6 +1,6 @@
 mod combine;
 mod error;
-mod formaters;
+mod formatters;
 pub(crate) mod parser;
 mod resources;
 mod strings;

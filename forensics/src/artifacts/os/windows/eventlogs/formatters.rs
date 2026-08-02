@@ -2,11 +2,11 @@ use super::resources::manifest::xml::Element;
 use nom::bytes::complete::is_a;
 use serde_json::{Map, Value};
 
-pub(crate) fn formater_message_table<'a>(
-    formater: &'a str,
+pub(crate) fn formatter_message_table<'a>(
+    formatter: &'a str,
     values: &[Value],
 ) -> nom::IResult<&'a str, String> {
-    let (input, (_value_string, value_number)) = get_number(formater)?;
+    let (input, (_value_string, value_number)) = get_number(formatter)?;
     // Index number starts at 0
     let adjust_id = 1;
     let value;
@@ -28,12 +28,12 @@ pub(crate) fn formater_message_table<'a>(
 }
 
 /// Try to format strings for log messages. This is uncommon?
-pub(crate) fn formater_message<'a>(
-    formater: &'a str,
+pub(crate) fn formatter_message<'a>(
+    formatter: &'a str,
     values: &Map<String, Value>,
     elements: &[Element],
 ) -> nom::IResult<&'a str, String> {
-    let (input, (_value_string, value_number)) = get_number(formater)?;
+    let (input, (_value_string, value_number)) = get_number(formatter)?;
     // Index number starts at 0
     let adjust_id = 1;
     let element;
@@ -71,35 +71,35 @@ fn parse_formats<'a>(
     data: &Value,
     value_number: u8,
 ) -> nom::IResult<&'a str, String> {
-    // Get formater flags if any. If we do not have any, do not throw error, we just move on
+    // Get formatter flags if any. If we do not have any, do not throw error, we just move on
     let flags_result = get_flags(input);
     let (input, flags) = match flags_result {
         Ok(result) => result,
         Err(_err) => (input, None),
     };
 
-    // Get formater width if any. If we do not have any, do not throw error, we just move on
+    // Get formatter width if any. If we do not have any, do not throw error, we just move on
     let width_result = get_width(input);
     let (input, width) = match width_result {
         Ok(result) => result,
         Err(_err) => (input, None),
     };
 
-    // Get formater precision if any. If we do not have any, do not throw error, we just move on
+    // Get formatter precision if any. If we do not have any, do not throw error, we just move on
     let precision_result = get_precision(input);
     let (input, precision) = match precision_result {
         Ok(result) => result,
         Err(_err) => (input, None),
     };
 
-    // Get formater size if any. If we do not have any, do not throw error, we just move on
+    // Get formatter size if any. If we do not have any, do not throw error, we just move on
     let size_result = get_size(input);
     let (input, size) = match size_result {
         Ok(result) => result,
         Err(_err) => (input, None),
     };
 
-    let formater_type = get_type(input);
+    let formatter_type = get_type(input);
 
     let options = FormatOptions {
         flags,
@@ -110,20 +110,20 @@ fn parse_formats<'a>(
 
     Ok((
         "",
-        format_message(&options, &formater_type, value_number, data),
+        format_message(&options, &formatter_type, value_number, data),
     ))
 }
 
 struct FormatOptions {
     flags: Option<Vec<Flags>>,
-    width: Option<FormaterWidth>,
-    precision: Option<FormaterWidth>,
-    _size: Option<FormaterSize>,
+    width: Option<FormatterWidth>,
+    precision: Option<FormatterWidth>,
+    _size: Option<FormatterSize>,
 }
 
 fn format_message(
     options: &FormatOptions,
-    _formater_type: &FormaterType,
+    _formatter_type: &FormatterType,
     _number: u8,
     data: &Value,
 ) -> String {
@@ -180,9 +180,9 @@ fn format_message(
 }
 
 /// Get the %# number from string. Ex: %1!s! returns: (!s!, (%1, 1))
-fn get_number(formater: &str) -> nom::IResult<&str, (&str, u8)> {
+fn get_number(formatter: &str) -> nom::IResult<&str, (&str, u8)> {
     let value_chars = "%1234567890";
-    let (input, value_data) = is_a(value_chars)(formater)?;
+    let (input, value_data) = is_a(value_chars)(formatter)?;
 
     let number_str = value_data.get(1..).unwrap_or("1");
     let number = number_str.parse().unwrap_or(1);
@@ -190,14 +190,14 @@ fn get_number(formater: &str) -> nom::IResult<&str, (&str, u8)> {
     Ok((input, (value_data, number)))
 }
 
-struct FormaterWidth {
+struct FormatterWidth {
     width: u32,
 }
 
-/// Get formater width
-fn get_width(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
+/// Get formatter width
+fn get_width(formatter: &str) -> nom::IResult<&str, Option<FormatterWidth>> {
     let width_chars = "*1234567890";
-    let (input, value_data) = is_a(width_chars)(formater)?;
+    let (input, value_data) = is_a(width_chars)(formatter)?;
 
     let width = if value_data.starts_with("*") {
         let number_str = value_data.get(1..).unwrap_or("0");
@@ -206,15 +206,15 @@ fn get_width(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
         value_data.parse().unwrap_or(0)
     };
 
-    let width_value = FormaterWidth { width };
+    let width_value = FormatterWidth { width };
 
     Ok((input, Some(width_value)))
 }
 
 /// Get formatter precision
-fn get_precision(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
+fn get_precision(formatter: &str) -> nom::IResult<&str, Option<FormatterWidth>> {
     let precision_chars = ".*1234567890";
-    let (input, value_data) = is_a(precision_chars)(formater)?;
+    let (input, value_data) = is_a(precision_chars)(formatter)?;
 
     let width = if value_data.starts_with(".*") {
         let number_str = value_data.get(2..).unwrap_or("");
@@ -224,13 +224,13 @@ fn get_precision(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
         number_str.parse().unwrap_or(0)
     };
 
-    let width_value = FormaterWidth { width };
+    let width_value = FormatterWidth { width };
 
     Ok((input, Some(width_value)))
 }
 
 #[derive(Debug, PartialEq)]
-enum FormaterSize {
+enum FormatterSize {
     Char,
     ShortInt,
     Int,
@@ -243,22 +243,22 @@ enum FormaterSize {
     Unknown,
 }
 
-/// Determine formater size
-fn get_size(formater: &str) -> nom::IResult<&str, Option<FormaterSize>> {
+/// Determine formatter size
+fn get_size(formatter: &str) -> nom::IResult<&str, Option<FormatterSize>> {
     let size_chars = "hI3264jlLtzw";
-    let (input, value_data) = is_a(size_chars)(formater)?;
+    let (input, value_data) = is_a(size_chars)(formatter)?;
 
     let size = match value_data {
-        "hh" => FormaterSize::Char,
-        "h" => FormaterSize::ShortInt,
-        "I32" => FormaterSize::Int,
-        "I64" | "J" => FormaterSize::Int64,
-        "l" | "L" => FormaterSize::Long,
-        "ll" => FormaterSize::LongLong,
-        "t" | "I" => FormaterSize::Ptr,
-        "z" => FormaterSize::Size,
-        "w" => FormaterSize::Wide,
-        _ => FormaterSize::Unknown,
+        "hh" => FormatterSize::Char,
+        "h" => FormatterSize::ShortInt,
+        "I32" => FormatterSize::Int,
+        "I64" | "J" => FormatterSize::Int64,
+        "l" | "L" => FormatterSize::Long,
+        "ll" => FormatterSize::LongLong,
+        "t" | "I" => FormatterSize::Ptr,
+        "z" => FormatterSize::Size,
+        "w" => FormatterSize::Wide,
+        _ => FormatterSize::Unknown,
     };
 
     Ok((input, Some(size)))
@@ -275,9 +275,9 @@ enum Flags {
 }
 
 /// Get formatter flags
-fn get_flags(formater: &str) -> nom::IResult<&str, Option<Vec<Flags>>> {
+fn get_flags(formatter: &str) -> nom::IResult<&str, Option<Vec<Flags>>> {
     let flags_char = "-+0 #";
-    let (input, flags_data) = is_a(flags_char)(formater)?;
+    let (input, flags_data) = is_a(flags_char)(formatter)?;
 
     let mut flags = Vec::new();
     for flag in flags_data.chars() {
@@ -295,7 +295,7 @@ fn get_flags(formater: &str) -> nom::IResult<&str, Option<Vec<Flags>>> {
 }
 
 #[derive(Debug, PartialEq)]
-enum FormaterType {
+enum FormatterType {
     Char,
     SignedDecimal,
     UnsignedDecimal,
@@ -311,38 +311,38 @@ enum FormaterType {
     Unknown,
 }
 
-/// Determine the formater type
-fn get_type(formater: &str) -> FormaterType {
-    match formater {
-        "c" | "C" => FormaterType::Char,
-        "d" | "i" => FormaterType::SignedDecimal,
-        "o" => FormaterType::Octal,
-        "u" => FormaterType::UnsignedDecimal,
-        "x" => FormaterType::Hex,
-        "X" => FormaterType::HexUpper,
-        "e" | "E" | "f" | "F" | "g" | "G" => FormaterType::Float,
-        "a" | "A" => FormaterType::FloatHex,
-        "n" => FormaterType::PointerInt,
-        "P" => FormaterType::PointerType,
-        "s" | "S" => FormaterType::String,
-        "Z" => FormaterType::Unicode,
-        _ => FormaterType::Unknown,
+/// Determine the formatter type
+fn get_type(formatter: &str) -> FormatterType {
+    match formatter {
+        "c" | "C" => FormatterType::Char,
+        "d" | "i" => FormatterType::SignedDecimal,
+        "o" => FormatterType::Octal,
+        "u" => FormatterType::UnsignedDecimal,
+        "x" => FormatterType::Hex,
+        "X" => FormatterType::HexUpper,
+        "e" | "E" | "f" | "F" | "g" | "G" => FormatterType::Float,
+        "a" | "A" => FormatterType::FloatHex,
+        "n" => FormatterType::PointerInt,
+        "P" => FormatterType::PointerType,
+        "s" | "S" => FormatterType::String,
+        "Z" => FormatterType::Unicode,
+        _ => FormatterType::Unknown,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{formater_message, get_flags, get_number};
+    use super::{formatter_message, get_flags, get_number};
     use crate::artifacts::os::windows::eventlogs::{
-        formaters::{
-            Flags, FormaterSize, FormaterType, get_precision, get_size, get_type, get_width,
+        formatters::{
+            Flags, FormatterSize, FormatterType, get_precision, get_size, get_type, get_width,
         },
         resources::manifest::xml::{Element, InputType, TokenType},
     };
     use serde_json::{Map, Value};
 
     #[test]
-    fn test_formater_message() {
+    fn test_formatter_message() {
         let test = "%1!s!";
         let mut value = Map::new();
         value.insert(
@@ -361,7 +361,7 @@ mod tests {
             substitution: TokenType::Unknown,
             substitution_id: 0,
         };
-        let (_, result) = formater_message(test, &value, &[element]).unwrap();
+        let (_, result) = formatter_message(test, &value, &[element]).unwrap();
         assert_eq!(result, "hello rust!");
     }
 
@@ -405,7 +405,7 @@ mod tests {
     fn test_get_size() {
         let test = "hhx";
         let (input, size) = get_size(test).unwrap();
-        assert_eq!(size.unwrap(), FormaterSize::Char);
+        assert_eq!(size.unwrap(), FormatterSize::Char);
         assert_eq!(input, "x");
     }
 
@@ -413,6 +413,6 @@ mod tests {
     fn test_get_type() {
         let test = "x";
         let format_type = get_type(test);
-        assert_eq!(format_type, FormaterType::Hex);
+        assert_eq!(format_type, FormatterType::Hex);
     }
 }

@@ -1,5 +1,5 @@
 use super::{
-    formaters::{formater_message, formater_message_table},
+    formatters::{formatter_message, formatter_message_table},
     resources::{manifest::defintion::Definition, message::MessageTable},
     strings::StringResource,
 };
@@ -631,7 +631,7 @@ fn merge_strings(
         }
 
         if param.contains('!') {
-            let update_message = match formater_message(param, event_data, element_list) {
+            let update_message = match formatter_message(param, event_data, element_list) {
                 Ok((_, result)) => result,
                 Err(_err) => continue,
             };
@@ -883,7 +883,7 @@ fn merge_strings_message_table(
         }
 
         if param.contains('!') {
-            let update_message = match formater_message_table(param, &values) {
+            let update_message = match formatter_message_table(param, &values) {
                 Ok((_, result)) => result,
                 Err(_err) => continue,
             };
