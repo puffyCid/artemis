@@ -3,6 +3,7 @@ use super::{
     property::{parse_property, property_header},
 };
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::macos::spotlight::{dbstr::meta::SpotlightMeta, error::SpotlightError},
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::SpotlightOptions,
@@ -14,7 +15,6 @@ use crate::{
 use common::macos::SpotlightEntries;
 use nom::bytes::complete::take;
 use std::{
-    fs::File,
     io::{Read, Seek, SeekFrom},
     mem,
 };
@@ -22,7 +22,7 @@ use tracing::error;
 
 /// Parse the Spotlight store.db and extract entries
 pub(crate) fn parse_store(
-    reader: &mut File,
+    reader: &mut AccessorReader,
     meta: &SpotlightMeta,
     manager: &mut OutputManager,
     options: &SpotlightOptions,
@@ -113,7 +113,7 @@ pub(crate) fn parse_store(
 * This function instead will parse 10 blocks at a time and return the Spotlight data
 */
 pub(crate) fn parse_store_blocks(
-    reader: &mut File,
+    reader: &mut AccessorReader,
     meta: &SpotlightMeta,
     blocks: &[u32],
     offset: u32,
@@ -181,7 +181,9 @@ pub(crate) fn parse_store_blocks(
 }
 
 /// Get blocks and spotlight directory associated with Spotlight store
-pub(crate) fn get_blocks(reader: &mut File) -> Result<(Vec<u32>, String), SpotlightError> {
+pub(crate) fn get_blocks(
+    reader: &mut AccessorReader,
+) -> Result<(Vec<u32>, String), SpotlightError> {
     let header_size = 4096;
     let mut header_data = vec![0; header_size];
     if reader.read(&mut header_data).is_err() {
@@ -276,15 +278,11 @@ fn parse_header(data: &[u8]) -> nom::IResult<&[u8], StoreHeader> {
 #[cfg(test)]
 mod tests {
     use super::{get_blocks, parse_header, parse_store, parse_store_blocks};
+    use crate::accessor::access::Accessor;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::macos::spotlight::dbstr::meta::get_spotlight_meta,
-        filesystem::{
-            files::{file_reader, read_file},
-            metadata::glob_paths,
-        },
-        output::manager::OutputManager,
-        structs::artifacts::os::macos::SpotlightOptions,
+        output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions,
     };
     use std::path::PathBuf;
 
@@ -304,13 +302,16 @@ mod tests {
     fn test_parse_store_db() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/*.header");
-        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
         test_location.pop();
         test_location.push("store.db");
 
-        let mut data = file_reader(test_location.to_str().unwrap()).unwrap();
+        let mut data = accessor
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
-        let meta = get_spotlight_meta(&paths).unwrap();
+        let meta = get_spotlight_meta(&paths, &mut accessor).unwrap();
         let output = output_options("spotlight_test", "./tmp", false);
         let mut manage = OutputManager::new(output).unwrap();
 
@@ -330,13 +331,16 @@ mod tests {
     fn test_parse_store_blocks() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/*.header");
-        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
         test_location.pop();
         test_location.push("store.db");
 
-        let mut data = file_reader(test_location.to_str().unwrap()).unwrap();
+        let mut data = accessor
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
+        let meta = get_spotlight_meta(&paths, &mut accessor).unwrap();
 
-        let meta = get_spotlight_meta(&paths).unwrap();
         let (blocks, dir) = get_blocks(&mut data).unwrap();
 
         let entries = parse_store_blocks(&mut data, &meta, &blocks, 0, &dir).unwrap();
@@ -349,7 +353,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/store.db");
 
-        let mut data = file_reader(test_location.to_str().unwrap()).unwrap();
+        let mut data = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let (result, dir) = get_blocks(&mut data).unwrap();
         assert_eq!(result.len(), 714);
@@ -364,7 +370,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/header.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
         let (_, results) = parse_header(&data).unwrap();
         assert_eq!(results._sig, 1685287992);
