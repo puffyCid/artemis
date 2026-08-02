@@ -231,7 +231,7 @@ fn check_clients() -> bool {
     let client_path = "/private/var/db/emondClients";
     let accessor = Accessor::with_defaults().read_dir(client_path);
 
-    return accessor.is_ok_and(|v| v.is_empty());
+    accessor.is_ok_and(|v| v.is_empty())
 }
 
 #[cfg(test)]

@@ -65,7 +65,7 @@ pub(crate) fn get_spotlight_meta(
             }
         };
 
-        meta.props = props
+        meta.props = props;
     }
 
     if let Some(header_handle) = meta_maps.get("dbStr-2.map.header")
@@ -85,7 +85,7 @@ pub(crate) fn get_spotlight_meta(
             }
         };
 
-        meta.categories = categories
+        meta.categories = categories;
     }
 
     if let Some(header_handle) = meta_maps.get("dbStr-4.map.header")
@@ -105,7 +105,7 @@ pub(crate) fn get_spotlight_meta(
             }
         };
 
-        meta.indexes1 = indexes
+        meta.indexes1 = indexes;
     }
 
     if let Some(header_handle) = meta_maps.get("dbStr-5.map.header")
@@ -125,7 +125,7 @@ pub(crate) fn get_spotlight_meta(
             }
         };
 
-        meta.indexes2 = indexes
+        meta.indexes2 = indexes;
     }
 
     Ok(meta)

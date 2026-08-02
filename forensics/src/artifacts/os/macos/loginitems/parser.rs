@@ -90,7 +90,7 @@ fn extract_loginitem(paths: Vec<GlobMatch>, accessor: &mut Accessor) -> Vec<Logi
         }
     }
 
-    return values;
+    values
 }
 
 #[cfg(test)]

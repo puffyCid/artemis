@@ -68,7 +68,7 @@ pub(crate) fn grab_fseventsd(
             };
 
             if let Err(err) = output_fsevents(events, manager, options) {
-                warn!("Could not write fsevents output for '{path}': {err:?}")
+                warn!("Could not write fsevents output for '{path}': {err:?}");
             }
         }
     }
