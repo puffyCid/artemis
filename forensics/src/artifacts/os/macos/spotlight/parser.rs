@@ -49,7 +49,7 @@ pub(crate) fn grab_spotlight(
 
     let mut accessor = Accessor::with_defaults();
     for glob in paths {
-        if let Err(err) = parse_spotlight(&glob, manager, options, &mut accessor) {
+        if let Err(err) = parse_spotlight(glob, manager, options, &mut accessor) {
             error!["Could not parse spotlight for '{glob}': {err:?}"];
         }
     }

@@ -16,7 +16,7 @@ pub(crate) fn formater_message_table<'a>(
         return Ok(("", String::from("Failed to get element index")));
     }
 
-    // Remove exclaimation points. Now we only have formating characters left
+    // Remove exclamation points. Now we only have formatting characters left
     let remaining_string = input.replace('!', "");
     let text_result = parse_formats(&remaining_string, value, value_number);
     let text = match text_result {
@@ -55,7 +55,7 @@ pub(crate) fn formater_message<'a>(
         }
     }
 
-    // Remove exclaimation points. Now we only have formating characters left
+    // Remove exclamation points. Now we only have formatting characters left
     let remaining_string = input.replace('!', "");
     let text_result = parse_formats(&remaining_string, data, value_number);
     let text = match text_result {
@@ -130,8 +130,6 @@ fn format_message(
     let mut plus_option = String::new();
     let mut width_value = 0;
     let mut precision_value = 0;
-    let mut _width_asterick = false;
-    let mut _precision_asterick = false;
     let message;
 
     if options
@@ -144,12 +142,10 @@ fn format_message(
 
     if let Some(width_opt) = &options.width {
         width_value = width_opt.width;
-        _width_asterick = width_opt.is_asterick;
     }
 
     if let Some(precision_opt) = &options.precision {
         precision_value = precision_opt.width;
-        _precision_asterick = precision_opt.is_asterick;
     }
 
     if options
@@ -159,7 +155,7 @@ fn format_message(
     {
         message = format!(
             "{plus_symbol}{:<width$.precision$}",
-            &serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
+            serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
             width = width_value as usize,
             precision = precision_value as usize,
             plus_symbol = plus_option
@@ -171,7 +167,7 @@ fn format_message(
     {
         message = format!(
             "{plus_symbol}{:0<width$.precision$}",
-            &serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
+            serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
             width = width_value as usize,
             precision = precision_value as usize,
             plus_symbol = plus_option
@@ -195,7 +191,6 @@ fn get_number(formater: &str) -> nom::IResult<&str, (&str, u8)> {
 }
 
 struct FormaterWidth {
-    is_asterick: bool,
     width: u32,
 }
 
@@ -204,39 +199,32 @@ fn get_width(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
     let width_chars = "*1234567890";
     let (input, value_data) = is_a(width_chars)(formater)?;
 
-    let mut is_asterick = false;
-    let width;
-    if value_data.starts_with("*") {
-        is_asterick = true;
+    let width = if value_data.starts_with("*") {
         let number_str = value_data.get(1..).unwrap_or("0");
-        width = number_str.parse().unwrap_or(0);
+        number_str.parse().unwrap_or(0)
     } else {
-        width = value_data.parse().unwrap_or(0);
-    }
+        value_data.parse().unwrap_or(0)
+    };
 
-    let width_value = FormaterWidth { is_asterick, width };
+    let width_value = FormaterWidth { width };
 
     Ok((input, Some(width_value)))
 }
 
-/// Get formater precision
+/// Get formatter precision
 fn get_precision(formater: &str) -> nom::IResult<&str, Option<FormaterWidth>> {
     let precision_chars = ".*1234567890";
     let (input, value_data) = is_a(precision_chars)(formater)?;
 
-    let mut is_asterick = false;
-    let width;
-
-    if value_data.starts_with(".*") {
-        is_asterick = true;
+    let width = if value_data.starts_with(".*") {
         let number_str = value_data.get(2..).unwrap_or("");
-        width = number_str.parse().unwrap_or(0);
+        number_str.parse().unwrap_or(0)
     } else {
         let number_str = value_data.get(1..).unwrap_or("0");
-        width = number_str.parse().unwrap_or(0);
-    }
+        number_str.parse().unwrap_or(0)
+    };
 
-    let width_value = FormaterWidth { is_asterick, width };
+    let width_value = FormaterWidth { width };
 
     Ok((input, Some(width_value)))
 }
@@ -401,7 +389,6 @@ mod tests {
     fn test_get_width() {
         let test = "11.s";
         let (input, width) = get_width(test).unwrap();
-        assert_eq!(width.as_ref().unwrap().is_asterick, false);
         assert_eq!(width.unwrap().width, 11);
         assert_eq!(input, ".s");
     }
@@ -410,7 +397,6 @@ mod tests {
     fn test_get_precision() {
         let test = ".*s";
         let (input, precision) = get_precision(test).unwrap();
-        assert_eq!(precision.as_ref().unwrap().is_asterick, true);
         assert_eq!(precision.unwrap().width, 0);
         assert_eq!(input, "s");
     }

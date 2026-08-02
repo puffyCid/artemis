@@ -902,10 +902,7 @@ fn get_column_definitions(data: &[u8], column_count: u8) -> nom::IResult<&[u8], 
 
         let column = ColumnDescriptor {
             property_type: get_property_type(property_type),
-            property_name: property_id_to_name(&format!(
-                "0x{:04x?}_0x{:04x?}",
-                &id, &property_type
-            )),
+            property_name: property_id_to_name(&format!("0x{:04x?}_0x{:04x?}", id, property_type)),
             id,
             offset,
             size,
