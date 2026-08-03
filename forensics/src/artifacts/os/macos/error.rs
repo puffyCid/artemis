@@ -3,7 +3,6 @@ use std::fmt;
 #[derive(Debug)]
 pub(crate) enum MacArtifactError {
     LoginItem,
-    Emond,
     FsEventsd,
     Launchd,
     UnifiedLogs,
@@ -20,7 +19,6 @@ impl fmt::Display for MacArtifactError {
     fn fmt<'a>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             MacArtifactError::LoginItem => write!(f, "Failed to parse Login Items"),
-            MacArtifactError::Emond => write!(f, "Failed to parse Emond"),
             MacArtifactError::FsEventsd => write!(f, "Failed to parse FsEvents"),
             MacArtifactError::Launchd => write!(f, "Failed to parse Launchd"),
             MacArtifactError::UnifiedLogs => write!(f, "Failed to parse Unified Logs"),

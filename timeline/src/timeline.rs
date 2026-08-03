@@ -2,7 +2,7 @@ use crate::artifacts::{
     files::files,
     linux::{ext4_filelisting, journal, logons, sudo_linux},
     macos::{
-        emond, execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos,
+        execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos,
         unifiedlogs, users_macos,
     },
     processes::{network, processes},
@@ -47,7 +47,6 @@ pub fn timeline_artifact(
         "services" => services(data, start, end),
         "jumplists" => jumplists(data, start, end),
         "eventlogs" => eventlogs(data, start, end),
-        "emond" => emond(data, start, end),
         "launchd" => launchd(data, start, end),
         "outlook" => outlook(data, start, end),
         "loginitems" => loginitems(data, start, end),

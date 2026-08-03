@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 use super::artifacts::os::macos::{
-    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+    ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
     MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
 use super::artifacts::os::windows::{MftOptions, OutlookOptions};
@@ -110,7 +110,6 @@ pub struct Artifacts {
     pub unifiedlogs: Option<UnifiedLogsOptions>,
     pub users_macos: Option<MacosUsersOptions>,
     pub groups_macos: Option<MacosGroupsOptions>,
-    pub emond: Option<EmondOptions>,
     pub execpolicy: Option<ExecPolicyOptions>,
     pub launchd: Option<LaunchdOptions>,
     pub loginitems: Option<LoginitemsOptions>,

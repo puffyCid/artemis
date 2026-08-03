@@ -22,11 +22,6 @@ pub struct MacosGroupsOptions {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct EmondOptions {
-    pub alt_dir: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 pub struct ExecPolicyOptions {
     pub alt_file: Option<String>,
 }

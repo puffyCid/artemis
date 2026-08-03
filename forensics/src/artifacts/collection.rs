@@ -5,7 +5,7 @@ use super::{
         files::artifact::filelisting,
         linux::artifacts::{ext4_filelist, journals, logons, sudo_logs_linux},
         macos::artifacts::{
-            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
+            execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
             sudo_logs_macos, unifiedlogs, users_macos,
         },
         processes::artifact::processes,
@@ -57,20 +57,6 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Ok(_) => info!("Collected loginitems"),
                     Err(err) => {
                         error!("Failed to parse loginitems: {err:?}");
-                        manager.write_failed_artifact(artifact, options);
-                    }
-                }
-            }
-            "emond" if !skip(&artifacts.emond, &collector.marker, artifact) => {
-                let options = match &artifacts.emond {
-                    Some(result_data) => result_data,
-                    _ => continue,
-                };
-                let results = emond(&mut manager, options);
-                match results {
-                    Ok(_) => info!("Collected emond"),
-                    Err(err) => {
-                        error!("Failed to parse emond: {err:?}");
                         manager.write_failed_artifact(artifact, options);
                     }
                 }
