@@ -314,12 +314,9 @@ pub(crate) fn get_filename(path: &str) -> String {
     if !path.contains(['/', '\\']) {
         return path.to_string();
     }
-
-    let entry_opt = if path.contains('/') {
-        path.rsplit_once('/')
-    } else {
-        path.rsplit_once('\\')
-    };
+    // Normalize paths
+    let normal_path = path.replace("\\", "/");
+    let entry_opt = normal_path.rsplit_once('/');
 
     if entry_opt.is_none() {
         warn!("Failed to get filename from: {path}");

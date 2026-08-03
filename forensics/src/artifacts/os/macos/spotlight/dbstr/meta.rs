@@ -178,6 +178,7 @@ mod tests {
         let paths = Accessor::with_defaults()
             .globfs(test_location.to_str().unwrap())
             .unwrap();
+
         let meta = get_spotlight_meta(&paths, &mut Accessor::with_defaults()).unwrap();
         assert_eq!(meta.props.len(), 109);
     }
