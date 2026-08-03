@@ -311,11 +311,14 @@ fn file_too_large_custom(path: &str, max_size: u64) -> bool {
 
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined
 pub(crate) fn get_filename(path: &str) -> String {
-    if !path.contains(['/', '\\']) {
+    // Check for accessor separator too "!"
+    // Ex: zip:test.zip!filename.txt
+    if !path.contains(['/', '\\', '!']) {
         return path.to_string();
     }
+
     // Normalize paths
-    let normal_path = path.replace("\\", "/");
+    let normal_path = path.replace("\\", "/").replace("!", "/");
     let entry_opt = normal_path.rsplit_once('/');
 
     if entry_opt.is_none() {
