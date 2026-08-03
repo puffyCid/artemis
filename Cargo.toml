@@ -40,6 +40,10 @@ reqwest = { version = "0.13.4", features = [
 ] }
 sysinfo = "0.39.6"
 uuid = { version = "1.24.0", features = ["v4"] }
-rusqlite = { version = "0.40.1", features = ["bundled", "serde_json"] }
+rusqlite = { version = "0.40.1", features = [
+    "bundled",
+    "serde_json",
+    "serialize",
+] }
 fastrand = { version = "2.5.0", default-features = false, features = ["std"] }
 chrono = "0.4.45"
