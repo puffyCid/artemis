@@ -81,7 +81,7 @@ fn extract_loginitem(paths: Vec<GlobMatch>, accessor: &mut Accessor) -> Vec<Logi
                 Err(_err) => continue,
             };
             values.append(&mut items);
-        } else if file_handle.display_path().ends_with(".plist") {
+        } else if file_handle.display_path().contains("loginitems") {
             let mut items = match bundle_plist(&bytes, &file_handle.display_path()) {
                 Ok(result) => result,
                 Err(_err) => continue,

@@ -31,7 +31,7 @@ pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>
             "/Users/*/Library/LaunchAgents/*",
             "/Library/LaunchAgents/*",
             "/System/Library/LaunchAgents/*",
-            "/Library/Apple/System/Library/LaunchDaemons/*",
+            "/Library/Apple/System/Library/LaunchAgents/*",
         ]
     };
 
