@@ -2,25 +2,34 @@ use crate::artifacts::os::macos::{
     bookmarks::parser::parse_bookmark,
     plist::{
         error::PlistError,
-        property_list::{get_dictionary, parse_plist_file_dict},
+        property_list::{get_dictionary, parse_plist_data},
     },
 };
 use common::macos::LoginItemsData;
 use plist::Value;
+use tracing::{error, warn};
 
 /// Parse PLIST file and get Vec of bookmark data
-pub(crate) fn get_bookmarks(path: &str) -> Result<Vec<LoginItemsData>, PlistError> {
-    let login_items = parse_plist_file_dict(path)?;
+pub(crate) fn get_bookmarks(
+    bytes: &[u8],
+    evidence: &str,
+) -> Result<Vec<LoginItemsData>, PlistError> {
+    let item = parse_plist_data(bytes)?;
+    let Some(login_items) = item.as_dictionary().cloned() else {
+        error!("Did not get plist Dictionary for loginitems '{evidence}'");
+        return Err(PlistError::Dictionary);
+    };
     for (key, value) in login_items {
         if key != "$objects" {
             continue;
         }
         if let Value::Array(value_array) = value {
-            let results = get_array_values(value_array, path)?;
+            let results = get_array_values(value_array, evidence)?;
             return Ok(results);
         }
     }
-    Ok(Vec::new())
+    warn!("No loginitems for '{evidence}'");
+    Err(PlistError::File)
 }
 
 /// Loop through Array values and identify bookmark data (should be at least 48 bytes in size and have signature `book`
@@ -137,10 +146,53 @@ fn collect_bookmarks(value: &[u8], source: &str) -> Result<LoginItemsData, Plist
     Ok(loginitem_data)
 }
 
+/// Parse `LoginItem` in bundled apps
+pub(crate) fn bundle_plist(
+    bytes: &[u8],
+    evidence: &str,
+) -> Result<Vec<LoginItemsData>, PlistError> {
+    let item = parse_plist_data(bytes)?;
+    let Some(login_items) = item.as_dictionary().cloned() else {
+        error!("Did not get plist Dictionary for bundle loginitem '{evidence}'");
+        return Err(PlistError::Dictionary);
+    };
+    let mut items = Vec::new();
+
+    for (key, value) in login_items {
+        let mut loginitems_data = LoginItemsData {
+            created: String::from("1970-01-01T00:00:00.000Z"),
+            is_bundled: true,
+            ..Default::default()
+        };
+
+        if key.starts_with("version") {
+            continue;
+        }
+
+        if let Some(app_id) = value.into_string() {
+            loginitems_data.app_id = app_id;
+        } else {
+            warn!("No app id associated with bundled");
+        }
+
+        loginitems_data.app_binary = key;
+        loginitems_data.evidence = evidence.to_string();
+        items.push(loginitems_data);
+    }
+
+    Ok(items)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{collect_bookmarks, get_array_values, get_bookmarks};
-    use crate::artifacts::os::macos::plist::property_list::parse_plist_file_dict;
+    use crate::{
+        accessor::access::Accessor,
+        artifacts::os::macos::{
+            loginitems::plist::bundle_plist,
+            plist::{error::PlistError, property_list::parse_plist_file_dict},
+        },
+    };
     use plist::Value;
     use std::path::PathBuf;
 
@@ -148,8 +200,11 @@ mod tests {
     fn test_get_bookmarks() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/loginitems/backgrounditems_sierra.btm");
+        let bytes = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
-        let bookmarks = get_bookmarks(&test_location.display().to_string()).unwrap();
+        let bookmarks = get_bookmarks(&bytes, test_location.to_str().unwrap()).unwrap();
         assert_eq!(bookmarks.len(), 1);
     }
 
@@ -226,5 +281,11 @@ mod tests {
         .unwrap();
 
         assert_eq!(value[0].path, "Contents/Library/LoginItems/test.app");
+    }
+
+    #[test]
+    fn test_bundle_plist() {
+        let err = bundle_plist(&[1, 2], "test").unwrap_err();
+        assert_eq!(err, PlistError::File);
     }
 }

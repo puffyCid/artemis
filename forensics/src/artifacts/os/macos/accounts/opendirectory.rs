@@ -1,7 +1,8 @@
 use crate::{
+    accessor::{access::Accessor, entry::handle::FileHandle},
     artifacts::os::macos::plist::{
         error::PlistError,
-        property_list::{get_array, get_float, parse_plist_data, parse_plist_file_dict},
+        property_list::{get_array, get_float, parse_plist_data, parse_plist_file_handle},
     },
     utils::{
         encoding::{base64_decode_standard, base64_encode_standard},
@@ -13,8 +14,11 @@ use plist::Value;
 use tracing::{error, warn};
 
 /// Parse User plist files
-pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistError> {
-    let plist_data = parse_plist_file_dict(path)?;
+pub(crate) fn parse_users_plist(
+    file: &FileHandle,
+    accessor: &mut Accessor,
+) -> Result<OpendirectoryUsers, PlistError> {
+    let plist_value = parse_plist_file_handle(accessor, file)?;
     let mut users_data = OpendirectoryUsers {
         uid: Vec::new(),
         gid: Vec::new(),
@@ -27,8 +31,14 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
         unlock_options: Vec::new(),
         home_path: Vec::new(),
         uuid: Vec::new(),
-        evidence: path.to_string(),
+        evidence: file.display_path(),
     };
+
+    let Some(plist_data) = plist_value.as_dictionary() else {
+        error!("User plist format incorrect '{}'", file.display_path());
+        return Err(PlistError::File);
+    };
+
     for (key, value) in plist_data {
         match key.as_str() {
             "shell" => {
@@ -36,7 +46,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.shell = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get user shell from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get user shell from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -46,7 +59,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.home_path = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get user home from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get user home from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -56,7 +72,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.name = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get user name from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get user name from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -67,7 +86,8 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                     Ok(results) => results,
                     Err(err) => {
                         warn!(
-                            "Failed to get user realname from opendirectoryd file: {path}: {err:?}"
+                            "Failed to get user realname from opendirectoryd '{}': {err:?}",
+                            file.display_path()
                         );
                         continue;
                     }
@@ -79,7 +99,8 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                     Ok(results) => results,
                     Err(err) => {
                         warn!(
-                            "Failed to get user unlockOptions from opendirectoryd file: {path}: {err:?}"
+                            "Failed to get user unlockOptions from opendirectoryd '{}': {err:?}",
+                            file.display_path()
                         );
                         continue;
                     }
@@ -90,7 +111,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.uuid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get user UUID from opendirectoryd file {path}: {err:?}");
+                        warn!(
+                            "Failed to get user UUID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -101,7 +125,8 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                     Ok(results) => results,
                     Err(err) => {
                         warn!(
-                            "Failed to get user UID from opendirectoryd file: {path}. Error: {err:?}"
+                            "Failed to get user UID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
                         );
                         continue;
                     }
@@ -112,7 +137,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.gid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get user GID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get user GID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -122,7 +150,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                 users_data.account_photo = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get user photo from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get user photo from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -136,7 +167,10 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                             let data = match data_results {
                                 Ok(result) => result,
                                 Err(_err) => {
-                                    error!("Could not decode policy data: {path}");
+                                    error!(
+                                        "Could not decode policy data '{}'",
+                                        file.display_path()
+                                    );
                                     continue;
                                 }
                             };
@@ -145,14 +179,18 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
                                 Ok(_) => {}
                                 Err(err) => {
                                     warn!(
-                                        "accounts] Failed to get account policy info from opendirectoryd file: {path}: {err:?}"
+                                        "Failed to get account policy info from opendirectoryd '{}': {err:?}",
+                                        file.display_path()
                                     );
                                 }
                             }
                         }
                     }
                     Err(err) => {
-                        warn!("Failed to get user photo from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get user photo from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                     }
                 }
             }
@@ -163,8 +201,8 @@ pub(crate) fn parse_users_plist(path: &str) -> Result<OpendirectoryUsers, PlistE
 }
 
 /// Loop through Array values and get the plist data
-fn get_array_values(value: Value) -> Result<Vec<String>, PlistError> {
-    let array_value = get_array(&value)?;
+fn get_array_values(value: &Value) -> Result<Vec<String>, PlistError> {
+    let array_value = get_array(value)?;
     let mut array_results: Vec<String> = Vec::new();
     for data in array_value {
         match data {
@@ -210,8 +248,11 @@ fn get_account_policy(
 }
 
 /// Parse Group plist files
-pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, PlistError> {
-    let plist_data = parse_plist_file_dict(path)?;
+pub(crate) fn parse_groups_plist(
+    file: &FileHandle,
+    accessor: &mut Accessor,
+) -> Result<OpendirectoryGroups, PlistError> {
+    let plist_value = parse_plist_file_handle(accessor, file)?;
     let mut group_data = OpendirectoryGroups {
         gid: Vec::new(),
         name: Vec::new(),
@@ -219,8 +260,13 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
         uuid: Vec::new(),
         users: Vec::new(),
         groupmembers: Vec::new(),
-        evidence: path.to_string(),
+        evidence: file.display_path(),
     };
+    let Some(plist_data) = plist_value.as_dictionary() else {
+        error!("Group plist format incorrect '{}'", file.display_path());
+        return Err(PlistError::File);
+    };
+
     for (key, value) in plist_data {
         match key.as_str() {
             "gid" => {
@@ -228,7 +274,10 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.gid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get group GID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get group GID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -238,7 +287,10 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.name = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get group name from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get group name from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -249,7 +301,8 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                     Ok(results) => results,
                     Err(err) => {
                         warn!(
-                            "Failed to get group realname from opendirectoryd file: {path}: {err:?}"
+                            "Failed to get group realname from opendirectoryd '{}': {err:?}",
+                            file.display_path()
                         );
                         continue;
                     }
@@ -260,7 +313,10 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.uuid = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get group UUID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get group UUID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -270,7 +326,10 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.users = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get group UUID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get group UUID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -280,7 +339,10 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
                 group_data.groupmembers = match plist_results {
                     Ok(results) => results,
                     Err(err) => {
-                        warn!("Failed to get group UUID from opendirectoryd file: {path}: {err:?}");
+                        warn!(
+                            "Failed to get group UUID from opendirectoryd '{}': {err:?}",
+                            file.display_path()
+                        );
                         continue;
                     }
                 };
@@ -293,6 +355,8 @@ pub(crate) fn parse_groups_plist(path: &str) -> Result<OpendirectoryGroups, Plis
 
 #[cfg(test)]
 mod tests {
+    use crate::accessor::access::Accessor;
+    use crate::accessor::entry::handle::FileHandle;
     use crate::artifacts::os::macos::accounts::opendirectory::get_account_policy;
     use crate::artifacts::os::macos::accounts::opendirectory::get_array_values;
     use crate::artifacts::os::macos::accounts::opendirectory::parse_users_plist;
@@ -321,7 +385,7 @@ mod tests {
 
             if let Value::Array(_) = value {
                 // Parse the array of dictionaries
-                shell = get_array_values(value).unwrap();
+                shell = get_array_values(&value).unwrap();
             }
         }
         assert_eq!(shell[0], "/usr/bin/false");
@@ -352,7 +416,7 @@ mod tests {
             if key != "accountPolicyData" {
                 continue;
             }
-            let plist_results = get_array_values(value).unwrap();
+            let plist_results = get_array_values(&value).unwrap();
             for result in plist_results {
                 let data = base64_decode_standard(&result).unwrap();
                 get_account_policy(&data, &mut users_data).unwrap();
@@ -366,7 +430,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/users/nobody.plist");
 
-        let results = parse_users_plist(&test_location.display().to_string()).unwrap();
+        let mut accessor = Accessor::with_defaults();
+        let file = FileHandle::host(test_location);
+        let results = parse_users_plist(&file, &mut accessor).unwrap();
         assert_eq!(results.shell[0], "/usr/bin/false");
         assert_eq!(results.uid[0], "-2");
         assert_eq!(results.home_path[0], "/var/empty");

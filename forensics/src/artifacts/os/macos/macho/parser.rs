@@ -10,15 +10,15 @@
  *   `https://lief-project.github.io/`
  */
 use super::{commands::command::Commands, error::MachoError, fat::FatHeader, header::MachoHeader};
-use crate::filesystem::files::{file_reader, file_too_large};
+use crate::{accessor::access::Accessor, filesystem::files::file_too_large};
 use common::macos::MachoInfo;
 use std::io::{Read, Seek, SeekFrom};
 use tracing::error;
 
 /// Parse a macho file
 pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
-    let reader_result = file_reader(path);
-    let mut reader = match reader_result {
+    let mut accessor = Accessor::with_defaults();
+    let mut reader = match accessor.open_reader(path) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not get file reader for {path}. Error: {err:?}");
@@ -48,8 +48,6 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
 
     let mut data = Vec::new();
 
-    // Allow File read_to_end because we partially read the file above to check for Magic Header
-    #[allow(clippy::verbose_file_reads)]
     let data_result = reader.read_to_end(&mut data);
     match data_result {
         Ok(_) => {}

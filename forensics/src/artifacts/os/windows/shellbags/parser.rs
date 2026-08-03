@@ -320,10 +320,10 @@ fn update_shellbags(
     {
         // GUID may either be upper or lowercase
         bag.resolve_path = clsids
-            .get(&format!("{{{}}}", &bag.path))
+            .get(&format!("{{{}}}", bag.path))
             .unwrap_or_else(|| {
                 clsids
-                    .get(&format!("{{{}}}", &bag.path.to_uppercase()))
+                    .get(&format!("{{{}}}", bag.path.to_uppercase()))
                     .unwrap_or(&bag.path)
             })
             .clone();

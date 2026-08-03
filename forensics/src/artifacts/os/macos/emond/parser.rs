@@ -9,6 +9,7 @@ use super::eventmonitor::parse_emond_rules;
  *   `https://www.xorrior.com/emond-persistence/`
  */
 use crate::{
+    accessor::access::Accessor,
     artifacts::os::macos::plist::{
         error::PlistError,
         property_list::{get_string, parse_plist_file_dict},
@@ -22,14 +23,16 @@ use tracing::{error, warn};
 
 /// Parse Emond rules on macOS
 pub(crate) fn grab_emond(options: &EmondOptions) -> Result<Vec<EmondData>, PlistError> {
-    if let Some(alt_dir) = &options.alt_dir {
-        return parse_emond_rules(alt_dir);
-    }
+    let paths = if let Some(alt_dir) = &options.alt_dir {
+        vec![alt_dir.clone()]
+    } else {
+        get_emond_rules_paths()?
+    };
+    let mut accessor = Accessor::with_defaults();
 
-    let paths = get_emond_rules_paths()?;
-    let mut emond_data: Vec<EmondData> = Vec::new();
+    let mut emond_data = Vec::new();
     for path in paths {
-        let mut data = parse_emond_rules(&path)?;
+        let mut data = parse_emond_rules(&path, &mut accessor)?;
         emond_data.append(&mut data);
     }
     Ok(emond_data)
@@ -47,7 +50,7 @@ fn get_emond_rules_paths() -> Result<Vec<String>, PlistError> {
     let emond_plist = match emond_plist_result {
         Ok(results) => results,
         Err(err) => {
-            error!("Failed to parse Emond Config PLIST file: {err:?}");
+            error!("Failed to parse Emond Config plist file: {err:?}");
             return Ok(Vec::new());
         }
     };

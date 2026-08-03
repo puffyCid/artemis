@@ -28,12 +28,12 @@ pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
             return Err(CompressionError::GzipReadFile);
         }
     };
-    decompress_gzip_data(&buffer)
+    decompress_gzip_data(buffer)
 }
 
 /// Decompress raw gzip bytes
-pub(crate) fn decompress_gzip_data(buffer: &[u8]) -> Result<Vec<u8>, CompressionError> {
-    let mut data = MultiGzDecoder::new(buffer);
+pub(crate) fn decompress_gzip_data(buffer: Vec<u8>) -> Result<Vec<u8>, CompressionError> {
+    let mut data = MultiGzDecoder::new(buffer.as_slice());
 
     let mut decompress_data = Vec::new();
     let result = data.read_to_end(&mut decompress_data);
@@ -352,7 +352,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "GzipDecompress")]
     fn test_decompress_gzip_data_error() {
-        let test_data = [
+        let test_data = vec![
             40, 181, 47, 253, 96, 246, 1, 13, 11, 0, 38, 86, 70, 34, 48, 79, 220, 104, 104, 164,
             213, 236, 199, 164, 19, 243, 36, 222, 54, 232, 158, 27, 205, 124, 87, 133, 215, 237,
             160, 61, 33, 255, 131, 30, 20, 52, 81, 42, 62, 0, 59, 0, 61, 0, 11, 131, 33, 196, 25,
@@ -373,7 +373,7 @@ mod tests {
             196, 201, 9, 27, 133, 6, 11, 67, 204, 216, 132, 63, 226, 133, 45, 4, 177, 5, 85, 18,
             182, 230, 176, 178, 215, 245, 107, 134, 127, 83, 173, 195, 245, 106, 25, 9, 33, 10,
         ];
-        let _ = decompress_gzip_data(&test_data).unwrap();
+        let _ = decompress_gzip_data(test_data).unwrap();
     }
 
     #[test]

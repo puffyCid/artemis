@@ -4,8 +4,8 @@ use super::{
     store::db::{parse_store, parse_store_blocks},
 };
 use crate::{
+    accessor::{access::Accessor, entry::handle::EntryKind},
     artifacts::os::macos::spotlight::store::db::get_blocks,
-    filesystem::{files::file_reader, metadata::glob_paths},
     output::manager::OutputManager,
     structs::artifacts::os::macos::SpotlightOptions,
 };
@@ -18,9 +18,9 @@ pub(crate) fn parse_spotlight(
     glob_path: &str,
     manager: &mut OutputManager,
     options: &SpotlightOptions,
+    accessor: &mut Accessor,
 ) -> Result<(), SpotlightError> {
-    let paths_result = glob_paths(glob_path);
-    let paths = match paths_result {
+    let paths = match accessor.globfs(glob_path) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not glob {glob_path}: {err:?}");
@@ -28,18 +28,26 @@ pub(crate) fn parse_spotlight(
         }
     };
 
-    let meta = get_spotlight_meta(&paths)?;
+    let meta = get_spotlight_meta(&paths, accessor)?;
     for path in paths {
-        if path.filename != "store.db" {
+        if path.meta.kind != EntryKind::File {
             continue;
         }
-        let reader_result = file_reader(&path.full_path);
-        let mut store_reader = match reader_result {
+
+        let Some(file_handle) = path.handle.as_file() else {
+            continue;
+        };
+
+        if !file_handle.display_path().ends_with("store.db") {
+            continue;
+        }
+
+        let mut store_reader = match accessor.open_reader_handle(file_handle) {
             Ok(result) => result,
             Err(err) => {
                 error!(
                     "Could not create reader for store.db {}: {err:?}",
-                    path.full_path
+                    file_handle.display_path()
                 );
                 return Err(SpotlightError::ReadFile);
             }
@@ -47,8 +55,12 @@ pub(crate) fn parse_spotlight(
 
         let result = parse_store(&mut store_reader, &meta, manager, options);
         if result.is_err() {
-            error!("Could not parse the spotlight store at: {}", path.full_path);
+            error!(
+                "Could not parse the spotlight store at: {}",
+                file_handle.display_path()
+            );
         }
+
         break;
     }
 
@@ -62,7 +74,7 @@ pub(crate) fn parse_spotlight_reader(
     blocks: &[u32],
     offset: u32,
 ) -> Result<Vec<SpotlightEntries>, SpotlightError> {
-    let reader_result = file_reader(store_file);
+    let reader_result = Accessor::with_defaults().open_reader(store_file);
     let mut store_reader = match reader_result {
         Ok(result) => result,
         Err(err) => {
@@ -83,32 +95,39 @@ pub(crate) struct StoreMeta {
 
 /// Setup Spotlight reader by getting the minimum amount of metadata to stream the Spotlight database
 pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, SpotlightError> {
-    let paths_result = glob_paths(glob_path);
-    let paths = match paths_result {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(glob_path) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not glob {glob_path}: {err:?}");
             return Err(SpotlightError::Glob);
         }
     };
-    let meta = get_spotlight_meta(&paths)?;
+    let meta = get_spotlight_meta(&paths, &mut accessor)?;
     let mut blocks = Vec::new();
     for path in paths {
-        if path.filename != "store.db" {
+        if path.meta.kind != EntryKind::File {
             continue;
         }
-        let reader_result = file_reader(&path.full_path);
-        let mut store_reader = match reader_result {
+
+        let Some(file_handle) = path.handle.as_file() else {
+            continue;
+        };
+
+        if !file_handle.display_path().contains("store.db") {
+            continue;
+        }
+
+        let mut store_reader = match accessor.open_reader_handle(file_handle) {
             Ok(result) => result,
             Err(err) => {
                 error!(
                     "Could not create reader for store.db {}: {err:?}",
-                    path.full_path
+                    file_handle.display_path()
                 );
                 return Err(SpotlightError::ReadFile);
             }
         };
-
         let (results, _) = get_blocks(&mut store_reader)?;
         blocks = results;
         break;
@@ -122,6 +141,7 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
 #[cfg(test)]
 mod tests {
     use super::{parse_spotlight, parse_spotlight_reader, setup_spotlight_reader};
+    use crate::accessor::access::Accessor;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
     use std::path::PathBuf;
@@ -144,6 +164,7 @@ mod tests {
         test_location.push("tests/test_data/macos/spotlight/bigsur/*");
         let output = output_options("spotlight_test", "./tmp", false);
         let mut manage = OutputManager::new(output).unwrap();
+        let mut accessor = Accessor::with_defaults();
 
         parse_spotlight(
             test_location.to_str().unwrap(),
@@ -152,6 +173,7 @@ mod tests {
                 alt_dir: None,
                 include_additional: Some(false),
             },
+            &mut accessor,
         )
         .unwrap();
     }

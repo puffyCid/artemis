@@ -1,5 +1,3 @@
-use self::metadata::get_timestamps;
-
 use super::{
     actions::{
         command::parse_action_run_command, log::parse_action_log,
@@ -8,33 +6,50 @@ use super::{
     util::get_dictionary_values,
 };
 use crate::{
+    accessor::access::Accessor,
     artifacts::os::macos::plist::{
         error::PlistError,
         property_list::{get_boolean, get_string},
     },
-    filesystem::{files::list_files, metadata},
+    filesystem::metadata::get_timestamps,
 };
 use common::macos::{Actions, EmondData};
 use plist::Value;
 use tracing::{error, warn};
 
 /// Parse all Emond rules files at provided path
-pub(crate) fn parse_emond_rules(path: &str) -> Result<Vec<EmondData>, PlistError> {
-    let rules_result = list_files(path);
-    let rules = match rules_result {
+pub(crate) fn parse_emond_rules(
+    path: &str,
+    accessor: &mut Accessor,
+) -> Result<Vec<EmondData>, PlistError> {
+    let rules = match accessor.read_dir(path) {
         Ok(result) => result,
         Err(err) => {
             error!("Failed to read Emond rules directory {path}: {err:?}");
             return Err(PlistError::File);
         }
     };
-    let mut emond_results: Vec<EmondData> = Vec::new();
+    let mut emond_results = Vec::new();
     for rule in rules {
-        let emond_data_results = parse_emond_data(&rule);
+        if !rule.is_file() {
+            continue;
+        }
+        let Some(file) = rule.handle.as_file() else {
+            continue;
+        };
+        let bytes = match accessor.read_file_handle(file) {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("Could not read '{}': {err:?}", file.display_path());
+                continue;
+            }
+        };
+
+        let emond_data_results = parse_emond_data(&bytes, file.display_path());
         let mut emond_data = match emond_data_results {
             Ok(results) => results,
             Err(err) => {
-                error!("Failed to parse Emond file: {rule}. Error: {err:?}");
+                error!("Failed to parse Emond '{}': {err:?}", file.display_path());
                 continue;
             }
         };
@@ -44,9 +59,12 @@ pub(crate) fn parse_emond_rules(path: &str) -> Result<Vec<EmondData>, PlistError
 }
 
 /// Parse a single Emond rule file
-pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError> {
-    let mut emond_data_vec: Vec<EmondData> = Vec::new();
-    let emond_plist_result = plist::from_file(path);
+pub(crate) fn parse_emond_data(
+    bytes: &[u8],
+    evidence: String,
+) -> Result<Vec<EmondData>, PlistError> {
+    let mut emond_data_vec = Vec::new();
+    let emond_plist_result = plist::from_bytes(bytes);
     let emond_plist = match emond_plist_result {
         Ok(result) => result,
         Err(err) => {
@@ -55,7 +73,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
         }
     };
 
-    let meta = get_timestamps(path);
+    let meta = get_timestamps(&evidence);
 
     if let Value::Array(plist_array) = emond_plist {
         let mut emond_data = EmondData {
@@ -72,7 +90,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
             allow_partial_criterion_match: false,
             start_time: String::from("1970-01-01T00:00:00.000Z"),
             emond_clients_enabled: false,
-            evidence: path.to_string(),
+            evidence,
             plist_created: String::from("1970-01-01T00:00:00.000Z"),
             plist_accessed: String::from("1970-01-01T00:00:00.000Z"),
             plist_changed: String::from("1970-01-01T00:00:00.000Z"),
@@ -138,7 +156,7 @@ pub(crate) fn parse_emond_data(path: &str) -> Result<Vec<EmondData>, PlistError>
 
 /// Get the `Emond` type
 fn parse_event_types(value: &Value) -> Result<Vec<String>, PlistError> {
-    let mut event_types_vec: Vec<String> = Vec::new();
+    let mut event_types_vec = Vec::new();
     if let Some(events) = value.as_array() {
         for event in events {
             let event_type_string = get_string(event)?;
@@ -203,6 +221,7 @@ fn parse_actions(value: &Value) -> Result<Actions, PlistError> {
             }
         }
     }
+
     Ok(emond_actions)
 }
 
@@ -210,19 +229,9 @@ fn parse_actions(value: &Value) -> Result<Actions, PlistError> {
 /// If any file exists in `emondClients` then the the emond daemon is started
 fn check_clients() -> bool {
     let client_path = "/private/var/db/emondClients";
-    let clients_result = list_files(client_path);
-    let clients = match clients_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to read Emond clients directory: {err:?}");
-            return false;
-        }
-    };
+    let accessor = Accessor::with_defaults().read_dir(client_path);
 
-    if clients.is_empty() {
-        return false;
-    }
-    true
+    accessor.is_ok_and(|v| !v.is_empty())
 }
 
 #[cfg(test)]
@@ -230,6 +239,7 @@ fn check_clients() -> bool {
 mod tests {
     use super::parse_emond_rules;
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::macos::emond::eventmonitor::{
             check_clients, parse_actions, parse_emond_data, parse_event_types,
         },
@@ -244,7 +254,7 @@ mod tests {
         if !is_directory(default_path) {
             return;
         }
-        let _ = parse_emond_rules(default_path).unwrap();
+        let _ = parse_emond_rules(default_path, &mut Accessor::with_defaults()).unwrap();
     }
 
     #[test]
@@ -252,7 +262,11 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/emond");
 
-        let results = parse_emond_rules(&test_location.display().to_string()).unwrap();
+        let results = parse_emond_rules(
+            &test_location.display().to_string(),
+            &mut Accessor::with_defaults(),
+        )
+        .unwrap();
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].enabled, true);
         assert_eq!(results[0].name, "poisonapple rule");
@@ -309,7 +323,10 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/emond/test123.plist");
 
-        let results = parse_emond_data(&test_location.display().to_string()).unwrap();
+        let bytes = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
+        let results = parse_emond_data(&bytes, test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].enabled, true);
         assert_eq!(results[0].name, "poisonapple rule");

@@ -386,7 +386,7 @@ impl ZipFs {
         }
     }
 
-    /// Read the zip content file. Currently who file is decompressed into memory
+    /// Read the zip content file. Currently whole file is decompressed into memory
     fn read_entry_bytes(&self, index: usize) -> AccessorResult<Vec<u8>> {
         // Access the `ZipArchive` file reader
         let mut archive = self.archive.lock().map_err(|err| {

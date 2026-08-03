@@ -423,11 +423,11 @@ pub(crate) fn parse_variable_size(data: &[u8]) -> nom::IResult<&[u8], usize> {
 mod tests {
     use super::{get_property_types, parse_variable_size, property_header};
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::macos::spotlight::{
             dbstr::meta::get_spotlight_meta,
             store::property::{PropertyType, parse_all_records, parse_property, parse_record},
         },
-        filesystem::{files::read_file, metadata::glob_paths},
     };
     use std::path::PathBuf;
 
@@ -435,13 +435,14 @@ mod tests {
     fn test_parse_property() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/property.raw");
+        let mut accessor = Accessor::with_defaults();
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = accessor.read_file(test_location.to_str().unwrap()).unwrap();
         test_location.pop();
         test_location.push("*.header");
-        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
 
-        let meta = get_spotlight_meta(&paths).unwrap();
+        let meta = get_spotlight_meta(&paths, &mut accessor).unwrap();
         let (input, header) = property_header(&data).unwrap();
 
         let (_, results) = parse_property(input, &meta, header.uncompressed_size, "test").unwrap();
@@ -452,13 +453,14 @@ mod tests {
     fn test_parse_all_records() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/decom.raw");
+        let mut accessor = Accessor::with_defaults();
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = accessor.read_file(test_location.to_str().unwrap()).unwrap();
         test_location.pop();
         test_location.push("*.header");
-        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
 
-        let meta = get_spotlight_meta(&paths).unwrap();
+        let meta = get_spotlight_meta(&paths, &mut accessor).unwrap();
 
         let (_, results) = parse_all_records(&data, &meta, "test").unwrap();
         assert_eq!(results.len(), 195);
@@ -468,10 +470,11 @@ mod tests {
     fn test_parse_record() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("*.header");
+        let mut accessor = Accessor::with_defaults();
 
-        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
-        let meta = get_spotlight_meta(&paths).unwrap();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
 
+        let meta = get_spotlight_meta(&paths, &mut accessor).unwrap();
         let data = [
             243, 0, 0, 19, 144, 32, 128, 255, 243, 0, 0, 19, 143, 254, 5, 213, 170, 86, 232, 77,
             92, 7, 2, 1, 3, 2, 35, 1, 9, 4, 0, 2, 15, 95, 67, 111, 100, 101, 83, 105, 103, 110, 97,
@@ -493,7 +496,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/spotlight/bigsur/property.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let (_, header) = property_header(&data).unwrap();
 
         assert_eq!(header.uncompressed_size, 67070);

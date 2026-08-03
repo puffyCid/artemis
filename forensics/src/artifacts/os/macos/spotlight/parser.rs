@@ -15,7 +15,10 @@
  * `https://github.com/ydkhatri/mac_apt`
  */
 use super::{error::SpotlightError, light::parse_spotlight};
-use crate::{output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions};
+use crate::{
+    accessor::access::Accessor, output::manager::OutputManager,
+    structs::artifacts::os::macos::SpotlightOptions,
+};
 use tracing::error;
 
 /// Dump the Spotlight database. Requires root
@@ -24,30 +27,29 @@ pub(crate) fn grab_spotlight(
     manager: &mut OutputManager,
 ) -> Result<(), SpotlightError> {
     let paths = if let Some(alt_dir) = &options.alt_dir {
-        vec![format!("{alt_dir}/*")]
+        vec![alt_dir.as_str()]
     } else {
         let mut additional_stores = false;
         if let Some(extra) = &options.include_additional {
             additional_stores = *extra;
         }
 
-        let mut default_paths = vec![String::from(
-            "/System/Volumes/Data/.Spotlight-V100/Store-V*/*/*",
-        )];
+        let mut default_paths = vec!["/System/Volumes/Data/.Spotlight-V100/Store-V*/*/*"];
         if additional_stores {
             default_paths.append(&mut vec![
-                String::from("/Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*"),
-                String::from("/Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*"),
-                String::from("/Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/*"),
-                String::from("/Users/*/Library/Metadata/CoreSpotlight/*/index.spotlightV*/*"),
-                String::from("/Users/*/Library/Caches/com.apple.helpd/*/index.spotlightV*/*"),
+                "/Users/*/Library/Caches/com.apple.helpd/index.spotlightV*/*",
+                "/Users/*/Library/Metadata/CoreSpotlight/index.spotlightV*/*",
+                "/Users/*/Library/Developer/Xcode/DocumentationCache/*/*/DeveloperDocumentation.index/*",
+                "/Users/*/Library/Metadata/CoreSpotlight/*/index.spotlightV*/*",
+                "/Users/*/Library/Caches/com.apple.helpd/*/index.spotlightV*/*",
             ]);
         }
         default_paths
     };
 
+    let mut accessor = Accessor::with_defaults();
     for glob in paths {
-        if let Err(err) = parse_spotlight(&glob, manager, options) {
+        if let Err(err) = parse_spotlight(glob, manager, options, &mut accessor) {
             error!["Could not parse spotlight for '{glob}': {err:?}"];
         }
     }

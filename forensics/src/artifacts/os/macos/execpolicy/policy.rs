@@ -1,10 +1,10 @@
 use super::error::ExecPolicyError;
 use crate::{
-    filesystem::files::is_file, structs::artifacts::os::macos::ExecPolicyOptions,
+    accessor::access::Accessor, structs::artifacts::os::macos::ExecPolicyOptions,
     utils::time::unixepoch_to_iso,
 };
 use common::macos::ExecPolicy;
-use rusqlite::{Connection, OpenFlags};
+use rusqlite::{Connection, MAIN_DB};
 use tracing::error;
 
 /// Query `ExecPolicy` database
@@ -17,24 +17,26 @@ pub(crate) fn grab_execpolicy(
         "/var/db/SystemPolicyConfiguration/ExecPolicy"
     };
 
-    if !is_file(path) {
-        return Err(ExecPolicyError::PathError);
-    }
-
-    // Bypass SQLITE file lock
-    let history_file = format!("file:{path}?immutable=1");
-    let connection = Connection::open_with_flags(
-        history_file,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    );
-
-    let conn = match connection {
-        Ok(connect) => connect,
+    let mut accessor = Accessor::with_defaults();
+    let bytes = match accessor.read_file(path) {
+        Ok(result) => result,
         Err(err) => {
             error!("Failed to read ExecPolicy SQLITE file {err:?}");
+            return Err(ExecPolicyError::PathError);
+        }
+    };
+
+    let mut conn = match Connection::open_in_memory() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to crate in memory SQLITE file {err:?}");
             return Err(ExecPolicyError::SQLITEParseError);
         }
     };
+    if let Err(err) = conn.deserialize_read_exact(MAIN_DB, &bytes[..], bytes.len(), true) {
+        error!("Failed to deserialize ExecPolicy SQLITE file {err:?}");
+        return Err(ExecPolicyError::PathError);
+    }
 
     let  statement = conn.prepare("select is_signed,file_identifier,bundle_identifier,bundle_version,executable_measurements_v2.team_identifier as team_identifier,executable_measurements_v2.signing_identifier as signing_identifier,executable_measurements_v2.cdhash as cdhash,main_executable_hash,executable_timestamp,file_size,is_library,is_used,responsible_file_identifier,is_valid,is_quarantined,executable_measurements_v2.timestamp as executable_measurements_v2_timestamp,reported_timestamp,pk,volume_uuid,object_id,fs_type_name,bundle_id,policy_match,malware_result,flags,mod_time,policy_scan_cache.timestamp as policy_scan_cache_timestamp,revocation_check_time,scan_version,top_policy_match from executable_measurements_v2 left join policy_scan_cache on policy_scan_cache.cdhash = executable_measurements_v2.cdhash;");
     let mut stmt = match statement {

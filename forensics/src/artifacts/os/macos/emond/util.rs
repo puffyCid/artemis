@@ -12,7 +12,7 @@ pub(crate) fn get_dictionary_values(dict_data: Value) -> Vec<Dictionary> {
         }
         dictionary_vec
     } else {
-        warn!("No dictionary array in PLIST file");
+        warn!("No dictionary array in plist file");
         dictionary_vec
     }
 }

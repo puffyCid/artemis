@@ -1,3 +1,5 @@
+use crate::accessor::{access::Accessor, entry::handle::FileHandle};
+
 use super::error::PlistError;
 use plist::{Dictionary, Value};
 use tracing::error;
@@ -12,6 +14,25 @@ pub(crate) fn parse_plist_file(path: &str) -> Result<Value, PlistError> {
             Err(PlistError::File)
         }
     }
+}
+
+/// Parse plist from provided file handle
+pub(crate) fn parse_plist_file_handle(
+    accessor: &mut Accessor,
+    handle: &FileHandle,
+) -> Result<Value, PlistError> {
+    let bytes = match accessor.read_file_handle(handle) {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "Could not read plist file '{}': {err:?}",
+                handle.display_path()
+            );
+            return Err(PlistError::File);
+        }
+    };
+
+    parse_plist_data(&bytes)
 }
 
 /// Parse a `plist` from given path and return a dictionary `plist`.
@@ -87,9 +108,13 @@ pub(crate) fn get_float(plist_value: &Value) -> Result<f64, PlistError> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::macos::plist::property_list::{
-            get_array, get_boolean, get_dictionary, get_float, get_string, parse_plist_data,
-            parse_plist_file,
+        accessor::{access::Accessor, entry::handle::FileHandle},
+        artifacts::os::macos::plist::{
+            error::PlistError,
+            property_list::{
+                get_array, get_boolean, get_dictionary, get_float, get_string, parse_plist_data,
+                parse_plist_file, parse_plist_file_handle,
+            },
         },
         filesystem::files::read_file,
     };
@@ -184,5 +209,12 @@ mod tests {
         let buffer = read_file(&test_location.display().to_string()).unwrap();
         let result = parse_plist_data(&buffer).unwrap();
         assert_eq!(result.as_dictionary().unwrap().len(), 4);
+    }
+
+    #[test]
+    fn test_parse_plist_file_handle() {
+        let test = FileHandle::host(PathBuf::from("test"));
+        let err = parse_plist_file_handle(&mut Accessor::with_defaults(), &test).unwrap_err();
+        assert_eq!(err, PlistError::File);
     }
 }
