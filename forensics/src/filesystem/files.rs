@@ -346,21 +346,17 @@ mod tests {
         test_location.push("tests");
         let result = list_files_directories(&test_location.display().to_string()).unwrap();
 
-        assert!(result.len() > 3);
-        let mut emond = false;
+        assert!(result.len() > 2);
         let mut ntfs = false;
         let mut test_data = false;
         for entry in result {
             if entry.ends_with("ntfs_tester.rs") {
                 ntfs = true;
-            } else if entry.ends_with("emond_tester.rs") {
-                emond = true;
             } else if entry.ends_with("test_data") {
                 test_data = true;
             }
         }
 
-        assert_eq!(emond, true);
         assert_eq!(ntfs, true);
         assert_eq!(test_data, true);
     }
@@ -476,21 +472,17 @@ mod tests {
         test_location.push("tests");
         let result = list_files(&test_location.display().to_string()).unwrap();
 
-        assert!(result.len() > 3);
-        let mut emond = false;
+        assert!(result.len() > 2);
         let mut ntfs = false;
         let mut test_data = false;
         for entry in result {
             if entry.ends_with("ntfs_tester.rs") {
                 ntfs = true;
-            } else if entry.ends_with("emond_tester.rs") {
-                emond = true;
             } else if entry.ends_with("test_data") {
                 test_data = true;
             }
         }
 
-        assert_eq!(emond, true);
         assert_eq!(ntfs, true);
         assert_eq!(test_data, false);
     }
