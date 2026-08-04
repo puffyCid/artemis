@@ -107,6 +107,6 @@ Options:
 [artemis] Finished artemis collection!
 
 ./tmp/local_collector/
-artemis_0_8706ce06-ff87-4ea9-8685-c96b64fb2cbe.log  processes_ef308829-a667-496b-b983-d82e7fd7a631.json  report_4b788ee9-721e-4b18-a8f3-b798cef105bf.json
+artemis_0_8706ce06-ff87-4ea9-8685-c96b64fb2cbe.jsonl  processes_ef308829-a667-496b-b983-d82e7fd7a631.json  report_4b788ee9-721e-4b18-a8f3-b798cef105bf.json
 ```
 
