@@ -271,12 +271,6 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         alt_drive: Option<char>,
     },
-    /// macos: Parse ExecPolicy
-    Execpolicy {
-        /// Alternative file path
-        #[arg(long, default_value = None)]
-        alt_file: Option<String>,
-    },
     /// macos: Collect local users
     UsersMacos {
         /// Alternative path to users

@@ -69,27 +69,6 @@ pub(crate) fn emond(data: &mut Value, start: &Option<String>, end: &Option<Strin
     true
 }
 
-/// Timeline macOS `ExecPolicy`
-pub(crate) fn execpolicy(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
-    if !data.is_object() {
-        return false;
-    }
-    let Some(exec_time) = data["executable_timestamp"].as_str() else {
-        return false;
-    };
-
-    if filter_data(exec_time, start, end) {
-        return false;
-    }
-    data["datetime"] = exec_time.into();
-    data["message"] = data["file_identifier"].as_str().unwrap_or_default().into();
-    data["artifact"] = "ExecPolicy".into();
-    data["data_type"] = "macos:sqlite:execpolicy:entry".into();
-    data["timestamp_desc"] = "Executable Timestamp".into();
-
-    true
-}
-
 pub(crate) fn fsevents(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
     if !data.is_object() {
         return false;
@@ -260,8 +239,7 @@ pub(crate) fn sudo_macos(data: &mut Value, start: &Option<String>, end: &Option<
 #[cfg(test)]
 mod tests {
     use crate::artifacts::macos::{
-        emond, execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, unifiedlogs,
-        users_macos,
+        emond, fsevents, groups_macos, launchd, loginitems, spotlight, unifiedlogs, users_macos,
     };
     use serde_json::json;
 
@@ -300,20 +278,6 @@ mod tests {
         assert_eq!(test["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test["artifact"], "Emond");
         assert_eq!(test["message"], "bob rule");
-    }
-
-    #[test]
-    fn test_execpolicy() {
-        let mut test = json!({
-            "executable_timestamp": "2024-01-01T00:00:00.000Z",
-            "file_identifier": "git",
-            "executable_measurements_v2_timestamp": "2024-02-01T00:00:00.000Z",
-        });
-
-        assert!(execpolicy(&mut test, &None, &None));
-        assert_eq!(test["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(test["artifact"], "ExecPolicy");
-        assert_eq!(test["message"], "git");
     }
 
     #[test]

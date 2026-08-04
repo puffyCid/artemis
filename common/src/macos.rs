@@ -233,41 +233,6 @@ pub struct SendNotification {
     pub details: Dictionary,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ExecPolicy {
-    pub is_signed: i64,
-    pub file_identifier: String,
-    pub bundle_identifier: String,
-    pub bundle_version: String,
-    pub team_identifier: String,
-    pub signing_identifier: String,
-    pub cdhash: String,
-    pub main_executable_hash: String,
-    pub executable_timestamp: String,
-    pub file_size: i64,
-    pub is_library: i64,
-    pub is_used: i64,
-    pub responsible_file_identifier: String,
-    pub is_valid: i64,
-    pub is_quarantined: i64,
-    pub executable_measurements_v2_timestamp: String,
-    pub reported_timestamp: String,
-    pub pk: i64,
-    pub volume_uuid: String,
-    pub object_id: i64,
-    pub fs_type_name: String,
-    pub bundle_id: String,
-    pub policy_match: i64,
-    pub malware_result: i64,
-    pub flags: i64,
-    pub mod_time: String,
-    pub policy_scan_cache_timestamp: String,
-    pub revocation_check_time: String,
-    pub scan_version: i64,
-    pub top_policy_match: i64,
-    pub evidence: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FsEvents {
     /**Flags associated with `FsEvent` record */

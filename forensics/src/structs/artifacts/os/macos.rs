@@ -27,11 +27,6 @@ pub struct EmondOptions {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct ExecPolicyOptions {
-    pub alt_file: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 pub struct LaunchdOptions {
     pub alt_file: Option<String>,
 }

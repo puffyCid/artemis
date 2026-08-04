@@ -1,0 +1,3 @@
+kind: Added
+body: Major improvement to reading and accessing data for forensic parsing using new Accessor workflow
+time: 2026-08-03T22:20:14.040836-04:00
