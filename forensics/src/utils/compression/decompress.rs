@@ -2,7 +2,6 @@ use super::{
     error::CompressionError,
     xpress::{huffman::decompress_xpress_huffman, lz77::decompress_lz77, lznt::decompress_lznt},
 };
-use crate::filesystem::files::read_file;
 use flate2::bufread::{MultiGzDecoder, ZlibDecoder};
 use lz4_flex::block::decompress_with_dict;
 use miniz_oxide::{
@@ -17,19 +16,6 @@ use xz2::read::XzDecoder;
 
 #[cfg(target_os = "windows")]
 use crate::utils::compression::xpress::api::decompress_huffman_api;
-
-/// Decompress gzip compressed file
-pub(crate) fn decompress_gzip(path: &str) -> Result<Vec<u8>, CompressionError> {
-    let buffer_result = read_file(path);
-    let buffer = match buffer_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not read file {path}: {err:?}");
-            return Err(CompressionError::GzipReadFile);
-        }
-    };
-    decompress_gzip_data(buffer)
-}
 
 /// Decompress raw gzip bytes
 pub(crate) fn decompress_gzip_data(buffer: Vec<u8>) -> Result<Vec<u8>, CompressionError> {
@@ -332,22 +318,13 @@ mod tests {
         filesystem::files::read_file,
         utils::{
             compression::decompress::{
-                XpressType, decompress_gzip, decompress_gzip_data, decompress_lz4,
-                decompress_seven_bit, decompress_xpress, decompress_xz, decompress_zlib,
-                decompress_zstd,
+                XpressType, decompress_gzip_data, decompress_lz4, decompress_seven_bit,
+                decompress_xpress, decompress_xz, decompress_zlib, decompress_zstd,
             },
             nom_helper::{Endian, nom_unsigned_four_bytes},
         },
     };
     use std::path::PathBuf;
-
-    #[test]
-    fn test_decompress_gzip() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
-        let files = decompress_gzip(&test_location.display().to_string()).unwrap();
-        assert_eq!(files.len(), 78970);
-    }
 
     #[test]
     #[should_panic(expected = "GzipDecompress")]

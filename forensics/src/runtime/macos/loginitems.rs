@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::loginitems::parser::grab_loginitems, runtime::helper::string_arg,
     structs::artifacts::os::macos::LoginitemsOptions,
 };
-use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
+use boa_engine::{Context, JsArgs, JsResult, JsValue};
 
 /// Expose parsing `LoginItems` to `BoaJS`
 pub(crate) fn js_loginitems(
@@ -17,13 +17,7 @@ pub(crate) fn js_loginitems(
     };
 
     let options = LoginitemsOptions { alt_file: path };
-    let loginitems = match grab_loginitems(&options) {
-        Ok(result) => result,
-        Err(err) => {
-            let issue = format!("Failed to get loginitems: {err:?}");
-            return Err(JsError::from_opaque(js_string!(issue).into()));
-        }
-    };
+    let loginitems = grab_loginitems(&options);
 
     let results = serde_json::to_value(&loginitems).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;

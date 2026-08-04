@@ -2,7 +2,6 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum CompressionError {
-    GzipReadFile,
     GzipDecompress,
     ZstdDecompress,
     Lz4Decompress,
@@ -31,7 +30,6 @@ impl std::error::Error for CompressionError {}
 impl fmt::Display for CompressionError {
     fn fmt<'a>(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CompressionError::GzipReadFile => write!(f, "Could not read file"),
             CompressionError::GzipDecompress => write!(f, "Could not decompress gzip data"),
             CompressionError::ZstdDecompress => write!(f, "Could not decompress zstd data"),
             CompressionError::Lz4Decompress => write!(f, "Could not decompress lz4 data"),

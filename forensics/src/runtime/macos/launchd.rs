@@ -2,7 +2,7 @@ use crate::{
     artifacts::os::macos::launchd::launchdaemon::grab_launchd,
     structs::artifacts::os::macos::LaunchdOptions,
 };
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
+use boa_engine::{Context, JsResult, JsValue};
 
 /// Expose parsing launchd daemons to `BoaJS`
 pub(crate) fn js_launchd(
@@ -10,13 +10,7 @@ pub(crate) fn js_launchd(
     _args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let launchd = match grab_launchd(&LaunchdOptions { alt_file: None }) {
-        Ok(result) => result,
-        Err(err) => {
-            let issue = format!("Failed to get launch daemons: {err:?}");
-            return Err(JsError::from_opaque(js_string!(issue).into()));
-        }
-    };
+    let launchd = grab_launchd(&LaunchdOptions { alt_file: None });
     let results = serde_json::to_value(&launchd).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 

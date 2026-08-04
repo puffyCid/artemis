@@ -23,18 +23,11 @@ pub(crate) fn loginitems(
     manager: &mut OutputManager,
     options: &LoginitemsOptions,
 ) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_loginitems(options);
-    let entries = match artifact_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to parse loginitems: {err:?}");
-            return Err(MacArtifactError::LoginItem);
-        }
-    };
-
+    let entries = grab_loginitems(options);
     if entries.is_empty() {
         return Ok(());
     }
+
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
@@ -157,15 +150,7 @@ pub(crate) fn launchd(
     manager: &mut OutputManager,
     options: &LaunchdOptions,
 ) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_launchd(options);
-    let entries = match artifact_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to parse launchd: {err:?}");
-            return Err(MacArtifactError::Launchd);
-        }
-    };
-
+    let entries = grab_launchd(options);
     if entries.is_empty() {
         return Ok(());
     }

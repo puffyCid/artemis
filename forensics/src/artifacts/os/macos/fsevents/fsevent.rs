@@ -265,7 +265,7 @@ mod tests {
             extract_fsevents, fsevents_data, fsevents_header, get_fsevent, get_fsevent_data,
             match_flags,
         },
-        utils::compression::decompress::decompress_gzip,
+        utils::compression::decompress::decompress_gzip_data,
     };
     use std::{fs, path::PathBuf};
 
@@ -283,8 +283,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
         let test_path: &str = &test_location.display().to_string();
-        let files = decompress_gzip(test_path).unwrap();
-        let (results, data) = fsevents_data(&files, test_path).unwrap();
+        let files = Accessor::with_defaults().read_file(test_path).unwrap();
+        let decom_bytes = decompress_gzip_data(files).unwrap();
+        let (results, data) = fsevents_data(&decom_bytes, test_path).unwrap();
         assert_eq!(results.len(), 0);
         assert_eq!(data.len(), 736);
     }
