@@ -1,9 +1,7 @@
-use std::path::PathBuf;
-
 use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 use super::artifacts::os::macos::{
-    EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
-    MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
+    EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
+    MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
 use super::artifacts::os::windows::{MftOptions, OutlookOptions};
 use crate::output::marker::MarkerTracker;
@@ -20,6 +18,7 @@ use crate::structs::artifacts::{
     runtime::script::JSScript,
 };
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ArtemisToml {
@@ -111,7 +110,6 @@ pub struct Artifacts {
     pub users_macos: Option<MacosUsersOptions>,
     pub groups_macos: Option<MacosGroupsOptions>,
     pub emond: Option<EmondOptions>,
-    pub execpolicy: Option<ExecPolicyOptions>,
     pub launchd: Option<LaunchdOptions>,
     pub loginitems: Option<LoginitemsOptions>,
     pub fseventsd: Option<FseventsOptions>,

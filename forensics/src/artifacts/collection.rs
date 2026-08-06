@@ -5,8 +5,8 @@ use super::{
         files::artifact::filelisting,
         linux::artifacts::{ext4_filelist, journals, logons, sudo_logs_linux},
         macos::artifacts::{
-            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
-            sudo_logs_macos, unifiedlogs, users_macos,
+            emond, fseventsd, groups_macos, launchd, loginitems, spotlight, sudo_logs_macos,
+            unifiedlogs, users_macos,
         },
         processes::artifact::processes,
         systeminfo::artifact::systeminfo,
@@ -168,20 +168,6 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Err(err) => {
                         error!("Failed to parse systeminfo: {err:?}");
                         manager.write_failed_artifact(artifact, &"");
-                    }
-                }
-            }
-            "execpolicy" if !skip(&artifacts.execpolicy, &collector.marker, artifact) => {
-                let options = match &artifacts.execpolicy {
-                    Some(result_data) => result_data,
-                    _ => continue,
-                };
-                let results = execpolicy(&mut manager, options);
-                match results {
-                    Ok(_) => info!("Collected execpolicy"),
-                    Err(err) => {
-                        error!("Failed to parse execpolicy: {err:?}");
-                        manager.write_failed_artifact(artifact, options);
                     }
                 }
             }

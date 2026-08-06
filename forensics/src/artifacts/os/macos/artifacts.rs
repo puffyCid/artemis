@@ -2,7 +2,6 @@ use super::{
     accounts::{groups::grab_groups, users::grab_users},
     emond::parser::grab_emond,
     error::MacArtifactError,
-    execpolicy::policy::grab_execpolicy,
     fsevents::parser::grab_fseventsd,
     launchd::launchdaemon::grab_launchd,
     loginitems::parser::grab_loginitems,
@@ -13,9 +12,8 @@ use super::{
 use crate::{
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::{
-        EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
-        MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
-        UnifiedLogsOptions,
+        EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
+        MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
     },
 };
 use tracing::{error, warn};
@@ -25,18 +23,11 @@ pub(crate) fn loginitems(
     manager: &mut OutputManager,
     options: &LoginitemsOptions,
 ) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_loginitems(options);
-    let entries = match artifact_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to parse loginitems: {err:?}");
-            return Err(MacArtifactError::LoginItem);
-        }
-    };
-
+    let entries = grab_loginitems(options);
     if entries.is_empty() {
         return Ok(());
     }
+
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
@@ -159,15 +150,7 @@ pub(crate) fn launchd(
     manager: &mut OutputManager,
     options: &LaunchdOptions,
 ) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_launchd(options);
-    let entries = match artifact_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to parse launchd: {err:?}");
-            return Err(MacArtifactError::Launchd);
-        }
-    };
-
+    let entries = grab_launchd(options);
     if entries.is_empty() {
         return Ok(());
     }
@@ -195,40 +178,6 @@ pub(crate) fn unifiedlogs(
     options: &UnifiedLogsOptions,
 ) -> Result<(), MacArtifactError> {
     grab_logs(options, manager)
-}
-
-/// Get macOS `ExecPolicy`
-pub(crate) fn execpolicy(
-    manager: &mut OutputManager,
-    options: &ExecPolicyOptions,
-) -> Result<(), MacArtifactError> {
-    let artifact_result = grab_execpolicy(options);
-    let entries = match artifact_result {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to query execpolicy: {err:?}");
-            return Err(MacArtifactError::ExecPolicy);
-        }
-    };
-    if entries.is_empty() {
-        return Ok(());
-    }
-
-    let mut records = match serialize_records_to_stream(entries) {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to serialize execpolicy: {err:?}");
-            return Err(MacArtifactError::Serialize);
-        }
-    };
-
-    let artifact_name = "execpolicy";
-    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("Failed to output execpolicy: {err:?}");
-        return Err(MacArtifactError::Output);
-    }
-
-    Ok(())
 }
 
 /// Parse sudo logs on macOS
@@ -285,14 +234,13 @@ mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::macos::artifacts::{
-            emond, execpolicy, fseventsd, groups_macos, launchd, loginitems, spotlight,
-            sudo_logs_macos, unifiedlogs, users_macos,
+            emond, fseventsd, groups_macos, launchd, loginitems, spotlight, sudo_logs_macos,
+            unifiedlogs, users_macos,
         },
         output::manager::OutputManager,
         structs::artifacts::os::macos::{
-            EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
-            MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
-            UnifiedLogsOptions,
+            EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
+            MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
         },
     };
     use std::path::PathBuf;
@@ -373,13 +321,6 @@ mod tests {
         )
         .unwrap();
         assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_execpolicy() {
-        let mut output = output_options("execpolicy_test", "./tmp", true);
-
-        let _status = execpolicy(&mut output, &ExecPolicyOptions { alt_file: None });
     }
 
     #[test]

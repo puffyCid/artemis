@@ -2,8 +2,8 @@ use crate::artifacts::{
     files::files,
     linux::{ext4_filelisting, journal, logons, sudo_linux},
     macos::{
-        emond, execpolicy, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos,
-        unifiedlogs, users_macos,
+        emond, fsevents, groups_macos, launchd, loginitems, spotlight, sudo_macos, unifiedlogs,
+        users_macos,
     },
     processes::{network, processes},
     windows::{
@@ -54,7 +54,6 @@ pub fn timeline_artifact(
         "fseventsd" => fsevents(data, start, end),
         "users-macos" => users_macos(data, start, end),
         "groups-macos" => groups_macos(data),
-        "execpolicy" => execpolicy(data, start, end),
         "unifiedlogs" => unifiedlogs(data, start, end),
         "sudologs-macos" => sudo_macos(data, start, end),
         "spotlight" => spotlight(data, start, end),

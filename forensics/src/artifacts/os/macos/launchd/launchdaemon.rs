@@ -5,7 +5,6 @@
  * References:
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
-use super::error::LaunchdError;
 use crate::{
     accessor::{
         access::Accessor,
@@ -18,8 +17,8 @@ use crate::{
 use common::macos::LaunchdPlist;
 use tracing::warn;
 
-/// Grab `LuanchDaemons` and `LaunchAgents`
-pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>, LaunchdError> {
+/// Grab `LaunchDaemons` and `LaunchAgents`
+pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Vec<LaunchdPlist> {
     let paths = if let Some(alt_file) = &options.alt_file {
         vec![alt_file.as_str()]
     } else {
@@ -49,7 +48,7 @@ pub(crate) fn grab_launchd(options: &LaunchdOptions) -> Result<Vec<LaunchdPlist>
         launchd.append(&mut extract_launchd_data(plist_files, &mut accessor));
     }
 
-    Ok(launchd)
+    launchd
 }
 
 /// Extract the plist data
@@ -118,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_grab_launchd() {
-        let results = grab_launchd(&LaunchdOptions { alt_file: None }).unwrap();
+        let results = grab_launchd(&LaunchdOptions { alt_file: None });
         assert!(results.len() > 5);
     }
 

@@ -77,7 +77,6 @@ Commands:
   wmipersist           windows: Parse WMI Repository
   outlook              windows: Parse Outlook messages
   mft                  windows: Parse MFT file
-  execpolicy           macos: Parse ExecPolicy
   users-macos          macos: Collect local users
   fsevents             macos: Parse FsEvents entries
   emond                macos: Parse Emond persistence. Removed in Ventura
@@ -108,7 +107,6 @@ Options:
 [artemis] Finished artemis collection!
 
 ./tmp/local_collector/
-8706ce06-ff87-4ea9-8685-c96b64fb2cbe.log  processes_ef308829-a667-496b-b983-d82e7fd7a631.json  status_fedora.log
-
+artemis_0_8706ce06-ff87-4ea9-8685-c96b64fb2cbe.jsonl  processes_ef308829-a667-496b-b983-d82e7fd7a631.json  report_4b788ee9-721e-4b18-a8f3-b798cef105bf.json
 ```
 

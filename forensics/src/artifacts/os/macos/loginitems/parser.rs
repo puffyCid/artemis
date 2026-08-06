@@ -8,7 +8,6 @@
  * References:
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
-use super::error::LoginItemError;
 use crate::{
     accessor::{
         access::Accessor,
@@ -21,9 +20,7 @@ use common::macos::LoginItemsData;
 use tracing::warn;
 
 /// Parse `LoginItem` paths on macOS system
-pub(crate) fn grab_loginitems(
-    options: &LoginitemsOptions,
-) -> Result<Vec<LoginItemsData>, LoginItemError> {
+pub(crate) fn grab_loginitems(options: &LoginitemsOptions) -> Vec<LoginItemsData> {
     let paths = if let Some(alt_file) = &options.alt_file {
         vec![alt_file.as_str()]
     } else {
@@ -49,7 +46,7 @@ pub(crate) fn grab_loginitems(
         items.append(&mut extract_loginitem(item_files, &mut accessor));
     }
 
-    Ok(items)
+    items
 }
 
 /// Get `LoginItems` from btm and plist files
@@ -105,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_grab_loginitems() {
-        let _ = grab_loginitems(&LoginitemsOptions { alt_file: None }).unwrap();
+        let _ = grab_loginitems(&LoginitemsOptions { alt_file: None });
     }
 
     #[test]

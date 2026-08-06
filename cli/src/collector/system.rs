@@ -7,9 +7,9 @@ use forensics::{
             files::FileOptions,
             linux::{Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions},
             macos::{
-                EmondOptions, ExecPolicyOptions, FseventsOptions, LaunchdOptions,
-                LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions,
-                SpotlightOptions, UnifiedLogsOptions,
+                EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions,
+                MacosGroupsOptions, MacosSudoOptions, MacosUsersOptions, SpotlightOptions,
+                UnifiedLogsOptions,
             },
             processes::ProcessOptions,
             windows::{
@@ -163,13 +163,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             };
             collect.fseventsd = Some(options);
             collect.artifact_name = String::from("fseventsd");
-        }
-        CommandArgs::Execpolicy { alt_file } => {
-            let options = ExecPolicyOptions {
-                alt_file: alt_file.clone(),
-            };
-            collect.execpolicy = Some(options);
-            collect.artifact_name = String::from("execpolicy");
         }
         CommandArgs::GroupsMacos { alt_dir } => {
             let options = MacosGroupsOptions {
@@ -507,10 +500,10 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
 mod tests {
     use super::{Commands, run_collector, setup_artifact};
     use crate::collector::system::CommandArgs::{
-        Amcache, Bits, Emond, Eventlogs, Execpolicy, Filelisting, Fsevents, GroupsMacos, Journal,
-        Jumplists, Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin,
-        Registry, Services, Shellbags, Shimcache, Shimdb, Spotlight, Srum, SudologsLinux,
-        SudologsMacos, Systeminfo, Tasks, Unifiedlogs, UsersMacos, UsersWindows,
+        Amcache, Bits, Emond, Eventlogs, Filelisting, Fsevents, GroupsMacos, Journal, Jumplists,
+        Launchd, Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin, Registry,
+        Services, Shellbags, Shimcache, Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos,
+        Systeminfo, Tasks, Unifiedlogs, UsersMacos, UsersWindows,
     };
     use forensics::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;
@@ -627,18 +620,6 @@ mod tests {
 
         let command = Commands::Acquire {
             artifact: Some(GroupsMacos { alt_dir: None }),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-            start: None,
-            end: None,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-
-        let command = Commands::Acquire {
-            artifact: Some(Execpolicy { alt_file: None }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),
             compress: false,
