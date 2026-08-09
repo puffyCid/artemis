@@ -10,8 +10,11 @@
  *  `https://ericzimmerman.github.io/PECmd.zip`
  */
 use crate::{
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, FileHandle},
+    },
     artifacts::os::windows::prefetch::error::PrefetchError,
-    filesystem::files::{file_extension, list_files, read_file},
     structs::artifacts::os::windows::PrefetchOptions,
     utils::environment::get_systemdrive,
 };
@@ -34,7 +37,7 @@ pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, 
             return Err(PrefetchError::DriveLetter);
         }
     };
-    let path = format!("{drive}:\\Windows\\Prefetch");
+    let path = format!("{drive}:\\Windows\\Prefetch\\*.pf");
     read_directory(&path)
 }
 
@@ -45,46 +48,57 @@ pub(crate) fn custom_prefetch_path(path: &str) -> Result<Vec<Prefetch>, Prefetch
 
 /// Read all files at provided path
 fn read_directory(path: &str) -> Result<Vec<Prefetch>, PrefetchError> {
-    let dir_results = list_files(path);
-    let read_dir = match dir_results {
-        Ok(result) => result,
+    let mut accessor = Accessor::with_defaults();
+    let pf_paths = match accessor.globfs(path) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Failed to get prefetch files {path}, error: {err:?}");
+            error!("Failed to glob prefetch files {path}, error: {err:?}");
             return Err(PrefetchError::ReadDirectory);
         }
     };
-    let mut prefetch_data: Vec<Prefetch> = Vec::new();
 
-    for pf_file in read_dir {
-        // Skip non-prefetch files
-        if file_extension(&pf_file) != "pf" {
+    let mut prefetch_data = Vec::new();
+
+    for pf_path in pf_paths {
+        if pf_path.meta.kind != EntryKind::File {
             continue;
         }
 
-        let prefetch_results = read_prefetch(&pf_file);
-        match prefetch_results {
-            Ok(result) => prefetch_data.push(result),
+        let Some(pf_file) = pf_path.handle.as_file() else {
+            continue;
+        };
+
+        let pf_value = match read_prefetch(&mut accessor, pf_file) {
+            Ok(results) => results,
             Err(err) => {
-                error!("Failed to get prefetch for {pf_file}, error: {err:?}");
+                error!(
+                    "Failed to get prefetch for {}, error: {err:?}",
+                    pf_file.display_path()
+                );
+                continue;
             }
-        }
+        };
+
+        prefetch_data.push(pf_value);
     }
 
     Ok(prefetch_data)
 }
 
 /// Read and parse the prefetch file
-fn read_prefetch(path: &str) -> Result<Prefetch, PrefetchError> {
-    let buffer_results = read_file(path);
-    let buffer = match buffer_results {
+fn read_prefetch(accessor: &mut Accessor, pf_file: &FileHandle) -> Result<Prefetch, PrefetchError> {
+    let buffer = match accessor.read_file_handle(pf_file) {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to read prefetch file {path}, error: {err:?}");
+            error!(
+                "Failed to read prefetch file {}, error: {err:?}",
+                pf_file.display_path()
+            );
             return Err(PrefetchError::ReadFile);
         }
     };
 
-    parse_prefetch(&buffer, path)
+    parse_prefetch(&buffer, &pf_file.display_path())
 }
 
 #[cfg(test)]
@@ -92,7 +106,11 @@ fn read_prefetch(path: &str) -> Result<Prefetch, PrefetchError> {
 mod tests {
     use super::{custom_prefetch_path, grab_prefetch};
     use crate::{
-        artifacts::os::windows::prefetch::parser::{read_directory, read_prefetch},
+        accessor::{access::Accessor, entry::handle::FileHandle},
+        artifacts::os::windows::prefetch::{
+            error::PrefetchError,
+            parser::{read_directory, read_prefetch},
+        },
         structs::artifacts::os::windows::PrefetchOptions,
     };
     use std::path::PathBuf;
@@ -232,8 +250,9 @@ mod tests {
     fn test_read_prefetch() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/win81/CMD.EXE-AC113AA8.pf");
+        let handle = FileHandle::host(test_location);
 
-        let results = read_prefetch(&test_location.display().to_string()).unwrap();
+        let results = read_prefetch(&mut Accessor::with_defaults(), &handle).unwrap();
 
         assert_eq!(results.evidence.contains("CMD.EXE-AC113AA8.pf"), true);
         assert_eq!(results.filename, "CMD.EXE");
@@ -290,11 +309,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Version")]
     fn test_read_bad_prefetch() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/prefetch/bad data/malformed.pf");
 
-        let _ = read_prefetch(&test_location.display().to_string()).unwrap();
+        let err = read_prefetch(
+            &mut Accessor::with_defaults(),
+            &FileHandle::host(test_location),
+        )
+        .unwrap_err();
+
+        assert_eq!(err, PrefetchError::Version)
     }
 }
