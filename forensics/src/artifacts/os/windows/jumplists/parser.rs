@@ -15,8 +15,7 @@
  */
 use super::{error::JumplistError, jumplist::get_jumplists};
 use crate::{
-    filesystem::metadata::glob_paths, structs::artifacts::os::windows::JumplistsOptions,
-    utils::environment::get_systemdrive,
+    structs::artifacts::os::windows::JumplistsOptions, utils::environment::get_systemdrive,
 };
 use common::windows::JumplistEntry;
 use tracing::error;
@@ -42,16 +41,7 @@ pub(crate) fn grab_jumplists(
         )
     };
 
-    let glob_results = glob_paths(&path);
-    let glob_paths = match glob_results {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not glob jumplist paths {path}: {err:?}");
-            return Err(JumplistError::ReadFile);
-        }
-    };
-
-    get_jumplists(&glob_paths)
+    get_jumplists(&path)
 }
 
 #[cfg(test)]

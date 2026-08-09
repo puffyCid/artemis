@@ -1,18 +1,39 @@
 use super::{automatic::parse_automatic, custom::parse_custom, error::JumplistError};
-use crate::filesystem::{files::read_file, metadata::GlobInfo};
+use crate::accessor::{
+    access::Accessor,
+    entry::handle::{EntryKind, FileHandle},
+};
 use common::windows::JumplistEntry;
 use tracing::error;
 
-/// Get `Jumplists` from an array of globbed paths
-pub(crate) fn get_jumplists(paths: &[GlobInfo]) -> Result<Vec<JumplistEntry>, JumplistError> {
+/// Get `Jumplists` from a provided glob
+pub(crate) fn get_jumplists(jump_glob: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(jump_glob) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Could not glob jumplists {jump_glob}: {err:?}");
+            return Err(JumplistError::ParseJumplist);
+        }
+    };
     let mut jumps = Vec::new();
 
     for path in paths {
-        let jump_result = get_jumplist_path(&path.full_path);
+        if path.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = path.handle.as_file() else {
+            continue;
+        };
+        let jump_result = get_jumplist_path(handle, &mut accessor);
         let mut jump = match jump_result {
             Ok(result) => result,
             Err(err) => {
-                error!("Could not parse Jumplist file {}: {err:?}", path.full_path);
+                error!(
+                    "Could not parse Jumplist file {}: {err:?}",
+                    handle.display_path()
+                );
                 continue;
             }
         };
@@ -23,8 +44,12 @@ pub(crate) fn get_jumplists(paths: &[GlobInfo]) -> Result<Vec<JumplistEntry>, Ju
 }
 
 /// Parse a single `Jumplist` file at provided path. Supports both Custom and Automatic
-pub(crate) fn get_jumplist_path(path: &str) -> Result<Vec<JumplistEntry>, JumplistError> {
-    let jump_data_result = read_file(path);
+fn get_jumplist_path(
+    handle: &FileHandle,
+    accessor: &mut Accessor,
+) -> Result<Vec<JumplistEntry>, JumplistError> {
+    let path = &handle.display_path();
+    let jump_data_result = accessor.read_file_handle(handle);
     let jump_data = match jump_data_result {
         Ok(result) => result,
         Err(err) => {
@@ -62,8 +87,8 @@ pub(crate) fn get_jumplist_path(path: &str) -> Result<Vec<JumplistEntry>, Jumpli
 mod tests {
     use super::get_jumplists;
     use crate::{
+        accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::windows::jumplists::jumplist::get_jumplist_path,
-        filesystem::metadata::glob_paths,
     };
     use common::windows::ListType;
     use std::path::PathBuf;
@@ -73,8 +98,7 @@ mod tests {
         let path =
             format!("C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*Destinations\\*");
 
-        let globs = glob_paths(&path).unwrap();
-        let _ = get_jumplists(&globs).unwrap();
+        let _ = get_jumplists(&path).unwrap();
     }
 
     #[test]
@@ -84,7 +108,9 @@ mod tests {
             "tests/test_data/windows/jumplists/win10/custom/1ced32d74a95c7bc.customDestinations-ms",
         );
 
-        let result = get_jumplist_path(&test_location.display().to_string()).unwrap();
+        let handle = FileHandle::host(test_location);
+
+        let result = get_jumplist_path(&handle, &mut Accessor::with_defaults()).unwrap();
         assert_eq!(result.len(), 8);
         assert_eq!(result[0].jumplist_type, ListType::Custom);
         assert_eq!(result[0].lnk_info.created, "2019-10-21T05:48:39.785Z");
