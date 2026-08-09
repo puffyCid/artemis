@@ -1,7 +1,4 @@
-use crate::{
-    filesystem::files::{file_reader, file_too_large},
-    utils::encoding::base64_encode_standard,
-};
+use crate::{accessor::access::Accessor, utils::encoding::base64_encode_standard};
 use common::windows::PeInfo;
 use pelite::PeFile;
 use std::io::{Read, Seek, SeekFrom};
@@ -9,11 +6,11 @@ use tracing::error;
 
 /// Read a `PE` file at provided path
 pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
-    let reader_result = file_reader(path);
-    let mut reader = match reader_result {
+    let mut accessor = Accessor::with_defaults();
+    let mut reader = match accessor.open_reader(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not get reader for {path}: {err:?}");
+            error!("Could not get file reader for {path}. Error: {err:?}");
             return Err(pelite::Error::Invalid);
         }
     };
@@ -32,18 +29,13 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
         return Err(pelite::Error::Invalid);
     }
 
-    if file_too_large(path) {
-        return Err(pelite::Error::Invalid);
-    }
-
-    let mut data = Vec::new();
-
-    // Allow File read_to_end because we partially read the file above to check for Magic Header
-    #[allow(clippy::verbose_file_reads)]
-    let data_result = reader.read_to_end(&mut data);
-    match data_result {
-        Ok(_) => {}
-        Err(_) => return Err(pelite::Error::Overflow),
+    // The `Accessor` will auto reject files larger than 2GB
+    let data = match accessor.read_file(path) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to read file {path}: {err:?}");
+            return Err(pelite::Error::Overflow);
+        }
     };
 
     let mut info = PeInfo::default();

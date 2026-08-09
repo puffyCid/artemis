@@ -10,7 +10,7 @@
  *   `https://lief-project.github.io/`
  */
 use super::{commands::command::Commands, error::MachoError, fat::FatHeader, header::MachoHeader};
-use crate::{accessor::access::Accessor, filesystem::files::file_too_large};
+use crate::accessor::access::Accessor;
 use common::macos::MachoInfo;
 use std::io::{Read, Seek, SeekFrom};
 use tracing::error;
@@ -42,16 +42,13 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         return Err(MachoError::Buffer);
     }
 
-    if file_too_large(path) {
-        return Err(MachoError::Buffer);
-    }
-
-    let mut data = Vec::new();
-
-    let data_result = reader.read_to_end(&mut data);
-    match data_result {
-        Ok(_) => {}
-        Err(_) => return Err(MachoError::Buffer),
+    // The `Accessor` will auto reject files larger than 2GB
+    let data = match accessor.read_file(path) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to read file {path}: {err:?}");
+            return Err(MachoError::Buffer);
+        }
     };
 
     let min_header_len = 4;
