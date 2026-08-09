@@ -2,10 +2,8 @@ use super::{
     error::RegistryError, hbin::HiveBin, header::RegHeader, keys::sk::SecurityKey, parser::Params,
 };
 use crate::{
-    filesystem::ntfs::{
-        raw_files::{raw_read_by_file_ref, raw_read_file},
-        setup::NtfsParser,
-    },
+    accessor::{access::Accessor, entry::handle::FileHandle},
+    filesystem::ntfs::{raw_files::raw_read_by_file_ref, setup::NtfsParser},
     output::manager::OutputManager,
     structs::artifacts::os::windows::RegistryOptions,
 };
@@ -99,14 +97,33 @@ pub(crate) fn parse_raw_registry<'a>(
 
 /// Read the `Registry` file provided at path
 pub(crate) fn read_registry(path: &str) -> Result<Vec<u8>, RegistryError> {
-    let result = raw_read_file(path);
-    match result {
-        Ok(buffer) => Ok(buffer),
+    // Use our accessor to read the provided Registry path
+    let bytes = match Accessor::with_defaults().read_file(path) {
+        Ok(buffer) => buffer,
         Err(err) => {
             error!("Failed to read registry file {path}, error: {err:?}");
-            Err(RegistryError::ReadRegistry)
+            return Err(RegistryError::ReadRegistry);
         }
-    }
+    };
+
+    Ok(bytes)
+}
+
+/// Read the `Registry` file provided at file handle
+pub(crate) fn read_registry_handle(handle: &FileHandle) -> Result<Vec<u8>, RegistryError> {
+    // Use our accessor to read the provided Registry path
+    let bytes = match Accessor::with_defaults().read_file_handle(handle) {
+        Ok(buffer) => buffer,
+        Err(err) => {
+            error!(
+                "Failed to read registry file handle {}, error: {err:?}",
+                handle.display_path()
+            );
+            return Err(RegistryError::ReadRegistry);
+        }
+    };
+
+    Ok(bytes)
 }
 
 /// Read the `Registry` file provided at file reference
@@ -163,8 +180,8 @@ mod tests {
     #[test]
     fn test_read_registry() {
         let test = [
-            "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
-            "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
+            "ntfs:C:\\Windows\\appcompat\\Programs\\Amcache.hve",
+            "ntfs:C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
         ];
         let mut pass = false;
         for entry in test {
@@ -184,8 +201,8 @@ mod tests {
     #[test]
     fn test_parse_raw_registry() {
         let test = [
-            "C:\\Windows\\appcompat\\Programs\\Amcache.hve",
-            "C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
+            "ntfs:C:\\Windows\\appcompat\\Programs\\Amcache.hve",
+            "ntfs:C:\\Windows\\AppCompat\\Programs\\Amcache.hve",
         ];
 
         let mut pass = false;
