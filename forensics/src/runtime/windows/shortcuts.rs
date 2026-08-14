@@ -1,5 +1,6 @@
 use crate::{
-    artifacts::os::windows::shortcuts::parser::grab_lnk_file, runtime::helper::string_arg,
+    accessor::access::Accessor, artifacts::os::windows::shortcuts::parser::parse_lnk_data,
+    runtime::helper::string_arg,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
@@ -10,10 +11,18 @@ pub(crate) fn js_lnk(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
 
-    let lnk = match grab_lnk_file(&path) {
+    let bytes = match Accessor::with_defaults().read_file(&path) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get shortcut {path}: {err:?}");
+            let issue = format!("Failed to read shortcut {path}: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let lnk = match parse_lnk_data(&bytes) {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Failed to parse shortcut {path}: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };

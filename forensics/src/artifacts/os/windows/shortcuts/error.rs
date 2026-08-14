@@ -6,7 +6,7 @@ pub enum LnkError {
     BadHeader,
     ReadFile,
     NotLnkData,
-    ReadDirectory,
+    Glob,
 }
 
 impl std::error::Error for LnkError {}
@@ -18,7 +18,7 @@ impl fmt::Display for LnkError {
             LnkError::BadHeader => write!(f, "Bad LNK header"),
             LnkError::ReadFile => write!(f, "Could not read lnk file"),
             LnkError::NotLnkData => write!(f, "Not shortcut data"),
-            LnkError::ReadDirectory => write!(f, "Could not read directory"),
+            LnkError::Glob => write!(f, "Could not glob files"),
         }
     }
 }

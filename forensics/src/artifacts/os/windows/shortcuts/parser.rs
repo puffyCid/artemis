@@ -15,47 +15,57 @@
  * `https://github.com/Velocidex/velociraptor`
  */
 use super::{error::LnkError, header::LnkHeader, shortcut::get_shortcut_data};
-use crate::filesystem::{files::read_file, metadata::glob_paths};
+use crate::accessor::{
+    access::Accessor,
+    entry::handle::{EntryKind, FileHandle},
+};
 use common::windows::ShortcutInfo;
 use tracing::error;
 
 /// `Shortcut` files can be location anywhere. Provide a directory and parse any `lnk` (`Shortcut`) files
 pub(crate) fn grab_lnk_directory(path: &str) -> Result<Vec<ShortcutInfo>, LnkError> {
-    let files_results = glob_paths(path);
-    let files = match files_results {
+    let mut accessor = Accessor::with_defaults();
+
+    let files = match accessor.globfs(path) {
         Ok(results) => results,
         Err(err) => {
-            error!("Could not list files at path {path}: {err:?}");
-            return Err(LnkError::ReadDirectory);
+            error!("Could not glob files at path {path}: {err:?}");
+            return Err(LnkError::Glob);
         }
     };
 
     let mut shortcut_info = Vec::new();
     for file in files {
-        if !file.is_file {
+        if file.meta.kind != EntryKind::File {
             continue;
         }
-        let result = grab_lnk_file(&file.full_path);
+
+        let Some(handle) = file.handle.as_file() else {
+            continue;
+        };
+        let result = grab_lnk_file(&handle, &mut accessor);
         match result {
             Ok(info) => shortcut_info.push(info),
-            Err(_err) => error!("Failed to parse file: {}", file.full_path),
+            Err(_err) => error!("Failed to parse file: {}", handle.display_path()),
         }
     }
     Ok(shortcut_info)
 }
 
 /// Parse a single `shortcut` file
-pub(crate) fn grab_lnk_file(path: &str) -> Result<ShortcutInfo, LnkError> {
-    let result = read_file(path);
-    let lnk_data = match result {
+pub(crate) fn grab_lnk_file(
+    file_handle: &FileHandle,
+    accessor: &mut Accessor,
+) -> Result<ShortcutInfo, LnkError> {
+    let bytes = match accessor.read_file_handle(file_handle) {
         Ok(data) => data,
         Err(err) => {
             error!("Could not read lnk file: {err:?}");
             return Err(LnkError::ReadFile);
         }
     };
-    let mut shortcut_info = parse_lnk_data(&lnk_data)?;
-    shortcut_info.evidence = path.to_string();
+    let mut shortcut_info = parse_lnk_data(&bytes)?;
+    shortcut_info.evidence = file_handle.display_path();
     Ok(shortcut_info)
 }
 
@@ -89,9 +99,10 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{grab_lnk_directory, grab_lnk_file};
+    use crate::accessor::access::Accessor;
+    use crate::accessor::entry::handle::FileHandle;
     use crate::artifacts::os::windows::shortcuts::parser::parse_lnk_data;
     use crate::filesystem::directory::{get_user_paths, is_directory};
-    use crate::filesystem::files::list_files;
     use common::windows::ShellType::{Delegate, Directory, RootFolder};
     use common::windows::{AttributeFlags, DataFlags, DriveType, LocationFlag, ShellItem};
     use std::path::PathBuf;
@@ -99,17 +110,24 @@ mod tests {
     #[test]
     fn test_recent_files() {
         let users = get_user_paths().unwrap();
+        let mut accessor = Accessor::with_defaults();
         for user in users {
             let path = format!("{}\\AppData\\Roaming\\Microsoft\\Windows\\Recent", user);
             if !is_directory(&path) {
                 continue;
             }
-            let files = list_files(&path).unwrap();
+            let files = accessor.read_dir(&path).unwrap();
+
             for file in files {
-                if !file.ends_with("lnk") {
+                if !file
+                    .handle
+                    .as_file()
+                    .is_some_and(|f| f.display_path().ends_with("lnk"))
+                {
                     continue;
                 }
-                let result = grab_lnk_file(&file).unwrap();
+
+                let result = grab_lnk_file(&file.handle.as_file().unwrap(), &mut accessor).unwrap();
                 assert_eq!(result.evidence.ends_with("lnk"), true);
             }
         }
@@ -249,7 +267,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location
             .push("tests/test_data/dfir/windows/lnk/win2012/Windows.SystemToast.Share.lnk");
-        let result = grab_lnk_file(&test_location.display().to_string()).unwrap();
+
+        let handle = FileHandle::host(test_location);
+        let result = grab_lnk_file(&handle, &mut Accessor::with_defaults()).unwrap();
 
         assert_eq!(
             result.data_flags,

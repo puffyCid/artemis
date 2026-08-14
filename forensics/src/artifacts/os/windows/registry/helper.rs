@@ -126,6 +126,35 @@ pub(crate) fn read_registry_handle(handle: &FileHandle) -> Result<Vec<u8>, Regis
     Ok(bytes)
 }
 
+/// Parse provided `Registry` `FileHandle` at starting Key path and apply any optional Key path regex filtering
+/// Use `get_registry_keys_by_ref` if you want to provide a `Registry` file reference
+pub(crate) fn get_registry_keys_handle(
+    start_path: String,
+    regex: Regex,
+    file_handle: &FileHandle,
+) -> Result<Vec<RegistryData>, RegistryError> {
+    let mut params = Params {
+        start_path: start_path,
+        path_regex: regex,
+        registry_list: Vec::new(),
+        key_tracker: Vec::new(),
+        offset_tracker: HashMap::new(),
+        registry_path: file_handle.display_path(),
+    };
+    let buffer = read_registry_handle(file_handle)?;
+    let reg_entries_results = parse_raw_registry(&buffer, &mut params, &mut None, None);
+    match reg_entries_results {
+        Ok((_, results)) => Ok(results),
+        Err(_err) => {
+            error!(
+                "Failed to parse registry file {}",
+                file_handle.display_path()
+            );
+            Err(RegistryError::Parser)
+        }
+    }
+}
+
 /// Read the `Registry` file provided at file reference
 pub(crate) fn read_registry_ref(
     ntfs_ref: NtfsFileReference,
@@ -171,7 +200,11 @@ mod tests {
         read_registry_ref,
     };
     use crate::{
-        artifacts::os::windows::registry::{helper::lookup_sk_info, parser::Params},
+        accessor::entry::handle::FileHandle,
+        artifacts::os::windows::registry::{
+            helper::{get_registry_keys_handle, lookup_sk_info},
+            parser::Params,
+        },
         filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     };
     use regex::Regex;
@@ -236,6 +269,36 @@ mod tests {
         let regex = Regex::new(r".*\\typedurls").unwrap();
         let result =
             get_registry_keys(start_path, &regex, &test_location.display().to_string()).unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "TypedURLs");
+        assert_eq!(
+            result[0].path,
+            "ROOT\\SOFTWARE\\Microsoft\\Internet Explorer\\TypedURLs"
+        );
+        assert_eq!(
+            result[0].key,
+            "ROOT\\SOFTWARE\\Microsoft\\Internet Explorer"
+        );
+        assert_eq!(result[0].values.len(), 1);
+
+        assert_eq!(result[0].values[0].value, "url1");
+        assert_eq!(result[0].values[0].data_type, "REG_SZ");
+        assert_eq!(
+            result[0].values[0].data,
+            "http://go.microsoft.com/fwlink/p/?LinkId=255141"
+        );
+        assert_eq!(result[0].last_modified, "2019-12-07T09:16:14.599Z");
+        assert_eq!(result[0].depth, 4);
+    }
+
+    #[test]
+    fn test_get_registry_keys_handle() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        let start_path = String::from("ROOT\\SOFTWARE\\Microsoft\\");
+        let regex = Regex::new(r".*\\typedurls").unwrap();
+        let result =
+            get_registry_keys_handle(start_path, regex, &FileHandle::host(test_location)).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].name, "TypedURLs");
         assert_eq!(
