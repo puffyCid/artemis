@@ -96,7 +96,7 @@ fn parse_amcache(handle: &FileHandle) -> Result<Vec<Amcache>, AmcacheError> {
         }
     };
 
-    let mut amcache_vec: Vec<Amcache> = Vec::new();
+    let mut amcache_vec = Vec::new();
     for entry in amcache {
         let old_path_depth = 5;
         let amcache_entry = if entry.path.contains("Root\\File\\")

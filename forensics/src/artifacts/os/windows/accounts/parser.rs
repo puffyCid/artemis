@@ -8,19 +8,20 @@ use tracing::error;
 
 /// Get Windows `Users` for based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_users(options: &WindowsUserOptions) -> Result<Vec<UserInfo>, AccountError> {
-    if let Some(file) = &options.alt_file {
-        return parse_user_info(file);
-    }
-    let drive_result = get_systemdrive();
-    let drive = match drive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not get default system drive letter: {err:?}");
-            return Err(AccountError::DefaultDrive);
-        }
+    let path = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let drive_result = get_systemdrive();
+        let drive = match drive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not get default system drive letter: {err:?}");
+                return Err(AccountError::DefaultDrive);
+            }
+        };
+        // Account info could be found in multiple Registry files, currently only focusing on SAM
+        format!("ntfs:{drive}:\\Windows\\System32\\config\\SAM")
     };
-    // Account info could be found in multiple Registry files, currently only focusing on SAM
-    let path = format!("{drive}:\\Windows\\System32\\config\\SAM");
 
     parse_user_info(&path)
 }
@@ -36,7 +37,7 @@ pub(crate) fn get_users() -> Result<HashMap<String, String>, AccountError> {
         }
     };
     // Account info could be found in multiple Registry files, currently only focusing on SAM
-    let path = format!("{drive}:\\Windows\\System32\\config\\SAM");
+    let path = format!("ntfs:{drive}:\\Windows\\System32\\config\\SAM");
 
     let mut users = HashMap::new();
     let entries = parse_user_info(&path)?;

@@ -30,9 +30,9 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
         }
     };
 
-    let mut user_rids: HashMap<String, String> = HashMap::new();
-    let mut user_info: HashMap<String, String> = HashMap::new();
-    let mut sid_info: HashMap<String, String> = HashMap::new();
+    let mut user_rids = HashMap::new();
+    let mut user_info = HashMap::new();
+    let mut sid_info = HashMap::new();
     // Look for account data under the Users key
     for path in reg_data {
         if !path.path.contains("Account\\Users") {
@@ -274,7 +274,7 @@ mod tests {
 
     #[test]
     fn test_parser_user_info() {
-        let test_path = "C:\\Windows\\System32\\config\\SAM";
+        let test_path = "ntfs:C:\\Windows\\System32\\config\\SAM";
         let results = parse_user_info(&test_path).unwrap();
         assert!(results.len() > 2);
         assert_eq!(results[0].evidence, test_path)
