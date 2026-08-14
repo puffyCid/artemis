@@ -1,7 +1,8 @@
 use super::error::AccountError;
 use crate::{
+    accessor::{access::Accessor, entry::handle::EntryKind},
     artifacts::os::windows::{
-        registry::helper::get_registry_keys, securitydescriptor::sid::grab_sid,
+        registry::helper::get_registry_keys_handle, securitydescriptor::sid::grab_sid,
     },
     utils::{
         encoding::base64_decode_standard,
@@ -12,27 +13,56 @@ use crate::{
         time::filetime_to_iso,
     },
 };
-use common::windows::{UacFlags, UserInfo};
+use common::windows::{RegistryData, UacFlags, UserInfo};
 use nom::bytes::complete::{take, take_until};
 use std::collections::HashMap;
 use tracing::error;
 
 /// Parse user account info
-pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError> {
-    let reg = create_regex("").unwrap(); // Always valid
-    let start_path = "";
-    let reg_result = get_registry_keys(start_path, &reg, path);
-    let reg_data = match reg_result {
+pub(crate) fn parse_user_info(pattern: &str) -> Result<Vec<UserInfo>, AccountError> {
+    let mut accessor = Accessor::with_defaults();
+    let glob_paths = match accessor.globfs(pattern) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not get user info from registry: {err:?}");
+            error!("Could not glob for Windows User accounts from {pattern}: {err:?}");
             return Err(AccountError::GetUserInfo);
         }
     };
 
+    let mut users = Vec::new();
+    for entry in glob_paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+        let reg = create_regex("").unwrap(); // Always valid
+        let start_path = String::new();
+        let reg_result = get_registry_keys_handle(start_path, reg, handle);
+        let reg_data = match reg_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not get user info from registry: {err:?}");
+                continue;
+            }
+        };
+
+        let mut accounts = parse_account_registry(reg_data, handle.display_path());
+        users.append(&mut accounts);
+    }
+
+    Ok(users)
+}
+
+fn parse_account_registry(reg_data: Vec<RegistryData>, evidence: String) -> Vec<UserInfo> {
     let mut user_rids = HashMap::new();
     let mut user_info = HashMap::new();
     let mut sid_info = HashMap::new();
+
+    let mut users = Vec::new();
+
     // Look for account data under the Users key
     for path in reg_data {
         if !path.path.contains("Account\\Users") {
@@ -54,7 +84,6 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
         }
     }
 
-    let mut users: Vec<UserInfo> = Vec::new();
     for (key, value) in user_rids {
         let rid_result = key.parse::<u32>();
         let rid = match rid_result {
@@ -80,7 +109,7 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
                 }
             };
 
-            let info_result = parse_user_data(&user_data, path);
+            let info_result = parse_user_data(&user_data, &evidence);
             let (_, mut info) = match info_result {
                 Ok(result) => result,
                 Err(_err) => {
@@ -114,7 +143,8 @@ pub(crate) fn parse_user_info(path: &str) -> Result<Vec<UserInfo>, AccountError>
             users.push(info);
         }
     }
-    Ok(users)
+
+    users
 }
 
 /// Parse the account data
