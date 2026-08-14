@@ -56,6 +56,7 @@ pub(crate) fn parse_user_info(pattern: &str) -> Result<Vec<UserInfo>, AccountErr
     Ok(users)
 }
 
+/// Extract account info from the `Registry`
 fn parse_account_registry(reg_data: Vec<RegistryData>, evidence: String) -> Vec<UserInfo> {
     let mut user_rids = HashMap::new();
     let mut user_info = HashMap::new();
