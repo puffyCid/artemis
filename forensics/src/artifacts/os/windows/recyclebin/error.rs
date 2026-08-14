@@ -4,7 +4,6 @@ use std::fmt;
 pub(crate) enum RecycleBinError {
     ReadFile,
     Systemdrive,
-    ParseFile,
 }
 
 impl std::error::Error for RecycleBinError {}
@@ -14,7 +13,6 @@ impl fmt::Display for RecycleBinError {
         match self {
             RecycleBinError::ReadFile => write!(f, "Failed to read Recycle Bin file"),
             RecycleBinError::Systemdrive => write!(f, "Failed to get systemdrive"),
-            RecycleBinError::ParseFile => write!(f, "Failed to parse Recycle Bin file"),
         }
     }
 }
