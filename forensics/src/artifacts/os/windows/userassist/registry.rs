@@ -1,7 +1,12 @@
 use super::error::UserAssistError;
 use crate::{
-    artifacts::os::windows::registry::helper::{get_registry_keys, get_registry_keys_by_ref},
-    filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, GlobMatch},
+    },
+    artifacts::os::windows::registry::{
+        helper::get_registry_keys_handle, parser::user_registry_files,
+    },
     utils::regex_options::create_regex,
 };
 use common::windows::RegistryData;
@@ -14,8 +19,7 @@ pub(crate) struct UserAssistReg {
 
 /// Grab the `UserAssist` data from the Registry based on provided drive letter
 pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, UserAssistError> {
-    let user_reg_results = get_user_registry_files(drive);
-    let user_hives = match user_reg_results {
+    let paths = match user_registry_files(drive) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not get user hives: {err:?}");
@@ -23,39 +27,54 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
         }
     };
 
-    let parser_result = setup_ntfs_parser(drive);
-    let mut ntfs_parser = match parser_result {
-        Ok(result) => result,
+    extract_userassist(paths)
+}
+
+/// Parse `UserAssist` at provided input
+pub(crate) fn alt_userassist(pattern: &str) -> Result<Vec<UserAssistReg>, UserAssistError> {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(pattern) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Could no create ntfs parser: {err:?}");
-            return Err(UserAssistError::UserAssistData);
+            error!("Could not glob {pattern} for UserAssist files: {err:?}");
+            return Err(UserAssistError::RegistryFiles);
         }
     };
 
-    let assist_regex =
-        create_regex(r".*\\software\\microsoft\\windows\\currentversion\\explorer\\userassist")
-            .unwrap(); // always valid
-    let start_path = "";
+    extract_userassist(paths)
+}
 
-    let mut userassist_data: Vec<UserAssistReg> = Vec::new();
-    for hive in user_hives {
+/// Extract `UserAssist` `Registry` keys
+fn extract_userassist(paths: Vec<GlobMatch>) -> Result<Vec<UserAssistReg>, UserAssistError> {
+    let mut userassist_data = Vec::new();
+    for hive in paths {
         // UserAssist only exists in NTUSER.DAT hives
-        if hive.filename != "NTUSER.DAT" {
+        if hive.meta.kind != EntryKind::File
+            || !hive
+                .meta
+                .display_path
+                .to_lowercase()
+                .ends_with("ntuser.dat")
+        {
             continue;
         }
+
+        let Some(handle) = hive.handle.as_file() else {
+            continue;
+        };
+
+        let assist_regex =
+            create_regex(r".*\\software\\microsoft\\windows\\currentversion\\explorer\\userassist")
+                .unwrap(); // always valid
+        let start_path = String::new();
         let mut assist_entry = UserAssistReg {
             regs: Vec::new(),
-            reg_file: hive.full_path,
+            reg_file: handle.display_path(),
         };
-        let reg_results = get_registry_keys_by_ref(
-            start_path,
-            &assist_regex,
-            hive.reg_reference,
-            &mut ntfs_parser,
-        );
+        let reg_results = get_registry_keys_handle(start_path, assist_regex, handle);
         match reg_results {
             Ok(result) => {
-                assist_entry.regs.append(&mut filter_userassist(&result));
+                assist_entry.regs.append(&mut filter_userassist(result));
                 userassist_data.push(assist_entry);
             }
             Err(err) => {
@@ -66,39 +85,14 @@ pub(crate) fn get_userassist_drive(drive: char) -> Result<Vec<UserAssistReg>, Us
     Ok(userassist_data)
 }
 
-/// Parse `UserAssist` at provided path
-pub(crate) fn alt_userassist(path: &str) -> Result<Vec<UserAssistReg>, UserAssistError> {
-    let start_path = "";
-    let assist_regex =
-        create_regex(r".*\\software\\microsoft\\windows\\currentversion\\explorer\\userassist")
-            .unwrap(); // always valid
-
-    let reg_results = get_registry_keys(start_path, &assist_regex, path);
-    let reg_data = match reg_results {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Could not parse {path}: {err:?}",);
-            return Err(UserAssistError::RegistryFiles);
-        }
-    };
-
-    let regs = filter_userassist(&reg_data);
-    let userassist_result = UserAssistReg {
-        regs,
-        reg_file: path.to_string(),
-    };
-
-    Ok(vec![userassist_result])
-}
-
 /// Filter Registry that only contain `Count` in the key name
-fn filter_userassist(reg_data: &[RegistryData]) -> Vec<RegistryData> {
-    let mut userassist_entries: Vec<RegistryData> = Vec::new();
+fn filter_userassist(reg_data: Vec<RegistryData>) -> Vec<RegistryData> {
+    let mut userassist_entries = Vec::new();
     for entry in reg_data {
         if entry.name != "Count" {
             continue;
         }
-        userassist_entries.push(entry.clone());
+        userassist_entries.push(entry);
     }
     userassist_entries
 }
@@ -109,9 +103,9 @@ mod tests {
     use super::{alt_userassist, get_userassist_drive};
     use crate::{
         artifacts::os::windows::{
-            registry::helper::get_registry_keys_by_ref, userassist::registry::filter_userassist,
+            registry::{helper::get_registry_keys_handle, parser::user_registry_files},
+            userassist::registry::filter_userassist,
         },
-        filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
         utils::regex_options::create_regex,
     };
     use std::path::PathBuf;
@@ -124,22 +118,17 @@ mod tests {
 
     #[test]
     fn test_filter_userassist() {
-        let assist_regex = create_regex("").unwrap(); // always valid
-        let start_path = "ROOT\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist";
-        let user_hives = get_user_registry_files('C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
+        let user_hives = user_registry_files('C').unwrap();
         for hive in user_hives {
-            if hive.filename != "NTUSER.DAT" || hive.full_path.contains("Default") {
+            let Some(handle) = hive.handle.as_file() else {
                 continue;
-            }
-            let reg_results = get_registry_keys_by_ref(
-                start_path,
-                &assist_regex,
-                hive.reg_reference,
-                &mut ntfs_parser,
-            )
-            .unwrap();
-            let _results = filter_userassist(&reg_results);
+            };
+            let assist_regex = create_regex("").unwrap(); // always valid
+            let start_path = String::from(
+                "ROOT\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\UserAssist",
+            );
+            let reg_results = get_registry_keys_handle(start_path, assist_regex, handle).unwrap();
+            let _results = filter_userassist(reg_results);
         }
     }
 

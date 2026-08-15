@@ -12,45 +12,63 @@
  */
 use super::{error::ShimcacheError, os::shim::parse_shimdata, registry::get_shimcache_data};
 use crate::{
-    structs::artifacts::os::windows::ShimcacheOptions, utils::environment::get_systemdrive,
+    accessor::{access::Accessor, entry::handle::EntryKind},
+    structs::artifacts::os::windows::ShimcacheOptions,
+    utils::environment::get_systemdrive,
 };
 use common::windows::ShimcacheEntry;
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 pub(crate) fn grab_shimcache(
     options: &ShimcacheOptions,
 ) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
-    if let Some(file) = &options.alt_file {
-        return parse_shimcache(file);
-    }
-    let drive_result = get_systemdrive();
-    let drive = match drive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not determine system drive: {err:?}");
-            return Err(ShimcacheError::Drive);
-        }
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let drive_result = get_systemdrive();
+        let drive = match drive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not determine system drive: {err:?}");
+                return Err(ShimcacheError::Drive);
+            }
+        };
+        format!("ntfs:{drive}:\\Windows\\System32\\config\\SYSTEM")
     };
 
-    drive_shimcache(drive)
-}
-
-/// Get `Shimcache` entries using an alternative path
-fn drive_shimcache(drive: char) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
-    let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
-    parse_shimcache(&path)
+    parse_shimcache(&pattern)
 }
 
 /// Get `Shimcache` entries for all `ControlSets`. Then parse the `Shimcache` data
-fn parse_shimcache(path: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
-    info!("Reading Shimcache file: {path}");
-    let results = get_shimcache_data(path)?;
+fn parse_shimcache(pattern: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(pattern) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not glob pattern {pattern}: {err:?}");
+            return Err(ShimcacheError::RegistryFile);
+        }
+    };
     let mut shimcache_entries = Vec::new();
-    for entry in results {
-        let mut entries = parse_shimdata(&entry.shim_data, &entry.key_path, path)?;
-        shimcache_entries.append(&mut entries);
+
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        let results = get_shimcache_data(handle)?;
+        for entry in results {
+            let mut entries =
+                parse_shimdata(&entry.shim_data, &entry.key_path, &handle.display_path())?;
+            shimcache_entries.append(&mut entries);
+        }
     }
-    debug!("Got {} Shimcache entries", shimcache_entries.len());
+
+    debug!("Got {} total Shimcache entries", shimcache_entries.len());
     Ok(shimcache_entries)
 }
 
@@ -58,21 +76,13 @@ fn parse_shimcache(path: &str) -> Result<Vec<ShimcacheEntry>, ShimcacheError> {
 #[cfg(target_os = "windows")]
 mod tests {
     use crate::{
-        artifacts::os::windows::shimcache::parser::{
-            drive_shimcache, grab_shimcache, parse_shimcache,
-        },
+        artifacts::os::windows::shimcache::parser::{grab_shimcache, parse_shimcache},
         structs::artifacts::os::windows::ShimcacheOptions,
     };
 
     #[test]
-    fn test_drive_shimcache() {
-        let results = drive_shimcache('C').unwrap();
-        assert!(results.len() > 3);
-    }
-
-    #[test]
     fn test_parse_shimcache() {
-        let results = parse_shimcache("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
+        let results = parse_shimcache("ntfs:C:\\Windows\\System32\\config\\SYSTEM").unwrap();
         assert!(results.len() > 3);
     }
 

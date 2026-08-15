@@ -26,7 +26,7 @@ pub(crate) fn get_systemdrive() -> Result<char, ArtemisError> {
 /// Get Folder descriptions that map CLSIDs to a directory name
 pub(crate) fn get_folder_descriptions() -> Result<HashMap<String, String>, ArtemisError> {
     let systemdrive = get_systemdrive()?;
-    let path = format!("{systemdrive}:\\Windows\\System32\\config\\SOFTWARE");
+    let path = format!("ntfs:{systemdrive}:\\Windows\\System32\\config\\SOFTWARE");
     let reg_start = "";
     let path_regex =
         create_regex(r".*\\microsoft\\windows\\currentversion\\explorer\\folderdescriptions.*}$")?;

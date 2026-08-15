@@ -58,7 +58,7 @@ impl FileHandle {
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
-            FileLocator::Ntfs { display_path, .. } => display_path.clone(),
+            FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
             }
@@ -88,7 +88,7 @@ impl DirHandle {
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
             DirLocator::Host { path } => path.display().to_string(),
-            DirLocator::Ntfs { display_path, .. } => display_path.clone(),
+            DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             DirLocator::Zip {
                 archive, prefix, ..
             } => {

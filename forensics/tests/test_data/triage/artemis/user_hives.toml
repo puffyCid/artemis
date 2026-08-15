@@ -1,0 +1,27 @@
+[output]
+name = "User Registry hives"
+directory = "./tmp"
+format = "json"
+compress = false
+timeline = false
+endpoint_id = "2b7f40fd-cd02-47da-87da-9966fa5d8159"
+collection_id = 1
+destination = "local"
+
+[[artifacts]]
+artifact_name = "triage"
+
+[[artifacts.triage]]
+name = "NTUSER.DAT registry hive"
+path = "C:\\Users\\*\\"
+file_mask = "[nN][tT][uU][sS][eE][rR].[dD][aA][tT]"
+recreate_directories = true
+recursive = false
+
+[[artifacts.triage]]
+name = "UsrClass.dat registry hive"
+path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Windows\\"
+file_mask = "[uU][sS][rR][cC][lL][aA][sS][sS].[dD][aA][tT]"
+recreate_directories = true
+recursive = false
+
