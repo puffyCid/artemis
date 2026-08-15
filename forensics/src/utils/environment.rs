@@ -55,7 +55,7 @@ pub(crate) fn get_folder_descriptions() -> Result<HashMap<String, String>, Artem
 /// Get Folder descriptions that map CLSIDs to a directory name
 pub(crate) fn get_clsids() -> Result<HashMap<String, String>, ArtemisError> {
     let systemdrive = get_systemdrive()?;
-    let path = format!("{systemdrive}:\\Windows\\System32\\config\\SOFTWARE");
+    let path = format!("ntfs:{systemdrive}:\\Windows\\System32\\config\\SOFTWARE");
     let reg_start = "";
     let path_regex = create_regex(r".*\\classes\\clsid\\.*}$")?;
     let reg_results = get_registry_keys(reg_start, &path_regex, &path);

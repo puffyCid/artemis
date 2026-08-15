@@ -10,7 +10,7 @@ use crate::{
     utils::regex_options::create_regex,
 };
 use common::windows::RegistryData;
-use tracing::error;
+use tracing::{error, info};
 
 pub(crate) struct UserAssistReg {
     pub(crate) regs: Vec<RegistryData>,
@@ -63,6 +63,8 @@ fn extract_userassist(paths: Vec<GlobMatch>) -> Result<Vec<UserAssistReg>, UserA
             continue;
         };
 
+        info!("Reading UserAssist file '{}'", handle.display_path());
+
         let assist_regex =
             create_regex(r".*\\software\\microsoft\\windows\\currentversion\\explorer\\userassist")
                 .unwrap(); // always valid
@@ -71,6 +73,7 @@ fn extract_userassist(paths: Vec<GlobMatch>) -> Result<Vec<UserAssistReg>, UserA
             regs: Vec::new(),
             reg_file: handle.display_path(),
         };
+
         let reg_results = get_registry_keys_handle(start_path, assist_regex, handle);
         match reg_results {
             Ok(result) => {

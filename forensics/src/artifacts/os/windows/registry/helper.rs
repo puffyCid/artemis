@@ -3,19 +3,17 @@ use super::{
 };
 use crate::{
     accessor::{access::Accessor, entry::handle::FileHandle},
-    filesystem::ntfs::{raw_files::raw_read_by_file_ref, setup::NtfsParser},
     output::manager::OutputManager,
     structs::artifacts::os::windows::RegistryOptions,
 };
 use common::windows::RegistryData;
 use nom::bytes::complete::take;
-use ntfs::NtfsFileReference;
 use regex::Regex;
 use std::collections::HashMap;
 use tracing::error;
 
 /// Parse provided `Registry` file at starting Key path and apply any optional Key path regex filtering
-/// Use `get_registry_keys_by_ref` if you want to provide a `Registry` file reference
+/// Use `get_registry_keys_handle` if you want to provide a `Registry` file handle
 pub(crate) fn get_registry_keys(
     start_path: &str,
     regex: &Regex,
@@ -35,34 +33,6 @@ pub(crate) fn get_registry_keys(
         Ok((_, results)) => Ok(results),
         Err(_err) => {
             error!("Failed to parse registry file {file_path}");
-            Err(RegistryError::Parser)
-        }
-    }
-}
-
-/// Parse provided `Registry` file reference at starting Key path and apply any optional Key path regex filtering
-/// Use `get_registry_keys` if you want to provide a `Registry` file
-/// This wont fill in the the evidence field in the `RegistryData` array because we are parsing a file reference
-pub(crate) fn get_registry_keys_by_ref(
-    start_path: &str,
-    regex: &Regex,
-    file_ref: NtfsFileReference,
-    ntfs_parser: &mut NtfsParser,
-) -> Result<Vec<RegistryData>, RegistryError> {
-    let mut params = Params {
-        start_path: start_path.to_string(),
-        path_regex: regex.clone(),
-        registry_list: Vec::new(),
-        key_tracker: Vec::new(),
-        offset_tracker: HashMap::new(),
-        registry_path: String::new(),
-    };
-    let buffer = read_registry_ref(file_ref, ntfs_parser)?;
-    let reg_entries_results = parse_raw_registry(&buffer, &mut params, &mut None, None);
-    match reg_entries_results {
-        Ok((_, results)) => Ok(results),
-        Err(_err) => {
-            error!("Failed to parse registry file reference: {file_ref:?}");
             Err(RegistryError::Parser)
         }
     }
@@ -127,7 +97,7 @@ pub(crate) fn read_registry_handle(handle: &FileHandle) -> Result<Vec<u8>, Regis
 }
 
 /// Parse provided `Registry` `FileHandle` at starting Key path and apply any optional Key path regex filtering
-/// Use `get_registry_keys_by_ref` if you want to provide a `Registry` file reference
+/// Use `get_registry_keys` if you want to provide a `Registry` file path
 pub(crate) fn get_registry_keys_handle(
     start_path: String,
     regex: Regex,
@@ -151,21 +121,6 @@ pub(crate) fn get_registry_keys_handle(
                 file_handle.display_path()
             );
             Err(RegistryError::Parser)
-        }
-    }
-}
-
-/// Read the `Registry` file provided at file reference
-pub(crate) fn read_registry_ref(
-    ntfs_ref: NtfsFileReference,
-    ntfs_parser: &mut NtfsParser,
-) -> Result<Vec<u8>, RegistryError> {
-    let result = raw_read_by_file_ref(ntfs_ref, &ntfs_parser.ntfs, &mut ntfs_parser.fs);
-    match result {
-        Ok(buffer) => Ok(buffer),
-        Err(err) => {
-            error!("Failed to read registry file reference: {err:?}");
-            Err(RegistryError::ReadRegistry)
         }
     }
 }
@@ -195,17 +150,13 @@ pub(crate) fn lookup_sk_info(path: &str, sk_offset: i32) -> Result<SecurityKey, 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{
-        get_registry_keys, get_registry_keys_by_ref, parse_raw_registry, read_registry,
-        read_registry_ref,
-    };
+    use super::{get_registry_keys, parse_raw_registry, read_registry};
     use crate::{
         accessor::entry::handle::FileHandle,
         artifacts::os::windows::registry::{
             helper::{get_registry_keys_handle, lookup_sk_info},
             parser::Params,
         },
-        filesystem::ntfs::{raw_files::get_user_registry_files, setup::setup_ntfs_parser},
     };
     use regex::Regex;
     use std::{collections::HashMap, path::PathBuf};
@@ -352,39 +303,5 @@ mod tests {
             get_registry_keys(start_path, &regex, &test_location.display().to_string()).unwrap();
         // The infinite loop causes the parser to skip two values
         assert_eq!(result.len(), 664);
-    }
-
-    #[test]
-    fn test_get_registry_keys_by_ref() {
-        let user_hives = get_user_registry_files('C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        for hive in user_hives {
-            if hive.filename != "NTUSER.DAT" {
-                continue;
-            }
-            let result = get_registry_keys_by_ref(
-                "",
-                &Regex::new("").unwrap(),
-                hive.reg_reference,
-                &mut ntfs_parser,
-            )
-            .unwrap();
-            assert!(result.len() > 10);
-            break;
-        }
-    }
-
-    #[test]
-    fn test_read_registry_ref() {
-        let user_hives = get_user_registry_files('C').unwrap();
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        for hive in user_hives {
-            if hive.filename != "NTUSER.DAT" {
-                continue;
-            }
-            let result = read_registry_ref(hive.reg_reference, &mut ntfs_parser).unwrap();
-            assert!(result.len() > 10);
-            break;
-        }
     }
 }

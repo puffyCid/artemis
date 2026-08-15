@@ -100,23 +100,26 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
 mod tests {
     use super::{grab_lnk_directory, grab_lnk_file};
     use crate::accessor::access::Accessor;
-    use crate::accessor::entry::handle::FileHandle;
+    use crate::accessor::entry::handle::{EntryKind, FileHandle};
     use crate::artifacts::os::windows::shortcuts::parser::parse_lnk_data;
-    use crate::filesystem::directory::{get_user_paths, is_directory};
     use common::windows::ShellType::{Delegate, Directory, RootFolder};
     use common::windows::{AttributeFlags, DataFlags, DriveType, LocationFlag, ShellItem};
     use std::path::PathBuf;
 
     #[test]
     fn test_recent_files() {
-        let users = get_user_paths().unwrap();
         let mut accessor = Accessor::with_defaults();
-        for user in users {
-            let path = format!("{}\\AppData\\Roaming\\Microsoft\\Windows\\Recent", user);
-            if !is_directory(&path) {
+        let paths = accessor
+            .globfs("C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent")
+            .unwrap();
+        for user in paths {
+            if user.meta.kind != EntryKind::Directory {
                 continue;
             }
-            let files = accessor.read_dir(&path).unwrap();
+            let Some(handle) = user.handle.as_directory() else {
+                continue;
+            };
+            let files = accessor.read_dir_handle(handle).unwrap();
 
             for file in files {
                 if !file
