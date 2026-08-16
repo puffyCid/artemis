@@ -6,11 +6,11 @@ use std::{fs::read, path::PathBuf};
 #[cfg(target_os = "windows")]
 fn test_triage_collection_windows() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    test_location.push("tests/test_data/triage/artemis/windows_collect.toml");
+    test_location.push("tests/test_data/triage/artemis/system_hives.toml");
 
     parse_toml_file(&test_location.display().to_string()).unwrap();
 
-    let assert_glob = "./tmp/SOFTWARE Registry/*";
+    let assert_glob = "./tmp/System Registry hives/*";
     let results = glob(&assert_glob).unwrap();
     let mut have_zip = false;
     for result in results {
