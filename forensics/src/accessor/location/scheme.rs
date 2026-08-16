@@ -6,7 +6,7 @@ pub(crate) enum Scheme {
     /// Access the data using OS APIs
     Host,
     /// Access the data using raw NTFS disk access
-    RawNtfs,
+    Ntfs,
     /// Access the data inside a zip file
     Zip,
 }
@@ -16,7 +16,7 @@ impl Scheme {
     pub(crate) fn as_str(&self) -> &str {
         match self {
             Self::Host => "host",
-            Self::RawNtfs => "ntfs",
+            Self::Ntfs => "ntfs",
             Self::Zip => "zip",
         }
     }
@@ -25,7 +25,7 @@ impl Scheme {
     pub(crate) fn parse(value: &str) -> AccessorResult<Self> {
         match value.to_ascii_lowercase().as_str() {
             "host" => Ok(Self::Host),
-            "ntfs" => Ok(Self::RawNtfs),
+            "ntfs" => Ok(Self::Ntfs),
             "zip" => Ok(Self::Zip),
             _ => Err(AccessorError::unsupported_scheme(value)),
         }

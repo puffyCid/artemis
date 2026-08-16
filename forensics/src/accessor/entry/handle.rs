@@ -1,4 +1,7 @@
-use crate::accessor::entry::locator::{DirLocator, FileLocator};
+use crate::accessor::{
+    entry::locator::{DirLocator, FileLocator},
+    location::scheme::Scheme,
+};
 use std::path::PathBuf;
 
 /// Support data entries we can access
@@ -64,6 +67,15 @@ impl FileHandle {
             }
         }
     }
+
+    /// Return the `Scheme` associated with the `FileHandle`
+    pub(crate) fn scheme(&self) -> Scheme {
+        match &self.locator {
+            FileLocator::Host { .. } => Scheme::Host,
+            FileLocator::Ntfs { .. } => Scheme::Ntfs,
+            FileLocator::Zip { .. } => Scheme::Zip,
+        }
+    }
 }
 
 /// Handle to a directory
@@ -98,6 +110,15 @@ impl DirHandle {
                     format!("zip:{}!{prefix}", archive.display())
                 }
             }
+        }
+    }
+
+    /// Return the `Scheme` associated with the `DirHandle`
+    pub(crate) fn scheme(&self) -> Scheme {
+        match &self.locator {
+            DirLocator::Host { .. } => Scheme::Host,
+            DirLocator::Ntfs { .. } => Scheme::Ntfs,
+            DirLocator::Zip { .. } => Scheme::Zip,
         }
     }
 }

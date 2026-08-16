@@ -55,7 +55,7 @@ pub(crate) fn ensure_source(
 pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<SourceId> {
     match location.scheme {
         Scheme::Host => Ok(SourceId::Host),
-        Scheme::RawNtfs => {
+        Scheme::Ntfs => {
             let source = location
                 .source
                 .as_ref()

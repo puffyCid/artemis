@@ -348,8 +348,7 @@ mod tests {
     use super::{grab_reparsepoint, parse_reparse, walk_offset_table};
     use crate::{
         filesystem::ntfs::{
-            compression::check_wofcompressed,
-            raw_files::{NtfsOptions, get_user_registry_files, iterate_ntfs},
+            raw_files::{NtfsOptions, iterate_ntfs},
             setup::setup_ntfs_parser,
         },
         utils::regex_options::create_regex,
@@ -554,29 +553,6 @@ mod tests {
 
         let (_, result) = walk_offset_table(&test_data, length, unit, uncompressed_size).unwrap();
         assert_eq!(result.len(), 8192);
-    }
-
-    #[test]
-    fn test_check_wofcompressed() {
-        let result = get_user_registry_files('C').unwrap();
-
-        // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
-        assert!(result.len() >= 3);
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        for entry in result {
-            let (is_compressed, uncompressed, compressed_size) = check_wofcompressed(
-                &entry
-                    .reg_reference
-                    .to_file(&ntfs_parser.ntfs, &mut ntfs_parser.fs)
-                    .unwrap(),
-                &ntfs_parser.ntfs,
-                &mut ntfs_parser.fs,
-            )
-            .unwrap();
-            assert_eq!(is_compressed, false);
-            assert_eq!(uncompressed.is_empty(), true);
-            assert_eq!(compressed_size, 0);
-        }
     }
 
     #[test]

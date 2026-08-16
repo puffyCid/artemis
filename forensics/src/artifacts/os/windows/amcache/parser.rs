@@ -47,7 +47,7 @@ fn amcache_file(pattern: &str) -> Result<Vec<Amcache>, AmcacheError> {
     let mut entries = Vec::new();
     let mut accessor = Accessor::with_defaults();
 
-    let paths = match accessor.globfs(&pattern) {
+    let paths = match accessor.globfs(pattern) {
         Ok(result) => result,
         Err(err) => {
             error!("Failed to glob {pattern} for Amcache: {err:?}");
@@ -63,7 +63,7 @@ fn amcache_file(pattern: &str) -> Result<Vec<Amcache>, AmcacheError> {
             continue;
         };
 
-        let results = parse_amcache(&handle);
+        let results = parse_amcache(handle);
         let mut amcache = match results {
             Ok(result) => result,
             Err(_err) => continue,

@@ -192,9 +192,7 @@ mod tests {
             }
 
             let entries = source
-                .read_dir(&InnerPath::new(PathBuf::from(
-                    entry.handle.as_directory().unwrap().display_path(),
-                )))
+                .read_dir_handle(entry.handle.as_directory().unwrap())
                 .unwrap();
 
             if entry.meta.display_path == "C:\\Users" {

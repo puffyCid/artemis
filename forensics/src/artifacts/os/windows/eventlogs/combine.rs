@@ -1164,7 +1164,7 @@ mod tests {
                     );
                     assert_eq!(
                         message.registry_file,
-                        "C:\\Windows\\System32\\config\\SOFTWARE"
+                        "ntfs:C:\\Windows\\System32\\config\\SOFTWARE"
                     );
                     assert_eq!(
                         message.registry_path,

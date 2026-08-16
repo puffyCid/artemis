@@ -2,7 +2,11 @@ use super::{
     nom_helper::{Endian, nom_unsigned_two_bytes},
     strings::{extract_utf8_string, extract_utf16_string},
 };
-use crate::{filesystem::files::read_file, utils::error::ArtemisError};
+use crate::{
+    accessor::{access::Accessor, entry::handle::FileHandle},
+    filesystem::files::read_file,
+    utils::error::ArtemisError,
+};
 use base64::{DecodeError, Engine, engine::general_purpose};
 use std::collections::HashMap;
 use sunlight::light::{ProtoTag, extract_protobuf};
@@ -29,7 +33,29 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
         }
     };
 
-    let utf_check = nom_unsigned_two_bytes(&bytes, Endian::Be);
+    parse_xml(&bytes, path)
+}
+
+/// Read a XML file by `FileHandle`. This function will check for UTF16 encoding via Byte Order Mark (BOM)
+pub(crate) fn read_xml_handle(handle: &FileHandle) -> Result<String, ArtemisError> {
+    let mut accessor = Accessor::with_defaults();
+    let bytes = match accessor.read_file_handle(handle) {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "Could not read XML file at {}: {err:?}",
+                handle.display_path()
+            );
+            return Err(ArtemisError::ReadXml);
+        }
+    };
+
+    parse_xml(&bytes, &handle.display_path())
+}
+
+/// Check for XML encoding types
+fn parse_xml(data: &[u8], path: &str) -> Result<String, ArtemisError> {
+    let utf_check = nom_unsigned_two_bytes(data, Endian::Be);
     let (data, utf_status) = match utf_check {
         Ok(result) => result,
         Err(_err) => {
@@ -44,7 +70,7 @@ pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
     let xml_string = if utf_status == utf16_be || utf_status == utf16_le {
         extract_utf16_string(data)
     } else {
-        extract_utf8_string(&bytes)
+        extract_utf8_string(data)
     };
 
     Ok(xml_string)

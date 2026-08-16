@@ -22,11 +22,13 @@ struct TaskTree {
 
 /// Parse the Schedule Task cache data in the SOFTWARE Registry file
 pub(crate) fn cache_info(drive: char) -> Result<HashMap<String, TaskCache>, TaskError> {
-    let patter =
-        create_regex(r"microsoft\\windows nt\\currentversion\\schedule\\taskcache\\(tree|tasks)")
-            .unwrap();
-    let registry_file = format!("{drive}:\\Windows\\System32\\config\\SOFTWARE");
-    let reg_paths = match get_registry_keys("ROOT", &patter, &registry_file) {
+    let patter = create_regex(r"(tree|tasks)").unwrap();
+    let registry_file = format!("ntfs:{drive}:\\Windows\\System32\\config\\SOFTWARE");
+    let reg_paths = match get_registry_keys(
+        "ROOT\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache",
+        &patter,
+        &registry_file,
+    ) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not read Registry {err:?}");

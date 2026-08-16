@@ -154,7 +154,7 @@ mod tests {
             assert_eq!(matches.len(), 1, "pattern: {pattern}");
             assert_eq!(
                 matches[0].handle.display_path(),
-                "C:\\hello\\hello world.txt"
+                "ntfs:C:\\hello\\hello world.txt"
             );
         }
 

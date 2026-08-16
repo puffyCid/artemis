@@ -43,7 +43,7 @@ pub(crate) fn grab_lnk_directory(path: &str) -> Result<Vec<ShortcutInfo>, LnkErr
         let Some(handle) = file.handle.as_file() else {
             continue;
         };
-        let result = grab_lnk_file(&handle, &mut accessor);
+        let result = grab_lnk_file(handle, &mut accessor);
         match result {
             Ok(info) => shortcut_info.push(info),
             Err(_err) => error!("Failed to parse file: {}", handle.display_path()),

@@ -192,27 +192,15 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_user_reg_headers() {
-        use crate::filesystem::ntfs::{
-            raw_files::{get_user_registry_files, raw_read_data},
-            setup::setup_ntfs_parser,
-        };
+        use crate::accessor::access::Accessor;
+        use crate::artifacts::os::windows::registry::parser::user_registry_files;
 
-        let user_regs = get_user_registry_files('C').unwrap();
+        let user_regs = user_registry_files('C').unwrap();
 
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
         for reg in user_regs {
-            let ntfs_file = reg
-                .reg_reference
-                .to_file(&ntfs_parser.ntfs, &mut ntfs_parser.fs)
+            let buffer = Accessor::with_defaults()
+                .read_file_handle(reg.handle.as_file().unwrap())
                 .unwrap();
-            let ntfs_data = ntfs_file.data(&mut ntfs_parser.fs, "").unwrap().unwrap();
-            let mut data_attr_value = ntfs_data
-                .to_attribute()
-                .unwrap()
-                .value(&mut ntfs_parser.fs)
-                .unwrap();
-
-            let buffer = raw_read_data(&mut data_attr_value, &mut ntfs_parser.fs).unwrap();
 
             let (_, header) = RegHeader::parse_header(&buffer).unwrap();
 
