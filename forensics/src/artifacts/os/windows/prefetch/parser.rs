@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_custom_prefetch_path() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/prefetch/win10");
+        test_location.push("tests/test_data/windows/prefetch/win10//");
 
         let results = custom_prefetch_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 272);
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn test_read_directory() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/prefetch/win10");
+        test_location.push("tests/test_data/windows/prefetch/win10//");
 
         let results = read_directory(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 272);
@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_custom_prefetch_path_win8() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/prefetch/win81");
+        test_location.push("tests/test_data/windows/prefetch/win81//");
 
         let results = custom_prefetch_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 133);
@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn test_custom_prefetch_path_win7() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/prefetch/win7");
+        test_location.push("tests/test_data/windows/prefetch/win7//");
 
         let results = custom_prefetch_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 23);
@@ -198,7 +198,7 @@ mod tests {
     #[test]
     fn test_custom_prefetch_path_win11() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/prefetch/win11");
+        test_location.push("tests/test_data/windows/prefetch/win11//");
 
         let results = custom_prefetch_path(&test_location.display().to_string()).unwrap();
         assert_eq!(results.len(), 257);

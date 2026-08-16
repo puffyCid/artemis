@@ -85,7 +85,7 @@ fn extract_tasks(
         };
 
         // Parse XML Task files
-        if !handle.display_path().ends_with(".job") {
+        if !handle.display_path().ends_with(".job") && !handle.display_path().ends_with(".DAT") {
             // If running on a live Windows system. We can parse SOFTWARE Registry file for additional data
             if handle.scheme() == Scheme::Host && options.alt_file.is_none() && cache.is_empty() {
                 cache = cache_info(handle.display_path().chars().next().unwrap_or_default())?;
