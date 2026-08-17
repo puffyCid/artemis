@@ -24,7 +24,7 @@ pub(crate) fn grab_mft(options: &MftOptions, manager: &mut OutputManager) -> Res
         // Check if alternative drive letter provided
         if let Some(alt_drive) = &options.alt_drive {
             drive = alt_drive.to_string();
-            format!("{alt_drive}:\\$MFT")
+            format!("ntfs:{alt_drive}:\\$MFT")
         } else {
             // Otherwise try to get the SystemDrive
             drive = get_systemdrive().unwrap_or('C').to_string();
