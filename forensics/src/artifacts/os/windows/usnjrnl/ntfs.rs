@@ -1,11 +1,9 @@
 use crate::{
-    artifacts::os::windows::{
-        mft::reader::setup_mft_reader_windows,
-        usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
-    },
+    accessor::access::Accessor,
+    artifacts::os::windows::usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
     filesystem::{
         files::{file_extension, read_file},
-        ntfs::{raw_files::read_attribute, setup::setup_ntfs_parser},
+        ntfs::raw_files::read_attribute,
     },
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::UsnJrnlOptions,
@@ -25,16 +23,7 @@ pub(crate) fn parse_usnjrnl_data(
     options: &UsnJrnlOptions,
 ) -> Result<(), UsnJrnlError> {
     let data = get_data(drive)?;
-    let ntfs_parser_result = setup_ntfs_parser(drive);
-    let mut ntfs_parser = match ntfs_parser_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Cannot setup NTFS parser: {err:?}");
-            return Err(UsnJrnlError::Parser);
-        }
-    };
-
-    let ntfs_file = match setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, mft) {
+    let mut reader = match Accessor::with_defaults().open_reader(mft) {
         Ok(result) => result,
         Err(err) => {
             error!("Cannot read the MFT file: {err:?}");
@@ -46,12 +35,7 @@ pub(crate) fn parse_usnjrnl_data(
     // UsnJrnl is composed of multiple data runs
     // Each data run we grabbed contain bytes that contain UsnJrnl entries
     // We do not need to concat the data in order to parse the UsnJrnl format, we can just loop through each data run
-    let mut result = match UsnJrnlFormat::parse_usnjrnl(
-        &data,
-        &mut ntfs_parser.fs,
-        Some(&ntfs_file),
-        &mut journal_cache,
-    ) {
+    let mut result = match UsnJrnlFormat::parse_usnjrnl(&data, &mut reader, &mut journal_cache) {
         Ok((_, result)) => result,
         Err(_err) => {
             // We might get errors if we try to parse an entry that has not yet been fully written to the UsnJrnl
@@ -75,16 +59,8 @@ pub(crate) fn parse_usnjrnl_data(
 /// Parse the `UsnJrnl` file at provided path and return all entries
 pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     let data = get_data(drive)?;
-    let ntfs_parser_result = setup_ntfs_parser(drive);
-    let mut ntfs_parser = match ntfs_parser_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Cannot setup NTFS parser: {err:?}");
-            return Err(UsnJrnlError::Parser);
-        }
-    };
 
-    let ntfs_file = match setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, mft) {
+    let mut reader = match Accessor::with_defaults().open_reader(mft) {
         Ok(result) => result,
         Err(err) => {
             error!("Cannot read the MFT file: {err:?}");
@@ -96,12 +72,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
     // UsnJrnl is composed of multiple data runs
     // Each data run we grabbed contain bytes that contain UsnJrnl entries
     // We do not need to concat the data in order to parse the UsnJrnl format, we can just loop through each data run
-    let mut result = match UsnJrnlFormat::parse_usnjrnl(
-        &data,
-        &mut ntfs_parser.fs,
-        Some(&ntfs_file),
-        &mut journal_cache,
-    ) {
+    let mut result = match UsnJrnlFormat::parse_usnjrnl(&data, &mut reader, &mut journal_cache) {
         Ok((_, result)) => result,
         Err(_err) => {
             // We might get errors if we try to parse an entry that has not yet been fully written to the UsnJrnl

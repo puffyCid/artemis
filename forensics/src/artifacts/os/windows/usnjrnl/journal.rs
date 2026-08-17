@@ -1,6 +1,7 @@
 use crate::{
+    accessor::{access::Accessor, io::reader::AccessorReader},
     artifacts::os::windows::mft::master::{Lookups, lookup_parent},
-    filesystem::{files::file_reader, ntfs::attributes::file_attribute_flags},
+    filesystem::ntfs::attributes::file_attribute_flags,
     utils::{
         nom_helper::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,
@@ -11,11 +12,7 @@ use crate::{
 };
 use common::windows::{AttributeFlags, Reason, Source};
 use nom::bytes::complete::{take, take_until, take_while};
-use ntfs::NtfsFile;
-use std::{
-    collections::{HashMap, HashSet},
-    io::BufReader,
-};
+use std::collections::{HashMap, HashSet};
 use tracing::error;
 
 #[derive(Debug, Clone)]
@@ -40,10 +37,9 @@ pub(crate) struct UsnJrnlFormat {
 
 impl UsnJrnlFormat {
     /// Parse the `UsnJrnl` format and grab all the entries
-    pub(crate) fn parse_usnjrnl<'a, T: std::io::Seek + std::io::Read>(
+    pub(crate) fn parse_usnjrnl<'a>(
         data: &'a [u8],
-        reader: &mut BufReader<T>,
-        ntfs_file: Option<&NtfsFile<'_>>,
+        reader: &mut AccessorReader,
         journal_cache: &mut HashMap<String, UsnJrnlFormat>,
     ) -> nom::IResult<&'a [u8], Vec<UsnJrnlFormat>> {
         let mut remaining_input = data;
@@ -107,7 +103,7 @@ impl UsnJrnlFormat {
                     size: 0,
                     tracker: HashSet::new(),
                 };
-                &lookup_parent(reader, ntfs_file, &mut cache, &HashMap::new(), &mut tracker)
+                &lookup_parent(reader, &mut cache, &HashMap::new(), &mut tracker)
                     .unwrap_or_default()
             };
             let entry = UsnJrnlFormat {
@@ -149,8 +145,9 @@ impl UsnJrnlFormat {
         let mut remaining_input = data;
 
         let mut reader = if let Some(path) = mft_path {
-            match file_reader(path) {
-                Ok(result) => Some(BufReader::new(result)),
+            let mut accessor = Accessor::with_defaults();
+            match accessor.open_reader(path) {
+                Ok(result) => Some(result),
                 Err(err) => {
                     error!("Could not create reader for alt MFT file: {err:?}");
                     None
@@ -223,7 +220,7 @@ impl UsnJrnlFormat {
                         tracker: HashSet::new(),
                     };
 
-                    lookup_parent(lookup, None, &mut cache, &HashMap::new(), &mut tracker)
+                    lookup_parent(lookup, &mut cache, &HashMap::new(), &mut tracker)
                         .unwrap_or_default()
                 };
             }
@@ -373,10 +370,9 @@ impl UsnJrnlFormat {
 #[cfg(target_os = "windows")]
 mod tests {
     use super::UsnJrnlFormat;
-    use crate::artifacts::os::windows::mft::reader::setup_mft_reader_windows;
+    use crate::accessor::access::Accessor;
     use crate::artifacts::os::windows::usnjrnl::journal::Reason::{Close, Extend};
     use crate::artifacts::os::windows::usnjrnl::journal::Source::{DataManagement, None};
-    use crate::filesystem::ntfs::setup::setup_ntfs_parser;
     use common::windows::AttributeFlags::Archive;
     use std::collections::HashMap;
 
@@ -390,15 +386,11 @@ mod tests {
             53, 0, 99, 0, 56, 0, 45, 0, 98, 0, 99, 0, 53, 0, 99, 0, 50, 0, 55, 0, 51, 0, 102, 0,
             52, 0, 51, 0, 51, 0, 51, 0, 46, 0, 106, 0, 115, 0, 111, 0, 110, 0, 108, 0, 0, 0, 0, 0,
         ];
-        let mut parser = setup_ntfs_parser('C').unwrap();
-        let ntfs_file = setup_mft_reader_windows(&parser.ntfs, &mut parser.fs, "C:\\$MFT").unwrap();
-        let (_, results) = UsnJrnlFormat::parse_usnjrnl(
-            &test_data,
-            &mut parser.fs,
-            Some(&ntfs_file),
-            &mut HashMap::new(),
-        )
-        .unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader("ntfs:C:\\$MFT")
+            .unwrap();
+        let (_, results) =
+            UsnJrnlFormat::parse_usnjrnl(&test_data, &mut reader, &mut HashMap::new()).unwrap();
         assert_eq!(results[0]._major_version, 2);
         assert_eq!(results[0]._minor_version, 0);
         assert_eq!(results[0].mft_entry, 350259);

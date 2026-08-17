@@ -2,76 +2,68 @@ use super::{
     attributes::attribute::{EntryAttributes, grab_attributes},
     error::MftError,
     header::MftHeader,
-    reader::{setup_mft_reader, setup_mft_reader_windows},
 };
 use crate::{
-    artifacts::os::systeminfo::info::get_platform, filesystem::ntfs::setup::setup_ntfs_parser,
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, GlobMatch},
+        io::reader::AccessorReader,
+    },
     utils::time::filetime_to_iso,
 };
 use crate::{
     artifacts::os::windows::mft::{fixup::Fixup, header::EntryFlags},
-    filesystem::{
-        files::get_file_size,
-        ntfs::{attributes::get_raw_file_size, reader::read_bytes},
-    },
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::MftOptions,
     utils::nom_helper::nom_data,
 };
 use common::windows::{AttributeFlags, MftEntry, Namespace};
-use ntfs::NtfsFile;
-use std::{
-    collections::{HashMap, HashSet},
-    io::BufReader,
-};
+use std::collections::{HashMap, HashSet};
 use tracing::{error, warn};
 
 /// Parse the provided $MFT file and try to re-create filelisting
 pub(crate) fn parse_mft(
-    path: &str,
+    paths: Vec<GlobMatch>,
     manager: &mut OutputManager,
     options: &MftOptions,
     drive: &str,
 ) -> Result<(), MftError> {
-    let plat = get_platform();
-    let mut args = MftArgs { size: 0 };
-    if plat != "Windows" {
-        args.size = get_file_size(path);
-        let reader = setup_mft_reader(path)?;
-        let mut buf_reader = BufReader::new(reader);
+    let mut acessor = Accessor::with_defaults();
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
 
-        return read_mft(&mut buf_reader, None, manager, options, path, drive, &args);
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        let mut reader = match acessor.open_reader_handle(handle) {
+            Ok(result) => result,
+            Err(err) => {
+                error!(
+                    "Could not open reader to {}: {err:?}",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        let args = MftArgs {
+            size: entry.meta.size,
+        };
+
+        read_mft(
+            &mut reader,
+            manager,
+            options,
+            &handle.display_path(),
+            drive,
+            &args,
+        )?;
     }
 
-    // Windows we default to parsing the NTFS in order to bypass locked $MFT
-    let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
-    let mut ntfs_parser = match ntfs_parser_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not setup NTFS parser: {err:?}");
-            return Err(MftError::Systemdrive);
-        }
-    };
-    let ntfs_file = setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
-    // We use NTFS crate to parse NTFS filesystem to briefly parse part of the MFT to get the size of the MFT so we can later parse the full MFT ourselves...
-    let size = match get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to determine size of $MFT file: {err:?}");
-            return Err(MftError::RawSize);
-        }
-    };
-    args.size = size;
-
-    read_mft(
-        &mut ntfs_parser.fs,
-        Some(&ntfs_file),
-        manager,
-        options,
-        path,
-        drive,
-        &args,
-    )
+    Ok(())
 }
 
 struct MftArgs {
@@ -79,9 +71,8 @@ struct MftArgs {
 }
 
 /// Read the MFT in small chunks
-fn read_mft<T: std::io::Seek + std::io::Read>(
-    reader: &mut BufReader<T>,
-    ntfs_file: Option<&NtfsFile<'_>>,
+fn read_mft(
+    reader: &mut AccessorReader,
     manager: &mut OutputManager,
     options: &MftOptions,
     evidence: &str,
@@ -107,7 +98,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
     // https://harelsegev.github.io/posts/resolving-file-paths-using-the-mft/#pitfall-3-extension-records-missing-attributes-and-orphaned-attributes
     while first_pass < 2 {
         // Read through the MFT. We read 1000 entries at time
-        while let Ok(header) = determine_header_info(offset, reader, ntfs_file) {
+        while let Ok(header) = determine_header_info(offset, reader) {
             // If our offset is larger than the MFT size. Then we are done
             if offset > args.size {
                 break;
@@ -129,18 +120,14 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
             }
 
             // Read 1000 MFT FILE entries
-            let mut mft_bytes = match read_bytes(
-                offset,
-                file_entries * header.total_size as u64,
-                ntfs_file,
-                reader,
-            ) {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Could not read entry bytes: {err:?}");
-                    break;
-                }
-            };
+            let mut mft_bytes =
+                match reader.read_bytes(offset, file_entries * header.total_size as usize) {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("Could not read entry bytes: {err:?}");
+                        break;
+                    }
+                };
 
             // Parse 1000 entries
             while mft_bytes.len() >= header.total_size as usize {
@@ -176,7 +163,6 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 let mut entry = match grab_attributes(
                     &fixed_mft_bytes,
                     reader,
-                    ntfs_file,
                     mft_header.total_size,
                     mft_header.index,
                 ) {
@@ -308,13 +294,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                         tracker: HashSet::new(),
                     };
 
-                    let path = lookup_parent(
-                        reader,
-                        ntfs_file,
-                        &mut cache,
-                        &extended_attribs,
-                        &mut tracker,
-                    )?;
+                    let path = lookup_parent(reader, &mut cache, &extended_attribs, &mut tracker)?;
 
                     mft_entry.full_path = format!("{path}\\{}", value.name);
                     mft_entry.directory = path;
@@ -329,7 +309,7 @@ fn read_mft<T: std::io::Seek + std::io::Read>(
                 }
             }
 
-            offset += file_entries * header.total_size as u64;
+            offset += file_entries as u64 * header.total_size as u64;
         }
 
         offset = 0;
@@ -351,9 +331,8 @@ pub(crate) struct Lookups {
 }
 
 /// Try to find parents of a MFT entry. We maintain a small cache to speed up lookup
-pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
-    reader: &mut BufReader<T>,
-    ntfs_file: Option<&NtfsFile<'_>>,
+pub(crate) fn lookup_parent(
+    reader: &mut AccessorReader,
     cache: &mut HashMap<String, String>,
     extended_attribs: &HashMap<String, EntryAttributes>,
     tracker: &mut Lookups,
@@ -369,12 +348,12 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     // If size is zero get FILE entry size of first MFT entry
     let empty = 0;
     if tracker.size == empty {
-        let header = determine_header_info(0, reader, ntfs_file)?;
+        let header = determine_header_info(0, reader)?;
         tracker.size = header.total_size;
     }
 
     let offset = (tracker.parent_index * tracker.size) as u64;
-    let header = determine_header_info(offset, reader, ntfs_file)?;
+    let header = determine_header_info(offset, reader)?;
 
     if (tracker.parent_sequence != header.sequence
         || !header.entry_flags.contains(&EntryFlags::InUse))
@@ -424,7 +403,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
                 tracker.parent_sequence = parent_filename.parent_sequence;
 
                 // Not found in cache. Go look for it in the MFT
-                let parents = lookup_parent(reader, ntfs_file, cache, extended_attribs, tracker)?;
+                let parents = lookup_parent(reader, cache, extended_attribs, tracker)?;
                 let path = format!("$OrphanFiles\\{parents}\\{}", parent_filename.name);
                 if parent_filename
                     .file_attributes
@@ -447,12 +426,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
     let header_size = 48;
     let remaining_size = header.total_size - header_size as u32;
 
-    let entry_bytes = match read_bytes(
-        header_size + offset,
-        remaining_size as u64,
-        ntfs_file,
-        reader,
-    ) {
+    let entry_bytes = match reader.read_bytes(header_size + offset, remaining_size as usize) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not read entry bytes: {err:?}");
@@ -462,13 +436,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
 
     let mft_bytes = apply_fixup(&entry_bytes, header.fix_up_count)?;
 
-    let entry = match grab_attributes(
-        &mft_bytes,
-        reader,
-        ntfs_file,
-        header.total_size,
-        header.index,
-    ) {
+    let entry = match grab_attributes(&mft_bytes, reader, header.total_size, header.index) {
         Ok((_, result)) => result,
         Err(err) => {
             error!("Could not parse mft attributes: {err:?}");
@@ -511,7 +479,7 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
         tracker.parent_index = value.parent_mft;
         tracker.parent_sequence = value.parent_sequence;
 
-        let parents = lookup_parent(reader, ntfs_file, cache, extended_attribs, tracker)?;
+        let parents = lookup_parent(reader, cache, extended_attribs, tracker)?;
         let path = format!("{parents}\\{}", value.name);
         if value.file_attributes.contains(&AttributeFlags::Directory)
             && value.namespace != Namespace::Dos
@@ -536,13 +504,9 @@ pub(crate) fn lookup_parent<T: std::io::Seek + std::io::Read>(
 }
 
 /// Try to determine FILE entry size by parsing first 48 bytes of the header
-fn determine_header_info<T: std::io::Seek + std::io::Read>(
-    offset: u64,
-    reader: &mut BufReader<T>,
-    ntfs_file: Option<&NtfsFile<'_>>,
-) -> Result<MftHeader, MftError> {
+fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<MftHeader, MftError> {
     let header_size = 48;
-    let header_bytes_results = read_bytes(offset, header_size, ntfs_file, reader);
+    let header_bytes_results = reader.read_bytes(offset, header_size);
     let header_bytes = match header_bytes_results {
         Ok(result) => result,
         Err(err) => {
@@ -608,6 +572,8 @@ fn output_mft(
 
 #[cfg(test)]
 mod tests {
+    use crate::accessor::access::Accessor;
+    use crate::artifacts::os::windows::mft::master::parse_mft;
     use crate::output::manager::OutputManager;
     use crate::structs::artifacts::os::windows::MftOptions;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
@@ -627,11 +593,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
     fn test_parse_mft() {
-        use super::parse_mft;
-        use std::path::PathBuf;
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
         let mut output = output_options("mft_test", "./tmp", false);
@@ -639,34 +601,30 @@ mod tests {
             alt_drive: None,
             alt_file: None,
         };
-
-        parse_mft(&test_location.to_str().unwrap(), &mut output, &options, "").unwrap();
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
+        parse_mft(paths, &mut output, &options, "").unwrap();
     }
 
     #[test]
     #[cfg(target_os = "windows")]
     fn test_read_mft() {
-        use super::setup_ntfs_parser;
-        use crate::{
-            artifacts::os::windows::mft::master::{MftArgs, read_mft, setup_mft_reader_windows},
-            filesystem::ntfs::attributes::get_raw_file_size,
-        };
+        use crate::artifacts::os::windows::mft::master::{MftArgs, read_mft};
 
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-
-        let ntfs_file =
-            setup_mft_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, "C:\\$MFT").unwrap();
+        let reader = Accessor::with_defaults().globfs("ntfs:C:\\$MFT").unwrap();
 
         let mut output = output_options("mft_test", "./tmp", false);
-        let size = get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs).unwrap();
-        let args = MftArgs { size };
+        let args = MftArgs {
+            size: reader[0].meta.size,
+        };
         let options = MftOptions {
             alt_drive: None,
             alt_file: None,
         };
         read_mft(
-            &mut ntfs_parser.fs,
-            Some(&ntfs_file),
+            &mut Accessor::with_defaults()
+                .open_reader_handle(reader[0].handle.as_file().unwrap())
+                .unwrap(),
             &mut output,
             &options,
             "MFT",
@@ -677,11 +635,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
     fn test_nonresident_large_record_length() {
-        use super::parse_mft;
-        use std::path::PathBuf;
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/mft/win11/nonresident.raw");
 
@@ -690,6 +644,9 @@ mod tests {
             alt_drive: None,
             alt_file: None,
         };
-        parse_mft(&test_location.to_str().unwrap(), &mut output, &options, "").unwrap();
+
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
+        parse_mft(paths, &mut output, &options, "").unwrap();
     }
 }
