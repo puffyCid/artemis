@@ -1,5 +1,85 @@
-use crate::accessor::location::path::InnerPath;
+use crate::accessor::{
+    error::{AccessorError, AccessorResult},
+    location::path::InnerPath,
+};
+use glob::Pattern;
 use std::path::PathBuf;
+
+/// A structure we use to determine if we should descend into directory when globbing
+///
+/// Globbing files and directories can cause extremely long runtimes if not properly "gated".
+/// For example the pattern `C:/Users/*/AppData/Local/Microsoft/Windows/UsrClass.dat`, should only descend into the
+/// directories `AppData/Local/...`. All other directories need to be ignored.
+///
+/// When descending, we need to make sure the directory we want to descend into matches our glob pattern. The
+/// `DescendGuard` should prevent unrelated directory descent by checking to make sure the directory is part of the glob pattern
+/// and path.
+///
+/// For recursive globbing, there is **no** guard!!!
+pub(crate) struct DescendGuard {
+    /// Per component matchers for the glob pattern
+    ///
+    /// This is `None` for recursive globbing
+    components: Option<Vec<Pattern>>,
+}
+
+impl DescendGuard {
+    /// Create a `DescendGuard` from a normalized glob pattern
+    pub(crate) fn new(normalized: &str) -> AccessorResult<Self> {
+        // If its a recursive glob then we descend all directories
+        if is_recursive(normalized) {
+            return Ok(Self { components: None });
+        }
+
+        let mut components = Vec::new();
+        // Extract the directories into individual pattern components
+        for component in normalized.split('/').filter(|part| !part.is_empty()) {
+            let pattern = Pattern::new(component)
+                .map_err(|err| AccessorError::bad_glob(component, err.to_string()))?;
+            components.push(pattern);
+        }
+
+        Ok(Self {
+            components: Some(components),
+        })
+    }
+
+    /// Only descend if a directory is a prefix of the pattern
+    ///
+    /// For example for the glob `C:/Users/*/AppData/Local/app/test.txt`
+    /// The directory `C:/Users/dev/AppData/Local` we would descend. But
+    /// the directory `C:/Users/dev/AppData/Roaming` we would reject
+    ///
+    /// Recursive globbing **ALWAYS DESCENDS!**
+    pub(crate) fn should_descend(
+        &self,
+        relative: &str,
+        depth: usize,
+        max_depth: Option<usize>,
+    ) -> bool {
+        // Quick check if descent depth is larger than our current glob pattern
+        if !descend(depth, max_depth) {
+            return false;
+        }
+
+        // If None. Its a recursive glob. We always descend those
+        let Some(components) = &self.components else {
+            return true;
+        };
+
+        // Extract the path into component parts
+        let parts: Vec<&str> = relative
+            .split('/')
+            .filter(|part| !part.is_empty())
+            .collect();
+
+        // Compare each component against our glob
+        parts
+            .iter()
+            .zip(components.iter())
+            .all(|(part, pattern)| pattern.matches(part))
+    }
+}
 
 /// Apply a consistent glob separator
 pub(crate) fn normalize_glob_pattern(pattern: &str) -> String {
@@ -61,7 +141,7 @@ pub(crate) fn append_inner_path(base: &InnerPath, name: &str) -> InnerPath {
 mod tests {
     use crate::accessor::{
         filesystem::helper::glob::{
-            append_inner_path, descend, glob_max_depth, is_recursive, join_relative,
+            DescendGuard, append_inner_path, descend, glob_max_depth, is_recursive, join_relative,
             normalize_glob_pattern, path_component_count,
         },
         location::path::InnerPath,
@@ -118,5 +198,56 @@ mod tests {
             append_inner_path(&InnerPath::empty(), "name").display(),
             "name"
         );
+    }
+
+    #[test]
+    fn test_descend_guard() {
+        let normalized =
+            normalize_glob_pattern("*\\AppData\\Local\\Microsoft\\Windows\\[uU]srClass.dat");
+        let guard = DescendGuard::new(&normalized).unwrap();
+        let max_depth = glob_max_depth(&normalized);
+
+        assert!(guard.should_descend("dev", path_component_count("dev"), max_depth));
+        // Unrelated child directories should be ignored.
+        assert!(guard.should_descend(
+            "dev/AppData",
+            path_component_count("dev/AppData"),
+            max_depth
+        ));
+
+        assert!(!guard.should_descend(
+            "dev/Documents",
+            path_component_count("dev/Documents"),
+            max_depth
+        ));
+
+        // Nested unrelated directories are never followed
+        assert!(!guard.should_descend(
+            "dev/Documents/hayabusa-sample-evtx",
+            path_component_count("dev/Documents/hayabusa-sample-evtx"),
+            max_depth
+        ));
+
+        assert!(guard.should_descend(
+            "dev/AppData/Local/Microsoft/Windows",
+            path_component_count("dev/AppData/Local/Microsoft/Windows"),
+            max_depth
+        ));
+
+        assert!(!guard.should_descend(
+            "dev/AppData/Test/Microsoft/Windows",
+            path_component_count("dev/AppData/Local/Microsoft/Windows"),
+            max_depth
+        ));
+    }
+
+    #[test]
+    fn test_descend_guard_recursive() {
+        let normalized = normalize_glob_pattern("**\\*.evtx");
+        let guard = DescendGuard::new(&normalized).unwrap();
+        let max_depth = glob_max_depth(&normalized);
+
+        assert!(guard.should_descend("test", 1, max_depth));
+        assert!(guard.should_descend("test/deep/unrelated", 3, max_depth));
     }
 }

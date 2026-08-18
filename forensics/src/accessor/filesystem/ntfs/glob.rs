@@ -6,7 +6,7 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     filesystem::{
         helper::glob::{
-            descend, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
+            DescendGuard, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
             path_component_count,
         },
         ntfs::{
@@ -39,6 +39,7 @@ impl<T: Read + Seek + Send> NtfsFs<T> {
         if normalized.contains('/') || is_recursive(&normalized) {
             let entries = list_children(&self.volume, self.drive, &display, &inner_path)?;
             let mut matches = Vec::new();
+            let guard = DescendGuard::new(&normalized)?;
 
             glob_path_pattern(
                 self,
@@ -46,6 +47,7 @@ impl<T: Read + Seek + Send> NtfsFs<T> {
                 &glob_pattern,
                 "",
                 glob_max_depth(&normalized),
+                &guard,
                 &mut matches,
             )?;
 
@@ -73,6 +75,7 @@ fn glob_path_pattern<T: Read + Seek + Send>(
     pattern: &Pattern,
     relative_prefix: &str,
     max_depth: Option<usize>,
+    guard: &DescendGuard,
     matches: &mut Vec<GlobMatch>,
 ) -> AccessorResult<()> {
     for entry in entries {
@@ -90,7 +93,7 @@ fn glob_path_pattern<T: Read + Seek + Send>(
                     matches.push(GlobMatch::new(entry.handle.clone(), entry.meta.clone()));
                 }
 
-                if descend(depth, max_depth) {
+                if guard.should_descend(&relative, depth, max_depth) {
                     let Some(dir_handle) = entry.handle.as_directory() else {
                         continue;
                     };
@@ -113,7 +116,7 @@ fn glob_path_pattern<T: Read + Seek + Send>(
                                 continue;
                             }
                         };
-                    glob_path_pattern(fs, children, pattern, &relative, max_depth, matches)?;
+                    glob_path_pattern(fs, children, pattern, &relative, max_depth, guard, matches)?;
                 }
             }
         }

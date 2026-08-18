@@ -5,7 +5,7 @@ use crate::accessor::{
     },
     error::{AccessorError, AccessorResult},
     filesystem::helper::glob::{
-        descend, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
+        DescendGuard, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
         path_component_count,
     },
     io::reader::AccessorReader,
@@ -283,12 +283,15 @@ impl ZipFs {
         // Support nested and recursive glob patterns. Such as '/home/*/*/*.txt' or '/home/**/*.txt'
         if normalized.contains('/') || is_recursive(&normalized) {
             let mut matches = Vec::new();
+            let guard = DescendGuard::new(&normalized)?;
+
             glob_path_pattern(
                 self,
                 &prefix,
                 &glob_pattern,
                 "",
                 glob_max_depth(&normalized),
+                &guard,
                 &mut matches,
             )?;
 
@@ -524,6 +527,7 @@ fn glob_path_pattern(
     pattern: &Pattern,
     relative_prefix: &str,
     max_depth: Option<usize>,
+    guard: &DescendGuard,
     matches: &mut Vec<GlobMatch>,
 ) -> AccessorResult<()> {
     let children = fs.list_children(prefix)?;
@@ -540,8 +544,16 @@ fn glob_path_pattern(
                 if pattern.matches(&relative) {
                     matches.push(fs.zip_child_to_glob_match(child.clone()));
                 }
-                if descend(depth, max_depth) {
-                    glob_path_pattern(fs, child_prefix, pattern, &relative, max_depth, matches)?;
+                if guard.should_descend(&relative, depth, max_depth) {
+                    glob_path_pattern(
+                        fs,
+                        child_prefix,
+                        pattern,
+                        &relative,
+                        max_depth,
+                        guard,
+                        matches,
+                    )?;
                 }
             }
             ZipChild::File { .. } => {
