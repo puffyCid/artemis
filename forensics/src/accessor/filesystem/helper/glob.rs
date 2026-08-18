@@ -32,8 +32,9 @@ impl DescendGuard {
         }
 
         let mut components = Vec::new();
+        let component_iter = path_components(normalized);
         // Extract the directories into individual pattern components
-        for component in normalized.split('/').filter(|part| !part.is_empty()) {
+        for component in component_iter {
             let pattern = Pattern::new(component)
                 .map_err(|err| AccessorError::bad_glob(component, err.to_string()))?;
             components.push(pattern);
@@ -63,27 +64,27 @@ impl DescendGuard {
         }
 
         // If None. Its a recursive glob. We always descend those
-        let Some(components) = &self.components else {
+        let Some(pattern_components) = &self.components else {
             return true;
         };
 
         // Extract the path into component parts
-        let parts: Vec<&str> = relative
-            .split('/')
-            .filter(|part| !part.is_empty())
-            .collect();
+        let path_parts: Vec<&str> = path_components(relative).collect();
 
+        if path_parts.len() > pattern_components.len() {
+            return false;
+        }
         // Compare each component against our glob
-        parts
+        path_parts
             .iter()
-            .zip(components.iter())
+            .zip(pattern_components.iter())
             .all(|(part, pattern)| pattern.matches(part))
     }
 }
 
 /// Apply a consistent glob separator
 pub(crate) fn normalize_glob_pattern(pattern: &str) -> String {
-    pattern.replace('\\', "/")
+    pattern.replace('\\', "/").trim_matches('/').to_string()
 }
 
 /// Max directory depth to descend for a pattern
@@ -104,11 +105,12 @@ pub(crate) fn is_recursive(path: &str) -> bool {
 
 /// Determine depth of starting directory
 pub(crate) fn path_component_count(path: &str) -> usize {
-    if path.is_empty() {
-        0
-    } else {
-        path.split('/').count()
-    }
+    path_components(path).count()
+}
+
+/// Extract normalized path into individual components
+fn path_components(normalized: &str) -> impl Iterator<Item = &str> {
+    normalized.split('/').filter(|part| !part.is_empty())
 }
 
 /// Determine if we should descend to next directory if doing recursive glob or nested glob pattern
@@ -150,12 +152,12 @@ mod tests {
 
     #[test]
     fn test_normalize_glob_pattern() {
-        assert_eq!(normalize_glob_pattern("\\test\\hello"), "/test/hello");
+        assert_eq!(normalize_glob_pattern("\\test\\hello"), "test/hello");
     }
 
     #[test]
     fn test_glob_max_depth() {
-        assert_eq!(glob_max_depth("/*/*"), Some(3));
+        assert_eq!(glob_max_depth("/*/*"), Some(2));
         assert_eq!(glob_max_depth("/**/*.txt"), None);
     }
 
@@ -169,7 +171,7 @@ mod tests {
     fn test_path_component_count() {
         assert_eq!(path_component_count(""), 0);
         assert_eq!(path_component_count("path"), 1);
-        assert_eq!(path_component_count("/test/test.txt"), 3);
+        assert_eq!(path_component_count("/test/test.txt"), 2);
     }
 
     #[test]
