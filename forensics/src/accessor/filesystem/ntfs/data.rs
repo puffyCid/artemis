@@ -202,6 +202,7 @@ fn open_stream_reader<T: Read + Seek + Send>(
         });
     }
 
+    println!("reader?");
     let size = get_file_size(file.ntfs(), reader, file.file_record_number())?;
 
     Ok(NtfsStreamReader {
@@ -215,7 +216,7 @@ fn open_stream_reader<T: Read + Seek + Send>(
 }
 
 /// How much cache to read in between file reads
-const READ_AHEAD: usize = 1024 * 1024;
+const READ_AHEAD: usize = 1024 * 1024 * 10;
 
 impl<T: Read + Seek + Send> NtfsStreamReader<T> {
     /// Reset the cache data
@@ -326,8 +327,13 @@ impl<T: Read + Seek + Send> Seek for NtfsStreamReader<T> {
                 format!("seek past end of file (size {})", self.size),
             ));
         }
+
+        if !self.cache_has_byte(new_pos) {
+            println!("invalid");
+            self.invalidate_cache();
+        }
+
         self.position = new_pos;
-        self.invalidate_cache();
 
         Ok(self.position)
     }

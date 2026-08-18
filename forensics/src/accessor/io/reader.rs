@@ -1,7 +1,7 @@
 use std::{
     fmt::Debug,
     fs::File,
-    io::{self, Cursor, Read, Seek, SeekFrom},
+    io::{self, BufRead, Cursor, Read, Seek, SeekFrom},
 };
 
 /// Combines Read + Seek + Debug into a single trait object
