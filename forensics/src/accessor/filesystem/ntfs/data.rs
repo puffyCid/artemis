@@ -233,6 +233,7 @@ struct DataRun {
     len: u64,
 }
 
+/// Extract data runs for the NTFS target file
 fn map_data_runs<T: Read + Seek>(reader: &mut T, file: &NtfsFile<'_>) -> Option<Vec<DataRun>> {
     let item = file.data(reader, "")?.ok()?;
     let attr = item.to_attribute().ok()?;
@@ -248,6 +249,7 @@ fn map_data_runs<T: Read + Seek>(reader: &mut T, file: &NtfsFile<'_>) -> Option<
         let run = data_runs.ok()?;
         let len = run.allocated_size();
 
+        // Skip Sparse runs
         if len == 0 {
             continue;
         }
@@ -264,6 +266,7 @@ fn map_data_runs<T: Read + Seek>(reader: &mut T, file: &NtfsFile<'_>) -> Option<
     if runs.is_empty() { None } else { Some(runs) }
 }
 
+/// Find the correct DataRun for us to read from
 fn find_run(runs: &[DataRun], offset: u64) -> Option<&DataRun> {
     let index = runs
         .binary_search_by(|run| {
@@ -310,6 +313,7 @@ impl<T: Read + Seek + Send> NtfsStreamReader<T> {
         Ok(())
     }
 
+    /// Attempt to read bytes from our very small cache
     fn read_from_cache(&mut self, buf: &mut [u8]) -> usize {
         if !self.cache_has_byte(self.position) {
             return 0;
@@ -325,8 +329,11 @@ impl<T: Read + Seek + Send> NtfsStreamReader<T> {
         bytes
     }
 
+    /// Read bytes from the file at provided offset
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> io::Result<usize> {
+        // Get our data runs
         let Some(runs) = self.runs.as_deref() else {
+            // If not found, then read the data attribute
             return self.read_attribute_at(offset, buf);
         };
 
@@ -336,6 +343,7 @@ impl<T: Read + Seek + Send> NtfsStreamReader<T> {
                 let mut position = offset;
 
                 while total < buf.len() && position < self.size {
+                    // Try to find the data run we can read from
                     let Some(run) = find_run(runs, position) else {
                         break;
                     };
@@ -362,6 +370,7 @@ impl<T: Read + Seek + Send> NtfsStreamReader<T> {
             .map_err(accessor_to_io)
     }
 
+    /// If we do not have the data run then read data attribute at the provided offset
     fn read_attribute_at(&self, offset: u64, buf: &mut [u8]) -> io::Result<usize> {
         self.volume
             .with_reader(|ntfs, reader| {
@@ -439,7 +448,6 @@ impl<T: Read + Seek + Send> Seek for NtfsStreamReader<T> {
         }
 
         if !self.cache_has_byte(new_pos) {
-            //println!("invalid");
             self.invalidate_cache();
         }
 

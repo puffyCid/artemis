@@ -120,7 +120,7 @@ fn read_mft(
             }
 
             // Read 1000 MFT FILE entries
-            let mut mft_bytes =
+            let mft_bytes =
                 match reader.read_bytes(offset, file_entries * header.total_size as usize) {
                     Ok(result) => result,
                     Err(err) => {
@@ -129,15 +129,18 @@ fn read_mft(
                     }
                 };
 
+            let mut remaining = mft_bytes.as_slice();
             // Parse 1000 entries
-            while mft_bytes.len() >= header.total_size as usize {
-                let temp_bytes = mft_bytes.clone();
+            while mft_bytes.len() >= header.total_size as usize && remaining.len() != 0 {
                 // Nom first FILE entry
-                let (remaining, entry_bytes) = match nom_data(&temp_bytes, header.total_size as u64)
-                {
+                let (input, entry_bytes) = match nom_data(remaining, header.total_size as u64) {
                     Ok(result) => result,
                     Err(err) => {
-                        error!("Could not parse entry bytes: {err:?}");
+                        error!(
+                            "Could not parse remaining entry bytes ({} bytes). Wanted {} bytes: {err:?}",
+                            remaining.len(),
+                            header.total_size
+                        );
                         break;
                     }
                 };
@@ -145,7 +148,7 @@ fn read_mft(
                     break;
                 }
                 // Remaining entries. 1000->999->998->etc
-                mft_bytes = remaining.to_vec();
+                remaining = input;
                 let header_results = MftHeader::parse_header(entry_bytes);
                 let (entry_bytes, mft_header) = match header_results {
                     Ok(result) => result,
