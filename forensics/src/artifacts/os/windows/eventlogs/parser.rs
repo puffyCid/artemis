@@ -67,7 +67,7 @@ pub(crate) fn grab_eventlogs(
 
 /// Parse the `EventLog` evtx file at provided path
 ///
-/// Used by BoaJS to reading EventLogs in chunk
+/// Used by `BoaJS` to reading `EventLogs` in chunk
 pub(crate) fn parse_eventlogs(
     path: &str,
     offset: usize,

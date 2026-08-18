@@ -1,10 +1,7 @@
 use crate::{
     accessor::access::Accessor,
     artifacts::os::windows::usnjrnl::{error::UsnJrnlError, journal::UsnJrnlFormat},
-    filesystem::{
-        files::{file_extension, read_file},
-        ntfs::raw_files::read_attribute,
-    },
+    filesystem::files::file_extension,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::UsnJrnlOptions,
 };
@@ -22,7 +19,7 @@ pub(crate) fn parse_usnjrnl_data(
     manager: &mut OutputManager,
     options: &UsnJrnlOptions,
 ) -> Result<(), UsnJrnlError> {
-    let data = get_data(drive)?;
+    let data = get_data(&format!("ntfs:{drive}:\\$Extend\\$UsnJrnl:$J"))?;
     let mut reader = match Accessor::with_defaults().open_reader(mft) {
         Ok(result) => result,
         Err(err) => {
@@ -49,7 +46,7 @@ pub(crate) fn parse_usnjrnl_data(
         Some(manager),
         Some(options),
         &journal_cache,
-        &format!("{drive}:\\$Extend\\$UsnJrnl:$J"),
+        &format!("ntfs:{drive}:\\$Extend\\$UsnJrnl:$J"),
         &drive.to_string(),
     )?;
 
@@ -58,8 +55,7 @@ pub(crate) fn parse_usnjrnl_data(
 
 /// Parse the `UsnJrnl` file at provided path and return all entries
 pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
-    let data = get_data(drive)?;
-
+    let data = get_data(&format!("ntfs:{drive}:\\$Extend\\$UsnJrnl:$J"))?;
     let mut reader = match Accessor::with_defaults().open_reader(mft) {
         Ok(result) => result,
         Err(err) => {
@@ -85,7 +81,7 @@ pub(crate) fn get_usnjrnl_path(drive: char, mft: &str) -> Result<Vec<UsnJrnlEntr
         None,
         None,
         &journal_cache,
-        &format!("{drive}:\\$Extend\\$UsnJrnl:$J"),
+        &format!("ntfs:{drive}:\\$Extend\\$UsnJrnl:$J"),
         &drive.to_string(),
     )
 }
@@ -95,8 +91,7 @@ pub(crate) fn get_usnjrnl_alt_path(
     path: &str,
     mft_path: &Option<String>,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
-    let data_result = read_file(path);
-    let data = match data_result {
+    let data = match Accessor::with_defaults().read_file(path) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not read UsnJrnl file {path}: {err:?}");
@@ -125,8 +120,7 @@ pub(crate) fn get_usnjrnl_path_stream(
     manager: &mut OutputManager,
     options: &UsnJrnlOptions,
 ) -> Result<(), UsnJrnlError> {
-    let data_result = read_file(path);
-    let data = match data_result {
+    let data = match Accessor::with_defaults().read_file(path) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not read UsnJrnl file {path}: {err:?}");
@@ -216,15 +210,12 @@ fn extract_entries(
 }
 
 /// `UsnJrnl` data is in an alternative data stream (ADS) at \<drive\>\\$Extend\\$UsnJrnl:$J (where $J is the ADS name)
-fn get_data(drive: char) -> Result<Vec<u8>, UsnJrnlError> {
-    let usn_path = format!("{drive}:\\$Extend\\$UsnJrnl");
-    let attribute = "$J";
+fn get_data(usn_path: &str) -> Result<Vec<u8>, UsnJrnlError> {
     // Read the $J attribute and get all the data runs
-    let data_result = read_attribute(&usn_path, attribute);
-    let data = match data_result {
+    let data = match Accessor::with_defaults().read_file(usn_path) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read UsnJrnl $J attribute: {err:?}");
+            error!("Could not read UsnJrnl {usn_path}: {err:?}");
             return Err(UsnJrnlError::Attribute);
         }
     };
@@ -327,7 +318,7 @@ mod tests {
 
     #[test]
     fn test_get_data() {
-        let result = get_data('C').unwrap();
+        let result = get_data("ntfs:C:\\$Extend\\$UsnJrnl:$J").unwrap();
         assert!(result.len() > 20)
     }
 
