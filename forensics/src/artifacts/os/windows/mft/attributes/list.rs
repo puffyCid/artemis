@@ -13,7 +13,7 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use nom::{bytes::complete::take, error::ErrorKind};
+use nom::bytes::complete::take;
 use serde::Serialize;
 use tracing::error;
 
@@ -81,12 +81,7 @@ impl AttributeList {
                 parent_mft,
                 parent_sequence,
                 attribute_id,
-                attribute: EntryAttributes {
-                    filename: Vec::new(),
-                    standard: Vec::new(),
-                    attributes: Vec::new(),
-                    size: 0,
-                },
+                attribute: EntryAttributes::default(),
             };
 
             if list.parent_mft == current_mft {
@@ -99,10 +94,8 @@ impl AttributeList {
                 Ok(result) => result,
                 Err(err) => {
                     error!("Failed to read attribute list bytes: {err:?}");
-                    return Err(nom::Err::Failure(nom::error::Error::new(
-                        &[],
-                        ErrorKind::Fail,
-                    )));
+                    lists.push(list);
+                    continue;
                 }
             };
 
@@ -110,9 +103,11 @@ impl AttributeList {
                 Ok((_, result)) => result,
                 Err(_err) => {
                     error!("Failed to parse attribute list bytes");
+                    lists.push(list);
                     continue;
                 }
             };
+
             lists.push(list);
         }
 

@@ -22,7 +22,7 @@ use serde::Serialize;
 use serde_json::{Value, json};
 use tracing::error;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub(crate) struct EntryAttributes {
     pub(crate) standard: Vec<Standard>,
     pub(crate) filename: Vec<Filename>,
