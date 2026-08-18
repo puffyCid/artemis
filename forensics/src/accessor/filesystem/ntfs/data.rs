@@ -221,17 +221,21 @@ fn open_stream_reader<T: Read + Seek + Send>(
 /// How much cache to read in between file reads
 const READ_AHEAD: usize = 1024 * 1024;
 
+/// Map $DATA runs to absolute offsets on the volume
+///
+/// This allows us to avoid constantly having to read the MFT attributes
 struct DataRun {
+    /// Offset for the file we are reading
     file_offset: u64,
+    /// Offset of the NTFS volume
     volume_offset: Option<u64>,
+    /// Length of the file
     len: u64,
 }
 
 fn map_data_runs<T: Read + Seek>(reader: &mut T, file: &NtfsFile<'_>) -> Option<Vec<DataRun>> {
     let item = file.data(reader, "")?.ok()?;
-    let attr = item.to_attribute().ok()? else {
-        return None;
-    };
+    let attr = item.to_attribute().ok()?;
 
     let NtfsAttributeValue::NonResident(value) = attr.value(reader).ok()? else {
         return None;
