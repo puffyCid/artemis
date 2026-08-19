@@ -12,69 +12,76 @@
  * `https://github.com/Velocidex/velociraptor`
  * `https://github.com/fox-it/dissect.cim`
  */
-use super::{
-    error::WmiError,
-    windows_management::{get_wmi_persist, parse_wmi_repo},
-};
+use super::{error::WmiError, windows_management::get_wmi_persist};
 use crate::{
-    artifacts::os::systeminfo::info::get_platform, filesystem::directory::get_parent_directory,
-    structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, GlobMatch},
+    },
+    artifacts::os::windows::wmi::windows_management::extract_wmi,
+    structs::artifacts::os::windows::WmiPersistOptions,
+    utils::environment::get_systemdrive,
 };
 use common::windows::WmiPersist;
-use tracing::error;
+use tracing::{error, warn};
 
 /// Get WMI persist data based on provided options
 pub(crate) fn grab_wmi_persist(options: &WmiPersistOptions) -> Result<Vec<WmiPersist>, WmiError> {
-    if let Some(alt_dir) = &options.alt_dir {
-        let mut correct_dir = alt_dir.clone();
-        let (map_paths, objects_path, index_path) =
-            if get_platform().to_lowercase().contains("windows") {
-                if let Some(verify_dir) = correct_dir.strip_suffix('\\') {
-                    correct_dir = verify_dir.to_string();
-                }
-                let map_paths = format!("{correct_dir}\\MAPPING*.MAP");
-                let objects_path = format!("{correct_dir}\\OBJECTS.DATA");
-                let index_path = format!("{correct_dir}\\INDEX.BTR");
-                (map_paths, objects_path, index_path)
-            } else {
-                if let Some(verify_dir) = correct_dir.strip_suffix('/') {
-                    correct_dir = verify_dir.to_string();
-                }
-                let map_paths = format!("{correct_dir}/MAPPING*.MAP");
-                let objects_path = format!("{correct_dir}/OBJECTS.DATA");
-                let index_path = format!("{correct_dir}/INDEX.BTR");
-                (map_paths, objects_path, index_path)
-            };
-
-        return parse_wmi_persist(&map_paths, &objects_path, &index_path);
-    }
-
-    let default_drive_result = get_systemdrive();
-    let default_drive = match default_drive_result {
-        Ok(result) => result,
+    let pattern = if let Some(dir) = &options.alt_dir {
+        dir.clone()
+    } else {
+        let drive = match get_systemdrive() {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not get drive letter: {err:?}");
+                return Err(WmiError::DriveLetter);
+            }
+        };
+        format!("{drive}:\\Windows\\System32\\wbem\\Repository")
+    };
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Could not get drive letter: {err:?}");
-            return Err(WmiError::DriveLetter);
+            error!("Could not glob for WMI {pattern}: {err:?}");
+            return Err(WmiError::Glob);
         }
     };
 
-    let map_paths = format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-    let objects_path =
-        format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-    let index_path = format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-
-    parse_wmi_persist(&map_paths, &objects_path, &index_path)
+    parse_wmi_persist(paths)
 }
 
 /// Parse WMI files at provided path
-fn parse_wmi_persist(
-    map_paths: &str,
-    objects_path: &str,
-    index_path: &str,
-) -> Result<Vec<WmiPersist>, WmiError> {
-    let wmi_data = parse_wmi_repo(map_paths, objects_path, index_path)?;
+fn parse_wmi_persist(paths: Vec<GlobMatch>) -> Result<Vec<WmiPersist>, WmiError> {
+    let mut accessor = Accessor::with_defaults();
+    let mut persist = Vec::new();
 
-    get_wmi_persist(&wmi_data, &get_parent_directory(map_paths))
+    for entry in paths {
+        if entry.meta.kind != EntryKind::Directory {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_directory() else {
+            continue;
+        };
+
+        let wmi_files = match accessor.read_dir_handle(handle) {
+            Ok(results) => results,
+            Err(err) => {
+                warn!(
+                    "Could not read directory {}: {err:?}",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        let wmi_data = extract_wmi(wmi_files)?;
+        let mut wmi_persist = get_wmi_persist(&wmi_data, &handle.display_path())?;
+        persist.append(&mut wmi_persist);
+    }
+
+    Ok(persist)
 }
 
 #[cfg(test)]
@@ -82,7 +89,8 @@ fn parse_wmi_persist(
 mod tests {
     use super::{grab_wmi_persist, parse_wmi_persist};
     use crate::{
-        structs::artifacts::os::windows::WmiPersistOptions, utils::environment::get_systemdrive,
+        accessor::access::Accessor, structs::artifacts::os::windows::WmiPersistOptions,
+        utils::environment::get_systemdrive,
     };
 
     #[test]
@@ -94,15 +102,12 @@ mod tests {
 
     #[test]
     fn test_parse_wmi_persist() {
-        let default_drive = get_systemdrive().unwrap();
+        let drive = get_systemdrive().unwrap();
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor
+            .globfs(&format!("{drive}:\\Windows\\System32\\wbem\\Repository"))
+            .unwrap();
 
-        let map_paths =
-            format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-        let objects_path =
-            format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-        let index_path =
-            format!("{default_drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-
-        let _ = parse_wmi_persist(&map_paths, &objects_path, &index_path).unwrap();
+        let _ = parse_wmi_persist(paths).unwrap();
     }
 }
