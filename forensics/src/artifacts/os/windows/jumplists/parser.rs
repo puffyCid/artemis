@@ -45,7 +45,6 @@ pub(crate) fn grab_jumplists(
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::grab_jumplists;
     use crate::structs::artifacts::os::windows::JumplistsOptions;
@@ -53,6 +52,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_jumplists() {
         let options = JumplistsOptions { alt_dir: None };
         let _ = grab_jumplists(&options).unwrap();
@@ -62,7 +62,7 @@ mod tests {
     fn test_grab_jumplist_alt_dir() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push(
-            "tests\\test_data\\windows\\jumplists\\win10\\custom\\1ced32d74a95c7bc.customDestinations-ms",
+            "tests/test_data/windows/jumplists/win10/custom/1ced32d74a95c7bc.customDestinations-ms",
         );
         let options = JumplistsOptions {
             alt_dir: Some(test_location.display().to_string()),

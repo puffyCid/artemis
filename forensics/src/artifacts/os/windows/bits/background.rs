@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn test_parse_ese_bits() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
         let results = parse_ese_bits(&handle, false).unwrap();
         assert_eq!(results.len(), 1);
@@ -253,7 +253,7 @@ mod tests {
     #[test]
     fn test_get_bits_ese() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let results = get_bits_ese(&handle, "Files").unwrap();
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_legacy_bits() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\bits\\win81\\qmgr0.dat");
+        test_location.push("tests/test_data/windows/bits/win81/qmgr0.dat");
         let handle = FileHandle::host(test_location);
 
         let results = legacy_bits(&handle, false).unwrap();

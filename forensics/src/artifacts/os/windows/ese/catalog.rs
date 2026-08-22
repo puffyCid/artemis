@@ -735,7 +735,6 @@ impl Catalog {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::{Catalog, CatalogType};
     use crate::{
@@ -745,7 +744,6 @@ mod tests {
             header::EseHeader,
             pages::leaf::{LeafType, PageLeaf},
         },
-        filesystem::files::is_file,
     };
     use serde_json::json;
     use std::path::PathBuf;
@@ -753,7 +751,7 @@ mod tests {
     #[test]
     fn test_grab_catalog() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let mut reader = Accessor::with_defaults()
             .open_reader(test_location.to_str().unwrap())
             .unwrap();
@@ -845,6 +843,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_srum_catalog() {
         let mut reader = Accessor::with_defaults()
             .open_reader("ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat")
@@ -858,7 +857,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_updates_catalog() {
+        use crate::filesystem::files::is_file;
+
         let path = "C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb";
         if !is_file(path) {
             return;

@@ -208,7 +208,6 @@ fn parse_long_value_child<'a>(
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_long_value;
     use crate::{
@@ -220,7 +219,7 @@ mod tests {
     #[test]
     fn test_parse_long_value() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\longvalue_page.raw");
+        test_location.push("tests/test_data/windows/ese/win10/longvalue_page.raw");
 
         let lv = Accessor::with_defaults()
             .read_file(test_location.to_str().unwrap())

@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn test_parse_branch_child_catalog() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\branch_child_search.raw");
+        test_location.push("tests/test_data/windows/ese/win10/branch_child_search.raw");
         let test_data = Accessor::with_defaults()
             .read_file(test_location.to_str().unwrap())
             .unwrap();
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn test_parse_branch_child_page() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\branch_child_search.raw");
+        test_location.push("tests/test_data/windows/ese/win10/branch_child_search.raw");
         let test_data = Accessor::with_defaults()
             .read_file(test_location.to_str().unwrap())
             .unwrap();

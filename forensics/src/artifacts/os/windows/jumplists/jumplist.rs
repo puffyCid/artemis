@@ -85,7 +85,6 @@ fn get_jumplist_path(
 
 #[cfg(test)]
 mod tests {
-    use super::get_jumplists;
     use crate::{
         accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::windows::jumplists::jumplist::get_jumplist_path,
@@ -94,7 +93,10 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_get_jumplists() {
+        use super::get_jumplists;
+
         let path =
             format!("C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\*Destinations\\*");
 

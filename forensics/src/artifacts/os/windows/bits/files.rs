@@ -181,7 +181,7 @@ mod tests {
     #[test]
     fn test_get_files() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let files = get_bits_ese(&handle, "Files").unwrap();

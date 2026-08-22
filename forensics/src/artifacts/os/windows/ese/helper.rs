@@ -537,7 +537,7 @@ mod tests {
     #[test]
     fn test_get_catalog_info() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let results = get_catalog_info(&handle).unwrap();
@@ -547,7 +547,7 @@ mod tests {
     #[test]
     fn test_get_all_pages() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let results = get_catalog_info(&handle).unwrap();
@@ -559,7 +559,7 @@ mod tests {
     #[test]
     fn test_dump_table_columns() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let catalog = get_catalog_info(&handle).unwrap();
@@ -607,7 +607,7 @@ mod tests {
     #[test]
     fn test_get_filtered_page_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let catalog = get_catalog_info(&handle).unwrap();
@@ -662,7 +662,7 @@ mod tests {
     #[test]
     fn test_get_page_data_catalog() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let catalog = get_catalog_info(&handle).unwrap();
@@ -712,7 +712,7 @@ mod tests {
     #[test]
     fn test_get_page_data_bits_jobs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
         let handle = FileHandle::host(test_location);
 
         let catalog = get_catalog_info(&handle).unwrap();
