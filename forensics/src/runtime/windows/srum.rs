@@ -1,4 +1,7 @@
-use crate::{artifacts::os::windows::srum::parser::grab_srum_path, runtime::helper::string_arg};
+use crate::{
+    artifacts::os::windows::srum::parser::grab_srum_path,
+    runtime::{helper::string_arg, windows::ese::path_handle},
+};
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing a single SRUM table to `BoaJS`
@@ -9,8 +12,9 @@ pub(crate) fn js_srum(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
     let table = string_arg(args, 1)?;
+    let handle = path_handle(&path)?;
 
-    let srum = match grab_srum_path(&path, &table) {
+    let srum = match grab_srum_path(&handle, &table) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to get srum: {err:?}");
@@ -47,7 +51,7 @@ mod tests {
 
     #[test]
     fn test_js_srum() {
-        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc3J1bV9hcHBsaWNhdGlvbl9pbmZvKHBhdGgpIHsKICAgIGNvbnN0IG5hbWUgPSAie0QxMENBMkZFLTZGQ0YtNEY2RC04NDhFLUIyRTk5MjY2RkE4OX0iOwogICAgY29uc3QgZGF0YSA9IGpzX3NydW0ocGF0aCwgbmFtZSk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRTcnVtQXBwbGljYXRpb25JbmZvKHBhdGgpIHsKICAgIHJldHVybiBnZXRfc3J1bV9hcHBsaWNhdGlvbl9pbmZvKHBhdGgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwYXRoID0gIkM6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcc3J1XFxTUlVEQi5kYXQiOwogICAgY29uc3QgZW50cmllcyA9IGdldFNydW1BcHBsaWNhdGlvbkluZm8ocGF0aCk7CiAgICByZXR1cm4gZW50cmllczsKfQptYWluKCk7Cgo=";
+        let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc3J1bV9hcHBsaWNhdGlvbl9pbmZvKHBhdGgpIHsKICAgIGNvbnN0IG5hbWUgPSAie0QxMENBMkZFLTZGQ0YtNEY2RC04NDhFLUIyRTk5MjY2RkE4OX0iOwogICAgY29uc3QgZGF0YSA9IGpzX3NydW0ocGF0aCwgbmFtZSk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRTcnVtQXBwbGljYXRpb25JbmZvKHBhdGgpIHsKICAgIHJldHVybiBnZXRfc3J1bV9hcHBsaWNhdGlvbl9pbmZvKHBhdGgpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwYXRoID0gIm50ZnM6QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxzcnVcXFNSVURCLmRhdCI7CiAgICBjb25zdCBlbnRyaWVzID0gZ2V0U3J1bUFwcGxpY2F0aW9uSW5mbyhwYXRoKTsKICAgIHJldHVybiBlbnRyaWVzOwp9Cm1haW4oKTsKCg==";
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("srum"),

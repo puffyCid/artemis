@@ -1,6 +1,9 @@
 use crate::{
     artifacts::os::windows::search::parser::grab_search_path,
-    runtime::helper::{number_arg, string_arg},
+    runtime::{
+        helper::{number_arg, string_arg},
+        windows::ese::path_handle,
+    },
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
@@ -12,8 +15,9 @@ pub(crate) fn js_search(
 ) -> JsResult<JsValue> {
     let path = string_arg(args, 0)?;
     let page_limit = number_arg(args, 1)? as u32;
+    let handle = path_handle(&path)?;
 
-    let search = match grab_search_path(&path, page_limit) {
+    let search = match grab_search_path(&handle, page_limit) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to parse search {path}: {err:?}");
@@ -51,7 +55,7 @@ mod tests {
 
     #[test]
     fn test_js_search() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZWFyY2gudHMKZnVuY3Rpb24gZ2V0U2VhcmNoKHBhdGgpIHsKICBjb25zdCBkYXRhPSBqc19zZWFyY2gocGF0aCwgNTApOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbnZpcm9ubWVudC9lbnYudHMKZnVuY3Rpb24gZ2V0RW52VmFsdWUoa2V5KSB7CiAgY29uc3QgZGF0YSA9IGpzX2Vudl92YWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIHN0YXQocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19zdGF0KHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZHJpdmUgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICBpZiAoZHJpdmUgPT09ICIiKSB7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IHBhdGggPSBgJHtkcml2ZX1cXFByb2dyYW1EYXRhXFxNaWNyb3NvZnRcXFNlYXJjaFxcRGF0YVxcQXBwbGljYXRpb25zXFxXaW5kb3dzYDsKICB0cnkgewogICAgY29uc3Qgc2VhcmNoX3BhdGggPSBgJHtwYXRofVxcV2luZG93cy5lZGJgOwogICAgY29uc3Qgc3RhdHVzID0gc3RhdChzZWFyY2hfcGF0aCk7CiAgICBpZiAoIXN0YXR1cy5pc19maWxlKSB7CiAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRTZWFyY2goc2VhcmNoX3BhdGgpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfSBjYXRjaCAoX2UpIHsKICAgIGNvbnN0IHNlYXJjaF9wYXRoID0gYCR7cGF0aH1cXFdpbmRvd3MuZGJgOwogICAgY29uc3Qgc3RhdHVzID0gc3RhdChzZWFyY2hfcGF0aCk7CiAgICBpZiAoIXN0YXR1cy5pc19maWxlKSB7CiAgICAgIHJldHVybiBbXTsKICAgIH0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRTZWFyY2goc2VhcmNoX3BhdGgpOwogICAgcmV0dXJuIHJlc3VsdHM7CiAgfQp9Cm1haW4oKTsK";
+        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9zZWFyY2gudHMKZnVuY3Rpb24gZ2V0U2VhcmNoKHBhdGgpIHsKICBjb25zdCBkYXRhPSBqc19zZWFyY2gocGF0aCwgNTApOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9lbnZpcm9ubWVudC9lbnYudHMKZnVuY3Rpb24gZ2V0RW52VmFsdWUoa2V5KSB7CiAgY29uc3QgZGF0YSA9IGpzX2Vudl92YWx1ZShrZXkpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIHN0YXQocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19zdGF0KHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgZHJpdmUgPSBnZXRFbnZWYWx1ZSgiU3lzdGVtRHJpdmUiKTsKICBpZiAoZHJpdmUgPT09ICIiKSB7CiAgICByZXR1cm4gW107CiAgfQogIGNvbnN0IHBhdGggPSBgbnRmczoke2RyaXZlfVxcUHJvZ3JhbURhdGFcXE1pY3Jvc29mdFxcU2VhcmNoXFxEYXRhXFxBcHBsaWNhdGlvbnNcXFdpbmRvd3NgOwogIHRyeSB7CiAgICBjb25zdCBzZWFyY2hfcGF0aCA9IGAke3BhdGh9XFxXaW5kb3dzLmVkYmA7CiAgICBjb25zdCBzdGF0dXMgPSBzdGF0KHNlYXJjaF9wYXRoKTsKICAgIGlmICghc3RhdHVzLmlzX2ZpbGUpIHsKICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgcmVzdWx0cyA9IGdldFNlYXJjaChzZWFyY2hfcGF0aCk7CiAgICByZXR1cm4gcmVzdWx0czsKICB9IGNhdGNoIChfZSkgewogICAgY29uc3Qgc2VhcmNoX3BhdGggPSBgJHtwYXRofVxcV2luZG93cy5kYmA7CiAgICBjb25zdCBzdGF0dXMgPSBzdGF0KHNlYXJjaF9wYXRoKTsKICAgIGlmICghc3RhdHVzLmlzX2ZpbGUpIHsKICAgICAgcmV0dXJuIFtdOwogICAgfQogICAgY29uc3QgcmVzdWx0cyA9IGdldFNlYXJjaChzZWFyY2hfcGF0aCk7CiAgICByZXR1cm4gcmVzdWx0czsKICB9Cn0KbWFpbigpOwo=";
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("search"),
