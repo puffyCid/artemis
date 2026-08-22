@@ -313,7 +313,7 @@ mod tests {
             alt_file: None,
             alt_mft: None,
         };
-        parse_usnjrnl_data('C', "C:\\$MFT", &mut output, &params).unwrap();
+        parse_usnjrnl_data('C', "ntfs:C:\\$MFT", &mut output, &params).unwrap();
     }
 
     #[test]
