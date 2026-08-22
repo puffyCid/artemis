@@ -18,7 +18,12 @@ use super::{
     resource::{get_srum, parse_srum},
 };
 use crate::{
-    output::manager::OutputManager, structs::artifacts::os::windows::SrumOptions,
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, FileHandle},
+    },
+    output::manager::OutputManager,
+    structs::artifacts::os::windows::SrumOptions,
     utils::environment::get_systemdrive,
 };
 use serde_json::Value;
@@ -32,35 +37,56 @@ pub(crate) fn grab_srum(
     options: &SrumOptions,
     manager: &mut OutputManager,
 ) -> Result<(), SrumError> {
-    let path = if let Some(alt) = &options.alt_file {
-        alt.clone()
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
     } else {
-        let systemdrive_result = get_systemdrive();
-        let systemdrive = match systemdrive_result {
+        let drive = match get_systemdrive() {
             Ok(result) => result,
             Err(err) => {
                 error!("Could not get systemdrive: {err:?}");
                 return Err(SrumError::Systemdrive);
             }
         };
-        format!("{systemdrive}:\\Windows\\System32\\sru\\SRUDB.dat")
+        format!("{drive}:\\Windows\\System32\\sru\\SRUDB.dat")
     };
 
-    parse_srum(&path, manager, options)
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Could not glob SRUM {pattern}: {err:?}");
+            return Err(SrumError::ParseEse);
+        }
+    };
+
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        parse_srum(handle, manager, options);
+    }
+
+    Ok(())
 }
 
 /**
  * Grab the `SRUM` data from the provided path  
  * We then dump a single provided table associated with `SRUM` along with the `SruDbIdMapTable` index
  */
-pub(crate) fn grab_srum_path(path: &str, table: &str) -> Result<Value, SrumError> {
-    get_srum(path, table)
+pub(crate) fn grab_srum_path(handle: &FileHandle, table: &str) -> Result<Value, SrumError> {
+    get_srum(handle, table)
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
     use super::grab_srum;
+    use crate::accessor::access::Accessor;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::srum::parser::grab_srum_path, output::manager::OutputManager,
@@ -83,9 +109,11 @@ mod tests {
 
     #[test]
     fn test_grab_srum_path() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let results = grab_srum_path(test_path, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
+        let results = grab_srum_path(handle, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
         assert_eq!(results.is_null(), false)
     }
 

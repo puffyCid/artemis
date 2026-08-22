@@ -66,13 +66,14 @@ pub(crate) fn parse_id_lookup(column_rows: &[Vec<TableDump>]) -> HashMap<String,
 #[cfg(target_os = "windows")]
 mod tests {
     use super::parse_id_lookup;
-    use crate::artifacts::os::windows::srum::resource::get_srum_ese;
+    use crate::{accessor::access::Accessor, artifacts::os::windows::srum::resource::get_srum_ese};
 
     #[test]
     fn test_parse_id_lookup() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
-
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
 
         let results = parse_id_lookup(&indexes);
         assert!(results.len() > 20);

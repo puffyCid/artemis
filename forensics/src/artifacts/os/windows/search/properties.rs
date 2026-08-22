@@ -37,6 +37,7 @@ pub(crate) fn parse_prop_id_lookup(
 mod tests {
     use super::parse_prop_id_lookup;
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::{
             ese::{helper::get_page_data, tables::table_info},
             search::ese::{get_document_ids, get_properties, search_catalog, search_pages},
@@ -52,13 +53,17 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-        let catalog = search_catalog(test_path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let catalog = search_catalog(handle).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, handle).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(property_table.table_page as u32, test_path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, handle).unwrap();
 
         let page_limit = 1;
         let mut gather_chunk = Vec::new();
@@ -73,13 +78,9 @@ mod tests {
                 continue;
             }
 
-            let gather_rows = get_page_data(
-                test_path,
-                &gather_chunk,
-                &mut gather_table,
-                "SystemIndex_Gthr",
-            )
-            .unwrap();
+            let gather_rows =
+                get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr")
+                    .unwrap();
 
             let mut doc_ids = get_document_ids(
                 &gather_rows
@@ -87,12 +88,7 @@ mod tests {
                     .unwrap_or(&Vec::new())
                     .to_vec(),
             );
-            let props = get_properties(
-                test_path,
-                &property_pages,
-                &mut property_table,
-                &mut doc_ids,
-            );
+            let props = get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
             let _ = parse_prop_id_lookup(props.get("SystemIndex_PropertyStore").unwrap());
             break;

@@ -1,9 +1,10 @@
 use super::{error::SearchError, ese::SearchEntry};
 use crate::{
+    accessor::{access::Accessor, entry::handle::FileHandle},
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::SearchOptions,
 };
-use rusqlite::{Connection, OpenFlags};
+use rusqlite::{Connection, MAIN_DB};
 use std::{collections::HashMap, mem::take};
 use tracing::{error, warn};
 
@@ -15,24 +16,32 @@ struct SqlEntry {
 
 /// Parse the Windows `Search` SQLITE file
 pub(crate) fn parse_search_sqlite(
-    path: &str,
+    handle: &FileHandle,
     manager: &mut OutputManager,
     options: &SearchOptions,
 ) -> Result<(), SearchError> {
-    // Bypass SQLITE file lock
-    let search_file = format!("file:{path}?immutable=1");
-
-    let connection = Connection::open_with_flags(
-        search_file,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    );
-    let conn = match connection {
-        Ok(connect) => connect,
+    let mut accessor = Accessor::with_defaults();
+    let bytes = match accessor.read_file_handle(handle) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Failed to read Search SQLITE file {err:?}");
+            error!(
+                "Failed to read Search SQLITE file {} {err:?}",
+                handle.display_path()
+            );
             return Err(SearchError::SqliteParse);
         }
     };
+    let mut conn = match Connection::open_in_memory() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to create in memory SQLITE file {err:?}");
+            return Err(SearchError::SqliteParse);
+        }
+    };
+    if let Err(err) = conn.deserialize_read_exact(MAIN_DB, &bytes[..], bytes.len(), true) {
+        error!("Failed to deserialize Windows Search SQLITE file {err:?}");
+        return Err(SearchError::SqliteParse);
+    }
 
     let query = "SELECT WorkId,quote(Value) as Value,UniqueKey from SystemIndex_1_PropertyStore join SystemIndex_1_PropertyStore_Metadata on SystemIndex_1_PropertyStore.ColumnId = SystemIndex_1_PropertyStore_Metadata.Id order by SystemIndex_1_PropertyStore.WorkId";
     let statement = conn.prepare(query);
@@ -61,7 +70,7 @@ pub(crate) fn parse_search_sqlite(
                 entry: String::new(),
                 last_modified: String::from("1970-01-01T00:00:00.000Z"),
                 properties: HashMap::new(),
-                evidence: path.to_string(),
+                evidence: handle.display_path(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property value.
             // Once the doucment_id is different we have arrived at the next entry
@@ -134,21 +143,31 @@ pub(crate) fn parse_search_sqlite(
 }
 
 /// Parse the Windows `Search` SQLITE file and return results
-pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, SearchError> {
-    // Bypass SQLITE file lock
-    let search_file = format!("file:{path}?immutable=1");
-
-    let connection = Connection::open_with_flags(
-        search_file,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    );
-    let conn = match connection {
-        Ok(connect) => connect,
+pub(crate) fn parse_search_sqlite_path(
+    handle: &FileHandle,
+) -> Result<Vec<SearchEntry>, SearchError> {
+    let mut accessor = Accessor::with_defaults();
+    let bytes = match accessor.read_file_handle(handle) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Failed to read Search SQLITE file {err:?}");
+            error!(
+                "Failed to read Search SQLITE file {} {err:?}",
+                handle.display_path()
+            );
             return Err(SearchError::SqliteParse);
         }
     };
+    let mut conn = match Connection::open_in_memory() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to create in memory SQLITE file {err:?}");
+            return Err(SearchError::SqliteParse);
+        }
+    };
+    if let Err(err) = conn.deserialize_read_exact(MAIN_DB, &bytes[..], bytes.len(), true) {
+        error!("Failed to deserialize Windows Search SQLITE file {err:?}");
+        return Err(SearchError::SqliteParse);
+    }
 
     let query = "SELECT WorkId,quote(Value) as Value,UniqueKey from SystemIndex_1_PropertyStore join SystemIndex_1_PropertyStore_Metadata on SystemIndex_1_PropertyStore.ColumnId = SystemIndex_1_PropertyStore_Metadata.Id order by SystemIndex_1_PropertyStore.WorkId";
     let statement = conn.prepare(query);
@@ -176,10 +195,10 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
                 entry: String::new(),
                 last_modified: String::new(),
                 properties: HashMap::new(),
-                evidence: path.to_string(),
+                evidence: handle.display_path(),
             };
             // Go through each row, while the entry.document_id and sql_entry.document_id are the same each row is a property.
-            // Once the doucment_id is different we have arrived at the next entry
+            // Once the document_id is different we have arrived at the next entry
             for search in search_iter {
                 match search {
                     Ok(sql_entry) => {
@@ -216,6 +235,7 @@ pub(crate) fn parse_search_sqlite_path(path: &str) -> Result<Vec<SearchEntry>, S
 #[cfg(test)]
 mod tests {
     use super::{parse_search_sqlite, parse_search_sqlite_path};
+    use crate::accessor::entry::handle::FileHandle;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{output::manager::OutputManager, structs::artifacts::os::windows::SearchOptions};
     use std::path::PathBuf;
@@ -241,7 +261,7 @@ mod tests {
 
         let mut output = output_options("search_temp", "./tmp", false);
 
-        parse_search_sqlite(&test_location.display().to_string(), &mut output, &options).unwrap();
+        parse_search_sqlite(&FileHandle::host(test_location), &mut output, &options).unwrap();
     }
 
     #[test]
@@ -249,7 +269,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/search/win11/Windows.db");
 
-        let results = parse_search_sqlite_path(&test_location.display().to_string()).unwrap();
+        let results = parse_search_sqlite_path(&FileHandle::host(test_location)).unwrap();
         assert_eq!(results.len(), 1437);
         assert_eq!(
             results[1295]

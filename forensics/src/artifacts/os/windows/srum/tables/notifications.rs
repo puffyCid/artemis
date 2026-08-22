@@ -15,14 +15,8 @@ pub(crate) fn parse_notification(
     let mut notif_vec: Vec<NotificationInfo> = Vec::new();
     for rows in column_rows {
         let mut notif = NotificationInfo {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            notification_type: 0,
-            payload_size: 0,
-            network_type: 0,
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -78,17 +72,20 @@ pub(crate) fn parse_notification(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::parse_notification;
-    use crate::artifacts::os::windows::srum::{
-        resource::get_srum_ese, tables::index::parse_id_lookup,
+    use crate::{
+        accessor::access::Accessor,
+        artifacts::os::windows::srum::{resource::get_srum_ese, tables::index::parse_id_lookup},
     };
 
     #[test]
     fn test_parse_notification() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}").unwrap();
+        let srum_data = get_srum_ese(handle, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA86}").unwrap();
 
         parse_notification(&srum_data, &lookups, test_path).unwrap();
     }

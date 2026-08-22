@@ -891,7 +891,7 @@ pub struct TagData {
     pub list_data: Vec<HashMap<String, String>>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct ApplicationInfo {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -915,7 +915,7 @@ pub struct ApplicationInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct AppTimelineInfo {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -964,7 +964,7 @@ pub struct AppTimelineInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct AppVfu {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -977,7 +977,7 @@ pub struct AppVfu {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct EnergyInfo {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -987,7 +987,7 @@ pub struct EnergyInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct EnergyUsage {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -1003,7 +1003,7 @@ pub struct EnergyUsage {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct NetworkInfo {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -1017,7 +1017,7 @@ pub struct NetworkInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct NetworkConnectivityInfo {
     pub auto_inc_id: i32,
     pub timestamp: String,
@@ -1031,7 +1031,7 @@ pub struct NetworkConnectivityInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct NotificationInfo {
     pub auto_inc_id: i32,
     pub timestamp: String,

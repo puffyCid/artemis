@@ -161,6 +161,7 @@ pub(crate) fn parse_index_gthr_path(
 #[cfg(test)]
 mod tests {
     use super::{parse_index_gthr, parse_index_gthr_path};
+    use crate::accessor::access::Accessor;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::{
@@ -194,12 +195,16 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
         let mut output = output_options("search_temp", "./tmp", false);
 
-        let catalog = search_catalog(test_path).unwrap();
+        let catalog = search_catalog(handle).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, handle).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -216,13 +221,9 @@ mod tests {
                 continue;
             }
 
-            let gather_rows = get_page_data(
-                test_path,
-                &gather_chunk,
-                &mut gather_table,
-                "SystemIndex_Gthr",
-            )
-            .unwrap();
+            let gather_rows =
+                get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr")
+                    .unwrap();
 
             parse_index_gthr(
                 &gather_rows.get("SystemIndex_Gthr").unwrap(),
@@ -244,11 +245,14 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-
-        let catalog = search_catalog(test_path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let catalog = search_catalog(handle).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(gather_table.table_page as u32, test_path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, handle).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -263,13 +267,9 @@ mod tests {
                 continue;
             }
 
-            let gather_rows = get_page_data(
-                test_path,
-                &gather_chunk,
-                &mut gather_table,
-                "SystemIndex_Gthr",
-            )
-            .unwrap();
+            let gather_rows =
+                get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr")
+                    .unwrap();
 
             let mut entries = Vec::new();
 

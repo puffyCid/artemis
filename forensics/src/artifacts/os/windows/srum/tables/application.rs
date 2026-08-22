@@ -13,29 +13,11 @@ pub(crate) fn parse_application(
     lookups: &HashMap<String, String>,
     evidence: &str,
 ) -> Result<VecRecordStream, SrumError> {
-    let mut app_vec: Vec<ApplicationInfo> = Vec::new();
+    let mut app_vec = Vec::new();
     for rows in column_rows {
         let mut app = ApplicationInfo {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            foreground_cycle_time: 0,
-            background_cycle_time: 0,
-            facetime: 0,
-            foreground_context_switches: 0,
-            background_context_switches: 0,
-            foreground_bytes_read: 0,
-            foreground_bytes_written: 0,
-            foreground_num_read_operations: 0,
-            foreground_num_write_options: 0,
-            foreground_number_of_flushes: 0,
-            background_bytes_read: 0,
-            background_bytes_written: 0,
-            background_num_read_operations: 0,
-            background_num_write_operations: 0,
-            background_number_of_flushes: 0,
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -144,51 +126,8 @@ pub(crate) fn parse_app_timeline(
     let mut app_timeline: Vec<AppTimelineInfo> = Vec::new();
     for rows in column_rows {
         let mut energy = AppTimelineInfo {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            flags: 0,
-            end_time: String::new(),
-            duration_ms: 0,
-            span_ms: 0,
-            timeline_end: 0,
-            in_focus_timeline: 0,
-            user_input_timeline: 0,
-            comp_rendered_timeline: 0,
-            comp_dirtied_timeline: 0,
-            comp_propagated_timeline: 0,
-            audio_in_timeline: 0,
-            audio_out_timeline: 0,
-            cpu_timeline: 0,
-            disk_timeline: 0,
-            network_timeline: 0,
-            mbb_timeline: 0,
-            in_focus_s: 0,
-            psm_foreground_s: 0,
-            user_input_s: 0,
-            comp_rendered_s: 0,
-            comp_dirtied_s: 0,
-            comp_propagated_s: 0,
-            audio_in_s: 0,
-            audio_out_s: 0,
-            cycles: 0,
-            cycles_breakdown: 0,
-            cycles_attr: 0,
-            cycles_attr_breakdown: 0,
-            cycles_wob: 0,
-            cycles_wob_breakdown: 0,
-            disk_raw: 0,
-            network_tail_raw: 0,
-            network_bytes_raw: 0,
-            mbb_tail_raw: 0,
-            mbb_bytes_raw: 0,
-            display_required_s: 0,
-            display_required_timeline: 0,
-            keyboard_input_timeline: 0,
-            keyboard_input_s: 0,
-            mouse_input_s: 0,
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         let null_values = ["3038287259199220266", "707406378"];
@@ -373,15 +312,8 @@ pub(crate) fn parse_vfu_provider(
     let mut app_vec: Vec<AppVfu> = Vec::new();
     for rows in column_rows {
         let mut app = AppVfu {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            flags: 0,
-            start_time: String::new(),
-            end_time: String::new(),
-            usage: String::new(),
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -440,17 +372,20 @@ pub(crate) fn parse_vfu_provider(
 mod tests {
     use super::{parse_app_timeline, parse_application, parse_vfu_provider};
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::srum::{resource::get_srum_ese, tables::index::parse_id_lookup},
         output::record::RecordStream,
     };
 
     #[test]
     fn test_parse_app_timeline() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
+        let srum_data = get_srum_ese(handle, "{5C8CF1C7-7257-4F13-B223-970EF5939312}").unwrap();
 
         let mut results = parse_app_timeline(&srum_data, &lookups, test_path).unwrap();
         assert!(results.next_record().is_ok())
@@ -458,11 +393,13 @@ mod tests {
 
     #[test]
     fn test_parse_application() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}").unwrap();
+        let srum_data = get_srum_ese(handle, "{D10CA2FE-6FCF-4F6D-848E-B2E99266FA89}").unwrap();
 
         let mut results = parse_application(&srum_data, &lookups, test_path).unwrap();
         assert!(results.next_record().is_ok())
@@ -470,11 +407,13 @@ mod tests {
 
     #[test]
     fn test_parse_vfu_provider() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}").unwrap();
+        let srum_data = get_srum_ese(handle, "{7ACBBAA3-D029-4BE4-9A7A-0885927F1D8F}").unwrap();
 
         let mut results = parse_vfu_provider(&srum_data, &lookups, test_path).unwrap();
         assert!(results.next_record().is_ok())
