@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn test_js_recycle_bin() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9yZWN5Y2xlYmluLnRzCmZ1bmN0aW9uIGdldFJlY3ljbGVCaW4oZHJpdmUpIHsKICAgIGNvbnN0IGRhdGEyID0ganNfcmVjeWNsZV9iaW4oKTsKICAgIHJldHVybiBkYXRhMjsgIAp9CgovLyBtYWluLnRzCmZ1bmN0aW9uIG1haW4oKSB7CiAgY29uc3QgYmluID0gZ2V0UmVjeWNsZUJpbigpOwogIHJldHVybiBiaW47Cn0KbWFpbigpOw==";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_recylebin_test", "./tmp", false);
         let script = JSScript {
             name: String::from("recycle_bin_default"),
             script: test.to_string(),

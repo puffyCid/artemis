@@ -61,7 +61,7 @@ mod tests {
     #[test]
     fn test_js_shellbags() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hlbGxiYWdzKHJlc29sdmVfZ3VpZHMpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19zaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcyk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRTaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcykgewogICAgcmV0dXJuIGdldF9zaGVsbGJhZ3MocmVzb2x2ZV9ndWlkcyk7Cn0KZnVuY3Rpb24gbWFpbigpIHsKICAgIGNvbnN0IGJhZ3MgPSBnZXRTaGVsbGJhZ3ModHJ1ZSk7CiAgICByZXR1cm4gYmFnczsKfQptYWluKCk7";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_shellbags_test", "./tmp", false);
         let script = JSScript {
             name: String::from("shellbags"),
             script: test.to_string(),
