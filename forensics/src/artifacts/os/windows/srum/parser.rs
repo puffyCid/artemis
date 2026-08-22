@@ -68,7 +68,7 @@ pub(crate) fn grab_srum(
             continue;
         };
 
-        parse_srum(handle, manager, options);
+        let _ = parse_srum(handle, manager, options);
     }
 
     Ok(())

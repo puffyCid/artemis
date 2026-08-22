@@ -228,7 +228,7 @@ fn get_pages(
     let adjust_page = 1;
     let page_number = (first_page + adjust_page) * page_size;
 
-    reader.seek_from_start(page_number as u64);
+    let _ = reader.seek_from_start(page_number as u64);
     let mut buf = vec![0; page_size as usize];
     if let Err(err) = reader.read(&mut buf) {
         error!("Failed to read bytes for page start: {err:?}");
@@ -303,7 +303,7 @@ fn get_pages(
         pages.push(branch.child_page);
 
         // Now get the child page
-        reader.seek_from_start(branch_start as u64);
+        let _ = reader.seek_from_start(branch_start as u64);
         let mut buf = vec![0; page_size as usize];
         if let Err(err) = reader.read(&mut buf) {
             error!("Failed to read bytes for child data: {err:?}");
@@ -334,7 +334,7 @@ fn page_data(
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (page + adjust_page) * page_size;
-    reader.seek_from_start(page_number as u64);
+    let _ = reader.seek_from_start(page_number as u64);
 
     let mut buf = vec![0; page_size as usize];
     if let Err(err) = reader.read(&mut buf) {
@@ -463,7 +463,7 @@ fn row_data(
     // Need to adjust page number to account for header page
     let page_number = (info.long_value_page as u32 + adjust_page) * page_size;
 
-    reader.seek_from_start(page_number as u64);
+    let _ = reader.seek_from_start(page_number as u64);
 
     let mut buf = vec![0; page_size as usize];
     if let Err(err) = reader.read(&mut buf) {

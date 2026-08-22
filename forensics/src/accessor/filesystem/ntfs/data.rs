@@ -266,7 +266,7 @@ fn map_data_runs<T: Read + Seek>(reader: &mut T, file: &NtfsFile<'_>) -> Option<
     if runs.is_empty() { None } else { Some(runs) }
 }
 
-/// Find the correct DataRun for us to read from
+/// Find the correct `DataRun` for us to read from
 fn find_run(runs: &[DataRun], offset: u64) -> Option<&DataRun> {
     let index = runs
         .binary_search_by(|run| {

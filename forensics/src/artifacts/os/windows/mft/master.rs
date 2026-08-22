@@ -131,7 +131,7 @@ fn read_mft(
 
             let mut remaining = mft_bytes.as_slice();
             // Parse 1000 entries
-            while mft_bytes.len() >= header.total_size as usize && remaining.len() != 0 {
+            while mft_bytes.len() >= header.total_size as usize && !remaining.is_empty() {
                 // Nom first FILE entry
                 let (input, entry_bytes) = match nom_data(remaining, header.total_size as u64) {
                     Ok(result) => result,

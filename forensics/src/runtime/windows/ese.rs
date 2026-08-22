@@ -203,14 +203,14 @@ pub(crate) fn js_get_table_columns(
 }
 
 pub(crate) fn path_handle(path: &str) -> JsResult<FileHandle> {
-    let binding = match Accessor::with_defaults().globfs(&path) {
+    let binding = match Accessor::with_defaults().globfs(path) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to glob for handle {path}: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    if let Some(value) = binding.get(0).and_then(|h| h.handle.as_file()) {
+    if let Some(value) = binding.first().and_then(|h| h.handle.as_file()) {
         return Ok(value.clone());
     }
 

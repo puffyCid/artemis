@@ -133,7 +133,7 @@ impl BranchPage {
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) as usize * data.len();
             // Now get the child page
-            reader.seek_from_start(branch_start as u64);
+            let _ = reader.seek_from_start(branch_start as u64);
             let mut buf = vec![0; data.len()];
             if let Err(err) = reader.read(&mut buf) {
                 error!("Could not read child page data: {err:?}");
@@ -215,7 +215,7 @@ impl BranchPage {
             let branch_start = (branch.child_page + adjust_page) as usize * page_branch_data.len();
 
             // Now get the child page
-            reader.seek_from_start(branch_start as u64);
+            let _ = reader.seek_from_start(branch_start as u64);
             let mut buf = vec![0; page_branch_data.len()];
             if let Err(err) = reader.read(&mut buf) {
                 error!("Failed to read bytes for child data: {err:?}");

@@ -104,7 +104,7 @@ pub(crate) fn get_registry_keys_handle(
     file_handle: &FileHandle,
 ) -> Result<Vec<RegistryData>, RegistryError> {
     let mut params = Params {
-        start_path: start_path,
+        start_path,
         path_regex: regex,
         registry_list: Vec::new(),
         key_tracker: Vec::new(),

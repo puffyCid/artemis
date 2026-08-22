@@ -70,9 +70,8 @@ pub(crate) fn grab_search(
         };
 
         if handle.display_path().ends_with("Windows.edb") {
-            parse_search(handle, manager, options);
-            continue;
-        } else if handle.display_path().ends_with("Windows.edb") {
+            let _ = parse_search(handle, manager, options);
+        } else if handle.display_path().ends_with("Windows.db") {
             // If we do not find Windows.edb we may be dealing with Windows 11 db
             /*
              * Windows Search on Windows 11 is split into three (3) SQLITE databases:
@@ -92,7 +91,7 @@ pub(crate) fn grab_search(
              * `https://www.sqlite.org/datatype3.html#collation`
              * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
              */
-            parse_search_sqlite(handle, manager, options);
+            let _ = parse_search_sqlite(handle, manager, options);
         }
     }
 
@@ -109,7 +108,7 @@ pub(crate) fn grab_search_path(
     } else if handle.display_path().ends_with("Windows.db") {
         parse_search_sqlite_path(handle)?;
     }
-    return Err(SearchError::NotSearchFile);
+    Err(SearchError::NotSearchFile)
 }
 
 #[cfg(test)]
