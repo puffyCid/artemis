@@ -1,5 +1,6 @@
 use super::root::parse_root_page;
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::windows::ese::{
         page::{PageFlags, PageHeader},
         pages::{
@@ -8,12 +9,9 @@ use crate::{
         },
         tags::TagFlags,
     },
-    filesystem::ntfs::reader::read_bytes,
 };
 use nom::{bytes::complete::take, error::ErrorKind};
-use ntfs::NtfsFile;
-use std::collections::HashMap;
-use std::io::BufReader;
+use std::{collections::HashMap, io::Read};
 use tracing::{error, warn};
 
 /**
@@ -21,10 +19,9 @@ use tracing::{error, warn};
  * long value is data too large to fit in a cell
  * Columns that have long value data can use this `HashMap` to lookup the column actual data
  */
-pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn parse_long_value<'a>(
     page_lv_data: &'a [u8],
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+    reader: &mut AccessorReader,
 ) -> nom::IResult<&'a [u8], HashMap<Vec<u8>, Vec<u8>>> {
     let (page_data, table_page_data) = PageHeader::parse_header(page_lv_data)?;
     let mut has_root = false;
@@ -105,24 +102,17 @@ pub(crate) fn parse_long_value<'a, T: std::io::Seek + std::io::Read>(
         let branch_start = (branch.child_page + adjust_page) as usize * page_lv_data.len();
 
         // Now get the child page
-        let child_result = read_bytes(
-            branch_start as u64,
-            page_lv_data.len() as u64,
-            ntfs_file,
-            fs,
-        );
-        let child_data = match child_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to read bytes for long value child data: {err:?}");
-                return Err(nom::Err::Failure(nom::error::Error::new(
-                    &[],
-                    ErrorKind::Fail,
-                )));
-            }
+        reader.seek_from_start(branch_start as u64);
+        let mut buf = Vec::with_capacity(page_lv_data.len());
+        if let Err(err) = reader.read(&mut buf) {
+            error!("Failed to read bytes for long value child data: {err:?}");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
         };
 
-        let result = parse_long_value_child(&child_data, &mut values);
+        let result = parse_long_value_child(&buf, &mut values);
         if result.is_err() {
             error!("Failed to parse long value child");
         }
@@ -216,11 +206,8 @@ fn parse_long_value_child<'a>(
 mod tests {
     use super::parse_long_value;
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::ese::pages::longvalue::parse_long_value_child,
-        filesystem::{
-            files::read_file,
-            ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser},
-        },
     };
     use std::{collections::HashMap, path::PathBuf};
 
@@ -229,14 +216,16 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\longvalue_page.raw");
 
-        let lv = read_file(test_location.to_str().unwrap()).unwrap();
+        let lv = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         test_location.pop();
         test_location.push("qmgr.db");
-        let binding = test_location.display().to_string();
-        let mut ntfs_parser = setup_ntfs_parser(binding.chars().next().unwrap()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
-        let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let (_, results) = parse_long_value(&lv, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let (_, results) = parse_long_value(&lv, &mut reader).unwrap();
         assert_eq!(results.len(), 94);
     }
 
@@ -245,7 +234,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/ese/win10/long_value_child.raw");
 
-        let lv = read_file(test_location.to_str().unwrap()).unwrap();
+        let lv = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let mut values = HashMap::new();
         let (_, _) = parse_long_value_child(&lv, &mut values).unwrap();
         assert_eq!(values.len(), 12);

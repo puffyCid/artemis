@@ -23,138 +23,61 @@ use super::{
     tables::{ColumnInfo, TableInfo, create_table_data},
 };
 use crate::{
-    artifacts::os::{
-        systeminfo::info::get_platform,
-        windows::ese::{
-            pages::{
-                branch::BranchPage,
-                leaf::{LeafType, PageLeaf},
-            },
-            tables::{clear_column_data, parse_row},
-            tags::TagFlags,
+    accessor::{access::Accessor, entry::handle::FileHandle, io::reader::AccessorReader},
+    artifacts::os::windows::ese::{
+        pages::{
+            branch::BranchPage,
+            leaf::{LeafType, PageLeaf},
         },
-    },
-    filesystem::{
-        files::file_reader,
-        ntfs::{
-            raw_files::raw_reader, reader::read_bytes, sector_reader::SectorReader,
-            setup::setup_ntfs_parser,
-        },
+        tables::{clear_column_data, parse_row},
+        tags::TagFlags,
     },
     utils::nom_helper::nom_data,
 };
 use common::windows::{ColumnType, TableDump};
-use ntfs::{Ntfs, NtfsFile};
-use std::{collections::HashMap, fs::File, io::BufReader};
+use std::{collections::HashMap, io::Read};
 use tracing::error;
 
 /// Get `Catalog` data from provided ESE path
-pub(crate) fn get_catalog_info(path: &str) -> Result<Vec<Catalog>, EseError> {
-    let plat = get_platform();
+pub(crate) fn get_catalog_info(handle: &FileHandle) -> Result<Vec<Catalog>, EseError> {
+    let mut reader = open_ese_handle(handle)?;
+    let page_size = ese_page_size(&mut reader)?;
 
-    // On non-Windows platforms use a normal BufReader
-    let catalog = if plat != "Windows" {
-        let reader = setup_ese_reader(path)?;
-        let mut buf_reader = BufReader::new(reader);
-
-        let page_size = ese_page_size(None, &mut buf_reader)?;
-        Catalog::grab_catalog(None, &mut buf_reader, page_size)?
-    } else {
-        // On Windows use a NTFS reader
-        let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
-        let mut ntfs_parser = match ntfs_parser_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Could not setup NTFS parser: {err:?}");
-                return Err(EseError::ParseEse);
-            }
-        };
-        let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
-
-        let page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        Catalog::grab_catalog(Some(&ntfs_file), &mut ntfs_parser.fs, page_size)?
-    };
-
-    Ok(catalog)
+    Catalog::grab_catalog(&mut reader, page_size)
 }
 
 /// Get all pages from ESE table. First page can be found from the `Catalog`
-pub(crate) fn get_all_pages(path: &str, first_page: u32) -> Result<Vec<u32>, EseError> {
-    let plat = get_platform();
-
-    let pages = if plat != "Windows" {
-        let reader = setup_ese_reader(path)?;
-        let mut buf_reader = BufReader::new(reader);
-
-        let page_size = ese_page_size(None, &mut buf_reader)?;
-        get_pages(first_page, None, &mut buf_reader, page_size)?
-    } else {
-        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
-        let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
-        let page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        get_pages(first_page, Some(&ntfs_file), &mut ntfs_parser.fs, page_size)?
-    };
+pub(crate) fn get_all_pages(handle: &FileHandle, first_page: u32) -> Result<Vec<u32>, EseError> {
+    let mut reader = open_ese_handle(handle)?;
+    let page_size = ese_page_size(&mut reader)?;
+    let pages = get_pages(first_page, &mut reader, page_size)?;
 
     Ok(pages)
 }
 
 /// Get all page data (rows) from table based on array of pages
 pub(crate) fn get_page_data(
-    path: &str,
+    handle: &FileHandle,
     pages: &[u32],
     info: &mut TableInfo,
     name: &str,
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
-    let plat = get_platform();
     let mut total_rows = HashMap::new();
     total_rows.insert(name.to_string(), Vec::new());
 
-    let page_size;
     let last_page = 0;
-    let mut rows = if plat != "Windows" {
-        let reader = setup_ese_reader(path)?;
-        let mut buf_reader = BufReader::new(reader);
+    let mut reader = open_ese_handle(handle)?;
+    let page_size = ese_page_size(&mut reader)?;
+    let mut column_rows = Vec::new();
 
-        page_size = ese_page_size(None, &mut buf_reader)?;
-        let mut rows = Vec::new();
-        for page in pages {
-            if page == &last_page {
-                continue;
-            }
-            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
-            rows.append(&mut page_rows);
+    for page in pages {
+        if page == &last_page {
+            continue;
         }
-        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
-    } else {
-        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
-        let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
-
-        page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        let mut rows = Vec::new();
-
-        for page in pages {
-            if page == &last_page {
-                continue;
-            }
-            let mut page_rows = page_data(
-                *page,
-                Some(&ntfs_file),
-                &mut ntfs_parser.fs,
-                page_size,
-                info,
-            )?;
-
-            rows.append(&mut page_rows);
-        }
-        row_data(
-            &mut rows,
-            Some(&ntfs_file),
-            &mut ntfs_parser.fs,
-            page_size,
-            info,
-            name,
-        )?
-    };
+        let mut page_rows = page_data(*page, &mut reader, page_size, info)?;
+        column_rows.append(&mut page_rows);
+    }
+    let mut rows = row_data(&mut column_rows, &mut reader, page_size, info, name)?;
 
     if let Some(values) = rows.get_mut(name) {
         total_rows
@@ -168,58 +91,26 @@ pub(crate) fn get_page_data(
 
 /// Get all filtered page data (rows) from table based on array of pages
 pub(crate) fn get_filtered_page_data(
-    path: &str,
+    handle: &FileHandle,
     pages: &[u32],
     info: &mut TableInfo,
     name: &str,
     column_name: &str,
     column_values: &mut HashMap<String, bool>,
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
-    let plat = get_platform();
+    let mut reader = open_ese_handle(handle)?;
+    let page_size = ese_page_size(&mut reader)?;
+
     let mut total_rows = HashMap::new();
     total_rows.insert(name.to_string(), Vec::new());
+    let mut column_rows = Vec::new();
 
-    let page_size;
-    let rows = if plat != "Windows" {
-        let reader = setup_ese_reader(path)?;
-        let mut buf_reader = BufReader::new(reader);
+    for page in pages {
+        let mut page_rows = page_data(*page, &mut reader, page_size, info)?;
+        column_rows.append(&mut page_rows);
+    }
 
-        page_size = ese_page_size(None, &mut buf_reader)?;
-        let mut rows = Vec::new();
-        for page in pages {
-            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
-            rows.append(&mut page_rows);
-        }
-        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
-    } else {
-        // On Windows use a NTFS reader
-        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
-        let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
-
-        page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        let mut rows = Vec::new();
-
-        for page in pages {
-            let mut page_rows = page_data(
-                *page,
-                Some(&ntfs_file),
-                &mut ntfs_parser.fs,
-                page_size,
-                info,
-            )?;
-
-            rows.append(&mut page_rows);
-        }
-        row_data(
-            &mut rows,
-            Some(&ntfs_file),
-            &mut ntfs_parser.fs,
-            page_size,
-            info,
-            name,
-        )?
-    };
-
+    let rows = row_data(&mut column_rows, &mut reader, page_size, info, name)?;
     if let Some(values) = rows.get(name) {
         for rows in values {
             for columns in rows {
@@ -249,55 +140,24 @@ pub(crate) fn get_filtered_page_data(
 
 /// Get specified columns from table
 pub(crate) fn dump_table_columns(
-    path: &str,
+    handle: &FileHandle,
     pages: &[u32],
     info: &mut TableInfo,
     name: &str,
     column_names: &[String],
 ) -> Result<HashMap<String, Vec<Vec<TableDump>>>, EseError> {
-    let plat = get_platform();
+    let mut reader = open_ese_handle(handle)?;
+    let page_size = ese_page_size(&mut reader)?;
+
     let mut total_rows = HashMap::new();
     total_rows.insert(name.to_string(), Vec::new());
+    let mut column_rows = Vec::new();
 
-    let page_size;
-    let rows = if plat != "Windows" {
-        let reader = setup_ese_reader(path)?;
-        let mut buf_reader = BufReader::new(reader);
-
-        page_size = ese_page_size(None, &mut buf_reader)?;
-        let mut rows = Vec::new();
-        for page in pages {
-            let mut page_rows = page_data(*page, None, &mut buf_reader, page_size, info)?;
-            rows.append(&mut page_rows);
-        }
-        row_data(&mut rows, None, &mut buf_reader, page_size, info, name)?
-    } else {
-        let mut ntfs_parser = setup_ntfs_parser(path.chars().next().unwrap_or('C')).unwrap();
-        let ntfs_file = setup_ese_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
-
-        page_size = ese_page_size(Some(&ntfs_file), &mut ntfs_parser.fs)?;
-        let mut rows = Vec::new();
-
-        for page in pages {
-            let mut page_rows = page_data(
-                *page,
-                Some(&ntfs_file),
-                &mut ntfs_parser.fs,
-                page_size,
-                info,
-            )?;
-
-            rows.append(&mut page_rows);
-        }
-        row_data(
-            &mut rows,
-            Some(&ntfs_file),
-            &mut ntfs_parser.fs,
-            page_size,
-            info,
-            name,
-        )?
-    };
+    for page in pages {
+        let mut page_rows = page_data(*page, &mut reader, page_size, info)?;
+        column_rows.append(&mut page_rows);
+    }
+    let rows = row_data(&mut column_rows, &mut reader, page_size, info, name)?;
 
     if let Some(values) = rows.get(name) {
         for rows in values {
@@ -319,32 +179,18 @@ pub(crate) fn dump_table_columns(
     Ok(total_rows)
 }
 
-/// Setup Windows ESE reader using NTFS parser
-fn setup_ese_reader_windows<'a>(
-    ntfs_file: &'a Ntfs,
-    fs: &mut BufReader<SectorReader<File>>,
-    path: &str,
-) -> Result<NtfsFile<'a>, EseError> {
-    let reader_result = raw_reader(path, ntfs_file, fs);
-    let ntfs_file = match reader_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not setup reader: {err:?}");
-            return Err(EseError::ReadFile);
-        }
-    };
+/// Create a `AccessorReader` from a `FileHandle`
+fn open_ese_handle(handle: &FileHandle) -> Result<AccessorReader, EseError> {
+    let mut accessor = Accessor::with_defaults();
 
-    Ok(ntfs_file)
-}
-
-/// Setup ESE using normal reader
-fn setup_ese_reader(path: &str) -> Result<File, EseError> {
-    let reader_result = file_reader(path);
-    let reader = match reader_result {
-        Ok(reader) => reader,
+    let reader = match accessor.open_reader_handle(handle) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Could not setup API reader: {err:?}");
-            return Err(EseError::ReadFile);
+            error!(
+                "Could not open handle to {}: {err:?}",
+                handle.display_path()
+            );
+            return Err(EseError::ParseEse);
         }
     };
 
@@ -352,23 +198,15 @@ fn setup_ese_reader(path: &str) -> Result<File, EseError> {
 }
 
 /// Determine page size for ESE database
-fn ese_page_size<T: std::io::Seek + std::io::Read>(
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
-) -> Result<u32, EseError> {
+fn ese_page_size(reader: &mut AccessorReader) -> Result<u32, EseError> {
     let header_size = 668;
-    let offset = 0;
-
-    let header_result = read_bytes(offset, header_size, ntfs_file, fs);
-    let header_data = match header_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to reader header bytes: {err:?}");
-            return Err(EseError::ParseEse);
-        }
+    let mut buf = Vec::with_capacity(header_size);
+    if let Err(err) = reader.read(&mut buf) {
+        error!("Failed to reader header bytes: {err:?}");
+        return Err(EseError::ParseEse);
     };
 
-    let db_result = EseHeader::parse_header(&header_data);
+    let db_result = EseHeader::parse_header(&buf);
     let (_, db_header) = match db_result {
         Ok(result) => result,
         Err(_err) => {
@@ -381,27 +219,24 @@ fn ese_page_size<T: std::io::Seek + std::io::Read>(
 }
 
 /// Get array of pages
-fn get_pages<T: std::io::Seek + std::io::Read>(
+fn get_pages(
     first_page: u32,
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+    reader: &mut AccessorReader,
     page_size: u32,
 ) -> Result<Vec<u32>, EseError> {
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (first_page + adjust_page) * page_size;
 
-    let start_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
-    let page_start = match start_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to read bytes for page start: {err:?}");
-            return Err(EseError::ParseEse);
-        }
+    reader.seek_from_start(page_number as u64);
+    let mut buf = Vec::with_capacity(page_size as usize);
+    if let Err(err) = reader.read(&mut buf) {
+        error!("Failed to read bytes for page start: {err:?}");
+        return Err(EseError::ParseEse);
     };
 
     // Start parsing the page associated with the table data
-    let page_header_result = PageHeader::parse_header(&page_start);
+    let page_header_result = PageHeader::parse_header(&buf);
     let (page_data, table_page_data) = match page_header_result {
         Ok(result) => result,
         Err(_err) => {
@@ -468,24 +303,18 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
         pages.push(branch.child_page);
 
         // Now get the child page
-        let child_result = read_bytes(branch_start as u64, page_size as u64, ntfs_file, fs);
-        let child_data = match child_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to read bytes for child data: {err:?}");
-                return Err(EseError::ParseEse);
-            }
+        reader.seek_from_start(branch_start as u64);
+        let mut buf = Vec::with_capacity(page_size as usize);
+        if let Err(err) = reader.read(&mut buf) {
+            error!("Failed to read bytes for child data: {err:?}");
+            return Err(EseError::ParseEse);
         };
 
         // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
         let mut page_tracker: HashMap<u32, bool> = HashMap::new();
-        let last_result = BranchPage::parse_branch_child_page(
-            &child_data,
-            &mut pages,
-            &mut page_tracker,
-            ntfs_file,
-            fs,
-        );
+        let last_result =
+            BranchPage::parse_branch_child_page(&buf, &mut pages, &mut page_tracker, reader);
+
         if last_result.is_err() {
             error!("Could not parse branch child table and last page in page tags");
             return Err(EseError::ParseEse);
@@ -496,28 +325,25 @@ fn get_pages<T: std::io::Seek + std::io::Read>(
 }
 
 /// Start parsing the page data to get rows
-fn page_data<T: std::io::Seek + std::io::Read>(
+fn page_data(
     page: u32,
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+    reader: &mut AccessorReader,
     page_size: u32,
     info: &mut TableInfo,
 ) -> Result<Vec<Vec<ColumnInfo>>, EseError> {
     // Need to adjust page number to account for header page
     let adjust_page = 1;
     let page_number = (page + adjust_page) * page_size;
+    reader.seek_from_start(page_number as u64);
 
-    let start_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
-    let page_start = match start_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to read bytes for page start: {err:?}");
-            return Err(EseError::ParseEse);
-        }
+    let mut buf = Vec::with_capacity(page_size as usize);
+    if let Err(err) = reader.read(&mut buf) {
+        error!("Failed to read bytes for page start: {err:?}");
+        return Err(EseError::ParseEse);
     };
 
     // Start parsing the page associated with the table data
-    let page_header_result = PageHeader::parse_header(&page_start);
+    let page_header_result = PageHeader::parse_header(&buf);
     let (page_data, table_page_data) = match page_header_result {
         Ok(result) => result,
         Err(_err) => {
@@ -610,6 +436,7 @@ fn page_data<T: std::io::Seek + std::io::Read>(
         if leaf_row.leaf_type != LeafType::DataDefinition {
             continue;
         }
+
         parse_row(leaf_row, &mut info.column_info);
         column_rows.push(info.column_info.clone());
         // Now clear column data so when we go to next row we have no leftover data from previous row
@@ -620,10 +447,9 @@ fn page_data<T: std::io::Seek + std::io::Read>(
 }
 
 /// Extract row data into generic ESE `TableDump`
-fn row_data<T: std::io::Seek + std::io::Read>(
+fn row_data(
     rows: &mut Vec<Vec<ColumnInfo>>,
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+    reader: &mut AccessorReader,
     page_size: u32,
     info: &mut TableInfo,
     name: &str,
@@ -637,16 +463,15 @@ fn row_data<T: std::io::Seek + std::io::Read>(
     // Need to adjust page number to account for header page
     let page_number = (info.long_value_page as u32 + adjust_page) * page_size;
 
-    let page_result = read_bytes(page_number as u64, page_size as u64, ntfs_file, fs);
-    let page_start = match page_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to read bytes for child data: {err:?}");
-            return Err(EseError::ParseEse);
-        }
+    reader.seek_from_start(page_number as u64);
+
+    let mut buf = Vec::with_capacity(page_size as usize);
+    if let Err(err) = reader.read(&mut buf) {
+        error!("Failed to read bytes for child data: {err:?}");
+        return Err(EseError::ParseEse);
     };
 
-    let long_result = parse_long_value(&page_start, ntfs_file, fs);
+    let long_result = parse_long_value(&buf, reader);
     let (_, long_values) = match long_result {
         Ok(result) => result,
         Err(_err) => {
@@ -683,14 +508,16 @@ fn row_data<T: std::io::Seek + std::io::Read>(
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::{
         dump_table_columns, get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data,
     };
-    use crate::artifacts::os::windows::ese::{
-        catalog::CatalogType,
-        tables::{ColumnInfo, TableInfo, get_column_flags, get_column_type},
+    use crate::{
+        accessor::entry::handle::FileHandle,
+        artifacts::os::windows::ese::{
+            catalog::CatalogType,
+            tables::{ColumnInfo, TableInfo, get_column_flags, get_column_type},
+        },
     };
     use common::windows::ColumnType;
     use std::{collections::HashMap, path::PathBuf};
@@ -699,8 +526,9 @@ mod tests {
     fn test_get_catalog_info() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let results = get_catalog_info(test_location.to_str().unwrap()).unwrap();
+        let results = get_catalog_info(&handle).unwrap();
         assert_eq!(results.len(), 82);
     }
 
@@ -708,14 +536,11 @@ mod tests {
     fn test_get_all_pages() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let results = get_catalog_info(test_location.to_str().unwrap()).unwrap();
+        let results = get_catalog_info(&handle).unwrap();
 
-        let pages = get_all_pages(
-            test_location.to_str().unwrap(),
-            results[0].column_or_father_data_page as u32,
-        )
-        .unwrap();
+        let pages = get_all_pages(&handle, results[0].column_or_father_data_page as u32).unwrap();
         assert_eq!(pages.len(), 1);
     }
 
@@ -723,14 +548,11 @@ mod tests {
     fn test_dump_table_columns() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let catalog = get_catalog_info(test_location.to_str().unwrap()).unwrap();
+        let catalog = get_catalog_info(&handle).unwrap();
 
-        let pages = get_all_pages(
-            test_location.to_str().unwrap(),
-            catalog[0].column_or_father_data_page as u32,
-        )
-        .unwrap();
+        let pages = get_all_pages(&handle, catalog[0].column_or_father_data_page as u32).unwrap();
         let mut info = TableInfo {
             obj_id_table: catalog[0].obj_id_table,
             table_page: catalog[0].column_or_father_data_page,
@@ -766,14 +588,7 @@ mod tests {
         let name = info.table_name.clone();
         let col_name = info.column_info[0].column_name.clone();
 
-        let cols = dump_table_columns(
-            test_location.to_str().unwrap(),
-            &pages,
-            &mut info,
-            &name,
-            &vec![col_name],
-        )
-        .unwrap();
+        let cols = dump_table_columns(&handle, &pages, &mut info, &name, &vec![col_name]).unwrap();
         assert_eq!(cols.len(), 1);
     }
 
@@ -781,8 +596,9 @@ mod tests {
     fn test_get_filtered_page_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let catalog = get_catalog_info(test_location.to_str().unwrap()).unwrap();
+        let catalog = get_catalog_info(&handle).unwrap();
 
         let mut info = TableInfo {
             obj_id_table: 0,
@@ -821,20 +637,13 @@ mod tests {
                 info.long_value_page = entry.column_or_father_data_page;
             }
         }
-        let pages = get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
+        let pages = get_all_pages(&handle, info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
         let mut values = HashMap::from([(String::from("JobsById"), true)]);
 
-        let cols = get_filtered_page_data(
-            test_location.to_str().unwrap(),
-            &pages,
-            &mut info,
-            &name,
-            "Name",
-            &mut values,
-        )
-        .unwrap();
+        let cols =
+            get_filtered_page_data(&handle, &pages, &mut info, &name, "Name", &mut values).unwrap();
         assert_eq!(cols.get("MSysObjects").unwrap().len(), 1);
     }
 
@@ -842,14 +651,11 @@ mod tests {
     fn test_get_page_data_catalog() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let catalog = get_catalog_info(test_location.to_str().unwrap()).unwrap();
+        let catalog = get_catalog_info(&handle).unwrap();
 
-        let pages = get_all_pages(
-            test_location.to_str().unwrap(),
-            catalog[0].column_or_father_data_page as u32,
-        )
-        .unwrap();
+        let pages = get_all_pages(&handle, catalog[0].column_or_father_data_page as u32).unwrap();
 
         let mut info = TableInfo {
             obj_id_table: catalog[0].obj_id_table,
@@ -886,13 +692,7 @@ mod tests {
             }
         }
 
-        let results = get_page_data(
-            test_location.to_str().unwrap(),
-            &pages,
-            &mut info,
-            &catalog[0].name,
-        )
-        .unwrap();
+        let results = get_page_data(&handle, &pages, &mut info, &catalog[0].name).unwrap();
         let catalog = results.get("MSysObjects").unwrap();
         assert_eq!(catalog.len(), 82);
     }
@@ -901,8 +701,9 @@ mod tests {
     fn test_get_page_data_bits_jobs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let catalog = get_catalog_info(test_location.to_str().unwrap()).unwrap();
+        let catalog = get_catalog_info(&handle).unwrap();
 
         let mut info = TableInfo {
             obj_id_table: 0,
@@ -942,12 +743,11 @@ mod tests {
             }
         }
 
-        let pages = get_all_pages(test_location.to_str().unwrap(), info.table_page as u32).unwrap();
+        let pages = get_all_pages(&handle, info.table_page as u32).unwrap();
 
         let name = info.table_name.clone();
 
-        let results =
-            get_page_data(test_location.to_str().unwrap(), &pages, &mut info, &name).unwrap();
+        let results = get_page_data(&handle, &pages, &mut info, &name).unwrap();
         let job = results.get("Jobs").unwrap();
         assert_eq!(job[0][0].column_name, "Id");
         assert_eq!(job[0][0].column_type, ColumnType::Guid);
