@@ -1,10 +1,10 @@
 use super::page::{PageType, page_type};
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::windows::outlook::{
         error::OutlookError,
         header::{FormatType, Node, get_node_ids},
     },
-    filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{
         Endian, nom_unsigned_four_bytes, nom_unsigned_one_byte, nom_unsigned_two_bytes,
     },
@@ -14,9 +14,8 @@ use nom::{
     error::ErrorKind,
     number::complete::{le_u32, le_u64},
 };
-use ntfs::NtfsFile;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, io::BufReader};
+use std::collections::BTreeMap;
 use tracing::error;
 
 #[derive(Debug)]
@@ -42,16 +41,15 @@ pub(crate) struct NodeBtree {
 }
 
 /// Extract and get he Node `BTree`
-pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+pub(crate) fn get_node_btree(
+    fs: &mut AccessorReader,
     node_offset: u64,
     size: u64,
     format: &FormatType,
     node_tree: &mut Vec<NodeBtree>,
     branch_node: Option<u32>,
 ) -> Result<(), OutlookError> {
-    let bytes_result = read_bytes(node_offset, size, ntfs_file, fs);
+    let bytes_result = fs.read_bytes(node_offset, size as usize);
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
@@ -83,7 +81,6 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
         };
         for node in branch_nodes {
             get_node_btree(
-                ntfs_file,
                 fs,
                 node.offset,
                 size,
@@ -123,15 +120,14 @@ pub(crate) fn get_node_btree<T: std::io::Seek + std::io::Read>(
 }
 
 /// Extract and get the Block `BTree`
-pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+pub(crate) fn get_block_btree(
+    fs: &mut AccessorReader,
     node_offset: u64,
     size: u64,
     format: &FormatType,
     block_tree: &mut Vec<BTreeMap<u64, LeafBlockData>>,
 ) -> Result<(), OutlookError> {
-    let bytes_result = read_bytes(node_offset, size, ntfs_file, fs);
+    let bytes_result = fs.read_bytes(node_offset, size as usize);
     let bytes = match bytes_result {
         Ok(result) => result,
         Err(err) => {
@@ -161,7 +157,7 @@ pub(crate) fn get_block_btree<T: std::io::Seek + std::io::Read>(
             }
         };
         for node in branch_nodes {
-            get_block_btree(ntfs_file, fs, node.offset, size, format, block_tree)?;
+            get_block_btree(fs, node.offset, size, format, block_tree)?;
         }
     } else {
         let leaf_result = parse_leaf_block_data(&page.data, page.number_entries, format);
@@ -476,6 +472,7 @@ pub(crate) fn parse_leaf_block_data<'a>(
 mod tests {
     use super::{get_node_btree, parse_btree_page};
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             header::{FormatType, NodeID},
             pages::{
@@ -486,21 +483,20 @@ mod tests {
                 page::PageType,
             },
         },
-        filesystem::files::{file_reader, read_file},
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_get_node_btree() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let mut buf_reader = BufReader::new(reader);
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut tree = Vec::new();
         get_node_btree(
-            None,
-            &mut buf_reader,
+            &mut reader,
             548864,
             4096,
             &FormatType::Unicode64_4k,
@@ -517,13 +513,13 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let mut buf_reader = BufReader::new(reader);
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut tree = Vec::new();
 
         get_block_btree(
-            None,
-            &mut buf_reader,
+            &mut reader,
             475136,
             4096,
             &FormatType::Unicode64_4k,
@@ -537,7 +533,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/node.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let (_, results) = parse_btree_page(&data, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::NodeBtree);
@@ -553,7 +551,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/block.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let (_, results) = parse_btree_page(&data, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::BlockBtree);
@@ -589,7 +589,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/btree_leaf_node.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let (_, results) = parse_btree_page(&data, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::NodeBtree);
@@ -609,7 +611,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/btree_leaf_block.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let (_, results) = parse_btree_page(&data, &FormatType::Unicode64_4k).unwrap();
         assert_eq!(results.data.len(), 4056);
         assert_eq!(results.page_type, PageType::BlockBtree);

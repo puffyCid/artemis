@@ -1,5 +1,5 @@
 /**
-* Windows `Outlook` is a popular emali client. Outlook on Windows stores messages in OST or PST files
+* Windows `Outlook` is a popular email client. Outlook on Windows stores messages in OST or PST files
 * PST was used by older Outlook versions (prior to Outlook 2013)
 * OST is used by Outlook 2013+*
 *
@@ -18,19 +18,15 @@ use super::{
     header::FormatType,
     helper::{OutlookReader, OutlookReaderAction},
     items::message::MessageDetails,
-    reader::{setup_outlook_reader, setup_outlook_reader_windows},
 };
 use crate::{
-    artifacts::os::systeminfo::info::get_platform,
-    filesystem::{metadata::glob_paths, ntfs::setup::setup_ntfs_parser},
+    accessor::{access::Accessor, entry::handle::EntryKind, io::reader::AccessorReader},
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::OutlookOptions,
     utils::{environment::get_systemdrive, time::compare_timestamps},
 };
 use common::windows::{OutlookAttachment, OutlookMessage};
-use ntfs::NtfsFile;
-use std::io::BufReader;
-use tracing::error;
+use tracing::{error, warn};
 
 #[cfg(feature = "yarax")]
 use crate::utils::yara::{scan_base64_bytes, scan_bytes};
@@ -40,36 +36,50 @@ pub(crate) fn grab_outlook(
     options: &OutlookOptions,
     manager: &mut OutputManager,
 ) -> Result<(), OutlookError> {
-    if let Some(file) = &options.alt_file {
-        return grab_outlook_file(file, options, manager);
-    }
-    let systemdrive_result = get_systemdrive();
-    let drive = match systemdrive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not get systemdrive: {err:?}");
-            return Err(OutlookError::Systemdrive);
-        }
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let drive = match get_systemdrive() {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not get systemdrive: {err:?}");
+                return Err(OutlookError::Systemdrive);
+            }
+        };
+        format!("{drive}:\\Users\\*\\AppData\\Local\\Microsoft\\Outlook\\*.ost")
     };
 
-    // Only OST files supported right now. Outlook 2013+
-    let glob_path = format!("{drive}:\\Users\\*\\AppData\\Local\\Microsoft\\Outlook\\*.ost");
-    let paths_result = glob_paths(&glob_path);
-    let paths = match paths_result {
-        Ok(result) => result,
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Failed to glob: {glob_path}: {err:?}");
+            error!("Could not glob for OST files {pattern}: {err:?}");
             return Err(OutlookError::GlobPath);
         }
     };
 
-    for path in paths {
-        let status = grab_outlook_file(&path.full_path, options, manager);
-        if let Err(result) = status {
-            error!(
-                "Could not extract messages from {}: {result:?}",
-                path.full_path
-            );
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        let reader = match accessor.open_reader_handle(handle) {
+            Ok(results) => results,
+            Err(err) => {
+                warn!(
+                    "Could not open reader for {}: {err:?}",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        if let Err(err) = grab_outlook_file(reader, options, manager, handle.display_path()) {
+            error!("Could not parse OST {}: {err:?}", handle.display_path());
         }
     }
 
@@ -78,9 +88,10 @@ pub(crate) fn grab_outlook(
 
 /// Parse the provided OST file and grab messages
 fn grab_outlook_file(
-    path: &str,
+    reader: AccessorReader,
     options: &OutlookOptions,
     manager: &mut OutputManager,
+    evidence: String,
 ) -> Result<(), OutlookError> {
     let runner = OutlookRunner {
         start_date: options.start_date.clone(),
@@ -88,38 +99,11 @@ fn grab_outlook_file(
         include_attachments: options.include_attachments,
         yara_rule_attachment: options.yara_rule_attachment.clone(),
         yara_rule_message: options.yara_rule_message.clone(),
-        source: path.to_string(),
+        source: evidence,
     };
-
-    let plat = get_platform();
-    if plat != "Windows" {
-        let reader = setup_outlook_reader(path)?;
-        let buf_reader = BufReader::new(reader);
-
-        let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
-            block_btree: Vec::new(),
-            node_btree: Vec::new(),
-            format: FormatType::Unknown,
-            // This will get updated when parsing starts
-            size: 4096,
-        };
-        return read_outlook(&mut outlook_reader, None, &runner, manager, options);
-    }
-
-    // Windows we default to parsing the NTFS in order to bypass locked OST
-    let ntfs_parser_result = setup_ntfs_parser(path.chars().next().unwrap_or('C'));
-    let mut ntfs_parser = match ntfs_parser_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not setup NTFS parser: {err:?}");
-            return Err(OutlookError::Systemdrive);
-        }
-    };
-    let ntfs_file = setup_outlook_reader_windows(&ntfs_parser.ntfs, &mut ntfs_parser.fs, path)?;
 
     let mut outlook_reader = OutlookReader {
-        fs: ntfs_parser.fs,
+        fs: reader,
         block_btree: Vec::new(),
         node_btree: Vec::new(),
         format: FormatType::Unknown,
@@ -127,13 +111,7 @@ fn grab_outlook_file(
         size: 4096,
     };
 
-    read_outlook(
-        &mut outlook_reader,
-        Some(&ntfs_file),
-        &runner,
-        manager,
-        options,
-    )
+    read_outlook(&mut outlook_reader, &runner, manager, options)
 }
 
 struct OutlookRunner {
@@ -146,38 +124,28 @@ struct OutlookRunner {
 }
 
 /// Start reading the OST file
-fn read_outlook<T: std::io::Seek + std::io::Read>(
-    reader: &mut OutlookReader<T>,
-    use_ntfs: Option<&NtfsFile<'_>>,
+fn read_outlook(
+    reader: &mut OutlookReader,
     options: &OutlookRunner,
     manager: &mut OutputManager,
     params: &OutlookOptions,
 ) -> Result<(), OutlookError> {
     // Parse the Outlook header and extract the initial BTrees, format type, and page size
-    reader.setup(use_ntfs)?;
+    reader.setup()?;
 
     // Get the root folder
-    let root = reader.root_folder(use_ntfs)?;
+    let root = reader.root_folder()?;
 
     for folders in root.subfolders {
-        stream_outlook(
-            reader,
-            use_ntfs,
-            options,
-            manager,
-            params,
-            folders.node,
-            &root.name,
-        )?;
+        stream_outlook(reader, options, manager, params, folders.node, &root.name)?;
     }
 
     Ok(())
 }
 
 /// Loop and stream all folders and messages in OST
-fn stream_outlook<T: std::io::Seek + std::io::Read>(
-    reader: &mut OutlookReader<T>,
-    use_ntfs: Option<&NtfsFile<'_>>,
+fn stream_outlook(
+    reader: &mut OutlookReader,
     options: &OutlookRunner,
     manager: &mut OutputManager,
     params: &OutlookOptions,
@@ -185,7 +153,7 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
     folder_path: &str,
 ) -> Result<(), OutlookError> {
     // Read the provided folder
-    let mut results = reader.read_folder(use_ntfs, folder)?;
+    let mut results = reader.read_folder(folder)?;
 
     // If no messages or no subfolders, we are done
     if results.message_count == 0 && results.subfolder_count == 0 {
@@ -206,19 +174,12 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
             results.messages_table.rows = chunks.clone();
 
             // Get our messages
-            let messages = reader.read_message(use_ntfs, &results.messages_table, None)?;
+            let messages = reader.read_message(&results.messages_table, None)?;
             let mut entries = Vec::new();
 
             // Now process messages
             for message in messages {
-                let entry = message_details(
-                    message,
-                    reader,
-                    use_ntfs,
-                    options,
-                    folder_path,
-                    &results.name,
-                )?;
+                let entry = message_details(message, reader, options, folder_path, &results.name)?;
                 if entry.is_none() {
                     continue;
                 }
@@ -234,19 +195,12 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
             results.messages_table.rows = chunks;
 
             // Get our messages
-            let messages = reader.read_message(use_ntfs, &results.messages_table, None)?;
+            let messages = reader.read_message(&results.messages_table, None)?;
             let mut entries = Vec::new();
 
             // Now process messages
             for message in messages {
-                let entry = message_details(
-                    message,
-                    reader,
-                    use_ntfs,
-                    options,
-                    folder_path,
-                    &results.name,
-                )?;
+                let entry = message_details(message, reader, options, folder_path, &results.name)?;
 
                 if entry.is_none() {
                     continue;
@@ -261,7 +215,6 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
             let new_folder_path = format!("{folder_path}/{}", results.name);
             stream_outlook(
                 reader,
-                use_ntfs,
                 options,
                 manager,
                 params,
@@ -289,20 +242,13 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 results.messages_table.rows = chunks.clone();
 
                 // Get our messages
-                let messages =
-                    reader.read_message(use_ntfs, &results.messages_table, Some(branch))?;
+                let messages = reader.read_message(&results.messages_table, Some(branch))?;
                 let mut entries = Vec::new();
 
                 // Now process messages
                 for message in messages {
-                    let entry = message_details(
-                        message,
-                        reader,
-                        use_ntfs,
-                        options,
-                        folder_path,
-                        &results.name,
-                    )?;
+                    let entry =
+                        message_details(message, reader, options, folder_path, &results.name)?;
 
                     if entry.is_none() {
                         continue;
@@ -320,20 +266,13 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
                 results.messages_table.rows = chunks;
 
                 // Get our messages
-                let messages =
-                    reader.read_message(use_ntfs, &results.messages_table, Some(branch))?;
+                let messages = reader.read_message(&results.messages_table, Some(branch))?;
                 let mut entries = Vec::new();
 
                 // Now process messages
                 for message in messages {
-                    let entry = message_details(
-                        message,
-                        reader,
-                        use_ntfs,
-                        options,
-                        folder_path,
-                        &results.name,
-                    )?;
+                    let entry =
+                        message_details(message, reader, options, folder_path, &results.name)?;
                     if entry.is_none() {
                         continue;
                     }
@@ -352,7 +291,6 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
         let new_folder_path = format!("{folder_path}/{}", results.name);
         stream_outlook(
             reader,
-            use_ntfs,
             options,
             manager,
             params,
@@ -365,10 +303,9 @@ fn stream_outlook<T: std::io::Seek + std::io::Read>(
 }
 
 /// Read and extract message details. We only get attachments if explicitly enabled
-fn message_details<T: std::io::Seek + std::io::Read>(
+fn message_details(
     message: MessageDetails,
-    reader: &mut OutlookReader<T>,
-    use_ntfs: Option<&NtfsFile<'_>>,
+    reader: &mut OutlookReader,
     options: &OutlookRunner,
     folder_path: &str,
     folder: &str,
@@ -418,8 +355,7 @@ fn message_details<T: std::io::Seek + std::io::Read>(
 
     if options.include_attachments {
         for attach in &message.attachments {
-            let attach_info =
-                reader.read_attachment(use_ntfs, attach.block_id, attach.descriptor_id)?;
+            let attach_info = reader.read_attachment(attach.block_id, attach.descriptor_id)?;
 
             let message_attach = OutlookAttachment {
                 name: attach_info.name,

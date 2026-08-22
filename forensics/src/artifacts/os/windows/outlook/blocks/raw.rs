@@ -1,18 +1,15 @@
 use super::block::{Block, BlockValue, parse_block_bytes};
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::windows::outlook::{
         error::OutlookError, header::FormatType, pages::btree::LeafBlockData,
     },
-    filesystem::ntfs::reader::read_bytes,
 };
-use ntfs::NtfsFile;
-use std::io::BufReader;
 use tracing::error;
 
 /// Parse a Raw block. Will be either `Xblock`, `XXblock` or `Descriptor` block
-pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+pub(crate) fn parse_raw_block(
+    fs: &mut AccessorReader,
     block: &LeafBlockData,
     format: &FormatType,
     block_value: &mut BlockValue,
@@ -36,11 +33,9 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
     if alignment_size < footer_size {
         alignment_size += size;
     }
-    let bytes_result = read_bytes(
+    let bytes_result = fs.read_bytes(
         block.block_offset,
-        block.size as u64 + alignment_size as u64,
-        ntfs_file,
-        fs,
+        block.size as usize + alignment_size as usize,
     );
 
     let bytes = match bytes_result {
@@ -70,22 +65,23 @@ pub(crate) fn parse_raw_block<T: std::io::Seek + std::io::Read>(
 mod tests {
     use super::parse_raw_block;
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             blocks::block::{Block, BlockValue},
             header::FormatType,
             pages::btree::{BlockType, LeafBlockData},
         },
-        filesystem::files::file_reader,
     };
-    use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
+    use std::{collections::BTreeMap, path::PathBuf};
 
     #[test]
     fn test_parse_raw_block() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/block_raw.raw");
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
-        let mut buf_reader = BufReader::new(reader);
         let test = LeafBlockData {
             index_id: 69820,
             block_type: BlockType::External,
@@ -103,8 +99,7 @@ mod tests {
         };
 
         parse_raw_block(
-            None,
-            &mut buf_reader,
+            &mut reader,
             &test,
             &FormatType::Unicode64_4k,
             &mut block_value,
