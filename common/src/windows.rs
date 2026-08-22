@@ -93,7 +93,7 @@ pub struct Amcache {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct BitsInfo {
     pub job_id: String,
     pub file_id: String,
@@ -130,7 +130,7 @@ pub struct BitsInfo {
     pub evidence: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct FileInfo {
     pub file_id: String,
     pub filename: String,

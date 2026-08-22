@@ -5,22 +5,22 @@ use super::{
     jobs::{get_jobs, get_legacy_jobs},
 };
 use crate::{
+    accessor::{access::Accessor, entry::handle::FileHandle},
     artifacts::os::windows::ese::{
         helper::{get_all_pages, get_catalog_info, get_page_data},
         tables::table_info,
     },
-    filesystem::{files::is_file, ntfs::raw_files::raw_read_file},
 };
-use common::windows::{BitsInfo, FileInfo, JobInfo, JobPriority, JobState, JobType, TableDump};
+use common::windows::{BitsInfo, FileInfo, JobInfo, TableDump};
 use tracing::error;
 
 /**
  * Parse modern version (Win10+) of BITS which is an ESE database by dumping the `Jobs` and `Files` tables and parsing their contents  
  */
-pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInfo>, BitsError> {
+pub(crate) fn parse_ese_bits(handle: &FileHandle, carve: bool) -> Result<Vec<BitsInfo>, BitsError> {
     // Dump the Jobs and Files tables from the BITS database
-    let files = get_bits_ese(bits_path, "Files")?;
-    let jobs_info = get_bits_ese(bits_path, "Jobs")?;
+    let files = get_bits_ese(handle, "Files")?;
+    let jobs_info = get_bits_ese(handle, "Jobs")?;
 
     let jobs = get_jobs(&jobs_info)?;
 
@@ -63,7 +63,7 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
                     carved: false,
                     drive: file.drive.clone(),
                     tmp_fullpath: file.tmp_fullpath.clone(),
-                    evidence: bits_path.to_string(),
+                    evidence: handle.display_path(),
                 };
                 bits_info.push(bit_info);
             }
@@ -72,15 +72,22 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
 
     // If we are carving and since this is ESE bits we currently do not combine job and file info
     if carve {
+        let mut accessor = Accessor::with_defaults();
         let is_legacy = false;
-        let read_result = raw_read_file(bits_path);
+        let read_result = accessor.read_file_handle(handle);
         if let Ok(result) = read_result {
             let (_carved_bits, carved_jobs, carved_files) =
-                parse_carve(&result, is_legacy, bits_path);
-            add_carved_bits(&mut bits_info, carved_jobs, carved_files, bits_path);
+                parse_carve(&result, is_legacy, &handle.display_path());
+            add_carved_bits(
+                &mut bits_info,
+                carved_jobs,
+                carved_files,
+                &handle.display_path(),
+            );
         } else {
             error!(
-                "Could not read {bits_path} for carving: {:?}",
+                "Could not read {} for carving: {:?}",
+                handle.display_path(),
                 read_result.unwrap_err()
             );
         }
@@ -89,31 +96,40 @@ pub(crate) fn parse_ese_bits(bits_path: &str, carve: bool) -> Result<Vec<BitsInf
 }
 
 /// Extract BITs info from ESE database
-pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>>, BitsError> {
-    let catalog_result = get_catalog_info(path);
+pub(crate) fn get_bits_ese(
+    handle: &FileHandle,
+    table: &str,
+) -> Result<Vec<Vec<TableDump>>, BitsError> {
+    let catalog_result = get_catalog_info(handle);
     let catalog = match catalog_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to parse {path} catalog: {err:?}");
+            error!("Failed to parse {} catalog: {err:?}", handle.display_path());
             return Err(BitsError::ParseEse);
         }
     };
 
     let mut info = table_info(&catalog, table);
-    let pages_result = get_all_pages(path, info.table_page as u32);
+    let pages_result = get_all_pages(handle, info.table_page as u32);
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to get {table} pages at {path}: {err:?}");
+            error!(
+                "Failed to get {table} pages at {}: {err:?}",
+                handle.display_path()
+            );
             return Err(BitsError::ParseEse);
         }
     };
 
-    let rows_results = get_page_data(path, &pages, &mut info, table);
+    let rows_results = get_page_data(handle, &pages, &mut info, table);
     let table_rows = match rows_results {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to parse {table} table at {path}: {err:?}");
+            error!(
+                "Failed to parse {table} table at {}: {err:?}",
+                handle.display_path()
+            );
             return Err(BitsError::ParseEse);
         }
     };
@@ -121,47 +137,23 @@ pub(crate) fn get_bits_ese(path: &str, table: &str) -> Result<Vec<Vec<TableDump>
     Ok(table_rows.get(table).unwrap_or(&Vec::new()).clone())
 }
 
-/**
- * Parse older version (pre-Win10) of BITS which is a custom binary format
- */
-pub(crate) fn parse_legacy_bits(
-    systemdrive: char,
-    carve: bool,
-) -> Result<Vec<BitsInfo>, BitsError> {
-    let mut bits_path =
-        format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr0.dat");
-
-    let mut bits = Vec::new();
-    if is_file(&bits_path) {
-        let mut results = legacy_bits(&bits_path, carve)?;
-        bits.append(&mut results);
-    }
-    // Legacy BITS has two (2) files
-    bits_path = format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr1.dat");
-    if is_file(&bits_path) {
-        let mut results = legacy_bits(&bits_path, carve)?;
-        bits.append(&mut results);
-    }
-
-    Ok(bits)
-}
-
 /// Parse the older BITS file
-pub(crate) fn legacy_bits(path: &str, carve: bool) -> Result<Vec<BitsInfo>, BitsError> {
-    let read_results = raw_read_file(path);
+pub(crate) fn legacy_bits(handle: &FileHandle, carve: bool) -> Result<Vec<BitsInfo>, BitsError> {
+    let read_results = Accessor::with_defaults().read_file_handle(handle);
     let bits_data = match read_results {
         Ok(results) => results,
         Err(err) => {
-            error!("Could not read file {path}: {err:?}");
+            error!("Could not read file {}: {err:?}", handle.display_path());
             return Err(BitsError::ReadFile);
         }
     };
-    let mut bits = get_legacy_jobs(&bits_data, path)?;
+    let mut bits = get_legacy_jobs(&bits_data, &handle.display_path())?;
 
     if carve {
         let is_legacy = false;
-        let (_carved_bits, carved_jobs, carved_files) = parse_carve(&bits_data, is_legacy, path);
-        add_carved_bits(&mut bits, carved_jobs, carved_files, path);
+        let (_carved_bits, carved_jobs, carved_files) =
+            parse_carve(&bits_data, is_legacy, &handle.display_path());
+        add_carved_bits(&mut bits, carved_jobs, carved_files, &handle.display_path());
     }
     Ok(bits)
 }
@@ -195,14 +187,11 @@ fn add_carved_bits(
     for job in jobs {
         let bit = BitsInfo {
             job_id: job.job_id,
-            file_id: String::new(),
             owner_sid: job.owner_sid,
             created: job.created,
             modified: job.modified,
             completed: job.completed,
             expiration: job.expiration,
-            bytes_downloaded: 0,
-            bytes_transferred: 0,
             job_name: job.job_name,
             job_description: job.job_description,
             job_command: job.job_command,
@@ -213,73 +202,42 @@ fn add_carved_bits(
             priority: job.priority,
             flags: job.flags,
             http_method: job.http_method,
-            full_path: String::new(),
-            filename: String::new(),
             target_path: job.target_path,
-            volume: String::new(),
-            url: String::new(),
             timeout: job.timeout,
             retry_delay: job.retry_delay,
             transient_error_count: job.transient_error_count,
             acls: job.acls,
             additional_sids: job.additional_sids,
             carved: true,
-            drive: String::new(),
-            tmp_fullpath: String::new(),
             evidence: evidence.to_string(),
+            ..Default::default()
         };
         bits.push(bit);
     }
 
     for file in files {
         let bit = BitsInfo {
-            job_id: String::new(),
             file_id: file.file_id,
-            owner_sid: String::new(),
-            created: String::new(),
-            modified: String::new(),
-            completed: String::new(),
-            expiration: String::new(),
             bytes_downloaded: file.download_bytes_size,
             bytes_transferred: file.transfer_bytes_size,
-            job_name: String::new(),
-            job_description: String::new(),
-            job_command: String::new(),
-            job_arguments: String::new(),
-            error_count: 0,
-            job_type: JobType::Unknown,
-            job_state: JobState::Unknown,
-            priority: JobPriority::Unknown,
-            flags: Vec::new(),
-            http_method: String::new(),
             full_path: file.full_path,
             filename: file.filename,
-            target_path: String::new(),
             volume: file.volume,
             url: file.url,
-            timeout: 0,
-            retry_delay: 0,
-            transient_error_count: 0,
-            acls: Vec::new(),
-            additional_sids: Vec::new(),
             carved: true,
-            drive: String::new(),
-            tmp_fullpath: String::new(),
             evidence: evidence.to_string(),
+            ..Default::default()
         };
         bits.push(bit);
     }
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::parse_ese_bits;
     use crate::{
-        artifacts::os::windows::bits::background::{
-            get_bits_ese, legacy_bits, parse_carve, parse_legacy_bits,
-        },
-        filesystem::files::read_file,
+        accessor::{access::Accessor, entry::handle::FileHandle},
+        artifacts::os::windows::bits::background::{get_bits_ese, legacy_bits, parse_carve},
     };
     use std::path::PathBuf;
 
@@ -287,7 +245,8 @@ mod tests {
     fn test_parse_ese_bits() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
-        let results = parse_ese_bits(test_location.to_str().unwrap(), false).unwrap();
+        let handle = FileHandle::host(test_location);
+        let results = parse_ese_bits(&handle, false).unwrap();
         assert_eq!(results.len(), 1);
     }
 
@@ -295,21 +254,19 @@ mod tests {
     fn test_get_bits_ese() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
-        let results = get_bits_ese(test_location.to_str().unwrap(), "Files").unwrap();
-        assert_eq!(results.len(), 1);
-    }
+        let handle = FileHandle::host(test_location);
 
-    #[test]
-    fn test_parse_legacy_bits() {
-        let results = parse_legacy_bits('C', false).unwrap();
-        assert_eq!(results.is_empty(), true);
+        let results = get_bits_ese(&handle, "Files").unwrap();
+        assert_eq!(results.len(), 1);
     }
 
     #[test]
     fn test_legacy_bits() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\bits\\win81\\qmgr0.dat");
-        let results = legacy_bits(&test_location.to_str().unwrap(), false).unwrap();
+        let handle = FileHandle::host(test_location);
+
+        let results = legacy_bits(&handle, false).unwrap();
         assert_eq!(results.len(), 1);
     }
 
@@ -317,8 +274,10 @@ mod tests {
     fn test_parse_carve() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let (_, jobs, files) = parse_carve(&data, false, test_location.to_str().unwrap());
+        let data = Accessor::with_defaults()
+            .read_file(&test_location.to_str().unwrap())
+            .unwrap();
+        let (_, jobs, files) = parse_carve(&data, false, &test_location.to_str().unwrap());
         assert_eq!(jobs.len(), 106);
         assert_eq!(files.len(), 41);
     }

@@ -14,11 +14,11 @@
  * `https://github.com/ANSSI-FR/bits_parser` (only pre-win10 BITS files)
  */
 use super::{
-    background::{legacy_bits, parse_ese_bits, parse_legacy_bits},
+    background::{legacy_bits, parse_ese_bits},
     error::BitsError,
 };
 use crate::{
-    filesystem::files::{file_extension, is_file},
+    accessor::{access::Accessor, entry::handle::EntryKind},
     structs::artifacts::os::windows::BitsOptions,
     utils::environment::get_systemdrive,
 };
@@ -30,44 +30,60 @@ use tracing::error;
  * The associated `BITS` file(s) is locked if the `BITS` service is running so we read the raw file to bypass the lock
  */
 pub(crate) fn grab_bits(options: &BitsOptions) -> Result<Vec<BitsInfo>, BitsError> {
-    if let Some(alt) = &options.alt_file {
-        return grab_bits_path(alt, options.carve);
-    }
-    let systemdrive_result = get_systemdrive();
-    let systemdrive = match systemdrive_result {
-        Ok(result) => result,
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let drive = match get_systemdrive() {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not get systemdrive: {err:?}");
+                return Err(BitsError::Systemdrive);
+            }
+        };
+        format!("ntfs:{drive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr*")
+    };
+
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Could not get systemdrive: {err:?}");
-            return Err(BitsError::Systemdrive);
+            error!("Could not glob BITs files {pattern}: {err:?}");
+            return Err(BitsError::ReadFile);
         }
     };
-    let path = format!("{systemdrive}:\\ProgramData\\Microsoft\\Network\\Downloader\\qmgr.db");
-    // If qmbgr.db is not found this may be an older system that uses the older BITS format
-    if !is_file(&path) {
-        return parse_legacy_bits(systemdrive, options.carve);
+
+    let mut values = Vec::new();
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        // Modern versions of BITS use ESE db
+        if handle.display_path().ends_with("qmgr.db") {
+            let mut value = parse_ese_bits(handle, options.carve)?;
+            values.append(&mut value);
+            continue;
+        }
+
+        // Treat all other files as legacy BITS files
+        let mut value = legacy_bits(handle, options.carve)?;
+        values.append(&mut value);
     }
 
-    grab_bits_path(&path, options.carve)
-}
-
-/**
- * Grab the BITS data from file path
- */
-fn grab_bits_path(path: &str, carve: bool) -> Result<Vec<BitsInfo>, BitsError> {
-    if file_extension(path) == "db" {
-        return parse_ese_bits(path, carve);
-    }
-    legacy_bits(path, carve)
+    Ok(values)
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
     use crate::{
-        artifacts::os::windows::bits::parser::{grab_bits, grab_bits_path},
+        artifacts::os::windows::bits::parser::grab_bits,
         structs::artifacts::os::windows::BitsOptions,
     };
-    use std::path::PathBuf;
 
     #[test]
     fn test_grab_bits() {
@@ -76,13 +92,5 @@ mod tests {
             carve: true,
         };
         let _ = grab_bits(&options).unwrap();
-    }
-
-    #[test]
-    fn test_grab_bits_data() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\bits\\win81\\qmgr0.dat");
-        let results = grab_bits_path(&test_location.to_str().unwrap(), false).unwrap();
-        assert_eq!(results.len(), 1);
     }
 }
