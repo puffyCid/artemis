@@ -21,7 +21,7 @@ pub(crate) fn parse_search_sqlite(
     options: &SearchOptions,
 ) -> Result<(), SearchError> {
     let mut accessor = Accessor::with_defaults();
-    let bytes = match accessor.read_file_handle(handle) {
+    let mut bytes = match accessor.read_file_handle(handle) {
         Ok(results) => results,
         Err(err) => {
             error!(
@@ -31,6 +31,15 @@ pub(crate) fn parse_search_sqlite(
             return Err(SearchError::SqliteParse);
         }
     };
+    // Clear WAL mode flags if set
+    // We cannot deserialize sqlite from memory if WAL is flagged
+    // This a sqlite limitation
+    // Setting the flags to 1 removes that limitation
+    // https://www.sqlite.org/c3ref/deserialize.html
+    if bytes.len() > 24 {
+        bytes[18] = 1;
+        bytes[19] = 1;
+    }
     let mut conn = match Connection::open_in_memory_with_flags(OpenFlags::SQLITE_OPEN_READ_ONLY) {
         Ok(result) => result,
         Err(err) => {
@@ -43,15 +52,12 @@ pub(crate) fn parse_search_sqlite(
         return Err(SearchError::SqliteParse);
     }
 
-    println!("{}", conn.is_readonly(MAIN_DB).unwrap());
-    println!("{:?}", &bytes.len());
-
     let query = "SELECT WorkId,quote(Value) as Value,UniqueKey from SystemIndex_1_PropertyStore join SystemIndex_1_PropertyStore_Metadata on SystemIndex_1_PropertyStore.ColumnId = SystemIndex_1_PropertyStore_Metadata.Id order by SystemIndex_1_PropertyStore.WorkId";
     let statement = conn.prepare(query);
     let mut stmt = match statement {
         Ok(result) => result,
         Err(err) => {
-            println!("Failed to compose Search SQL query {err:?}");
+            error!("Failed to compose Search SQL query {err:?}");
             return Err(SearchError::BadSQL);
         }
     };
@@ -150,7 +156,7 @@ pub(crate) fn parse_search_sqlite_path(
     handle: &FileHandle,
 ) -> Result<Vec<SearchEntry>, SearchError> {
     let mut accessor = Accessor::with_defaults();
-    let bytes = match accessor.read_file_handle(handle) {
+    let mut bytes = match accessor.read_file_handle(handle) {
         Ok(results) => results,
         Err(err) => {
             error!(
@@ -160,6 +166,15 @@ pub(crate) fn parse_search_sqlite_path(
             return Err(SearchError::SqliteParse);
         }
     };
+    // Clear WAL mode flags if set
+    // We cannot deserialize sqlite from memory if WAL is flagged
+    // This a sqlite limitation
+    // Setting the flags to 1 removes that limitation
+    // https://www.sqlite.org/c3ref/deserialize.html
+    if bytes.len() > 24 {
+        bytes[18] = 1;
+        bytes[19] = 1;
+    }
     let mut conn = match Connection::open_in_memory() {
         Ok(result) => result,
         Err(err) => {
