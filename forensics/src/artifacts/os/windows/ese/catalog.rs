@@ -146,7 +146,10 @@ impl Catalog {
         // So we have to add one (1)
         let catalog_page = 5;
         let catalog_start = catalog_page * page_size;
-        let _ = reader.seek_from_start(catalog_start as u64);
+        if let Err(err) = reader.seek_from_start(catalog_start as u64) {
+            error!("Failed to seek to start of catalog offset {catalog_start}: {err:?}");
+            return Err(EseError::Catalog);
+        }
 
         let mut buf = vec![0; page_size as usize];
         if let Err(err) = reader.read(&mut buf) {
@@ -237,7 +240,10 @@ impl Catalog {
             let branch_start = (branch.child_page + adjust_page) * page_size;
 
             // Now get the child page
-            let _ = reader.seek_from_start(branch_start as u64);
+            if let Err(err) = reader.seek_from_start(branch_start as u64) {
+                error!("Failed to seek to start of branch offset {branch_start}: {err:?}");
+                continue;
+            }
             let mut buf = vec![0; page_size as usize];
             if let Err(err) = reader.read(&mut buf) {
                 error!("Could not read child page data: {err:?}");

@@ -102,7 +102,13 @@ pub(crate) fn parse_long_value<'a>(
         let branch_start = (branch.child_page + adjust_page) as usize * page_lv_data.len();
 
         // Now get the child page
-        let _ = reader.seek_from_start(branch_start as u64);
+        if let Err(err) = reader.seek_from_start(branch_start as u64) {
+            error!("Failed to seek to branch offset {branch_start}: {err:?}");
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                &[],
+                ErrorKind::Fail,
+            )));
+        }
         let mut buf = vec![0; page_lv_data.len()];
         if let Err(err) = reader.read(&mut buf) {
             error!("Failed to read bytes for long value child data: {err:?}");
