@@ -69,9 +69,12 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<Vec<BitsInfo>, BitsErro
             continue;
         }
 
-        // Treat all other files as legacy BITS files
-        let mut value = legacy_bits(handle, options.carve)?;
-        values.append(&mut value);
+        if handle.display_path().ends_with("qmgr0.dat")
+            || handle.display_path().ends_with("qmgr1.dat")
+        {
+            let mut value = legacy_bits(handle, options.carve)?;
+            values.append(&mut value);
+        }
     }
 
     Ok(values)

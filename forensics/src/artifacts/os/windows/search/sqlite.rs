@@ -4,8 +4,8 @@ use crate::{
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::SearchOptions,
 };
-use rusqlite::{Connection, MAIN_DB};
-use std::{collections::HashMap, mem::take};
+use rusqlite::{Connection, MAIN_DB, OpenFlags};
+use std::{collections::HashMap, io::Cursor, mem::take};
 use tracing::{error, warn};
 
 struct SqlEntry {
@@ -31,24 +31,27 @@ pub(crate) fn parse_search_sqlite(
             return Err(SearchError::SqliteParse);
         }
     };
-    let mut conn = match Connection::open_in_memory() {
+    let mut conn = match Connection::open_in_memory_with_flags(OpenFlags::SQLITE_OPEN_READ_ONLY) {
         Ok(result) => result,
         Err(err) => {
             error!("Failed to create in memory SQLITE file {err:?}");
             return Err(SearchError::SqliteParse);
         }
     };
-    if let Err(err) = conn.deserialize_read_exact(MAIN_DB, &bytes[..], bytes.len(), true) {
+    if let Err(err) = conn.deserialize_read_exact(MAIN_DB, Cursor::new(&bytes), bytes.len(), true) {
         error!("Failed to deserialize Windows Search SQLITE file {err:?}");
         return Err(SearchError::SqliteParse);
     }
+
+    println!("{}", conn.is_readonly(MAIN_DB).unwrap());
+    println!("{:?}", &bytes.len());
 
     let query = "SELECT WorkId,quote(Value) as Value,UniqueKey from SystemIndex_1_PropertyStore join SystemIndex_1_PropertyStore_Metadata on SystemIndex_1_PropertyStore.ColumnId = SystemIndex_1_PropertyStore_Metadata.Id order by SystemIndex_1_PropertyStore.WorkId";
     let statement = conn.prepare(query);
     let mut stmt = match statement {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to compose Search SQL query {err:?}");
+            println!("Failed to compose Search SQL query {err:?}");
             return Err(SearchError::BadSQL);
         }
     };

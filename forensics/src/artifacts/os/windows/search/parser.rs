@@ -72,27 +72,28 @@ pub(crate) fn grab_search(
         if handle.display_path().ends_with("Windows.edb") {
             parse_search(handle, manager, options);
             continue;
+        } else if handle.display_path().ends_with("Windows.edb") {
+            // If we do not find Windows.edb we may be dealing with Windows 11 db
+            /*
+             * Windows Search on Windows 11 is split into three (3) SQLITE databases:
+             *  - Windows.db
+             *  - Windows-usn.db
+             *  - Windows-gther.db
+             *
+             * Windows.db contains the metadata on indexed files
+             * Windows-gther.db contains the indexed file entry.
+             * Unsure what Windows-usn.db is used for.
+             *
+             * Windows-gthr.db is created with a special SQLITE collating feature that requires a custom SQLITE callback function to handle: "UNICODE_en-US_LINGUISTIC_IGNORECASE".
+             * Basically we need to create a function to handle string comparisons for Windows-gthr.db before we are allowed to query it.
+             * We do not do that, instead we just parse the Windows.db file which often contains enough metadata to figure out what the entry is.
+             *
+             * References:
+             * `https://www.sqlite.org/datatype3.html#collation`
+             * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
+             */
+            parse_search_sqlite(handle, manager, options);
         }
-        // If we do not find Windows.edb we may be dealing with Windows 11 db
-        /*
-         * Windows Search on Windows 11 is split into three (3) SQLITE databases:
-         *  - Windows.db
-         *  - Windows-usn.db
-         *  - Windows-gther.db
-         *
-         * Windows.db contains the metadata on indexed files
-         * Windows-gther.db contains the indexed file entry.
-         * Unsure what Windows-usn.db is used for.
-         *
-         * Windows-gthr.db is created with a special SQLITE collating feature that requires a custom SQLITE callback function to handle: "UNICODE_en-US_LINGUISTIC_IGNORECASE".
-         * Basically we need to create a function to handle string comparisons for Windows-gthr.db before we are allowed to query it.
-         * We do not do that, instead we just parse the Windows.db file which often contains enough metadata to figure out what the entry is.
-         *
-         * References:
-         * `https://www.sqlite.org/datatype3.html#collation`
-         * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
-         */
-        parse_search_sqlite(handle, manager, options);
     }
 
     Ok(())

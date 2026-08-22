@@ -47,7 +47,7 @@ pub(crate) fn grab_srum(
                 return Err(SrumError::Systemdrive);
             }
         };
-        format!("{drive}:\\Windows\\System32\\sru\\SRUDB.dat")
+        format!("ntfs:{drive}:\\Windows\\System32\\sru\\SRUDB.dat")
     };
 
     let mut accessor = Accessor::with_defaults();

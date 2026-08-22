@@ -103,7 +103,7 @@ pub(crate) fn parse_long_value<'a>(
 
         // Now get the child page
         reader.seek_from_start(branch_start as u64);
-        let mut buf = Vec::with_capacity(page_lv_data.len());
+        let mut buf = vec![0; page_lv_data.len()];
         if let Err(err) = reader.read(&mut buf) {
             error!("Failed to read bytes for long value child data: {err:?}");
             return Err(nom::Err::Failure(nom::error::Error::new(
