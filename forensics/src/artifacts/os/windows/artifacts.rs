@@ -438,7 +438,7 @@ pub(crate) fn tasks(
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to serialize users-windows: {err:?}");
+            error!("Failed to serialize Tasks: {err:?}");
             return Err(WinArtifactError::Serialize);
         }
     };

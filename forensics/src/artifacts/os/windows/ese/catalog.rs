@@ -853,12 +853,14 @@ mod tests {
 
     #[test]
     fn test_updates_catalog() {
-        let path = "ntfs:C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb";
+        let path = "C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb";
         if !is_file(path) {
             return;
         }
 
-        let mut reader = Accessor::with_defaults().open_reader(path).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(&format!("ntfs:{path}"))
+            .unwrap();
 
         let header_bytes = reader.read_bytes(0, 668).unwrap();
         if header_bytes.is_empty() {
