@@ -224,18 +224,18 @@ fn job_info(job: &TaskJob) -> TaskInfo {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use crate::accessor::access::Accessor;
-    use crate::artifacts::os::windows::tasks::parser::{
-        extract_tasks, grab_tasks, job_info, xml_info,
-    };
+    use crate::artifacts::os::windows::tasks::parser::{extract_tasks, job_info, xml_info};
     use crate::structs::artifacts::os::windows::TasksOptions;
     use common::windows::{Actions, Priority, Status, TaskJob, TaskXml};
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_tasks() {
+        use crate::artifacts::os::windows::tasks::parser::grab_tasks;
+
         let options = TasksOptions { alt_file: None };
         let results = grab_tasks(&options).unwrap();
         assert!(!results.is_empty());
