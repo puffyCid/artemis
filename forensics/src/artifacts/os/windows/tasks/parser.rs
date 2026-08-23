@@ -75,6 +75,7 @@ fn extract_tasks(
     let mut cache = HashMap::new();
     let mut tasks = Vec::new();
 
+    let mut reg_error = false;
     for entry in paths {
         if entry.meta.kind != EntryKind::File {
             continue;
@@ -90,10 +91,14 @@ fn extract_tasks(
             if handle.scheme() == Scheme::Host
                 && options.alt_file.is_none()
                 && cache.is_empty()
-                && let Ok(value) =
-                    cache_info(handle.display_path().chars().next().unwrap_or_default())
+                && !reg_error
             {
-                cache = value;
+                // Attempt to parse the SOFTWARE Registry file only
+                // If we fail, we do not try anymore
+                match cache_info(handle.display_path().chars().next().unwrap_or_default()) {
+                    Ok(result) => cache = result,
+                    Err(_) => reg_error = true,
+                }
             }
 
             let task_data = match parse_xml(handle) {
