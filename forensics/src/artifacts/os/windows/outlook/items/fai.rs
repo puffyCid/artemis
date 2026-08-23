@@ -40,32 +40,32 @@ pub(crate) fn extract_fai(info: &[PropertyContext]) -> FolderMeta {
 #[cfg(test)]
 mod tests {
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
         },
-        filesystem::files::file_reader,
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_search_folder_details() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
-
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
+        outlook_reader.setup().unwrap();
 
-        let meta = outlook_reader.folder_metadata(None, 1048616).unwrap();
+        let meta = outlook_reader.folder_metadata(1048616).unwrap();
 
         assert_eq!(meta.message_class, "IPM.Note");
         assert_eq!(meta.created, "2024-09-10T07:14:33.918Z");

@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_js_users_groups() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfdXNlcnMoKSB7CiAgICBjb25zdCBkYXRhID0ganNfdXNlcnNfbWFjb3MoKTsKICAgIHJldHVybiBkYXRhOwp9CmZ1bmN0aW9uIGdldF9ncm91cHMoKSB7CiAgICBjb25zdCBkYXRhID0ganNfZ3JvdXBzX21hY29zKCk7CiAgICByZXR1cm4gZGF0YTsKfQpmdW5jdGlvbiBnZXRVc2VycygpIHsKICAgIHJldHVybiBnZXRfdXNlcnMoKTsKfQpmdW5jdGlvbiBnZXRHcm91cHMoKSB7CiAgICByZXR1cm4gZ2V0X2dyb3VwcygpOwp9CmZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCB1c2VycyA9IGdldFVzZXJzKCk7CiAgICBjb25zdCBncm91cHMgPSBnZXRHcm91cHMoKTsKICAgIGNvbnN0IGFjY291bnRzID0gewogICAgICAgIHVzZXJzLAogICAgICAgIGdyb3VwcwogICAgfTsKICAgIHJldHVybiBhY2NvdW50czsKfQptYWluKCk7Cgo=";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_macos_accounts_test", "./tmp", false);
         let script = JSScript {
             name: String::from("users"),
             script: test.to_string(),

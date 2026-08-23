@@ -196,6 +196,7 @@ fn name_entries(data: &[u8]) -> nom::IResult<&[u8], Vec<NameEntry>> {
 mod tests {
     use super::{name_entries, name_guids, name_string};
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
@@ -203,26 +204,26 @@ mod tests {
             pages::btree::{BlockType, LeafBlockData},
             tables::property::OutlookPropertyContext,
         },
-        filesystem::files::{file_reader, read_file},
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_extract_name_id_map() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
+        outlook_reader.setup().unwrap();
         let mut leaf_block = LeafBlockData {
             block_type: BlockType::Internal,
             index_id: 0,
@@ -258,10 +259,10 @@ mod tests {
         }
 
         let block_value = outlook_reader
-            .get_block_data(None, &leaf_block, Some(&leaf_descriptor))
+            .get_block_data(&leaf_block, Some(&leaf_descriptor))
             .unwrap();
         let props = outlook_reader
-            .parse_property_context(None, &block_value.data, &block_value.descriptors)
+            .parse_property_context(&block_value.data, &block_value.descriptors)
             .unwrap();
         assert_eq!(props[1].value.as_str().unwrap().len(), 940);
 
@@ -317,7 +318,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/stream_entry.raw");
 
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
         let (_, entries) = name_entries(&data).unwrap();
         assert_eq!(entries.len(), 1307);

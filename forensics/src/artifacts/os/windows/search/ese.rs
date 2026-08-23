@@ -4,6 +4,7 @@ use super::{
     tables::indexgthr::{parse_index_gthr, parse_index_gthr_path},
 };
 use crate::{
+    accessor::entry::handle::FileHandle,
     artifacts::os::windows::ese::{
         catalog::Catalog,
         helper::{get_all_pages, get_catalog_info, get_filtered_page_data, get_page_data},
@@ -28,17 +29,17 @@ pub(crate) struct SearchEntry {
 
 /// Parse the Windows `Search` ESE database
 pub(crate) fn parse_search(
-    path: &str,
+    handle: &FileHandle,
     manager: &mut OutputManager,
     options: &SearchOptions,
 ) -> Result<(), SearchError> {
-    let catalog = search_catalog(path)?;
+    let catalog = search_catalog(handle)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let gather_pages = search_pages(gather_table.table_page as u32, path)?;
+    let gather_pages = search_pages(gather_table.table_page as u32, handle)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let property_pages = search_pages(property_table.table_page as u32, path)?;
+    let property_pages = search_pages(property_table.table_page as u32, handle)?;
 
     let page_limit = 400;
     let mut gather_chunk = Vec::new();
@@ -54,11 +55,14 @@ pub(crate) fn parse_search(
         }
 
         let rows_results =
-            get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
+            get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
+                error!(
+                    "Failed to parse SystemIndex_Gthr table at {}: {err:?}",
+                    handle.display_path()
+                );
                 continue;
             }
         };
@@ -67,19 +71,28 @@ pub(crate) fn parse_search(
             get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
-            get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+            get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, manager, options, path);
+        let _ = process_search(
+            &property_rows,
+            &gather_rows,
+            manager,
+            options,
+            &handle.display_path(),
+        );
         gather_chunk = Vec::new();
     }
 
     if !gather_chunk.is_empty() {
         let rows_results =
-            get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
+            get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
+                error!(
+                    "Failed to parse last SystemIndex_Gthr pages at {}: {err:?}",
+                    handle.display_path()
+                );
                 return Ok(());
             }
         };
@@ -88,9 +101,15 @@ pub(crate) fn parse_search(
             get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
-            get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+            get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
-        let _ = process_search(&property_rows, &gather_rows, manager, options, path);
+        let _ = process_search(
+            &property_rows,
+            &gather_rows,
+            manager,
+            options,
+            &handle.display_path(),
+        );
     }
 
     Ok(())
@@ -114,7 +133,7 @@ pub(crate) fn get_document_ids(entries: &Vec<Vec<TableDump>>) -> HashMap<String,
 
 /// Get properties for the Search database entries
 pub(crate) fn get_properties(
-    path: &str,
+    handle: &FileHandle,
     property_pages: &[u32],
     table: &mut TableInfo,
     doc_ids: &mut HashMap<String, bool>,
@@ -137,7 +156,7 @@ pub(crate) fn get_properties(
         }
 
         let rows_results = get_filtered_page_data(
-            path,
+            handle,
             &property_chunk,
             table,
             "SystemIndex_PropertyStore",
@@ -147,7 +166,10 @@ pub(crate) fn get_properties(
         let mut property_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to parse SystemIndex_PropertyStore table at {path}: {err:?}");
+                error!(
+                    "Failed to parse SystemIndex_PropertyStore table at {}: {err:?}",
+                    handle.display_path()
+                );
                 continue;
             }
         };
@@ -170,7 +192,7 @@ pub(crate) fn get_properties(
 
     if !property_chunk.is_empty() {
         let rows_results = get_filtered_page_data(
-            path,
+            handle,
             &property_chunk,
             table,
             "SystemIndex_PropertyStore",
@@ -180,7 +202,10 @@ pub(crate) fn get_properties(
         let mut property_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to parse last SystemIndex_PropertyStore page at {path}: {err:?}");
+                error!(
+                    "Failed to parse last SystemIndex_PropertyStore page at {}: {err:?}",
+                    handle.display_path()
+                );
                 return property_total_rows;
             }
         };
@@ -228,12 +253,12 @@ fn process_search(
 }
 
 /// Get the ESE Catalog
-pub(crate) fn search_catalog(path: &str) -> Result<Vec<Catalog>, SearchError> {
-    let catalog_result = get_catalog_info(path);
+pub(crate) fn search_catalog(handle: &FileHandle) -> Result<Vec<Catalog>, SearchError> {
+    let catalog_result = get_catalog_info(handle);
     let catalog = match catalog_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to parse {path} catalog: {err:?}");
+            error!("Failed to parse {} catalog: {err:?}", handle.display_path());
             return Err(SearchError::ParseEse);
         }
     };
@@ -242,12 +267,15 @@ pub(crate) fn search_catalog(path: &str) -> Result<Vec<Catalog>, SearchError> {
 }
 
 /// Get all pages for the provided table
-pub(crate) fn search_pages(table_page: u32, path: &str) -> Result<Vec<u32>, SearchError> {
-    let pages_result = get_all_pages(path, table_page);
+pub(crate) fn search_pages(table_page: u32, handle: &FileHandle) -> Result<Vec<u32>, SearchError> {
+    let pages_result = get_all_pages(handle, table_page);
     let pages = match pages_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to get search pages at {path}: {err:?}");
+            error!(
+                "Failed to get search pages at {}: {err:?}",
+                handle.display_path()
+            );
             return Err(SearchError::ParseEse);
         }
     };
@@ -257,16 +285,16 @@ pub(crate) fn search_pages(table_page: u32, path: &str) -> Result<Vec<u32>, Sear
 
 /// Parse Windows `Search` at provided path
 pub(crate) fn parse_search_path(
-    path: &str,
+    handle: &FileHandle,
     page_limit: u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
-    let catalog = search_catalog(path)?;
+    let catalog = search_catalog(handle)?;
 
     let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-    let gather_pages = search_pages(gather_table.table_page as u32, path)?;
+    let gather_pages = search_pages(gather_table.table_page as u32, handle)?;
 
     let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-    let property_pages = search_pages(property_table.table_page as u32, path)?;
+    let property_pages = search_pages(property_table.table_page as u32, handle)?;
 
     let mut gather_chunk = Vec::new();
     let last_page = 0;
@@ -284,11 +312,14 @@ pub(crate) fn parse_search_path(
         }
 
         let rows_results =
-            get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
+            get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to parse SystemIndex_Gthr table at {path}: {err:?}");
+                error!(
+                    "Failed to parse SystemIndex_Gthr table at {}: {err:?}",
+                    handle.display_path()
+                );
                 continue;
             }
         };
@@ -297,7 +328,7 @@ pub(crate) fn parse_search_path(
             get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
-            get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+            get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
         let indexes = if let Some(values) = property_rows.get("SystemIndex_PropertyStore") {
             values
@@ -318,16 +349,19 @@ pub(crate) fn parse_search_path(
             return Err(SearchError::ParseEse);
         };
 
-        let _ = parse_index_gthr_path(entries, &props, &mut search_entries, path);
+        let _ = parse_index_gthr_path(entries, &props, &mut search_entries, &handle.display_path());
     }
 
     if !gather_chunk.is_empty() {
         let rows_results =
-            get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
+            get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr");
         let gather_rows = match rows_results {
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to parse last SystemIndex_Gthr pages at {path}: {err:?}");
+                error!(
+                    "Failed to parse last SystemIndex_Gthr pages at {}: {err:?}",
+                    handle.display_path()
+                );
                 return Ok(search_entries);
             }
         };
@@ -336,7 +370,7 @@ pub(crate) fn parse_search_path(
             get_document_ids(gather_rows.get("SystemIndex_Gthr").unwrap_or(&Vec::new()));
 
         let property_rows =
-            get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+            get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
         let indexes = if let Some(values) = property_rows.get("SystemIndex_PropertyStore") {
             values
@@ -357,7 +391,7 @@ pub(crate) fn parse_search_path(
             return Err(SearchError::ParseEse);
         };
 
-        let _ = parse_index_gthr_path(entries, &props, &mut search_entries, path);
+        let _ = parse_index_gthr_path(entries, &props, &mut search_entries, &handle.display_path());
     }
 
     Ok(search_entries)
@@ -369,6 +403,7 @@ mod tests {
         get_document_ids, get_properties, parse_search, parse_search_path, process_search,
         search_catalog, search_pages,
     };
+    use crate::accessor::access::Accessor;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::ese::{helper::get_page_data, tables::table_info},
@@ -400,22 +435,29 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
         let mut output = output_options("search_temp", "./tmp", false);
         let options = SearchOptions { alt_file: None };
 
-        parse_search(test_path, &mut output, &options).unwrap();
+        parse_search(handle, &mut output, &options).unwrap();
     }
 
     #[test]
     fn test_search_catalog() {
         let test_path =
-            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+            "ntfs:C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
         if !is_file(test_path) {
             return;
         }
-
-        search_catalog(test_path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        search_catalog(handle).unwrap();
     }
 
     #[test]
@@ -427,21 +469,29 @@ mod tests {
             return;
         }
 
-        search_pages(1, test_path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        search_pages(1, handle).unwrap();
     }
 
     #[test]
     fn test_get_document_ids() {
-        let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        let test_path =
+            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
-        if !is_file(path) {
+        if !is_file(test_path) {
             return;
         }
-
-        let catalog = search_catalog(path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let catalog = search_catalog(handle).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, handle).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -457,7 +507,8 @@ mod tests {
             }
 
             let gather_rows =
-                get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr").unwrap();
+                get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr")
+                    .unwrap();
 
             let doc_ids = get_document_ids(
                 &gather_rows
@@ -474,19 +525,23 @@ mod tests {
 
     #[test]
     fn test_get_properties() {
-        let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        let test_path =
+            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
-        if !is_file(path) {
+        if !is_file(test_path) {
             return;
         }
-
-        let catalog = search_catalog(path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let catalog = search_catalog(handle).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, handle).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(property_table.table_page as u32, path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, handle).unwrap();
 
         let page_limit = 1;
         let mut gather_chunk = Vec::new();
@@ -502,7 +557,8 @@ mod tests {
             }
 
             let gather_rows =
-                get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr").unwrap();
+                get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr")
+                    .unwrap();
 
             let mut doc_ids = get_document_ids(
                 &gather_rows
@@ -512,7 +568,7 @@ mod tests {
             );
 
             let property_rows =
-                get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+                get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
             assert!(!property_rows.is_empty());
 
@@ -522,19 +578,23 @@ mod tests {
 
     #[test]
     fn test_process_search() {
-        let path = "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
+        let test_path =
+            "C:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb";
         // Some versions of Windows 11 do not use ESE for Windows Search
-        if !is_file(path) {
+        if !is_file(test_path) {
             return;
         }
-
-        let catalog = search_catalog(path).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let catalog = search_catalog(handle).unwrap();
 
         let mut gather_table = table_info(&catalog, "SystemIndex_Gthr");
-        let gather_pages = search_pages(gather_table.table_page as u32, path).unwrap();
+        let gather_pages = search_pages(gather_table.table_page as u32, handle).unwrap();
 
         let mut property_table = table_info(&catalog, "SystemIndex_PropertyStore");
-        let property_pages = search_pages(property_table.table_page as u32, path).unwrap();
+        let property_pages = search_pages(property_table.table_page as u32, handle).unwrap();
 
         let page_limit = 5;
         let mut gather_chunk = Vec::new();
@@ -554,7 +614,8 @@ mod tests {
             }
 
             let gather_rows =
-                get_page_data(path, &gather_chunk, &mut gather_table, "SystemIndex_Gthr").unwrap();
+                get_page_data(handle, &gather_chunk, &mut gather_table, "SystemIndex_Gthr")
+                    .unwrap();
 
             let mut doc_ids = get_document_ids(
                 &gather_rows
@@ -564,10 +625,16 @@ mod tests {
             );
 
             let property_rows =
-                get_properties(path, &property_pages, &mut property_table, &mut doc_ids);
+                get_properties(handle, &property_pages, &mut property_table, &mut doc_ids);
 
-            let _ =
-                process_search(&property_rows, &gather_rows, &mut output, &options, path).unwrap();
+            let _ = process_search(
+                &property_rows,
+                &gather_rows,
+                &mut output,
+                &options,
+                &handle.display_path(),
+            )
+            .unwrap();
             break;
         }
     }
@@ -581,8 +648,11 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-
-        let results = parse_search_path(test_path, 50).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let results = parse_search_path(handle, 50).unwrap();
         assert!(results.len() > 20);
     }
 }

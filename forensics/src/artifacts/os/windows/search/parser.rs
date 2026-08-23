@@ -21,8 +21,13 @@ use super::{
     sqlite::{parse_search_sqlite, parse_search_sqlite_path},
 };
 use crate::{
-    filesystem::files::is_file, output::manager::OutputManager,
-    structs::artifacts::os::windows::SearchOptions, utils::environment::get_systemdrive,
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, FileHandle},
+    },
+    output::manager::OutputManager,
+    structs::artifacts::os::windows::SearchOptions,
+    utils::environment::get_systemdrive,
 };
 use tracing::error;
 
@@ -31,11 +36,10 @@ pub(crate) fn grab_search(
     options: &SearchOptions,
     manager: &mut OutputManager,
 ) -> Result<(), SearchError> {
-    let path = if let Some(alt) = &options.alt_file {
-        alt.clone()
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
     } else {
-        let systemdrive_result = get_systemdrive();
-        let systemdrive = match systemdrive_result {
+        let drive = match get_systemdrive() {
             Ok(result) => result,
             Err(err) => {
                 error!("Could not get systemdrive: {err:?}");
@@ -43,58 +47,75 @@ pub(crate) fn grab_search(
             }
         };
         format!(
-            "{systemdrive}:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows.edb"
+            "ntfs:{drive}:\\ProgramData\\Microsoft\\Search\\Data\\Applications\\Windows\\Windows*"
         )
     };
 
-    let win11 = path.replace("edb", "db");
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Could not glob Windows Search {pattern}: {err:?}");
+            return Err(SearchError::Systemdrive);
+        }
+    };
 
-    // If we do not find Windows.edb we may be dealing with Windows 11 db
-    if (!is_file(&path) && is_file(&win11)) || path.ends_with(".db") {
-        /*
-         * Windows Search on Windows 11 is split into three (3) SQLITE databases:
-         *  - Windows.db
-         *  - Windows-usn.db
-         *  - Windows-gther.db
-         *
-         * Windows.db contains the metadata on indexed files
-         * Windows-gther.db contains the indexed file entry.
-         * Unsure what Windows-usn.db is used for.
-         *
-         * Windows-gthr.db is created with a special SQLITE collating feature that requires a custom SQLITE callback function to handle: "UNICODE_en-US_LINGUISTIC_IGNORECASE".
-         * Basically we need to create a function to handle string comparisons for Windows-gthr.db before we are allowed to query it.
-         * We do not do that, instead we just parse the Windows.db file which often contains enough metadata to figure out what the entry is.
-         *
-         * References:
-         * `https://www.sqlite.org/datatype3.html#collation`
-         * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
-         */
-        return parse_search_sqlite(&win11, manager, options);
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        if handle.display_path().ends_with("Windows.edb") {
+            let _ = parse_search(handle, manager, options);
+        } else if handle.display_path().ends_with("Windows.db") {
+            // If we do not find Windows.edb we may be dealing with Windows 11 db
+            /*
+             * Windows Search on Windows 11 is split into three (3) SQLITE databases:
+             *  - Windows.db
+             *  - Windows-usn.db
+             *  - Windows-gther.db
+             *
+             * Windows.db contains the metadata on indexed files
+             * Windows-gther.db contains the indexed file entry.
+             * Unsure what Windows-usn.db is used for.
+             *
+             * Windows-gthr.db is created with a special SQLITE collating feature that requires a custom SQLITE callback function to handle: "UNICODE_en-US_LINGUISTIC_IGNORECASE".
+             * Basically we need to create a function to handle string comparisons for Windows-gthr.db before we are allowed to query it.
+             * We do not do that, instead we just parse the Windows.db file which often contains enough metadata to figure out what the entry is.
+             *
+             * References:
+             * `https://www.sqlite.org/datatype3.html#collation`
+             * `https://github.com/strozfriedberg/sidr/blob/main/src/sqlite.rs#L14`
+             */
+            let _ = parse_search_sqlite(handle, manager, options);
+        }
     }
 
-    parse_search(&path, manager, options)
+    Ok(())
 }
 
 /// Parse a provided Windows `Search` file and return its contents
 pub(crate) fn grab_search_path(
-    path: &str,
+    handle: &FileHandle,
     page_limit: u32,
 ) -> Result<Vec<SearchEntry>, SearchError> {
-    let result = if path.ends_with(".edb") {
-        parse_search_path(path, page_limit)?
-    } else if path.ends_with(".db") {
-        parse_search_sqlite_path(path)?
-    } else {
-        return Err(SearchError::NotSearchFile);
-    };
-
-    Ok(result)
+    if handle.display_path().ends_with("Windows.edb") {
+        return parse_search_path(handle, page_limit);
+    } else if handle.display_path().ends_with("Windows.db") {
+        parse_search_sqlite_path(handle)?;
+    }
+    Err(SearchError::NotSearchFile)
 }
 
 #[cfg(test)]
 mod tests {
     use super::grab_search;
     use super::grab_search_path;
+    use crate::accessor::access::Accessor;
     use crate::filesystem::files::is_file;
     use crate::output::manager::OutputManager;
     use crate::structs::artifacts::os::windows::SearchOptions;
@@ -131,8 +152,11 @@ mod tests {
         if !is_file(test_path) {
             return;
         }
-
-        let results = grab_search_path(test_path, 50).unwrap();
+        let binding = Accessor::with_defaults()
+            .globfs(&format!("ntfs:{test_path}"))
+            .unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
+        let results = grab_search_path(handle, 50).unwrap();
         assert!(results.len() > 20);
     }
 }

@@ -1,4 +1,7 @@
-use crate::accessor::entry::locator::{DirLocator, FileLocator};
+use crate::accessor::{
+    entry::locator::{DirLocator, FileLocator},
+    location::scheme::Scheme,
+};
 use std::path::PathBuf;
 
 /// Support data entries we can access
@@ -58,10 +61,19 @@ impl FileHandle {
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
-            FileLocator::Ntfs { display_path, .. } => display_path.clone(),
+            FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
             }
+        }
+    }
+
+    /// Return the `Scheme` associated with the `FileHandle`
+    pub(crate) fn scheme(&self) -> Scheme {
+        match &self.locator {
+            FileLocator::Host { .. } => Scheme::Host,
+            FileLocator::Ntfs { .. } => Scheme::Ntfs,
+            FileLocator::Zip { .. } => Scheme::Zip,
         }
     }
 }
@@ -88,7 +100,7 @@ impl DirHandle {
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
             DirLocator::Host { path } => path.display().to_string(),
-            DirLocator::Ntfs { display_path, .. } => display_path.clone(),
+            DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             DirLocator::Zip {
                 archive, prefix, ..
             } => {
@@ -98,6 +110,15 @@ impl DirHandle {
                     format!("zip:{}!{prefix}", archive.display())
                 }
             }
+        }
+    }
+
+    /// Return the `Scheme` associated with the `DirHandle`
+    pub(crate) fn scheme(&self) -> Scheme {
+        match &self.locator {
+            DirLocator::Host { .. } => Scheme::Host,
+            DirLocator::Ntfs { .. } => Scheme::Ntfs,
+            DirLocator::Zip { .. } => Scheme::Zip,
         }
     }
 }

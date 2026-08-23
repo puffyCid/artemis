@@ -1,3 +1,5 @@
+use tracing::error;
+
 /**
  * MFT (Master File Table) is part of the Windows NTFS filesystem.
  * It keeps track of all files and directories on a system.
@@ -6,8 +8,9 @@
  * Other parsers:
  *   `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::MftError, master::parse_mft};
+use super::error::MftError;
 use crate::{
+    accessor::access::Accessor, artifacts::os::windows::mft::master::parse_mft,
     output::manager::OutputManager, structs::artifacts::os::windows::MftOptions,
     utils::environment::get_systemdrive,
 };
@@ -15,21 +18,30 @@ use crate::{
 /// Try create a filelisting from provided MFT file
 pub(crate) fn grab_mft(options: &MftOptions, manager: &mut OutputManager) -> Result<(), MftError> {
     let mut drive = String::new();
-    let path = if let Some(file) = &options.alt_file {
-        return parse_mft(file, manager, options, &drive);
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
     } else {
         // Check if alternative drive letter provided
         if let Some(alt_drive) = &options.alt_drive {
             drive = alt_drive.to_string();
-            format!("{alt_drive}:\\$MFT")
+            format!("ntfs:{alt_drive}:\\$MFT")
         } else {
             // Otherwise try to get the SystemDrive
             drive = get_systemdrive().unwrap_or('C').to_string();
-            format!("{drive}:\\$MFT")
+            format!("ntfs:{drive}:\\$MFT")
         }
     };
 
-    parse_mft(&path, manager, options, &drive)
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Could not glob for MFT {pattern}: {err:?}");
+            return Err(MftError::ReadFile);
+        }
+    };
+
+    parse_mft(paths, manager, options, &drive)
 }
 
 #[cfg(test)]

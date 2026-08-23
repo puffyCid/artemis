@@ -12,12 +12,9 @@ use super::recycle::parse_recycle_bin;
  * `https://github.com/Velocidex/velociraptor`
  */
 use crate::{
+    accessor::{access::Accessor, entry::handle::EntryKind},
     artifacts::os::windows::recyclebin::error::RecycleBinError,
-    filesystem::{
-        directory::get_parent_directory,
-        files::{get_filename, read_file},
-        metadata::glob_paths,
-    },
+    filesystem::{directory::get_parent_directory, files::get_filename},
     structs::artifacts::os::windows::RecycleBinOptions,
     utils::environment::get_systemdrive,
 };
@@ -28,98 +25,109 @@ use tracing::error;
 pub(crate) fn grab_recycle_bin(
     options: &RecycleBinOptions,
 ) -> Result<Vec<RecycleBin>, RecycleBinError> {
-    if let Some(file) = &options.alt_file {
-        let result = grab_recycle_bin_path(file)?;
-        return Ok(vec![result]);
-    }
-    let systemdrive_result = get_systemdrive();
-    let drive = match systemdrive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not get system drive: {err:?}");
-            return Err(RecycleBinError::Systemdrive);
-        }
-    };
-
-    let path = format!("{drive}:\\$RECYCLE.BIN\\*\\$I*");
-    let glob_results = glob_paths(&path);
-    let glob_paths = match glob_results {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not glob recycle bin path {path}: {err:?}");
-            return Err(RecycleBinError::ReadFile);
-        }
-    };
-
-    let mut recycle = Vec::new();
-    for entry in glob_paths {
-        let bin_result = grab_recycle_bin_path(&entry.full_path);
-        let bin = match bin_result {
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let systemdrive_result = get_systemdrive();
+        let drive = match systemdrive_result {
             Ok(result) => result,
-            Err(_err) => continue,
+            Err(err) => {
+                error!("Could not get system drive: {err:?}");
+                return Err(RecycleBinError::Systemdrive);
+            }
         };
 
-        recycle.push(bin);
-    }
+        format!("{drive}:\\$RECYCLE.BIN\\*\\$I*")
+    };
 
-    Ok(recycle)
+    recycle_bin_data(&pattern)
 }
 
 /// Grab data from the provided Windows `Recycle Bin` path
-pub(crate) fn grab_recycle_bin_path(path: &str) -> Result<RecycleBin, RecycleBinError> {
-    let read_result = read_file(path);
-    let data = match read_result {
-        Ok(result) => result,
+fn recycle_bin_data(pattern: &str) -> Result<Vec<RecycleBin>, RecycleBinError> {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(pattern) {
+        Ok(results) => results,
         Err(err) => {
-            error!("Failed to read recycle bing file {path}: {err:?}");
+            error!("Failed to glob {pattern} for RecycleBin files: {err:?}");
             return Err(RecycleBinError::ReadFile);
         }
     };
-    let bin_result = parse_recycle_bin(&data);
-    let mut bin = match bin_result {
-        Ok((_, result)) => result,
-        Err(_err) => {
-            error!("Failed to parse recycle bin file {path}");
-            return Err(RecycleBinError::ParseFile);
+
+    let mut values = Vec::new();
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
         }
-    };
 
-    bin.evidence = path.to_string();
-    bin.sid = get_filename(&get_parent_directory(&bin.evidence));
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
 
-    Ok(bin)
+        let bytes = match accessor.read_file_handle(handle) {
+            Ok(results) => results,
+            Err(err) => {
+                error!(
+                    "Failed to read recycle bing file {}: {err:?}",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        let mut bin_value = match parse_recycle_bin(&bytes) {
+            Ok((_, result)) => result,
+            Err(err) => {
+                error!(
+                    "Failed to parse recycle bin file {}: {err:?},",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        bin_value.evidence = handle.display_path();
+        bin_value.sid = get_filename(&get_parent_directory(&bin_value.evidence));
+
+        values.push(bin_value);
+    }
+
+    Ok(values)
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::grab_recycle_bin_path;
+    use crate::{
+        artifacts::os::windows::recyclebin::parser::{grab_recycle_bin, recycle_bin_data},
+        structs::artifacts::os::windows::RecycleBinOptions,
+    };
     use std::path::PathBuf;
 
     #[test]
     fn test_grab_recycle_bin() {
-        use super::grab_recycle_bin;
-        use crate::structs::artifacts::os::windows::RecycleBinOptions;
-
         let options = RecycleBinOptions { alt_file: None };
         let _ = grab_recycle_bin(&options).unwrap();
     }
 
     #[test]
-    fn test_grab_recycle_bin_path() {
+    fn test_recycle_bin_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\recyclebin\\win10\\$IWHBX3J");
 
-        let result = grab_recycle_bin_path(&test_location.display().to_string()).unwrap();
+        let result = recycle_bin_data(&test_location.display().to_string()).unwrap();
 
-        assert_eq!(result.deleted, "2021-09-09T00:27:08.015Z");
-        assert_eq!(result.size, 0);
-        assert_eq!(result.filename, "ns_osquery_utils_system_systemutils");
+        assert_eq!(result[0].deleted, "2021-09-09T00:27:08.015Z");
+        assert_eq!(result[0].size, 0);
+        assert_eq!(result[0].filename, "ns_osquery_utils_system_systemutils");
         assert_eq!(
-            result.full_path,
+            result[0].full_path,
             "C:\\Users\\bob\\Projects\\osquery\\build\\ns_osquery_utils_system_systemutils"
         );
-        assert_eq!(result.directory, "C:\\Users\\bob\\Projects\\osquery\\build");
-        assert_eq!(result.sid, "win10");
+        assert_eq!(
+            result[0].directory,
+            "C:\\Users\\bob\\Projects\\osquery\\build"
+        );
+        assert_eq!(result[0].sid, "win10");
     }
 }

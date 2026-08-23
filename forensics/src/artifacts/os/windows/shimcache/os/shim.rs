@@ -91,9 +91,15 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_shimdata() {
-        use crate::artifacts::os::windows::shimcache::registry::get_shimcache_data;
+        use crate::{
+            accessor::access::Accessor,
+            artifacts::os::windows::shimcache::registry::get_shimcache_data,
+        };
 
-        let result = get_shimcache_data("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
+        let handle = Accessor::with_defaults()
+            .globfs("ntfs:C:\\Windows\\System32\\config\\SYSTEM")
+            .unwrap();
+        let result = get_shimcache_data(handle[0].handle.as_file().unwrap()).unwrap();
         assert!(result.len() > 0);
 
         for entry in result {

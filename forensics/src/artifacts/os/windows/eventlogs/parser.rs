@@ -15,7 +15,12 @@ use super::{
     strings::{StringResource, get_resources},
 };
 use crate::{
-    filesystem::files::{file_extension, list_files, read_file},
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, GlobMatch},
+        io::reader::AccessorReader,
+    },
+    filesystem::files::file_extension,
     output::{
         manager::OutputManager,
         record::{
@@ -34,14 +39,35 @@ pub(crate) fn grab_eventlogs(
     options: &EventLogsOptions,
     manager: &mut OutputManager,
 ) -> Result<(), EventLogsError> {
-    if let Some(file) = &options.alt_file {
-        return alt_eventlogs(file, manager, options);
-    }
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let drive_result = get_systemdrive();
+        let drive = match drive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not determine systemdrive: {err:?}");
+                return Err(EventLogsError::DefaultDrive);
+            }
+        };
+        format!("{drive}:\\Windows\\System32\\winevt\\Logs\\*.evtx")
+    };
 
-    default_eventlogs(manager, options)
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(&pattern) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Could not glob Eventlogs {pattern}: {err:?}");
+            return Err(EventLogsError::Parser);
+        }
+    };
+
+    extract_eventlogs(paths, options, manager)
 }
 
 /// Parse the `EventLog` evtx file at provided path
+///
+/// Used by `BoaJS` to reading `EventLogs` in chunk
 pub(crate) fn parse_eventlogs(
     path: &str,
     offset: usize,
@@ -53,7 +79,7 @@ pub(crate) fn parse_eventlogs(
         Some(get_resources()?)
     } else if template_file.is_some() {
         let file = template_file.as_ref().unwrap();
-        let bytes = match read_file(file) {
+        let bytes = match Accessor::with_defaults().read_file(file) {
             Ok(result) => result,
             Err(err) => {
                 error!("Failed to read template file: {err:?}");
@@ -134,39 +160,17 @@ pub(crate) fn parse_eventlogs(
     Ok((messages, raw_message))
 }
 
-/// Read and parse `EventLog` files at default Windows path. Typically C:\Windows\System32\winevt
-fn default_eventlogs(
-    manager: &mut OutputManager,
+/// Stream and extract `EventLog` entries
+fn extract_eventlogs(
+    paths: Vec<GlobMatch>,
     options: &EventLogsOptions,
-) -> Result<(), EventLogsError> {
-    let path = if let Some(alt_dir) = &options.alt_dir {
-        alt_dir
-    } else {
-        let drive_result = get_systemdrive();
-        let drive = match drive_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Could not determine systemdrive: {err:?}");
-                return Err(EventLogsError::DefaultDrive);
-            }
-        };
-        &format!("{drive}:\\Windows\\System32\\winevt\\Logs")
-    };
-
-    read_directory(path, manager, options)
-}
-
-/// Read and parse `EventLog` files with alternative path
-fn alt_eventlogs(
-    path: &str,
     manager: &mut OutputManager,
-    options: &EventLogsOptions,
 ) -> Result<(), EventLogsError> {
     let templates = if options.include_templates && options.alt_template_file.is_none() {
         Some(get_resources()?)
     } else if options.alt_template_file.is_some() {
         let template_file = options.alt_template_file.as_ref().unwrap();
-        let bytes = match read_file(template_file) {
+        let bytes = match Accessor::with_defaults().read_file(template_file) {
             Ok(result) => result,
             Err(err) => {
                 error!("Failed to read template file: {err:?}");
@@ -207,84 +211,38 @@ fn alt_eventlogs(
             return Ok(());
         }
     }
-
-    read_eventlogs(path, manager, options, &templates)
-}
-
-/// Read all files at provided path
-fn read_directory(
-    path: &str,
-    manager: &mut OutputManager,
-    options: &EventLogsOptions,
-) -> Result<(), EventLogsError> {
-    let dir_results = list_files(path);
-    let read_dir = match dir_results {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to get eventlogs files {path}, error: {err:?}");
-            return Err(EventLogsError::Parser);
-        }
-    };
-
-    let templates = if options.include_templates && options.alt_template_file.is_none() {
-        Some(get_resources()?)
-    } else if options.alt_template_file.is_some() {
-        let template_file = options.alt_template_file.as_ref().unwrap();
-        let bytes = match read_file(template_file) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to read template file: {err:?}");
-                return Err(EventLogsError::ReadTemplateFile);
-            }
-        };
-
-        match serde_json::from_slice(&bytes) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to deserialize template data: {err:?}");
-                return Err(EventLogsError::DeserializeTemplate);
-            }
-        }
-    } else {
-        None
-    };
-
-    if let Some(template) = templates.as_ref()
-        && options.dump_templates
-    {
-        let record = match serialize_to_record(template) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to serialize provider strings: {err:?}");
-                return Err(EventLogsError::Serialize);
-            }
-        };
-        let artifact_name = "eventlog_templates";
-        if let Err(err) =
-            manager.write_artifact(artifact_name, options, &mut SingleRecordStream::new(record))
-        {
-            error!("Failed to output provider strings: {err:?}");
-            return Err(EventLogsError::Output);
-        }
-
-        if options.only_templates {
-            return Ok(());
-        }
-    }
-
-    for evtx_file in read_dir {
-        // Skip non-eventlog files
-        if file_extension(&evtx_file) != "evtx" {
+    let mut accessor = Accessor::with_defaults();
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
             continue;
         }
 
-        let eventlogs_results = read_eventlogs(&evtx_file, manager, options, &templates);
-        match eventlogs_results {
-            Ok(_) => (),
-            Err(err) => {
-                error!("Failed to get eventlogs for {evtx_file}, error: {err:?}");
-            }
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        if file_extension(&handle.display_path()) != "evtx" {
+            continue;
         }
+
+        let mut evtx_reader = match accessor.open_reader_handle(handle) {
+            Ok(results) => results,
+            Err(err) => {
+                error!(
+                    "Could not create reader for {}: {err:?}",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        read_eventlogs(
+            &mut evtx_reader,
+            manager,
+            options,
+            &templates,
+            &handle.display_path(),
+        )?;
     }
 
     Ok(())
@@ -292,21 +250,22 @@ fn read_directory(
 
 /// Read and parse the `EventLog` file
 fn read_eventlogs(
-    path: &str,
+    reader: &mut AccessorReader,
     manager: &mut OutputManager,
     options: &EventLogsOptions,
     resources: &Option<StringResource>,
+    evidence: &str,
 ) -> Result<(), EventLogsError> {
-    let evt_parser_results = EvtxParser::from_path(path);
+    let evt_parser_results = EvtxParser::from_read_seek(reader);
     let mut evt_parser = match evt_parser_results {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to parse event log {path}, error: {err:?}");
+            error!("Failed to parse event log {evidence}, error: {err:?}");
             return Err(EventLogsError::Parser);
         }
     };
 
-    let mut eventlog_records: Vec<EventLogRecord> = Vec::new();
+    let mut eventlog_records = Vec::new();
     let limit = 1000;
     // Regex always correct
     let param_regex = create_regex(r"(%\d!.*?!)|(%\d+)").unwrap();
@@ -318,12 +277,12 @@ fn read_eventlogs(
                     event_record_id: data.event_record_id,
                     timestamp: data.timestamp.to_string(),
                     data: data.data,
-                    evidence: path.to_string(),
+                    evidence: evidence.to_string(),
                 };
                 eventlog_records.push(event_record);
             }
             Err(err) => {
-                error!("Issue parsing record from {path}, error: {err:?}");
+                error!("Issue parsing record from {evidence}, error: {err:?}");
                 continue;
             }
         }
@@ -334,12 +293,12 @@ fn read_eventlogs(
                 let mut raw_messages = Vec::new();
                 for record in eventlog_records {
                     let message = if let Some(result) =
-                        add_message_strings(&record, resource, &param_regex, &value_regex, path)
+                        add_message_strings(&record, resource, &param_regex, &value_regex, evidence)
                     {
                         result
                     } else {
                         warn!(
-                            "Could not get template strings for file {path} record: {}. Using raw data",
+                            "Could not get template strings for file {evidence} record: {}. Using raw data",
                             record.event_record_id
                         );
                         raw_messages.push(record);
@@ -365,15 +324,17 @@ fn read_eventlogs(
                 };
             }
 
-            let records = match serialize_records_to_stream(messages) {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Could not serialize logs: {err:?}");
-                    eventlog_records = Vec::new();
-                    continue;
-                }
-            };
-            let _ = output_logs(manager, options, records);
+            if !messages.is_empty() {
+                let records = match serialize_records_to_stream(messages) {
+                    Ok(result) => result,
+                    Err(err) => {
+                        error!("Could not serialize logs: {err:?}");
+                        eventlog_records = Vec::new();
+                        continue;
+                    }
+                };
+                let _ = output_logs(manager, options, records);
+            }
 
             eventlog_records = Vec::new();
         }
@@ -385,12 +346,12 @@ fn read_eventlogs(
             let mut raw_messages = Vec::new();
             for record in eventlog_records {
                 let message = if let Some(result) =
-                    add_message_strings(&record, resource, &param_regex, &value_regex, path)
+                    add_message_strings(&record, resource, &param_regex, &value_regex, evidence)
                 {
                     result
                 } else {
                     warn!(
-                        "Could not get template strings for file {path} record: {}. Using raw data",
+                        "Could not get template strings for file {evidence} record: {}. Using raw data",
                         record.event_record_id
                     );
                     raw_messages.push(record);
@@ -414,14 +375,16 @@ fn read_eventlogs(
             };
         }
 
-        let records = match serialize_records_to_stream(messages) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Could not serialize remaining logs: {err:?}");
-                return Err(EventLogsError::Serialize);
-            }
-        };
-        let _ = output_logs(manager, options, records);
+        if !messages.is_empty() {
+            let records = match serialize_records_to_stream(messages) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("Could not serialize remaining logs: {err:?}");
+                    return Err(EventLogsError::Serialize);
+                }
+            };
+            let _ = output_logs(manager, options, records);
+        }
     }
 
     Ok(())
@@ -445,12 +408,14 @@ fn output_logs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{alt_eventlogs, default_eventlogs, grab_eventlogs, read_directory, read_eventlogs};
+    use super::{grab_eventlogs, read_eventlogs};
+    use crate::accessor::access::Accessor;
+    use crate::artifacts::os::windows::eventlogs::parser::extract_eventlogs;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         output::manager::OutputManager, structs::artifacts::os::windows::EventLogsOptions,
     };
-    use std::{fs::read_dir, path::PathBuf};
+    use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
         let config = OutputConfig {
@@ -477,50 +442,15 @@ mod tests {
         };
         let mut output = output_options("eventlog_temp", "./tmp", true);
 
-        let results = grab_eventlogs(&options, &mut output).unwrap();
-        assert_eq!(results, ())
+        grab_eventlogs(&options, &mut output).unwrap();
     }
 
     #[test]
-    fn test_default_eventlogs() {
-        let mut output = output_options("eventlog_temp", "./tmp", true);
-        let options = EventLogsOptions {
-            alt_file: None,
-            include_templates: false,
-            dump_templates: false,
-            alt_dir: None,
-            alt_template_file: None,
-            only_templates: false,
-        };
-
-        let results = default_eventlogs(&mut output, &options).unwrap();
-        assert_eq!(results, ())
-    }
-
-    #[test]
-    #[should_panic(expected = "Parser")]
-    fn test_alt_eventlogs() {
-        let path = "madeup";
-        let mut output = output_options("eventlog_temp", "./tmp", true);
-
-        let options = EventLogsOptions {
-            alt_file: None,
-            include_templates: false,
-            dump_templates: false,
-            alt_dir: None,
-            alt_template_file: None,
-            only_templates: false,
-        };
-
-        let results = alt_eventlogs(&path, &mut output, &options).unwrap();
-        assert_eq!(results, ())
-    }
-
-    #[test]
-    fn test_read_directory() {
+    fn test_extract_eventlogs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
-        let mut output = output_options("eventlog_temp", "./tmp", false);
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
         let options = EventLogsOptions {
             alt_file: None,
             include_templates: false,
@@ -529,17 +459,17 @@ mod tests {
             alt_template_file: None,
             only_templates: false,
         };
+        let mut output = output_options("eventlog_temp", "./tmp", true);
 
-        let results =
-            read_directory(&test_location.display().to_string(), &mut output, &options).unwrap();
-        assert_eq!(results, ())
+        extract_eventlogs(paths, &options, &mut output).unwrap();
     }
 
     #[test]
     fn test_read_eventlogs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/eventlogs");
-        let read_dir = read_dir(test_location.display().to_string()).unwrap();
+        let mut accessor = Accessor::with_defaults();
+        let files = accessor.read_dir(test_location.to_str().unwrap()).unwrap();
         let options = EventLogsOptions {
             alt_file: None,
             include_templates: false,
@@ -548,20 +478,22 @@ mod tests {
             alt_template_file: None,
             only_templates: false,
         };
-        for file_path in read_dir {
-            if file_path.as_ref().unwrap().file_type().unwrap().is_dir() {
+        for file_path in files {
+            let Some(handle) = file_path.handle.as_file() else {
                 continue;
-            }
-            let mut output = output_options("eventlog_temp", "./tmp", false);
+            };
 
-            let results = read_eventlogs(
-                &file_path.unwrap().path().display().to_string(),
+            let mut output = output_options("eventlog_temp", "./tmp", false);
+            let mut reader = accessor.open_reader_handle(handle).unwrap();
+
+            read_eventlogs(
+                &mut reader,
                 &mut output,
                 &options,
                 &None,
+                &handle.display_path(),
             )
             .unwrap();
-            assert_eq!(results, ())
         }
     }
 }

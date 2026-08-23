@@ -2,22 +2,20 @@ use super::{
     error::TaskError,
     sections::{fixed::parse_fixed, variable::parse_variable},
 };
-use crate::filesystem::files::read_file;
+use crate::accessor::{access::Accessor, entry::handle::FileHandle};
 use common::windows::TaskJob;
 use tracing::error;
 
-/// Parse the older Task format
-pub(crate) fn parse_job(path: &str) -> Result<TaskJob, TaskError> {
-    read_job(path)
-}
-
 /// Read and parse the binary `Job` format
-fn read_job(path: &str) -> Result<TaskJob, TaskError> {
-    let bytes_result = read_file(path);
-    let bytes = match bytes_result {
+pub(crate) fn read_job(handle: &FileHandle) -> Result<TaskJob, TaskError> {
+    let mut accessor = Accessor::with_defaults();
+    let bytes = match accessor.read_file_handle(handle) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read Task Job file at {path}: {err:?}");
+            error!(
+                "Could not read Task Job file at {}: {err:?}",
+                handle.display_path()
+            );
             return Err(TaskError::ReadJob);
         }
     };
@@ -26,7 +24,10 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
     let (var_data, fixed_value) = match fixed_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("Could not parse Fixed section of Job file {path}");
+            error!(
+                "Could not parse Fixed section of Job file {}",
+                handle.display_path()
+            );
             return Err(TaskError::FixedSection);
         }
     };
@@ -35,7 +36,10 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
     let (_, variable_value) = match var_result {
         Ok(result) => result,
         Err(_err) => {
-            error!("Could not parse Variable section of Job file {path}");
+            error!(
+                "Could not parse Variable section of Job file {}",
+                handle.display_path()
+            );
             return Err(TaskError::VariableSection);
         }
     };
@@ -61,7 +65,7 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
         user_data: variable_value.user_data,
         start_error: variable_value.start_error,
         triggers: variable_value.triggers,
-        evidence: path.to_string(),
+        evidence: handle.display_path(),
     };
 
     Ok(job)
@@ -69,26 +73,17 @@ fn read_job(path: &str) -> Result<TaskJob, TaskError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::artifacts::os::windows::tasks::job::{parse_job, read_job};
+    use crate::{
+        accessor::entry::handle::FileHandle, artifacts::os::windows::tasks::job::read_job,
+    };
     use std::path::PathBuf;
-
-    #[test]
-    fn test_parse_job() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/tasks/win10/At1.job");
-
-        let result = parse_job(&test_location.display().to_string()).unwrap();
-
-        assert_eq!(result.job_id, "01402ff8-7371-4bba-a728-a7d4f012d5c6");
-        assert_eq!(result.author, "WORKGROUP\\DESKTOP-EIS938N$");
-    }
 
     #[test]
     fn test_read_job() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/At1.job");
 
-        let result = read_job(&test_location.display().to_string()).unwrap();
+        let result = read_job(&FileHandle::host(test_location)).unwrap();
 
         assert_eq!(result.application_name, "cmd.exe");
         assert_eq!(result.comments, "Created by NetScheduleJobAdd.");

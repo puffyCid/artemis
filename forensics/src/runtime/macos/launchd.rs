@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn test_js_launchd() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvbWFjb3MvbGF1bmNoZC50cwpmdW5jdGlvbiBnZXRfbGF1bmNoZF9kYWVtb25zKCkgewogIGNvbnN0IGRhdGEgPSBqc19sYXVuY2hkKCk7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCBkYWVtb25zID0gZ2V0X2xhdW5jaGRfZGFlbW9ucygpOwogIHJldHVybiBkYWVtb25zOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_launched_test", "./tmp", false);
         let script = JSScript {
             name: String::from("launchd_daemons"),
             script: test.to_string(),

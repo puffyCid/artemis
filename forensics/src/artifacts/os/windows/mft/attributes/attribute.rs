@@ -7,6 +7,7 @@ use super::{
     standard::Standard,
 };
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::windows::{
         mft::attributes::{
             extended::ExtendedInfo, index::IndexRoot, list::AttributeList, object::ObjectId,
@@ -17,13 +18,11 @@ use crate::{
     utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
 };
 use nom::bytes::complete::take;
-use ntfs::NtfsFile;
 use serde::Serialize;
 use serde_json::{Value, json};
-use std::io::BufReader;
 use tracing::error;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub(crate) struct EntryAttributes {
     pub(crate) standard: Vec<Standard>,
     pub(crate) filename: Vec<Filename>,
@@ -32,10 +31,9 @@ pub(crate) struct EntryAttributes {
 }
 
 /// Parse and grab all `MFT` FILE attributes
-pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
+pub(crate) fn grab_attributes<'a>(
     data: &'a [u8],
-    reader: &mut BufReader<T>,
-    ntfs_file: Option<&NtfsFile<'a>>,
+    reader: &mut AccessorReader,
     size: u32,
     current_mft: u32,
 ) -> nom::IResult<&'a [u8], EntryAttributes> {
@@ -161,8 +159,7 @@ pub(crate) fn grab_attributes<'a, T: std::io::Seek + std::io::Read>(
                 .attributes
                 .push(serde_json::to_value(sid).unwrap_or_default());
         } else if header.attrib_type == AttributeType::AttributeList {
-            let (_, mut list) =
-                AttributeList::parse_list(input, reader, ntfs_file, size, current_mft)?;
+            let (_, mut list) = AttributeList::parse_list(input, reader, size, current_mft)?;
 
             // Sometimes the attribute list contains the FILENAME and/or STANDARD attributes
             check_list(&mut list, &mut entry_attributes);
@@ -210,8 +207,8 @@ fn check_list(attribs: &mut [AttributeList], entries: &mut EntryAttributes) {
 #[cfg(test)]
 mod tests {
     use super::grab_attributes;
-    use crate::artifacts::os::windows::mft::reader::setup_mft_reader;
-    use std::{io::BufReader, path::PathBuf};
+    use crate::accessor::access::Accessor;
+    use std::path::PathBuf;
 
     #[test]
     fn test_grab_attribtes() {
@@ -225,10 +222,11 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
-        let reader = setup_mft_reader(test_location.to_str().unwrap()).unwrap();
-        let mut buf_reader = BufReader::new(reader);
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
-        let (_, result) = grab_attributes(&test, &mut buf_reader, None, 0, 0).unwrap();
+        let (_, result) = grab_attributes(&test, &mut reader, 0, 0).unwrap();
         assert_eq!(result.standard[0].created, 133665165395720108);
         assert_eq!(result.standard[0].modified, 133665165395720108);
         assert_eq!(result.standard[0].accessed, 133665165395720108);

@@ -500,7 +500,9 @@ mod tests {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"ntfs:C").unwrap();
 
-        let results = access.source_globfs(&source, "Windows/**/*.evtx").unwrap();
+        let results = access
+            .source_globfs(&source, "Windows/System32/winevt/**/*.evtx")
+            .unwrap();
         assert!(results.len() > 0);
     }
 

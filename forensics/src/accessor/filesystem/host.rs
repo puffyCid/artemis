@@ -5,7 +5,7 @@ use crate::accessor::{
     },
     error::{AccessorError, AccessorResult},
     filesystem::helper::glob::{
-        append_inner_path, descend, glob_max_depth, is_recursive, join_relative,
+        DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
         normalize_glob_pattern, path_component_count,
     },
     io::reader::AccessorReader,
@@ -149,11 +149,14 @@ impl HostFs {
         // Support nested and recursive glob patterns. Such as '/home/*/*/*.txt' or '/home/**/*.txt'
         if normalized.contains('/') || is_recursive(&normalized) {
             let mut matches = Vec::new();
+            let guard = DescendGuard::new(&normalized)?;
+
             HostFs::glob_path_pattern(
                 directory,
                 &glob_pattern,
                 "",
                 glob_max_depth(&normalized),
+                &guard,
                 &mut matches,
             )?;
 
@@ -226,6 +229,7 @@ impl HostFs {
         pattern: &Pattern,
         relative_prefix: &str,
         max_depth: Option<usize>,
+        guard: &DescendGuard,
         matches: &mut Vec<GlobMatch>,
     ) -> AccessorResult<()> {
         let entries = HostFs::read_dir(directory)?;
@@ -249,13 +253,14 @@ impl HostFs {
                         entry.meta.display_path
                     );
 
-                    if descend(depth, max_depth) {
+                    if guard.should_descend(&relative, depth, max_depth) {
                         let child_inner = append_inner_path(directory, &entry.name);
                         HostFs::glob_path_pattern(
                             &child_inner,
                             pattern,
                             &relative,
                             max_depth,
+                            guard,
                             matches,
                         )?;
                     }

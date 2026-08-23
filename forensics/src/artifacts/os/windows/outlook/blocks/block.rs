@@ -15,7 +15,6 @@ use crate::{
     },
 };
 use nom::error::ErrorKind;
-use ntfs::NtfsFile;
 use std::collections::BTreeMap;
 use tracing::error;
 
@@ -37,20 +36,18 @@ pub(crate) enum Block {
     Unknown,
 }
 
-pub(crate) trait OutlookBlock<T: std::io::Seek + std::io::Read> {
+pub(crate) trait OutlookBlock {
     fn parse_blocks(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         block: &LeafBlockData,
         descriptors: Option<&LeafBlockData>,
     ) -> Result<BlockValue, OutlookError>;
 }
 
-impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
+impl OutlookBlock for OutlookReader {
     /// Parse the Outlook blocks to get data and/or descriptors
     fn parse_blocks(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         block: &LeafBlockData,
         descriptors: Option<&LeafBlockData>,
     ) -> Result<BlockValue, OutlookError> {
@@ -62,7 +59,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
 
         match block.block_type {
             BlockType::Internal => parse_xblock(
-                ntfs_file,
                 &mut self.fs,
                 block,
                 &self.block_btree,
@@ -70,13 +66,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
                 &mut block_value,
             )?,
             BlockType::External => {
-                parse_raw_block(
-                    ntfs_file,
-                    &mut self.fs,
-                    block,
-                    &self.format,
-                    &mut block_value,
-                )?;
+                parse_raw_block(&mut self.fs, block, &self.format, &mut block_value)?;
             }
         };
 
@@ -84,7 +74,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
         if let Some(descriptor_values) = descriptors {
             match descriptors.unwrap().block_type {
                 BlockType::Internal => parse_xblock(
-                    ntfs_file,
                     &mut self.fs,
                     descriptor_values,
                     &self.block_btree,
@@ -93,7 +82,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookBlock<T> for OutlookReader<T> {
                 )?,
                 BlockType::External => {
                     parse_raw_block(
-                        ntfs_file,
                         &mut self.fs,
                         descriptor_values,
                         &self.format,
@@ -218,23 +206,23 @@ pub(crate) fn parse_block_bytes<'a>(
 #[cfg(test)]
 mod tests {
     use super::parse_block_bytes;
+    use crate::accessor::access::Accessor;
     use crate::artifacts::os::windows::outlook::blocks::block::Block;
-    use crate::{
-        artifacts::os::windows::outlook::{
-            blocks::block::OutlookBlock,
-            header::FormatType,
-            helper::{OutlookReader, OutlookReaderAction},
-            pages::btree::get_block_btree,
-        },
-        filesystem::files::{file_reader, read_file},
+    use crate::artifacts::os::windows::outlook::{
+        blocks::block::OutlookBlock,
+        header::FormatType,
+        helper::{OutlookReader, OutlookReaderAction},
+        pages::btree::get_block_btree,
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_parse_block_bytes() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/block_raw.raw");
-        let test = read_file(test_location.to_str().unwrap()).unwrap();
+        let test = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
         let (_, results) = parse_block_bytes(&test, &FormatType::Unicode64_4k).unwrap();
 
@@ -250,13 +238,13 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let mut buf_reader = BufReader::new(reader);
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut tree = Vec::new();
 
         get_block_btree(
-            None,
-            &mut buf_reader,
+            &mut reader,
             475136,
             4096,
             &FormatType::Unicode64_4k,
@@ -265,18 +253,18 @@ mod tests {
         .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
 
-        outlook_reader.setup(None).unwrap();
+        outlook_reader.setup().unwrap();
 
         for entry in &tree {
             for (_, value) in entry {
-                let block = outlook_reader.parse_blocks(None, value, None).unwrap();
+                let block = outlook_reader.parse_blocks(value, None).unwrap();
                 assert!(block.block_type != Block::Unknown);
             }
         }

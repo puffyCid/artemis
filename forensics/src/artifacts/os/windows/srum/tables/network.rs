@@ -16,16 +16,8 @@ pub(crate) fn parse_network(
     let mut network_vec: Vec<NetworkInfo> = Vec::new();
     for rows in column_rows {
         let mut network = NetworkInfo {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            interface_luid: 0,
-            l2_profile_id: 0,
-            l2_profile_flags: 0,
-            bytes_sent: 0,
-            bytes_recvd: 0,
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -92,16 +84,8 @@ pub(crate) fn parse_network_connectivity(
     let mut network_vec: Vec<NetworkConnectivityInfo> = Vec::new();
     for rows in column_rows {
         let mut network = NetworkConnectivityInfo {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            interface_luid: 0,
-            l2_profile_id: 0,
-            l2_profile_flags: 0,
-            connected_time: 0,
-            connect_start_time: String::new(),
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -164,28 +148,33 @@ pub(crate) fn parse_network_connectivity(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_network, parse_network_connectivity};
-    use crate::artifacts::os::windows::srum::{
-        resource::get_srum_ese, tables::index::parse_id_lookup,
+    use crate::{
+        accessor::access::Accessor,
+        artifacts::os::windows::srum::{resource::get_srum_ese, tables::index::parse_id_lookup},
     };
 
     #[test]
     fn test_parse_network() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{973F5D5C-1D90-4944-BE8E-24B94231A174}").unwrap();
+        let srum_data = get_srum_ese(handle, "{973F5D5C-1D90-4944-BE8E-24B94231A174}").unwrap();
 
         parse_network(&srum_data, &lookups, test_path).unwrap();
     }
 
     #[test]
     fn test_parse_network_connectivity() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{DD6636C4-8929-4683-974E-22C046A43763}").unwrap();
+        let srum_data = get_srum_ese(handle, "{DD6636C4-8929-4683-974E-22C046A43763}").unwrap();
 
         parse_network_connectivity(&srum_data, &lookups, test_path).unwrap();
     }

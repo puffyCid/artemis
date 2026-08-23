@@ -62,7 +62,7 @@ lumination = "0.2.0"
 snap = "1.1.2"
 ext4-fs = "0.2.0"
 calf = "0.3.0"
-parquet = { version = "59.1.0", default-features = false, features = [
+parquet = { version = "59.2.0", default-features = false, features = [
     "json",
     "snap",
     "simdutf8",
@@ -113,7 +113,7 @@ httpmock = "0.8.3"
 criterion = "0.8.2"
 
 [build-dependencies]
-vergen = { version = "10.0.1", features = ["build", "rustc"] }
+vergen = { version = "10.0.2", features = ["build", "rustc"] }
 
 # Artemis features
 [features]

@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_js_users_windows() {
         let test = "Ly8gLi4vLi4vYXJ0ZW1pcy1hcGkvc3JjL3dpbmRvd3MvdXNlcnMudHMKZnVuY3Rpb24gZ2V0X3VzZXJzX3dpbigpIHsKICB0cnkgewogIGNvbnN0IGRhdGEgPSBqc191c2Vyc193aW5kb3dzKCk7CiAgcmV0dXJuIGRhdGE7Cn0gY2F0Y2goZXJyKXtyZXR1cm4gZXJyO30KfQoKLy8gLi4vLi4vYXJ0ZW1pcy1hcGkvbW9kLnRzCmZ1bmN0aW9uIGdldFVzZXJzV2luKCkgewogIHJldHVybiBnZXRfdXNlcnNfd2luKCk7Cn0KCi8vIG1haW4udHMKZnVuY3Rpb24gbWFpbigpIHsKICBjb25zdCB1c2VycyA9IGdldFVzZXJzV2luKCk7CiAgcmV0dXJuIHVzZXJzOwp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_accounts_test", "./tmp", false);
         let script = JSScript {
             name: String::from("users"),
             script: test.to_string(),

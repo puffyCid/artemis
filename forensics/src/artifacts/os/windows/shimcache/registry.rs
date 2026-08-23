@@ -1,8 +1,10 @@
 use super::error::ShimcacheError;
 use crate::{
-    artifacts::os::windows::registry::helper::get_registry_keys, utils::regex_options::create_regex,
+    accessor::entry::handle::FileHandle,
+    artifacts::os::windows::registry::helper::get_registry_keys_handle,
+    utils::regex_options::create_regex,
 };
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 #[derive(Debug)]
 pub(crate) struct ShimcacheReg {
@@ -11,12 +13,14 @@ pub(crate) struct ShimcacheReg {
 }
 
 /// Get `shimcache` entries for all `ControlSet` values
-pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, ShimcacheError> {
-    let start_path = "";
+pub(crate) fn get_shimcache_data(handle: &FileHandle) -> Result<Vec<ShimcacheReg>, ShimcacheError> {
+    info!("Reading Shimcache file: {}", handle.display_path());
+
+    let start_path = String::new();
     let pattern = r"controlset\d*\\control\\session manager\\appcompatcache";
     let regex_value = create_regex(pattern).unwrap(); // Always valid
 
-    let encoded_result = get_registry_keys(start_path, &regex_value, path);
+    let encoded_result = get_registry_keys_handle(start_path, regex_value, handle);
     let shim_matches = match encoded_result {
         Ok(result) => result,
         Err(err) => {
@@ -49,10 +53,14 @@ pub(crate) fn get_shimcache_data(path: &str) -> Result<Vec<ShimcacheReg>, Shimca
 #[cfg(target_os = "windows")]
 mod tests {
     use super::get_shimcache_data;
+    use crate::accessor::access::Accessor;
 
     #[test]
     fn test_get_shimcache_data() {
-        let result = get_shimcache_data("C:\\Windows\\System32\\config\\SYSTEM").unwrap();
+        let handle = Accessor::with_defaults()
+            .globfs("ntfs:C:\\Windows\\System32\\config\\SYSTEM")
+            .unwrap();
+        let result = get_shimcache_data(handle[0].handle.as_file().unwrap()).unwrap();
         assert!(result.len() > 0);
     }
 }

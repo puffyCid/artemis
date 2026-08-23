@@ -108,43 +108,43 @@ pub(crate) fn windows_functions(context: &mut Context) {
 
     let _ = context.register_global_callable(
         JsString::from("js_root_folder"),
-        2,
+        1,
         NativeFunction::from_fn_ptr(js_root_folder),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_message_store"),
-        2,
+        1,
         NativeFunction::from_fn_ptr(js_message_store),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_name_map"),
-        2,
+        1,
         NativeFunction::from_fn_ptr(js_name_map),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_read_folder"),
-        3,
+        2,
         NativeFunction::from_fn_ptr(js_read_folder),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_folder_meta"),
-        3,
+        2,
         NativeFunction::from_fn_ptr(js_folder_meta),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_read_messages"),
-        4,
+        3,
         NativeFunction::from_fn_ptr(js_read_messages),
     );
 
     let _ = context.register_global_callable(
         JsString::from("js_read_attachment"),
-        4,
+        3,
         NativeFunction::from_fn_ptr(js_read_attachment),
     );
 

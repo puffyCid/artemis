@@ -3,19 +3,50 @@ use super::{
     options::name::{error_control, failure_actions, service_type, sid_type, start_mode},
     registry::get_services_data,
 };
+use crate::accessor::{access::Accessor, entry::handle::EntryKind};
 #[cfg(target_os = "windows")]
 use crate::artifacts::os::windows::services::state::service_state;
 use common::windows::{KeyValue, RegistryData, ServicesData};
+use tracing::error;
 
 /// Parse Services data from provided Registry file
-pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesError> {
-    let entries = get_services_data(path)?;
+pub(crate) fn parse_services(pattern: &str) -> Result<Vec<ServicesData>, ServicesError> {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(pattern) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Failed to glob {pattern}: {err:?}");
+            return Err(ServicesError::RegistryFiles);
+        }
+    };
 
+    let mut services = Vec::new();
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        let reg_data = get_services_data(handle)?;
+
+        let mut service_data = extract_services(reg_data, &handle.display_path());
+        services.append(&mut service_data);
+    }
+
+    Ok(services)
+}
+
+/// Extract Windows Service info from `Registry`
+fn extract_services(reg_data: Vec<RegistryData>, evidence: &str) -> Vec<ServicesData> {
     let mut services = Vec::new();
 
     let mut service_group = Vec::new();
     let mut current_service = String::new();
-    for entry in entries {
+
+    for entry in reg_data {
         // Get the service name when starting loop
         if current_service.is_empty() {
             current_service.clone_from(&entry.name);
@@ -30,7 +61,7 @@ pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesEr
         }
 
         // Collected all keys associated with Service. Now parse what we have
-        let service = collect_service(&service_group, &current_service, path);
+        let service = collect_service(&service_group, &current_service, evidence);
         services.push(service);
         service_group.clear();
 
@@ -40,14 +71,14 @@ pub(crate) fn parse_services(path: &str) -> Result<Vec<ServicesData>, ServicesEr
     }
 
     // Get last service collection
-    let last_service = collect_service(&service_group, &current_service, path);
+    let last_service = collect_service(&service_group, &current_service, evidence);
     services.push(last_service);
 
     // If we are on Windows platform. We can check for the service state
     #[cfg(target_os = "windows")]
     service_state(&mut services);
 
-    Ok(services)
+    services
 }
 
 /// Collect data associated with Service
@@ -117,6 +148,7 @@ fn metadata(value: &KeyValue, service: &mut ServicesData) {
 #[cfg(target_os = "windows")]
 mod tests {
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::services::{
             registry::get_services_data,
             service::{ServicesData, collect_service, metadata, parse_services},
@@ -128,7 +160,7 @@ mod tests {
     #[test]
     fn test_parse_services() {
         let drive = get_systemdrive().unwrap();
-        let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
+        let path = format!("ntfs:{drive}:\\Windows\\System32\\config\\SYSTEM");
         let results = parse_services(&path).unwrap();
 
         assert!(results.len() > 10);
@@ -137,8 +169,9 @@ mod tests {
     #[test]
     fn test_collect_service() {
         let drive = get_systemdrive().unwrap();
-        let path = format!("{drive}:\\Windows\\System32\\config\\SYSTEM");
-        let entries = get_services_data(&path).unwrap();
+        let path = format!("ntfs:{drive}:\\Windows\\System32\\config\\SYSTEM");
+        let handle = Accessor::with_defaults().globfs(&path).unwrap();
+        let entries = get_services_data(handle[0].handle.as_file().unwrap()).unwrap();
 
         let mut services = Vec::new();
 

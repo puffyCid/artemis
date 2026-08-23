@@ -15,8 +15,7 @@
  */
 use super::{error::JumplistError, jumplist::get_jumplists};
 use crate::{
-    filesystem::metadata::glob_paths, structs::artifacts::os::windows::JumplistsOptions,
-    utils::environment::get_systemdrive,
+    structs::artifacts::os::windows::JumplistsOptions, utils::environment::get_systemdrive,
 };
 use common::windows::JumplistEntry;
 use tracing::error;
@@ -42,20 +41,10 @@ pub(crate) fn grab_jumplists(
         )
     };
 
-    let glob_results = glob_paths(&path);
-    let glob_paths = match glob_results {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not glob jumplist paths {path}: {err:?}");
-            return Err(JumplistError::ReadFile);
-        }
-    };
-
-    get_jumplists(&glob_paths)
+    get_jumplists(&path)
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::grab_jumplists;
     use crate::structs::artifacts::os::windows::JumplistsOptions;
@@ -63,6 +52,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_jumplists() {
         let options = JumplistsOptions { alt_dir: None };
         let _ = grab_jumplists(&options).unwrap();
@@ -72,7 +62,7 @@ mod tests {
     fn test_grab_jumplist_alt_dir() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push(
-            "tests\\test_data\\windows\\jumplists\\win10\\custom\\1ced32d74a95c7bc.customDestinations-ms",
+            "tests/test_data/windows/jumplists/win10/custom/1ced32d74a95c7bc.customDestinations-ms",
         );
         let options = JumplistsOptions {
             alt_dir: Some(test_location.display().to_string()),

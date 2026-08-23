@@ -71,33 +71,34 @@ pub(crate) fn extract_attachment(props: &mut Vec<PropertyContext>) -> Attachment
 #[cfg(test)]
 mod tests {
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
             items::message::AttachMethod,
         },
-        filesystem::files::file_reader,
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_extract_attachment() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
+        outlook_reader.setup().unwrap();
 
-        let attach = outlook_reader.read_attachment(None, 8016, 8010).unwrap();
+        let attach = outlook_reader.read_attachment(8016, 8010).unwrap();
 
         assert_eq!(attach.data.len(), 18752);
         assert_eq!(attach.extension, ".png");

@@ -334,36 +334,37 @@ pub(crate) fn recipients(data: &Vec<Vec<TableRows>>) -> HashSet<String> {
 mod tests {
     use super::get_rtf_data;
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
             items::message::{AttachMethod, clean_subject, get_attach_method},
         },
-        filesystem::files::file_reader,
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_message_details() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
-        let mut folder = outlook_reader.read_folder(None, 8578).unwrap();
+        outlook_reader.setup().unwrap();
+        let mut folder = outlook_reader.read_folder(8578).unwrap();
         // Read 4th message (in table)
         folder.messages_table.rows = vec![3];
         let messages = outlook_reader
-            .read_message(None, &folder.messages_table, None)
+            .read_message(&folder.messages_table, None)
             .unwrap();
 
         assert_eq!(messages[0].body.len(), 11750);
@@ -409,22 +410,23 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
-        let mut folder = outlook_reader.read_folder(None, 8578).unwrap();
+        outlook_reader.setup().unwrap();
+        let mut folder = outlook_reader.read_folder(8578).unwrap();
         // Read 6th message (in table)
         folder.messages_table.rows = vec![5];
         let messages = outlook_reader
-            .read_message(None, &folder.messages_table, None)
+            .read_message(&folder.messages_table, None)
             .unwrap();
 
         assert_eq!(messages[0].body.len(), 190);

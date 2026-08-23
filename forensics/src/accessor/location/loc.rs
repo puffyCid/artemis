@@ -214,7 +214,7 @@ fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
 fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<SourcePath>> {
     match scheme {
         Scheme::Host => Ok(None),
-        Scheme::RawNtfs => parse_raw_source(remainder, RawFileSystem::Ntfs),
+        Scheme::Ntfs => parse_raw_source(remainder, RawFileSystem::Ntfs),
         Scheme::Zip => {
             if remainder.is_empty() {
                 return Err(AccessorError::location(
@@ -293,7 +293,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
-        Scheme::RawNtfs => {
+        Scheme::Ntfs => {
             if remainder.is_empty() {
                 return Err(AccessorError::location(
                     remainder,
@@ -340,7 +340,7 @@ mod tests {
     fn test_location_raw() {
         let test = "ntfs:C:\\home\\test.txt";
         let result = Location::parse(test).unwrap();
-        assert_eq!(result.scheme, Scheme::RawNtfs);
+        assert_eq!(result.scheme, Scheme::Ntfs);
         assert_eq!(result.inner_path.display(), "C:\\home\\test.txt");
         assert_eq!(result.source.unwrap().display(), "C:");
     }

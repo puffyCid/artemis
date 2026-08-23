@@ -5,5 +5,4 @@ pub(crate) mod helper;
 mod items;
 mod pages;
 pub(crate) mod parser;
-pub(crate) mod reader;
 pub(crate) mod tables;

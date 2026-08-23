@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_js_jumplists() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvd2luZG93cy9qdW1wbGlzdHMudHMKZnVuY3Rpb24gZ2V0SnVtcGxpc3RzKCkgewogIGNvbnN0IGRhdGEgPSBqc19qdW1wbGlzdHMoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IGp1bXAgPSBnZXRKdW1wbGlzdHMoKTsKICByZXR1cm4ganVtcDsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_jumplists_test", "./tmp", false);
         let script = JSScript {
             name: String::from("jumplist_default"),
             script: test.to_string(),

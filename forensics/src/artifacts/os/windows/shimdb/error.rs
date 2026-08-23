@@ -4,7 +4,6 @@ use std::fmt;
 pub enum ShimdbError {
     ParseSdb,
     ReadFile,
-    ReadDirectory,
     DriveLetter,
 }
 
@@ -15,7 +14,6 @@ impl fmt::Display for ShimdbError {
         match self {
             ShimdbError::ParseSdb => write!(f, "Failed to parse sdb file"),
             ShimdbError::ReadFile => write!(f, "Failed to read file"),
-            ShimdbError::ReadDirectory => write!(f, "Failed to read directory"),
             ShimdbError::DriveLetter => write!(f, "Failed to get systemdrive"),
         }
     }

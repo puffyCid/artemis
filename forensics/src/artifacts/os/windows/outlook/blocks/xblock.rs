@@ -1,26 +1,24 @@
 use super::block::{BlockValue, parse_block_bytes};
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::windows::outlook::{
         blocks::{block::Block, descriptors::parse_descriptor_block},
         error::OutlookError,
         header::FormatType,
         pages::btree::LeafBlockData,
     },
-    filesystem::ntfs::reader::read_bytes,
     utils::nom_helper::{
         Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
         nom_unsigned_two_bytes,
     },
 };
 use nom::error::ErrorKind;
-use ntfs::NtfsFile;
-use std::{collections::BTreeMap, io::BufReader};
+use std::collections::BTreeMap;
 use tracing::{error, warn};
 
 /// Get block data from xblocks
-pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
-    ntfs_file: Option<&NtfsFile<'_>>,
-    fs: &mut BufReader<T>,
+pub(crate) fn parse_xblock(
+    fs: &mut AccessorReader,
     block: &LeafBlockData,
     other_blocks: &[BTreeMap<u64, LeafBlockData>],
     format: &FormatType,
@@ -45,11 +43,9 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
         alignment_size += size;
     }
 
-    let bytes_result = read_bytes(
+    let bytes_result = fs.read_bytes(
         block.block_offset,
-        block.size as u64 + alignment_size as u64,
-        ntfs_file,
-        fs,
+        block.size as usize + alignment_size as usize,
     );
 
     let bytes = match bytes_result {
@@ -82,11 +78,9 @@ pub(crate) fn parse_xblock<T: std::io::Seek + std::io::Read>(
                     alignment_size += size;
                 }
 
-                let bytes_result = read_bytes(
+                let bytes_result = fs.read_bytes(
                     value.block_offset,
-                    value.size as u64 + alignment_size as u64,
-                    ntfs_file,
-                    fs,
+                    value.size as usize + alignment_size as usize,
                 );
 
                 let bytes = match bytes_result {
@@ -217,27 +211,27 @@ fn extract_xblock_entries<'a>(
 mod tests {
     use super::{extract_xblock_entries, parse_xblock, xblock_data};
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             blocks::block::{Block, BlockValue},
             header::FormatType,
             pages::btree::{BlockType, LeafBlockData, get_block_btree},
         },
-        filesystem::files::file_reader,
     };
-    use std::{collections::BTreeMap, io::BufReader, path::PathBuf};
+    use std::{collections::BTreeMap, path::PathBuf};
 
     #[test]
     fn test_parse_xblock() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let mut buf_reader = BufReader::new(reader);
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
         let mut tree = Vec::new();
 
         get_block_btree(
-            None,
-            &mut buf_reader,
+            &mut reader,
             475136,
             4096,
             &FormatType::Unicode64_4k,
@@ -262,8 +256,7 @@ mod tests {
         };
 
         parse_xblock(
-            None,
-            &mut buf_reader,
+            &mut reader,
             &test,
             &tree,
             &FormatType::Unicode64_4k,

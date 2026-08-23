@@ -188,32 +188,33 @@ pub(crate) fn search_folder_details(
 #[cfg(test)]
 mod tests {
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::outlook::{
             header::FormatType,
             helper::{OutlookReader, OutlookReaderAction},
         },
-        filesystem::files::file_reader,
     };
-    use std::{io::BufReader, path::PathBuf};
+    use std::path::PathBuf;
 
     #[test]
     fn test_folder_details_root() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
+        outlook_reader.setup().unwrap();
 
-        let result = outlook_reader.root_folder(None).unwrap();
+        let result = outlook_reader.root_folder().unwrap();
 
         assert_eq!(result.created, "2024-09-10T07:14:31.871Z");
         assert_eq!(result.subfolder_count, 2);
@@ -225,19 +226,20 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/outlook/windows11/test@outlook.com.ost");
 
-        let reader = file_reader(test_location.to_str().unwrap()).unwrap();
-        let buf_reader = BufReader::new(reader);
+        let reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
         let mut outlook_reader = OutlookReader {
-            fs: buf_reader,
+            fs: reader,
             block_btree: Vec::new(),
             node_btree: Vec::new(),
             format: FormatType::Unicode64_4k,
             size: 4096,
         };
-        outlook_reader.setup(None).unwrap();
+        outlook_reader.setup().unwrap();
 
-        let result = outlook_reader.search_folder(None, 524355).unwrap();
+        let result = outlook_reader.search_folder(524355).unwrap();
 
         assert_eq!(result.name, "Reminders");
         assert_eq!(result.created, "2024-09-10T07:15:07.783Z");

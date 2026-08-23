@@ -1,54 +1,100 @@
-use super::{
-    error::WmiError, helper::get_pages, instance::ClassValues, namespaces::extract_namespace_data,
-};
+use super::{error::WmiError, instance::ClassValues, namespaces::extract_namespace_data};
 use crate::{
-    artifacts::os::windows::{securitydescriptor::sid::grab_sid, wmi::index::parse_index},
-    filesystem::files::read_file,
+    accessor::{access::Accessor, entry::handle::DirEntry},
+    artifacts::os::windows::{
+        securitydescriptor::sid::grab_sid,
+        wmi::{index::parse_index, map::parse_map},
+    },
 };
 use base16ct::upper::encode_str;
 use common::windows::WmiPersist;
 use md5::Md5;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 use tracing::{error, warn};
 
-/// Parse the WMI repository and return data associated with provided classes
-pub(crate) fn parse_wmi_repo(
-    map_paths: &str,
-    objects_path: &str,
-    index_path: &str,
-) -> Result<Vec<ClassValues>, WmiError> {
-    let objects_result = read_file(objects_path);
-    let objects = match objects_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not read objects file {objects_path}: {err:?}");
-            return Err(WmiError::ReadObjects);
-        }
-    };
+/// Extract WMI class data from WMI repo directory
+pub(crate) fn extract_wmi(wmi_files: Vec<DirEntry>) -> Result<Vec<ClassValues>, WmiError> {
+    let mut objects = Vec::new();
+    let mut pages = Vec::new();
+    let mut index = Vec::new();
+    let mut page_seq = 0;
 
-    let index_result = read_file(index_path);
-    let index = match index_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not read index file {index_path}: {err:?}");
-            return Err(WmiError::ReadIndex);
-        }
-    };
+    let mut accessor = Accessor::with_defaults();
 
-    let pages = get_pages(map_paths)?;
-
-    let index_info_result = parse_index(&index);
-    let index_info = match index_info_result {
-        Ok((_, result)) => result,
-        Err(err) => {
-            error!("Could not parse index file {index_path}: {err:?}");
-            return Err(WmiError::ParseIndex);
+    // Get data we need for WMI parsing
+    for entry in wmi_files {
+        if entry.is_file()
+            && entry.name.to_lowercase() == "objects.data"
+            && let Some(handle) = entry.handle.as_file()
+        {
+            objects = match accessor.read_file_handle(handle) {
+                Ok(results) => results,
+                Err(err) => {
+                    error!(
+                        "Could not read objects file {}: {err:?}",
+                        handle.display_path()
+                    );
+                    return Err(WmiError::ReadObjects);
+                }
+            };
         }
-    };
+
+        if entry.is_file()
+            && entry.name.to_lowercase() == "index.btr"
+            && let Some(handle) = entry.handle.as_file()
+        {
+            let bytes = match accessor.read_file_handle(handle) {
+                Ok(results) => results,
+                Err(err) => {
+                    error!(
+                        "Could not read index file {}: {err:?}",
+                        handle.display_path()
+                    );
+                    return Err(WmiError::ReadIndex);
+                }
+            };
+
+            index = match parse_index(&bytes) {
+                Ok((_, result)) => result,
+                Err(err) => {
+                    error!(
+                        "Could not parse index file {}: {err:?}",
+                        handle.display_path()
+                    );
+                    return Err(WmiError::ParseIndex);
+                }
+            };
+        }
+        if entry.is_file()
+            && entry.name.to_lowercase().contains("mapping")
+            && let Some(handle) = entry.handle.as_file()
+        {
+            let bytes = match accessor.read_file_handle(handle) {
+                Ok(results) => results,
+                Err(err) => {
+                    error!("Could not read map file {}: {err:?}", handle.display_path());
+                    return Err(WmiError::ReadMaps);
+                }
+            };
+            let map_info = match parse_map(&bytes) {
+                Ok((_, results)) => results,
+                Err(err) => {
+                    error!("Could not parse WMI map {}: {err:?}", handle.display_path());
+                    return Err(WmiError::ParseMap);
+                }
+            };
+
+            // Need to use the map file with the highest sequence
+            if map_info.seq_number2 > page_seq {
+                page_seq = map_info.seq_number2;
+                pages = map_info.mappings;
+            }
+        }
+    }
 
     let mut namespace_info = Vec::new();
-    for entry in index_info {
+    for entry in index {
         for hash in &entry.value_data {
             if hash.starts_with("CD_") || hash.starts_with("IL_") {
                 namespace_info.push(entry.value_data.clone());
@@ -86,14 +132,8 @@ pub(crate) fn get_wmi_persist(
                     continue;
                 }
                 let mut persist = WmiPersist {
-                    class: String::new(),
-                    values: BTreeMap::new(),
-                    query: String::new(),
-                    sid: String::new(),
-                    filter: String::new(),
-                    consumer: String::new(),
-                    consumer_name: String::new(),
                     evidence: evidence.to_string(),
+                    ..Default::default()
                 };
                 assemble_wmi_persist(event_consumer, filter_consumer, event_filter, &mut persist);
                 let mut md5 = Md5::new();
@@ -238,18 +278,17 @@ pub(crate) fn hash_name(name: &str) -> String {
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{assemble_wmi_persist, get_wmi_persist, hash_name, parse_wmi_repo};
+    use super::{assemble_wmi_persist, extract_wmi, get_wmi_persist, hash_name};
+    use crate::accessor::access::Accessor;
     use common::windows::WmiPersist;
-    use std::collections::BTreeMap;
 
     #[test]
-    fn test_parse_wmi_repo() {
-        let drive = 'C';
+    fn test_extract_wmi() {
+        let files = Accessor::with_defaults()
+            .read_dir("C:\\Windows\\System32\\wbem\\Repository")
+            .unwrap();
 
-        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-        let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
+        let results = extract_wmi(files).unwrap();
 
         assert!(results.len() > 3);
     }
@@ -266,24 +305,22 @@ mod tests {
 
     #[test]
     fn test_get_wmi_persist() {
-        let drive = 'C';
+        let files = Accessor::with_defaults()
+            .read_dir("C:\\Windows\\System32\\wbem\\Repository")
+            .unwrap();
 
-        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-        let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
+        let results = extract_wmi(files).unwrap();
 
         let _ = get_wmi_persist(&results, "repo").unwrap();
     }
 
     #[test]
     fn test_assemble_wmi_persist() {
-        let drive = 'C';
+        let files = Accessor::with_defaults()
+            .read_dir("C:\\Windows\\System32\\wbem\\Repository")
+            .unwrap();
 
-        let map_paths = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\MAPPING*.MAP");
-        let objects_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\OBJECTS.DATA");
-        let index_path = format!("{drive}:\\Windows\\System32\\wbem\\Repository\\INDEX.BTR");
-        let results = parse_wmi_repo(&map_paths, &objects_path, &index_path).unwrap();
+        let results = extract_wmi(files).unwrap();
 
         let mut persist_vec = Vec::new();
         for event_consumer in &results {
@@ -299,16 +336,7 @@ mod tests {
                     if event_filter.class_name != "__EventFilter" {
                         continue;
                     }
-                    let mut persist = WmiPersist {
-                        class: String::new(),
-                        values: BTreeMap::new(),
-                        query: String::new(),
-                        sid: String::new(),
-                        filter: String::new(),
-                        consumer: String::new(),
-                        consumer_name: String::new(),
-                        evidence: String::new(),
-                    };
+                    let mut persist = WmiPersist::default();
                     assemble_wmi_persist(
                         event_consumer,
                         filter_consumer,

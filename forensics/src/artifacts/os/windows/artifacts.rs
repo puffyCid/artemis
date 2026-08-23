@@ -423,9 +423,30 @@ pub(crate) fn tasks(
     options: &TasksOptions,
     manager: &mut OutputManager,
 ) -> Result<(), WinArtifactError> {
-    if let Err(err) = grab_tasks(options, manager) {
-        error!("Artemis failed to parse Tasks: {err:?}");
-        return Err(WinArtifactError::Tasks);
+    let entries = match grab_tasks(options) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Artemis failed to parse Tasks: {err:?}");
+            return Err(WinArtifactError::Tasks);
+        }
+    };
+
+    if entries.is_empty() {
+        return Ok(());
+    }
+
+    let mut records = match serialize_records_to_stream(entries) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to serialize Tasks: {err:?}");
+            return Err(WinArtifactError::Serialize);
+        }
+    };
+
+    let artifact_name = "tasks";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("Failed to output tasks: {err:?}");
+        return Err(WinArtifactError::Output);
     }
 
     Ok(())

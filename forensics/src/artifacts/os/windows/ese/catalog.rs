@@ -5,11 +5,11 @@ use super::{
     tags::TagFlags,
 };
 use crate::{
+    accessor::io::reader::AccessorReader,
     artifacts::os::windows::ese::{
         page::PageFlags,
         pages::{branch::BranchPage, leaf::PageLeaf, root::parse_root_page},
     },
-    filesystem::ntfs::reader::read_bytes,
     utils::{
         nom_helper::{
             Endian, nom_signed_eight_bytes, nom_signed_four_bytes, nom_signed_two_bytes,
@@ -19,12 +19,11 @@ use crate::{
     },
 };
 use nom::{bytes::complete::take, error::ErrorKind};
-use ntfs::NtfsFile;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, io::BufReader};
+use std::{collections::HashMap, io::Read};
 use tracing::{error, warn};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub(crate) struct Catalog {
     /**Fixed data */
     pub(crate) obj_id_table: i32,
@@ -99,7 +98,7 @@ pub(crate) struct TaggedData {
     pub(crate) data: Vec<u8>,
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Default)]
 pub(crate) enum CatalogType {
     Table,
     Column,
@@ -108,6 +107,7 @@ pub(crate) enum CatalogType {
     Callback,
     SlvAvail,
     SlvSpaceMap,
+    #[default]
     Unknown,
 }
 
@@ -137,9 +137,8 @@ impl Catalog {
      * Before any significant parsing of the ESE db can start, we must parse the Catalog  
      * Once parsed, we return an array of `Catalog` rows
      */
-    pub(crate) fn grab_catalog<T: std::io::Seek + std::io::Read>(
-        ntfs_file: Option<&NtfsFile<'_>>,
-        fs: &mut BufReader<T>,
+    pub(crate) fn grab_catalog(
+        reader: &mut AccessorReader,
         page_size: u32,
     ) -> Result<Vec<Catalog>, EseError> {
         // Some documentation states Catalog is actually page four (4), but the first page of the ESE is a shadow copy of the header
@@ -147,17 +146,18 @@ impl Catalog {
         // So we have to add one (1)
         let catalog_page = 5;
         let catalog_start = catalog_page * page_size;
+        if let Err(err) = reader.seek_from_start(catalog_start as u64) {
+            error!("Failed to seek to start of catalog offset {catalog_start}: {err:?}");
+            return Err(EseError::Catalog);
+        }
 
-        let catalog_results = read_bytes(catalog_start as u64, page_size as u64, ntfs_file, fs);
-        let catalog_data = match catalog_results {
-            Ok(results) => results,
-            Err(err) => {
-                error!("Failed to read bytes for catalog: {err:?}");
-                return Err(EseError::ReadFile);
-            }
+        let mut buf = vec![0; page_size as usize];
+        if let Err(err) = reader.read(&mut buf) {
+            error!("Failed to read bytes for catalog: {err:?}");
+            return Err(EseError::ReadFile);
         };
 
-        let catalog_result = Catalog::parse_catalog(&catalog_data, page_size, ntfs_file, fs);
+        let catalog_result = Catalog::parse_catalog(&buf, page_size, reader);
         let (_, catalog) = if let Ok(result) = catalog_result {
             result
         } else {
@@ -169,11 +169,10 @@ impl Catalog {
     }
 
     /// Parse the components of the Catalog
-    fn parse_catalog<'a, T: std::io::Seek + std::io::Read>(
+    fn parse_catalog<'a>(
         catalog_data: &'a [u8],
         page_size: u32,
-        ntfs_file: Option<&NtfsFile<'_>>,
-        fs: &mut BufReader<T>,
+        reader: &mut AccessorReader,
     ) -> nom::IResult<&'a [u8], Vec<Catalog>> {
         let (page_data, catalog_page_data) = PageHeader::parse_header(catalog_data)?;
 
@@ -239,24 +238,22 @@ impl Catalog {
 
             let adjust_page = 1;
             let branch_start = (branch.child_page + adjust_page) * page_size;
+
             // Now get the child page
-            let child_result = read_bytes(branch_start as u64, page_size as u64, ntfs_file, fs);
-            let child_data = match child_result {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Could not read child page data: {err:?}");
-                    continue;
-                }
+            if let Err(err) = reader.seek_from_start(branch_start as u64) {
+                error!("Failed to seek to start of branch offset {branch_start}: {err:?}");
+                continue;
+            }
+            let mut buf = vec![0; page_size as usize];
+            if let Err(err) = reader.read(&mut buf) {
+                error!("Could not read child page data: {err:?}");
+                continue;
             };
 
             // Track child pages so do not end up in a recursive loop (ex: child points back to parent)
             let mut page_tracker: HashMap<u32, bool> = HashMap::new();
-            let rows_results = BranchPage::parse_branch_child_catalog(
-                &child_data,
-                &mut page_tracker,
-                ntfs_file,
-                fs,
-            );
+            let rows_results =
+                BranchPage::parse_branch_child_catalog(&buf, &mut page_tracker, reader);
             let (_, mut rows) = if let Ok(results) = rows_results {
                 results
             } else {
@@ -738,18 +735,14 @@ impl Catalog {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
     use super::{Catalog, CatalogType};
     use crate::{
+        accessor::access::Accessor,
         artifacts::os::windows::ese::{
             catalog::TaggedDataFlag,
             header::EseHeader,
             pages::leaf::{LeafType, PageLeaf},
-        },
-        filesystem::{
-            files::is_file,
-            ntfs::{raw_files::raw_reader, reader::read_bytes, setup::setup_ntfs_parser},
         },
     };
     use serde_json::json;
@@ -758,18 +751,15 @@ mod tests {
     #[test]
     fn test_grab_catalog() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
 
-        let binding = test_location.display().to_string();
-        let mut ntfs_parser =
-            setup_ntfs_parser(test_location.to_str().unwrap().chars().next().unwrap()).unwrap();
-
-        let reader = raw_reader(&binding, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = reader.read_bytes(0, 668).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
-        let results =
-            Catalog::grab_catalog(Some(&reader), &mut ntfs_parser.fs, header.page_size).unwrap();
+        let results = Catalog::grab_catalog(&mut reader, header.page_size).unwrap();
 
         assert_eq!(results[0].name, "MSysObjects");
         assert_eq!(results[0].obj_id_table, 2);
@@ -786,37 +776,7 @@ mod tests {
             2, 0, 0, 0, 1, 0, 2, 0, 0, 0, 4, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0, 192, 20, 0, 0, 0, 255,
             0,
         ];
-        let mut catalog = Catalog {
-            obj_id_table: 0,
-            catalog_type: CatalogType::Unknown,
-            id: 0,
-            column_or_father_data_page: 0,
-            space_usage: 0,
-            flags: 0,
-            pages_or_locale: 0,
-            root_flag: 0,
-            record_offset: 0,
-            lc_map_flags: 0,
-            key_most: 0,
-            lv_chunk_max: 0,
-            name: String::new(),
-            stats: Vec::new(),
-            template_table: String::new(),
-            default_value: Vec::new(),
-            key_fld_ids: Vec::new(),
-            var_seg_mac: Vec::new(),
-            conditional_columns: Vec::new(),
-            tuple_limits: Vec::new(),
-            version: Vec::new(),
-            sort_id: Vec::new(),
-            callback_data: Vec::new(),
-            callback_dependencies: Vec::new(),
-            separate_lv: Vec::new(),
-            space_hints: Vec::new(),
-            space_deferred_lv_hints: Vec::new(),
-            local_name: Vec::new(),
-            father_data_page_last_set_time: 0,
-        };
+        let mut catalog = Catalog::default();
         let fixed_col = 8;
         let (_, _) = Catalog::parse_fixed(fixed_col, &test, &mut catalog).unwrap();
 
@@ -833,37 +793,7 @@ mod tests {
     #[test]
     fn test_parse_variable() {
         let test = [11, 0, 77, 83, 121, 115, 79, 98, 106, 101, 99, 116, 115];
-        let mut catalog = Catalog {
-            obj_id_table: 0,
-            catalog_type: CatalogType::Unknown,
-            id: 0,
-            column_or_father_data_page: 0,
-            space_usage: 0,
-            flags: 0,
-            pages_or_locale: 0,
-            root_flag: 0,
-            record_offset: 0,
-            lc_map_flags: 0,
-            key_most: 0,
-            lv_chunk_max: 0,
-            name: String::new(),
-            stats: Vec::new(),
-            template_table: String::new(),
-            default_value: Vec::new(),
-            key_fld_ids: Vec::new(),
-            var_seg_mac: Vec::new(),
-            conditional_columns: Vec::new(),
-            tuple_limits: Vec::new(),
-            version: Vec::new(),
-            sort_id: Vec::new(),
-            callback_data: Vec::new(),
-            callback_dependencies: Vec::new(),
-            separate_lv: Vec::new(),
-            space_hints: Vec::new(),
-            space_deferred_lv_hints: Vec::new(),
-            local_name: Vec::new(),
-            father_data_page_last_set_time: 0,
-        };
+        let mut catalog = Catalog::default();
         let variable_column = 128;
         let (_, _) = Catalog::parse_variable(variable_column, &test, &mut catalog).unwrap();
 
@@ -873,37 +803,7 @@ mod tests {
     #[test]
     fn test_parse_tagged() {
         let test = [5, 1, 4, 0, 1, 101, 0, 110, 0, 45, 0, 85, 0, 83];
-        let mut catalog = Catalog {
-            obj_id_table: 0,
-            catalog_type: CatalogType::Unknown,
-            id: 0,
-            column_or_father_data_page: 0,
-            space_usage: 0,
-            flags: 0,
-            pages_or_locale: 0,
-            root_flag: 0,
-            record_offset: 0,
-            lc_map_flags: 0,
-            key_most: 0,
-            lv_chunk_max: 0,
-            name: String::new(),
-            stats: Vec::new(),
-            template_table: String::new(),
-            default_value: Vec::new(),
-            key_fld_ids: Vec::new(),
-            var_seg_mac: Vec::new(),
-            conditional_columns: Vec::new(),
-            tuple_limits: Vec::new(),
-            version: Vec::new(),
-            sort_id: Vec::new(),
-            callback_data: Vec::new(),
-            callback_dependencies: Vec::new(),
-            separate_lv: Vec::new(),
-            space_hints: Vec::new(),
-            space_deferred_lv_hints: Vec::new(),
-            local_name: Vec::new(),
-            father_data_page_last_set_time: 0,
-        };
+        let mut catalog = Catalog::default();
         let (_, _) = Catalog::parse_tagged(&test, &mut catalog).unwrap();
 
         assert_eq!(catalog.local_name, [101, 0, 110, 0, 45, 0, 85, 0, 83]);
@@ -943,40 +843,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_srum_catalog() {
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader("ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat")
+            .unwrap();
 
-        let reader = raw_reader(
-            "C:\\Windows\\System32\\sru\\SRUDB.dat",
-            &ntfs_parser.ntfs,
-            &mut ntfs_parser.fs,
-        )
-        .unwrap();
-        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = reader.read_bytes(0, 668).unwrap();
 
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
-        let results =
-            Catalog::grab_catalog(Some(&reader), &mut ntfs_parser.fs, header.page_size).unwrap();
+        let results = Catalog::grab_catalog(&mut reader, header.page_size).unwrap();
         assert!(results.len() > 100);
     }
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_updates_catalog() {
+        use crate::filesystem::files::is_file;
+
         let path = "C:\\Windows\\SoftwareDistribution\\DataStore\\DataStore.edb";
         if !is_file(path) {
             return;
         }
 
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader(&format!("ntfs:{path}"))
+            .unwrap();
 
-        let reader = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let header_bytes = read_bytes(0, 668, Some(&reader), &mut ntfs_parser.fs).unwrap();
+        let header_bytes = reader.read_bytes(0, 668).unwrap();
         if header_bytes.is_empty() {
             return;
         }
         let (_, header) = EseHeader::parse_header(&header_bytes).unwrap();
-        let results =
-            Catalog::grab_catalog(Some(&reader), &mut ntfs_parser.fs, header.page_size).unwrap();
+        let results = Catalog::grab_catalog(&mut reader, header.page_size).unwrap();
 
         assert!(results.len() > 10);
     }

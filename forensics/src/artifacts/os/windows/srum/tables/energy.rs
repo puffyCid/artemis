@@ -16,12 +16,8 @@ pub(crate) fn parse_energy(
     let mut energy_vec: Vec<EnergyInfo> = Vec::new();
     for rows in column_rows {
         let mut energy = EnergyInfo {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            binary_data: String::new(),
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -73,18 +69,8 @@ pub(crate) fn parse_energy_usage(
     let mut energy_vec: Vec<EnergyUsage> = Vec::new();
     for rows in column_rows {
         let mut energy = EnergyUsage {
-            auto_inc_id: 0,
-            timestamp: String::new(),
-            app_id: String::new(),
-            user_id: String::new(),
-            event_timestamp: String::new(),
-            state_transition: 0,
-            full_charged_capacity: 0,
-            designed_capacity: 0,
-            charge_level: 0,
-            cycle_count: 0,
-            configuration_hash: 0,
             evidence: evidence.to_string(),
+            ..Default::default()
         };
 
         for column in rows {
@@ -147,17 +133,20 @@ pub(crate) fn parse_energy_usage(
 #[cfg(target_os = "windows")]
 mod tests {
     use super::{parse_energy, parse_energy_usage};
-    use crate::artifacts::os::windows::srum::{
-        resource::get_srum_ese, tables::index::parse_id_lookup,
+    use crate::{
+        accessor::access::Accessor,
+        artifacts::os::windows::srum::{resource::get_srum_ese, tables::index::parse_id_lookup},
     };
 
     #[test]
     fn test_parse_energy() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let energy_check = get_srum_ese(test_path, "{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}");
+        let energy_check = get_srum_ese(handle, "{DA73FB89-2BEA-4DDC-86B8-6E048C6DA477}");
         if energy_check.is_err() {
             return;
         }
@@ -167,23 +156,26 @@ mod tests {
 
     #[test]
     fn test_parse_energy_usage() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data = get_srum_ese(test_path, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}").unwrap();
+        let srum_data = get_srum_ese(handle, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}").unwrap();
 
         parse_energy_usage(&srum_data, &lookups, test_path).unwrap();
     }
 
     #[test]
     fn test_parse_energy_usagelt() {
-        let test_path = "C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let test_path = "ntfs:C:\\Windows\\System32\\sru\\SRUDB.dat";
+        let binding = Accessor::with_defaults().globfs(test_path).unwrap();
+        let handle = binding[0].handle.as_file().unwrap();
 
-        let indexes = get_srum_ese(test_path, "SruDbIdMapTable").unwrap();
+        let indexes = get_srum_ese(handle, "SruDbIdMapTable").unwrap();
         let lookups = parse_id_lookup(&indexes);
-        let srum_data =
-            get_srum_ese(test_path, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT").unwrap();
+        let srum_data = get_srum_ese(handle, "{FEE4E14F-02A9-4550-B5CE-5FA2DA202E37}LT").unwrap();
 
         parse_energy_usage(&srum_data, &lookups, test_path).unwrap();
     }

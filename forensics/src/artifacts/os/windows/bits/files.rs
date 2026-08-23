@@ -170,22 +170,21 @@ pub(crate) fn parse_file<'a>(
 
 #[cfg(test)]
 mod tests {
+    use crate::artifacts::os::windows::bits::{background::get_bits_ese, files::get_files};
     use crate::{
+        accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::windows::bits::files::{get_legacy_files, parse_file},
-        filesystem::files::read_file,
     };
     use common::windows::FileInfo;
     use std::path::PathBuf;
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_get_files() {
-        use crate::artifacts::os::windows::bits::{background::get_bits_ese, files::get_files};
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let files = get_bits_ese(test_location.to_str().unwrap(), "Files").unwrap();
+        let files = get_bits_ese(&handle, "Files").unwrap();
 
         let files_info = get_files(&files).unwrap();
         assert_eq!(files_info.len(), 1);
@@ -195,19 +194,10 @@ mod tests {
     fn test_parse_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win10/file.raw");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
-        let mut file = FileInfo {
-            filename: String::new(),
-            file_id: String::new(),
-            url: String::new(),
-            download_bytes_size: 0,
-            transfer_bytes_size: 0,
-            full_path: String::new(),
-            tmp_fullpath: String::new(),
-            drive: String::new(),
-            volume: String::new(),
-            files_transferred: 0,
-        };
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
+        let mut file = FileInfo::default();
 
         let _ = parse_file(&data, &mut file, false, false).unwrap();
         assert_eq!(
@@ -226,7 +216,9 @@ mod tests {
     fn test_get_legacy_files() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win81/file.raw");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
         let (_, results) = get_legacy_files(&data, true, false).unwrap();
         assert_eq!(results.filename, "430ce39a-f827-4af6-95ea-5dd495961bfc");

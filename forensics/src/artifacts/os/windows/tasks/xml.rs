@@ -3,7 +3,7 @@ use super::{
     schemas::{actions::parse_actions, registration::parse_registration, triggers::parse_trigger},
     text::read_text_unescaped,
 };
-use crate::utils::encoding::read_xml;
+use crate::{accessor::entry::handle::FileHandle, utils::encoding::read_xml_handle};
 use crate::{
     artifacts::os::windows::tasks::schemas::{
         principals::parse_principals, settings::parse_settings,
@@ -15,21 +15,24 @@ use quick_xml::{Reader, events::Event};
 use tracing::error;
 
 /// Parse Schedule Task XML files. Windows Vista and higher use XML for Tasks
-pub(crate) fn parse_xml(path: &str) -> Result<TaskXml, TaskError> {
+pub(crate) fn parse_xml(handle: &FileHandle) -> Result<TaskXml, TaskError> {
     // Read XML file at provided path. Tasks use UTF16 encoding
-    let xml_result = read_xml(path);
+    let xml_result = read_xml_handle(handle);
     let xml_data = match xml_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read Task XML file at {path}: {err:?}");
+            error!(
+                "Could not read Task XML file at {}: {err:?}",
+                handle.display_path()
+            );
             return Err(TaskError::ReadXml);
         }
     };
-    process_xml(&xml_data, path)
+    process_xml(&xml_data, &handle.display_path())
 }
 
 /// Parse the different parts the XML schema format
-fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
+pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
     let mut reader = Reader::from_str(xml);
     reader.config_mut().trim_text(true);
     let mut task_xml = TaskXml {
@@ -96,6 +99,7 @@ fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
 #[cfg(test)]
 mod tests {
     use crate::{
+        accessor::entry::handle::FileHandle,
         artifacts::os::windows::tasks::xml::{parse_xml, process_xml},
         utils::encoding::read_xml,
     };
@@ -106,7 +110,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
-        let result = parse_xml(&test_location.display().to_string()).unwrap();
+        let result = parse_xml(&FileHandle::host(test_location.clone())).unwrap();
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
@@ -118,7 +122,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win11/MobilityManager");
 
-        let result = parse_xml(&test_location.display().to_string()).unwrap();
+        let result = parse_xml(&FileHandle::host(test_location.clone())).unwrap();
         assert_eq!(
             result.principals.as_ref().unwrap()[0]
                 .user_id
@@ -136,7 +140,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win11/SoftLandingCreativeManagementTask");
 
-        let result = parse_xml(&test_location.display().to_string()).unwrap();
+        let result = parse_xml(&FileHandle::host(test_location)).unwrap();
         assert_eq!(
             result.actions.com_handler[0].class_id,
             String::from("{F576B2F9-7850-4226-ADB0-E5993FED4F02}")

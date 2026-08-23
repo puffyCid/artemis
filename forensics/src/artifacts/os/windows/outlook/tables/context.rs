@@ -18,7 +18,6 @@ use crate::{
 };
 use common::{outlook::PropertyName, windows::PropertyType};
 use nom::{bytes::complete::take, error::ErrorKind};
-use ntfs::NtfsFile;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -40,33 +39,26 @@ pub(crate) struct ColumnDescriptor {
     index: u8,
 }
 
-pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
+pub(crate) trait OutlookTableContext {
     fn table_info(
         &mut self,
         block_data: &[Vec<u8>],
         block_descriptors: &BTreeMap<u64, DescriptorData>,
     ) -> Result<TableInfo, OutlookError>;
 
-    fn get_rows(
-        &mut self,
-        info: &TableInfo,
-        ntfs_file: Option<&NtfsFile<'_>>,
-    ) -> Result<Vec<Vec<TableRows>>, OutlookError>;
+    fn get_rows(&mut self, info: &TableInfo) -> Result<Vec<Vec<TableRows>>, OutlookError>;
     fn parse_rows<'a>(
         &mut self,
         info: &TableInfo,
-        ntfs_file: Option<&NtfsFile<'_>>,
         data: &'a [u8],
     ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>>;
     fn get_branch_rows(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         info: &TableInfo,
         branch: &TableBranchInfo,
     ) -> Result<Vec<Vec<TableRows>>, OutlookError>;
     fn parse_branch_rows(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         info: &TableInfo,
         branch: &TableBranchInfo,
     ) -> nom::IResult<&[u8], Vec<Vec<TableRows>>>;
@@ -79,7 +71,6 @@ pub(crate) trait OutlookTableContext<T: std::io::Seek + std::io::Read> {
 
     fn get_descriptor_data(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         descriptor: &DescriptorData,
     ) -> Result<Vec<Vec<u8>>, OutlookError>;
 }
@@ -105,7 +96,7 @@ pub(crate) struct TableBranchInfo {
     pub(crate) rows_info: RowsInfo,
 }
 
-impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<T> {
+impl OutlookTableContext for OutlookReader {
     fn table_info(
         &mut self,
         block_data: &[Vec<u8>],
@@ -129,11 +120,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         Ok(table)
     }
 
-    fn get_rows(
-        &mut self,
-        info: &TableInfo,
-        ntfs_file: Option<&NtfsFile<'_>>,
-    ) -> Result<Vec<Vec<TableRows>>, OutlookError> {
+    fn get_rows(&mut self, info: &TableInfo) -> Result<Vec<Vec<TableRows>>, OutlookError> {
         // If we have no columns, then we have no rows
         if info.columns.is_empty() {
             return Ok(Vec::new());
@@ -144,7 +131,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             None => return Err(OutlookError::NoBlocks),
         };
 
-        let rows_result = self.parse_rows(info, ntfs_file, block);
+        let rows_result = self.parse_rows(info, block);
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -158,7 +145,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
     fn parse_rows<'a>(
         &mut self,
         info: &TableInfo,
-        ntfs_file: Option<&NtfsFile<'_>>,
         data: &'a [u8],
     ) -> nom::IResult<&'a [u8], Vec<Vec<TableRows>>> {
         let (input, _header) = table_header(data)?;
@@ -171,7 +157,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         if info.node.node == NodeID::LocalDescriptors
             && let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64))
         {
-            let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
+            let desc_result = self.get_descriptor_data(descriptor);
             descriptor_data = match desc_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -249,7 +235,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
     fn get_branch_rows(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         info: &TableInfo,
         branch: &TableBranchInfo,
     ) -> Result<Vec<Vec<TableRows>>, OutlookError> {
@@ -257,7 +242,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         if info.columns.is_empty() {
             return Ok(Vec::new());
         }
-        let rows_result = self.parse_branch_rows(ntfs_file, info, branch);
+        let rows_result = self.parse_branch_rows(info, branch);
         let rows = match rows_result {
             Ok((_, result)) => result,
             Err(_err) => {
@@ -270,7 +255,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
     fn parse_branch_rows(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         info: &TableInfo,
         branch: &TableBranchInfo,
     ) -> nom::IResult<&[u8], Vec<Vec<TableRows>>> {
@@ -279,7 +263,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
         if info.node.node == NodeID::LocalDescriptors
             && let Some(descriptor) = info.block_descriptors.get(&(info.node.node_index as u64))
         {
-            let desc_result = self.get_descriptor_data(ntfs_file, descriptor);
+            let desc_result = self.get_descriptor_data(descriptor);
             descriptor_data = match desc_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -462,7 +446,6 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
 
     fn get_descriptor_data(
         &mut self,
-        ntfs_file: Option<&NtfsFile<'_>>,
         descriptor: &DescriptorData,
     ) -> Result<Vec<Vec<u8>>, OutlookError> {
         let mut leaf_block = LeafBlockData {
@@ -517,7 +500,7 @@ impl<T: std::io::Seek + std::io::Read> OutlookTableContext<T> for OutlookReader<
             }
         }
 
-        let value = self.get_block_data(ntfs_file, &leaf_block, leaf_descriptor.as_ref())?;
+        let value = self.get_block_data(&leaf_block, leaf_descriptor.as_ref())?;
 
         Ok(value.data)
     }

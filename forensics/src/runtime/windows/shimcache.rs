@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_js_shimcache() {
         let test = "Ly8gZGVuby1mbXQtaWdub3JlLWZpbGUKLy8gZGVuby1saW50LWlnbm9yZS1maWxlCi8vIFRoaXMgY29kZSB3YXMgYnVuZGxlZCB1c2luZyBgZGVubyBidW5kbGVgIGFuZCBpdCdzIG5vdCByZWNvbW1lbmRlZCB0byBlZGl0IGl0IG1hbnVhbGx5CgpmdW5jdGlvbiBnZXRfc2hpbWNhY2hlKCkgewogICAgY29uc3QgZGF0YSA9IGpzX3NoaW1jYWNoZSgpOwogICAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gZ2V0U2hpbWNhY2hlKCkgewogICAgcmV0dXJuIGdldF9zaGltY2FjaGUoKTsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3Qgc2hpbWNhY2hlX2VudHJpZXMgPSBnZXRTaGltY2FjaGUoKTsKICAgIHJldHVybiBzaGltY2FjaGVfZW50cmllczsKfQptYWluKCk7";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_shimcache_test", "./tmp", false);
         let script = JSScript {
             name: String::from("shimcache"),
             script: test.to_string(),

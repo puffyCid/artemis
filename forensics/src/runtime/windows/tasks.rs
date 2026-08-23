@@ -1,5 +1,8 @@
-use crate::{artifacts::os::windows::tasks::parser::grab_task_xml, runtime::helper::string_arg};
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
+use crate::{
+    artifacts::os::windows::tasks::parser::grab_tasks, runtime::helper::string_arg,
+    structs::artifacts::os::windows::TasksOptions,
+};
+use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 
 /// Expose parsing Schedule Tasks to `BoaJS`
 pub(crate) fn js_tasks(
@@ -7,8 +10,14 @@ pub(crate) fn js_tasks(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
-    let task = match grab_task_xml(&path) {
+    let path = if args.get_or_undefined(0).is_undefined() {
+        None
+    } else {
+        Some(string_arg(args, 0)?)
+    };
+    let options = TasksOptions { alt_file: path };
+
+    let task = match grab_tasks(&options) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to get tasks: {err:?}");
@@ -47,7 +56,7 @@ mod tests {
     #[test]
     fn test_js_tasks() {
         let test = "KCgpID0+IHsNCiAgLy8gLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL3V0aWxzL2Vycm9yLnRzDQogIHZhciBFcnJvckJhc2UgPSBjbGFzcyBleHRlbmRzIEVycm9yIHsNCiAgICBuYW1lOw0KICAgIG1lc3NhZ2U7DQogICAgY29uc3RydWN0b3IobmFtZSwgbWVzc2FnZSkgew0KICAgICAgc3VwZXIoKTsNCiAgICAgIHRoaXMubmFtZSA9IG5hbWU7DQogICAgICB0aGlzLm1lc3NhZ2UgPSBtZXNzYWdlOw0KICAgIH0NCiAgfTsNCg0KICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy9lcnJvcnMudHMNCiAgdmFyIFdpbmRvd3NFcnJvciA9IGNsYXNzIGV4dGVuZHMgRXJyb3JCYXNlIHsNCiAgfTsNCg0KICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvd2luZG93cy90YXNrcy50cw0KICBmdW5jdGlvbiBnZXRUYXNrcyhwYXRoKSB7DQogICAgdHJ5IHsNCiAgICAgIGNvbnN0IGRhdGEgPSBqc190YXNrcyhwYXRoKTsNCiAgICAgIHJldHVybiBkYXRhOw0KICAgIH0gY2F0Y2ggKGVycikgew0KICAgICAgcmV0dXJuIG5ldyBXaW5kb3dzRXJyb3IoIlRBU0tTIiwgYGZhaWxlZCB0byBwYXJzZSB0YXNrczogJHtlcnJ9YCk7DQogICAgfQ0KICB9DQoNCiAgLy8gbWFpbi50cw0KICBmdW5jdGlvbiBtYWluKCkgew0KICAgIGNvbnN0IHJlc3VsdHMgPSBnZXRUYXNrcygiQzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxUYXNrc1xcTWljcm9zb2Z0XFxXaW5kb3dzXFxEaXNrQ2xlYW51cFxcU2lsZW50Q2xlYW51cCIpOw0KICAgIGNvbnNvbGUubG9nKEpTT04uc3RyaW5naWZ5KHJlc3VsdHMpKTsNCiAgfQ0KICBtYWluKCk7DQp9KSgpOw0K";
-        let mut output = output_options("runtime_test", "./tmp", false);
+        let mut output = output_options("runtime_tasks_test", "./tmp", false);
         let script = JSScript {
             name: String::from("task_default"),
             script: test.to_string(),

@@ -30,7 +30,7 @@ pub(crate) fn grab_usnjrnl(
     manager: &mut OutputManager,
 ) -> Result<(), UsnJrnlError> {
     if let Some(alt) = options.alt_drive {
-        return parse_usnjrnl_data(alt, &format!("{alt}:\\$MFT"), manager, options);
+        return parse_usnjrnl_data(alt, &format!("ntfs:{alt}:\\$MFT"), manager, options);
     }
     if let Some(path) = &options.alt_file {
         return get_usnjrnl_path_stream(path, &options.alt_mft, manager, options);
@@ -46,18 +46,20 @@ pub(crate) fn grab_usnjrnl(
 
     parse_usnjrnl_data(
         systemdrive,
-        &format!("{systemdrive}:\\$MFT"),
+        &format!("ntfs:{systemdrive}:\\$MFT"),
         manager,
         options,
     )
 }
 
-/// Get `UsnJrnl` data at provided path
-pub(crate) fn grab_usnjrnl_path(
+/// Get `UsnJrnl` data and return results.
+///
+/// Used by `BoaJS` runtime
+pub(crate) fn grab_usnjrnl_entries(
     options: &UsnJrnlOptions,
 ) -> Result<Vec<UsnJrnlEntry>, UsnJrnlError> {
     if let Some(alt) = options.alt_drive {
-        return get_usnjrnl_path(alt, &format!("{alt}:\\$MFT"));
+        return get_usnjrnl_path(alt, &format!("ntfs:{alt}:\\$MFT"));
     }
     if let Some(path) = &options.alt_file {
         return get_usnjrnl_alt_path(path, &options.alt_mft);
@@ -70,13 +72,13 @@ pub(crate) fn grab_usnjrnl_path(
             return Err(UsnJrnlError::SystemDrive);
         }
     };
-    get_usnjrnl_path(systemdrive, &format!("{systemdrive}:\\$MFT"))
+    get_usnjrnl_path(systemdrive, &format!("ntfs:{systemdrive}:\\$MFT"))
 }
 
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{grab_usnjrnl, grab_usnjrnl_path};
+    use super::{grab_usnjrnl, grab_usnjrnl_entries};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{output::manager::OutputManager, structs::artifacts::os::windows::UsnJrnlOptions};
     use std::path::PathBuf;
@@ -107,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    fn test_grab_usnjrnl_path() {
+    fn test_grab_usnjrnl_entries() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\usnjrnl\\win11\\usnjrnl.raw");
         let params = UsnJrnlOptions {
@@ -115,12 +117,12 @@ mod tests {
             alt_file: Some(test_location.display().to_string()),
             alt_mft: None,
         };
-        let results = grab_usnjrnl_path(&params).unwrap();
+        let results = grab_usnjrnl_entries(&params).unwrap();
         assert_eq!(results.len(), 1);
     }
 
     #[test]
-    fn test_grab_usnjrnl_path_dfir() {
+    fn test_grab_usnjrnl_entries_dfir() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\dfir\\windows\\usnjrnl\\win11\\$J");
         let params = UsnJrnlOptions {
@@ -128,7 +130,7 @@ mod tests {
             alt_file: Some(test_location.display().to_string()),
             alt_mft: None,
         };
-        let results = grab_usnjrnl_path(&params).unwrap();
+        let results = grab_usnjrnl_entries(&params).unwrap();
         assert_eq!(results.len(), 133099);
         for entry in results {
             assert!(!entry.filename.is_empty());

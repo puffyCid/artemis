@@ -15,8 +15,8 @@ use crate::accessor::{
     io::reader::AccessorReader,
     location::path::InnerPath,
 };
-use ntfs::{NtfsFile, NtfsReadSeek};
-use std::{fmt, mem};
+use ntfs::{NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue};
+use std::{cmp::Ordering, fmt, mem};
 use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
@@ -179,6 +179,8 @@ pub(crate) struct NtfsStreamReader<T: Read + Seek + Send> {
     cache: Vec<u8>,
     /// Offset where our cache read to
     cache_offset: u64,
+    runs: Option<Vec<DataRun>>,
+    stream_end: u64,
 }
 
 /// Open the file for streaming
@@ -211,11 +213,75 @@ fn open_stream_reader<T: Read + Seek + Send>(
         position: 0,
         cache: Vec::new(),
         cache_offset: 0,
+        runs: map_data_runs(reader, file),
+        stream_end: 0,
     })
 }
 
 /// How much cache to read in between file reads
 const READ_AHEAD: usize = 1024 * 1024;
+
+/// Map $DATA runs to absolute offsets on the volume
+///
+/// This allows us to avoid constantly having to read the MFT attributes
+struct DataRun {
+    /// Offset for the file we are reading
+    file_offset: u64,
+    /// Offset of the NTFS volume
+    volume_offset: Option<u64>,
+    /// Length of the file
+    len: u64,
+}
+
+/// Extract data runs for the NTFS target file
+fn map_data_runs<T: Read + Seek>(reader: &mut T, file: &NtfsFile<'_>) -> Option<Vec<DataRun>> {
+    let item = file.data(reader, "")?.ok()?;
+    let attr = item.to_attribute().ok()?;
+
+    let NtfsAttributeValue::NonResident(value) = attr.value(reader).ok()? else {
+        return None;
+    };
+
+    let mut runs = Vec::new();
+    let mut file_offset = 0;
+
+    for data_runs in value.data_runs() {
+        let run = data_runs.ok()?;
+        let len = run.allocated_size();
+
+        // Skip Sparse runs
+        if len == 0 {
+            continue;
+        }
+
+        runs.push(DataRun {
+            file_offset,
+            volume_offset: run.data_position().value().map(|post| post.get()),
+            len,
+        });
+
+        file_offset += len;
+    }
+
+    if runs.is_empty() { None } else { Some(runs) }
+}
+
+/// Find the correct `DataRun` for us to read from
+fn find_run(runs: &[DataRun], offset: u64) -> Option<&DataRun> {
+    let index = runs
+        .binary_search_by(|run| {
+            if offset < run.file_offset {
+                Ordering::Greater
+            } else if offset >= run.file_offset + run.len {
+                Ordering::Less
+            } else {
+                Ordering::Equal
+            }
+        })
+        .ok()?;
+
+    runs.get(index)
+}
 
 impl<T: Read + Seek + Send> NtfsStreamReader<T> {
     /// Reset the cache data
@@ -238,21 +304,82 @@ impl<T: Read + Seek + Send> NtfsStreamReader<T> {
         let mut buf = mem::take(&mut self.cache);
         buf.resize(to_read, 0);
 
-        let bytes = self
-            .volume
-            .with_reader(|ntfs, reader| {
-                let file = ntfs
-                    .file(reader, self.file_record_number)
-                    .map_err(ntfs_err)?;
-                read_data_attribute_bytes(reader, &file, self.position, &mut buf)
-            })
-            .map_err(accessor_to_io)?;
+        let bytes = self.read_at(self.position, &mut buf)?;
 
         buf.truncate(bytes);
         self.cache = buf;
         self.cache_offset = self.position;
 
         Ok(())
+    }
+
+    /// Attempt to read bytes from our very small cache
+    fn read_from_cache(&mut self, buf: &mut [u8]) -> usize {
+        if !self.cache_has_byte(self.position) {
+            return 0;
+        }
+
+        let offset = (self.position - self.cache_offset) as usize;
+        let bytes = (self.cache.len() - offset).min(buf.len());
+
+        buf[..bytes].copy_from_slice(&self.cache[offset..offset + bytes]);
+        self.position += bytes as u64;
+        self.stream_end = self.position;
+
+        bytes
+    }
+
+    /// Read bytes from the file at provided offset
+    fn read_at(&self, offset: u64, buf: &mut [u8]) -> io::Result<usize> {
+        // Get our data runs
+        let Some(runs) = self.runs.as_deref() else {
+            // If not found, then read the data attribute
+            return self.read_attribute_at(offset, buf);
+        };
+
+        self.volume
+            .with_reader(|_, reader| {
+                let mut total = 0;
+                let mut position = offset;
+
+                while total < buf.len() && position < self.size {
+                    // Try to find the data run we can read from
+                    let Some(run) = find_run(runs, position) else {
+                        break;
+                    };
+
+                    let within = position - run.file_offset;
+                    let available = (run.len - within).min(self.size - position) as usize;
+                    let bytes = available.min(buf.len() - total);
+                    let target = &mut buf[total..total + bytes];
+
+                    match run.volume_offset {
+                        None => target.fill(0),
+                        Some(volume_offset) => {
+                            reader.seek(SeekFrom::Start(volume_offset + within))?;
+                            reader.read_exact(target)?;
+                        }
+                    }
+
+                    total += bytes;
+                    position += bytes as u64;
+                }
+
+                Ok(total)
+            })
+            .map_err(accessor_to_io)
+    }
+
+    /// If we do not have the data run then read data attribute at the provided offset
+    fn read_attribute_at(&self, offset: u64, buf: &mut [u8]) -> io::Result<usize> {
+        self.volume
+            .with_reader(|ntfs, reader| {
+                let file = ntfs
+                    .file(reader, self.file_record_number)
+                    .map_err(ntfs_err)?;
+                read_data_attribute_bytes(reader, &file, offset, buf)
+            })
+            .map_err(accessor_to_io)
     }
 }
 
@@ -263,40 +390,43 @@ impl<T: Read + Seek + Send> Read for NtfsStreamReader<T> {
             return Ok(0);
         }
 
-        let mut total = 0;
-        while total < buf.len() && self.position < self.size {
-            if !self.cache_has_byte(self.position) {
-                self.refill_cache()?;
-
-                if self.cache.is_empty() {
-                    // If we are reading a file not fully written to disk. Return an error
-                    if self.position < self.size {
-                        return Err(io::Error::new(
-                            io::ErrorKind::UnexpectedEof,
-                            format!(
-                                "no data at offset {} (file size {})",
-                                self.position, self.size
-                            ),
-                        ));
-                    }
-                    break;
-                }
-            }
-
-            let offset = (self.position - self.cache_offset) as usize;
-            let in_cache = self.cache.len() - offset;
-
-            let remaining = (self.size - self.position) as usize;
-            let want = buf.len() - total;
-
-            let bytes = in_cache.min(remaining).min(want);
-
-            buf[total..total + bytes].copy_from_slice(&self.cache[offset..offset + bytes]);
-            self.position += bytes as u64;
-            total += bytes;
+        let remaining = (self.size - self.position) as usize;
+        let want = remaining.min(buf.len());
+        let buf = &mut buf[..want];
+        let bytes = self.read_from_cache(buf);
+        if bytes != 0 {
+            return Ok(bytes);
         }
 
-        Ok(total)
+        if self.position != self.stream_end || buf.len() >= READ_AHEAD {
+            let bytes = self.read_at(self.position, buf)?;
+
+            if bytes == 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    format!(
+                        "no data at offset {} (file size {})",
+                        self.position, self.size
+                    ),
+                ));
+            }
+
+            self.position += bytes as u64;
+            return Ok(bytes);
+        }
+
+        self.refill_cache()?;
+        if self.cache.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                format!(
+                    "no data at offset {} (file size {})",
+                    self.position, self.size
+                ),
+            ));
+        }
+
+        Ok(self.read_from_cache(buf))
     }
 }
 
@@ -304,20 +434,10 @@ impl<T: Read + Seek + Send> Seek for NtfsStreamReader<T> {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         let new_pos = match pos {
             SeekFrom::Start(offset) => offset,
-            SeekFrom::Current(offset) => {
-                if offset >= 0 {
-                    self.position.saturating_add(offset as u64)
-                } else {
-                    self.position.saturating_sub(offset.unsigned_abs())
-                }
-            }
-            SeekFrom::End(offset) => {
-                if offset >= 0 {
-                    self.size.saturating_add(offset as u64)
-                } else {
-                    self.size.saturating_sub(offset.unsigned_abs())
-                }
-            }
+            SeekFrom::Current(offset) if offset >= 0 => self.position.saturating_add(offset as u64),
+            SeekFrom::Current(offset) => self.position.saturating_sub(offset.unsigned_abs()),
+            SeekFrom::End(offset) if offset >= 0 => self.size.saturating_add(offset as u64),
+            SeekFrom::End(offset) => self.size.saturating_sub(offset.unsigned_abs()),
         };
 
         if new_pos > self.size {
@@ -326,8 +446,12 @@ impl<T: Read + Seek + Send> Seek for NtfsStreamReader<T> {
                 format!("seek past end of file (size {})", self.size),
             ));
         }
+
+        if !self.cache_has_byte(new_pos) {
+            self.invalidate_cache();
+        }
+
         self.position = new_pos;
-        self.invalidate_cache();
 
         Ok(self.position)
     }

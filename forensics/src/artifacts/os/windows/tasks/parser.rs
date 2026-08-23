@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 /**
  * `Schedule Tasks` are a common form of persistence on Windows systems. There are two (2) types of `Task` files:
  *   - XML based `Task` files
@@ -13,17 +15,15 @@
  *  Any XML reader
  * `https://github.com/Velocidex/velociraptor`
  */
-use super::{error::TaskError, job::parse_job, xml::parse_xml};
+use super::{error::TaskError, job::read_job, xml::parse_xml};
 use crate::{
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, GlobMatch},
+        location::scheme::Scheme,
+    },
     artifacts::os::windows::tasks::registry::cache_info,
-    filesystem::{
-        files::{get_filename, list_files},
-        metadata::{get_timestamps, glob_paths},
-    },
-    output::{
-        manager::OutputManager,
-        record::{VecRecordStream, serialize_records_to_stream},
-    },
+    filesystem::{files::get_filename, metadata::get_timestamps},
     structs::artifacts::os::windows::TasksOptions,
     utils::environment::get_systemdrive,
 };
@@ -31,176 +31,119 @@ use common::windows::{Flags, TaskFormat, TaskInfo, TaskJob, TaskXml};
 use tracing::{error, warn};
 
 /// Grab Schedule Tasks based on `TaskOptions`
-pub(crate) fn grab_tasks(
+pub(crate) fn grab_tasks(options: &TasksOptions) -> Result<Vec<TaskInfo>, TaskError> {
+    let patterns = if let Some(file) = &options.alt_file {
+        vec![file.clone()]
+    } else {
+        let drive_result = get_systemdrive();
+        let drive = match drive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not determine systemdrive: {err:?}");
+                return Err(TaskError::DriveLetter);
+            }
+        };
+
+        vec![
+            format!("{drive}:\\Windows\\System32\\Tasks\\**"),
+            format!("{drive}:\\Windows\\Tasks\\*"),
+        ]
+    };
+
+    let mut accessor = Accessor::with_defaults();
+    let mut tasks = Vec::new();
+    for pattern in patterns {
+        let paths = match accessor.globfs(&pattern) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not glob tasks {pattern}: {err:?}");
+                continue;
+            }
+        };
+
+        tasks.append(&mut extract_tasks(paths, options)?);
+    }
+
+    Ok(tasks)
+}
+
+/// Extract and parse Windows `Schedule Tasks`
+fn extract_tasks(
+    paths: Vec<GlobMatch>,
     options: &TasksOptions,
-    manager: &mut OutputManager,
-) -> Result<(), TaskError> {
-    if let Some(file) = &options.alt_file {
-        if file.ends_with(".job") {
-            let result = grab_task_job(file)?;
-            let records = match serialize_records_to_stream(vec![result]) {
+) -> Result<Vec<TaskInfo>, TaskError> {
+    let mut cache = HashMap::new();
+    let mut tasks = Vec::new();
+
+    let mut reg_error = false;
+    for entry in paths {
+        if entry.meta.kind != EntryKind::File {
+            continue;
+        }
+
+        let Some(handle) = entry.handle.as_file() else {
+            continue;
+        };
+
+        // Parse XML Task files
+        if !handle.display_path().ends_with(".job") && !handle.display_path().ends_with(".DAT") {
+            // If running on a live Windows system. We can parse SOFTWARE Registry file for additional data
+            if handle.scheme() == Scheme::Host
+                && options.alt_file.is_none()
+                && cache.is_empty()
+                && !reg_error
+            {
+                // Attempt to parse the SOFTWARE Registry file only
+                // If we fail, we do not try anymore
+                match cache_info(handle.display_path().chars().next().unwrap_or_default()) {
+                    Ok(result) => cache = result,
+                    Err(_) => reg_error = true,
+                }
+            }
+
+            let task_data = match parse_xml(handle) {
                 Ok(result) => result,
                 Err(err) => {
-                    error!("Failed to serialize job: {err:?}");
-                    return Err(TaskError::Serialize);
+                    warn!(
+                        "Could not parse Task File at {}: {err:?}",
+                        handle.display_path()
+                    );
+                    continue;
                 }
             };
 
-            return output_tasks(records, manager, options);
-        }
-        let result = grab_task_xml(file)?;
-        let records = match serialize_records_to_stream(vec![result]) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to serialize task: {err:?}");
-                return Err(TaskError::Serialize);
+            let mut info = xml_info(&task_data);
+            if let Some(value) = cache.get(&info.path.to_lowercase()) {
+                info.id = value.id.clone();
+                info.last_error_code = value.last_error_code;
+                info.last_run = value.last_run.clone();
+                info.created = value.created.clone();
+                info.last_successful_run = value.last_successful_run.clone();
+                info.registry_file = value.registry_file.clone();
+                info.registry_task_path = value.registry_task_path.clone();
+                info.registry_tree_path = value.registry_tree_path.clone();
+                info.security_descriptor = value.security_description.clone();
             }
-        };
 
-        return output_tasks(records, manager, options);
+            tasks.push(info);
+        } else {
+            let job_result = match read_job(handle) {
+                Ok(result) => result,
+                Err(err) => {
+                    warn!(
+                        "Could not parse Task Job {}: {err:?}",
+                        handle.display_path()
+                    );
+                    continue;
+                }
+            };
+
+            let info = job_info(&job_result);
+            tasks.push(info);
+        }
     }
 
-    let drive_result = get_systemdrive();
-    let drive = match drive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not determine systemdrive: {err:?}");
-            return Err(TaskError::DriveLetter);
-        }
-    };
-
-    drive_tasks(drive, manager, options)
-}
-
-/// Grab and parse single Task Job File at provided path
-fn grab_task_job(path: &str) -> Result<TaskInfo, TaskError> {
-    let job = parse_job(path)?;
-    Ok(job_info(&job))
-}
-
-/// Grab and parse single Task XML File at provided path
-pub(crate) fn grab_task_xml(path: &str) -> Result<TaskInfo, TaskError> {
-    let xml = parse_xml(path)?;
-    Ok(xml_info(&xml))
-}
-
-/// Parse Tasks at provided drive
-fn drive_tasks(
-    letter: char,
-    manager: &mut OutputManager,
-    options: &TasksOptions,
-) -> Result<(), TaskError> {
-    let path = format!("{letter}:\\Windows\\System32\\Tasks");
-    // Tasks may be under nested directories. Glob everything at path
-    let paths_result = glob_paths(&format!("{path}\\**\\*"));
-    let xml_paths = match paths_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not glob Task XML files: {err:?}");
-            return Err(TaskError::Glob);
-        }
-    };
-
-    let mut xml_tasks = Vec::new();
-    let cache = cache_info(letter)?;
-
-    for path in xml_paths {
-        if !path.is_file {
-            continue;
-        }
-
-        let task_data = match parse_xml(&path.full_path) {
-            Ok(result) => result,
-            Err(err) => {
-                warn!("Could not parse Task File at {}: {err:?}", path.full_path);
-                continue;
-            }
-        };
-
-        let mut info = xml_info(&task_data);
-
-        if let Some(value) = cache.get(&info.path.to_lowercase()) {
-            info.id = value.id.clone();
-            info.last_error_code = value.last_error_code;
-            info.last_run = value.last_run.clone();
-            info.created = value.created.clone();
-            info.last_successful_run = value.last_successful_run.clone();
-            info.registry_file = value.registry_file.clone();
-            info.registry_task_path = value.registry_task_path.clone();
-            info.registry_tree_path = value.registry_tree_path.clone();
-            info.security_descriptor = value.security_description.clone();
-        }
-
-        xml_tasks.push(info);
-    }
-
-    let records = match serialize_records_to_stream(xml_tasks) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to serialize tasks: {err:?}");
-            return Err(TaskError::Serialize);
-        }
-    };
-    output_tasks(records, manager, options)?;
-
-    // Legacy Task path associated with Job files
-    let job_path = format!("{letter}:\\Windows\\Tasks");
-    let job_result = list_files(&job_path);
-    let jobs = match job_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not get Task Job files: {err:?}");
-            return Err(TaskError::Jobs);
-        }
-    };
-
-    let mut job_tasks = Vec::new();
-
-    for job in jobs {
-        if !job.ends_with("job") {
-            continue;
-        }
-
-        let job_result = match parse_job(&job) {
-            Ok(result) => result,
-            Err(err) => {
-                warn!("Could not parse Task Job {job}: {err:?}");
-                continue;
-            }
-        };
-
-        let info = job_info(&job_result);
-        job_tasks.push(info);
-    }
-
-    // Job schedule tasks are legacy format. May not exist
-    if job_tasks.is_empty() {
-        return Ok(());
-    }
-    let records = match serialize_records_to_stream(job_tasks) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to serialize jobs: {err:?}");
-            return Err(TaskError::Serialize);
-        }
-    };
-
-    output_tasks(records, manager, options)
-}
-
-/// Output Schedule tasks artifacts
-fn output_tasks(
-    mut records: VecRecordStream,
-    manager: &mut OutputManager,
-    options: &TasksOptions,
-) -> Result<(), TaskError> {
-    let artifact_name = "tasks";
-    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("Could not output Schedule Tasks data: {err:?}");
-        return Err(TaskError::Output);
-    }
-
-    Ok(())
+    Ok(tasks)
 }
 
 /// Convert `TaskXml` to `TaskInfo`
@@ -281,71 +224,34 @@ fn job_info(job: &TaskJob) -> TaskInfo {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
 mod tests {
-    use super::grab_tasks;
-    use crate::artifacts::os::windows::tasks::parser::{
-        grab_task_job, grab_task_xml, job_info, xml_info,
-    };
-    use crate::output::manager::OutputManager;
-    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
-    use crate::{
-        artifacts::os::windows::tasks::parser::drive_tasks,
-        structs::artifacts::os::windows::TasksOptions,
-    };
+    use crate::accessor::access::Accessor;
+    use crate::artifacts::os::windows::tasks::parser::{extract_tasks, job_info, xml_info};
+    use crate::structs::artifacts::os::windows::TasksOptions;
     use common::windows::{Actions, Priority, Status, TaskJob, TaskXml};
     use std::path::PathBuf;
 
-    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
-        let config = OutputConfig {
-            name: name.to_string(),
-            directory: PathBuf::from(directory),
-            format: OutputFormat::Jsonl,
-            compress,
-            endpoint_id: String::from("abcd"),
-            destination: OutputDestination::Local,
-            ..Default::default()
-        };
-        OutputManager::new(config).unwrap()
-    }
-
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_tasks() {
+        use crate::artifacts::os::windows::tasks::parser::grab_tasks;
+
         let options = TasksOptions { alt_file: None };
-        let mut output = output_options("tasks_temp", "./tmp", false);
-
-        grab_tasks(&options, &mut output).unwrap();
+        let results = grab_tasks(&options).unwrap();
+        assert!(!results.is_empty());
     }
 
     #[test]
-    fn test_drive_tasks() {
-        let mut output = output_options("tasks_temp", "./tmp", false);
+    fn test_extract_tasks() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/tasks/*/*");
+
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
         let options = TasksOptions { alt_file: None };
 
-        drive_tasks('C', &mut output, &options).unwrap();
-    }
-
-    #[test]
-    fn test_grab_task_job() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/tasks/win10/At1.job");
-
-        let result = grab_task_job(&test_location.display().to_string()).unwrap();
-        assert_eq!(result.action, "cmd.exe");
-        assert!(result.enabled);
-        assert!(!result.details.to_string().contains(&"Disabled"))
-    }
-
-    #[test]
-    fn test_grab_task_xml() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
-
-        let result = grab_task_xml(&test_location.display().to_string()).unwrap();
-        assert_eq!(
-            result.action,
-            "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\resources\\app\\ServiceHub\\Services\\Microsoft.VisualStudio.Setup.Service\\VSIXAutoUpdate.exe"
-        );
+        let results = extract_tasks(paths, &options).unwrap();
+        assert!(!results.is_empty());
     }
 
     #[test]

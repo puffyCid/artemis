@@ -12,8 +12,11 @@
  */
 use super::error::AmcacheError;
 use crate::{
-    artifacts::os::windows::registry::helper::get_registry_keys,
-    filesystem::metadata::glob_paths,
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, FileHandle},
+    },
+    artifacts::os::windows::registry::helper::get_registry_keys_handle,
     structs::artifacts::os::windows::AmcacheOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
@@ -22,36 +25,45 @@ use tracing::error;
 
 /// Get Windows `Amcache` for all users based on optional drive, otherwise default drive letter is used
 pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, AmcacheError> {
-    if let Some(file) = &options.alt_file {
-        return alt_amcache(file);
-    }
-
-    let drive_result = get_systemdrive();
-    let drive = match drive_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not get default system drive letter: {err:?}");
-            return Err(AmcacheError::DefaultDrive);
-        }
+    let pattern = if let Some(file) = &options.alt_file {
+        file.clone()
+    } else {
+        let drive_result = get_systemdrive();
+        let drive = match drive_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not get default system drive letter: {err:?}");
+                return Err(AmcacheError::DefaultDrive);
+            }
+        };
+        format!("ntfs:{drive}:\\Windows\\*\\Programs\\Amcache.hve")
     };
-    amcache_file(drive)
-}
 
-/// Parse `Amcache` associated with provided alternative path
-fn alt_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
-    parse_amcache(path)
+    amcache_file(&pattern)
 }
 
 /// Based on Windows version get the path to `Amcache` file
-fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
+fn amcache_file(pattern: &str) -> Result<Vec<Amcache>, AmcacheError> {
     let mut entries = Vec::new();
-    let pattern = format!("{drive}:\\Windows\\*\\Programs\\Amcache.hve");
-    let paths = glob_paths(&pattern).unwrap_or_default();
+    let mut accessor = Accessor::with_defaults();
+
+    let paths = match accessor.globfs(pattern) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Failed to glob {pattern} for Amcache: {err:?}");
+            return Err(AmcacheError::GetRegistryData);
+        }
+    };
     for path in paths {
-        if !path.is_file {
+        if path.meta.kind != EntryKind::File {
             continue;
         }
-        let results = parse_amcache(&path.full_path);
+
+        let Some(handle) = path.handle.as_file() else {
+            continue;
+        };
+
+        let results = parse_amcache(handle);
         let mut amcache = match results {
             Ok(result) => result,
             Err(_err) => continue,
@@ -67,21 +79,24 @@ fn amcache_file(drive: char) -> Result<Vec<Amcache>, AmcacheError> {
  * `Amcache` is typically stored at the Registry file `C:\Windows\appcompat\Programs\Amcache.hve`
  * Parse the raw Registry file and get the entries related to file execution
  */
-fn parse_amcache(path: &str) -> Result<Vec<Amcache>, AmcacheError> {
-    let start_path = "";
+fn parse_amcache(handle: &FileHandle) -> Result<Vec<Amcache>, AmcacheError> {
+    let start_path = String::new();
     // Should always be valid
     let path_regex = create_regex(r"root\\(inventoryapplicationfile|file)\\.*").unwrap();
 
-    let amcache_result = get_registry_keys(start_path, &path_regex, path);
+    let amcache_result = get_registry_keys_handle(start_path, path_regex, handle);
     let amcache = match amcache_result {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not parse Amcache file {path}: {err:?}");
+            error!(
+                "Could not parse Amcache file {}: {err:?}",
+                handle.display_path()
+            );
             return Err(AmcacheError::GetRegistryData);
         }
     };
 
-    let mut amcache_vec: Vec<Amcache> = Vec::new();
+    let mut amcache_vec = Vec::new();
     for entry in amcache {
         let old_path_depth = 5;
         let amcache_entry = if entry.path.contains("Root\\File\\")
@@ -184,25 +199,18 @@ fn adjust_id(id: &str, count: usize) -> String {
 #[cfg(target_os = "windows")]
 mod tests {
     use crate::{
+        accessor::entry::handle::FileHandle,
         artifacts::os::windows::{
             amcache::parser::{
-                Amcache, adjust_id, alt_amcache, amcache_file, extract_entry, extract_old_path,
-                grab_amcache, parse_amcache,
+                Amcache, adjust_id, amcache_file, extract_entry, extract_old_path, grab_amcache,
+                parse_amcache,
             },
-            registry::helper::get_registry_keys,
+            registry::helper::get_registry_keys_handle,
         },
         structs::artifacts::os::windows::AmcacheOptions,
         utils::regex_options::create_regex,
     };
     use std::path::PathBuf;
-
-    #[test]
-    fn test_alt_amcache() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
-        let result = alt_amcache(test_location.to_str().unwrap()).unwrap();
-        assert_eq!(result.len(), 4);
-    }
 
     #[test]
     fn test_grab_amcache() {
@@ -213,7 +221,9 @@ mod tests {
 
     #[test]
     fn test_amcache_file() {
-        let result = amcache_file('C').unwrap();
+        let pattern = format!("ntfs:C:\\Windows\\*\\Programs\\Amcache.hve");
+
+        let result = amcache_file(&pattern).unwrap();
         assert!(result.len() > 10);
     }
 
@@ -221,7 +231,8 @@ mod tests {
     fn test_parse_amcache() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
-        let result = parse_amcache(test_location.to_str().unwrap()).unwrap();
+        let handle = FileHandle::host(test_location);
+        let result = parse_amcache(&handle).unwrap();
 
         assert_eq!(result[0].last_modified, "2023-01-11T04:42:58.063Z");
         assert_eq!(
@@ -281,15 +292,11 @@ mod tests {
     fn test_extract_old_path() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
+        let handle = FileHandle::host(test_location);
 
-        let start_path = "";
+        let start_path = String::new();
         let path_regex = create_regex(r"root\\(inventoryapplicationfile|file)\\.*").unwrap();
-        let amcache = get_registry_keys(
-            start_path,
-            &path_regex,
-            &test_location.display().to_string(),
-        )
-        .unwrap();
+        let amcache = get_registry_keys_handle(start_path, path_regex, &handle).unwrap();
         let mut amcache_vec: Vec<Amcache> = Vec::new();
         for entry in amcache {
             let old_path_depth = 5;
@@ -309,15 +316,11 @@ mod tests {
     fn test_extract_entry() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests\\test_data\\windows\\amcache\\win81\\Amcache.hve");
+        let handle = FileHandle::host(test_location);
 
-        let start_path = "";
+        let start_path = String::new();
         let path_regex = create_regex(r"root\\(inventoryapplicationfile|file)\\.*").unwrap();
-        let amcache = get_registry_keys(
-            start_path,
-            &path_regex,
-            &test_location.display().to_string(),
-        )
-        .unwrap();
+        let amcache = get_registry_keys_handle(start_path, path_regex, &handle).unwrap();
         let mut amcache_vec: Vec<Amcache> = Vec::new();
         for entry in amcache {
             let amcache_entry = if entry.path.contains("InventoryApplicationFile") {

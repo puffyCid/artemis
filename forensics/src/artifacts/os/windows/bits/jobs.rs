@@ -431,13 +431,13 @@ pub(crate) fn get_flag(job_flag: u32) -> Vec<JobFlags> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        artifacts::os::windows::bits::jobs::{
-            get_flag, get_legacy_jobs, get_priority, get_state, get_type, job_details, parse_job,
-            parse_legacy_job,
-        },
-        filesystem::files::read_file,
+    use crate::accessor::access::Accessor;
+    use crate::accessor::entry::handle::FileHandle;
+    use crate::artifacts::os::windows::bits::jobs::get_legacy_jobs;
+    use crate::artifacts::os::windows::bits::jobs::{
+        get_flag, get_priority, get_state, get_type, job_details, parse_job, parse_legacy_job,
     };
+    use crate::artifacts::os::windows::bits::{background::get_bits_ese, jobs::get_jobs};
     use common::windows::{JobInfo, JobPriority, JobState, JobType};
     use std::path::PathBuf;
 
@@ -477,7 +477,9 @@ mod tests {
     fn test_parse_job() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win10/job.raw");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let mut job = JobInfo::default();
 
         let _ = parse_job(&data, &mut job, false).unwrap();
@@ -497,7 +499,9 @@ mod tests {
     fn test_parse_job_details() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win10/job.raw");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
         let mut job = JobInfo::default();
 
         let (input, _) = parse_job(&data, &mut job, false).unwrap();
@@ -529,14 +533,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_get_jobs() {
-        use crate::artifacts::os::windows::bits::{background::get_bits_ese, jobs::get_jobs};
-
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\ese\\win10\\qmgr.db");
+        test_location.push("tests/test_data/windows/ese/win10/qmgr.db");
+        let handle = FileHandle::host(test_location);
 
-        let jobs = get_bits_ese(test_location.to_str().unwrap(), "Jobs").unwrap();
+        let jobs = get_bits_ese(&handle, "Jobs").unwrap();
 
         let jobs_info = get_jobs(&jobs).unwrap();
         assert_eq!(jobs_info.len(), 1);
@@ -546,7 +548,9 @@ mod tests {
     fn test_get_legacy_jobs() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win81/qmgr0.dat");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
         let results = get_legacy_jobs(&data, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");
@@ -560,7 +564,9 @@ mod tests {
     fn test_parse_legacy_job() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/bits/win81/qmgr0.dat");
-        let data = read_file(test_location.to_str().unwrap()).unwrap();
+        let data = Accessor::with_defaults()
+            .read_file(test_location.to_str().unwrap())
+            .unwrap();
 
         let (_, results) = parse_legacy_job(&data, test_location.to_str().unwrap()).unwrap();
         assert_eq!(results[0].job_id, "5422299c-cd21-4c51-bad5-9da178edc742");

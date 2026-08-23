@@ -11,7 +11,10 @@ use crate::{
         strings::extract_utf16_string,
     },
 };
-use nom::{bytes::complete::take, error::ErrorKind};
+use nom::{
+    bytes::complete::{take, take_while},
+    error::ErrorKind,
+};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use tracing::warn;
@@ -155,7 +158,8 @@ fn grab_instance_data<'a>(
     let adjust_size = 4;
     // May be padding at end?
     if qualifier_size < adjust_size {
-        let (qual_remaining, size) = nom_unsigned_four_bytes(remaining, Endian::Le)?;
+        let (qual_remaining, _padding) = take_while(|b| b == 0)(remaining)?;
+        let (qual_remaining, size) = nom_unsigned_four_bytes(qual_remaining, Endian::Le)?;
         qualifier_size = size;
         remaining = qual_remaining;
     }
