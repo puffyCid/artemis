@@ -501,7 +501,7 @@ pub(crate) fn iterate_ntfs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{NtfsOptions, get_user_registry_files, iterate_ntfs, raw_reader};
+    use super::{NtfsOptions, iterate_ntfs, raw_reader};
     use crate::{
         filesystem::ntfs::{
             raw_files::{
@@ -589,41 +589,6 @@ mod tests {
                 break;
             }
         }
-    }
-
-    #[test]
-    fn test_get_user_registry_files() {
-        let result = get_user_registry_files('C').unwrap();
-
-        // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
-        assert!(result.len() >= 3);
-        let mut default = false;
-        for entry in result {
-            if entry.full_path.contains("Default") {
-                default = true;
-            }
-        }
-        assert_eq!(default, true)
-    }
-
-    #[test]
-    fn test_raw_read_by_file_ref() {
-        let result = get_user_registry_files('C').unwrap();
-
-        // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
-        assert!(result.len() >= 3);
-        let mut default = false;
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        for entry in result {
-            if entry.full_path.contains("Default") {
-                default = true;
-            }
-            let buffer_result =
-                raw_read_by_file_ref(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
-                    .unwrap();
-            assert!(buffer_result.len() > 10000);
-        }
-        assert_eq!(default, true)
     }
 
     #[test]

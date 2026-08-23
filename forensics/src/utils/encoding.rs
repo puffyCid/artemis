@@ -56,7 +56,7 @@ pub(crate) fn read_xml_handle(handle: &FileHandle) -> Result<String, ArtemisErro
 /// Check for XML encoding types
 fn parse_xml(data: &[u8], path: &str) -> Result<String, ArtemisError> {
     let utf_check = nom_unsigned_two_bytes(data, Endian::Be);
-    let (data, utf_status) = match utf_check {
+    let (xml_data, utf_status) = match utf_check {
         Ok(result) => result,
         Err(_err) => {
             error!("Could not determine UTF encoding for XML {path}");
@@ -68,7 +68,7 @@ fn parse_xml(data: &[u8], path: &str) -> Result<String, ArtemisError> {
     let utf16_be = 0xfeff;
 
     let xml_string = if utf_status == utf16_be || utf_status == utf16_le {
-        extract_utf16_string(data)
+        extract_utf16_string(xml_data)
     } else {
         extract_utf8_string(data)
     };

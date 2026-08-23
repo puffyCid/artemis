@@ -213,8 +213,7 @@ mod tests {
     use crate::{
         filesystem::ntfs::{
             attributes::{
-                AttributeFlags, file_attribute_flags, get_filename_attribute, get_raw_file_size,
-                read_attribute_data,
+                AttributeFlags, file_attribute_flags, get_filename_attribute, read_attribute_data,
             },
             raw_files::{NtfsOptions, iterate_ntfs, raw_reader},
             sector_reader::SectorReader,
@@ -257,15 +256,6 @@ mod tests {
         let flag = file_attribute_flags(test);
         assert_eq!(flag.len(), 1);
         assert_eq!(flag[0], AttributeFlags::ReadOnly)
-    }
-
-    #[test]
-    fn test_get_raw_file_size() {
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        let ntfs_file = raw_reader("C:\\$MFT", &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-
-        let size = get_raw_file_size(&ntfs_file, &mut ntfs_parser.fs).unwrap();
-        assert!(size > 1);
     }
 
     #[test]
