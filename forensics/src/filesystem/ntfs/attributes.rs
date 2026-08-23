@@ -6,10 +6,7 @@ use ntfs::{
     attribute_value::NtfsAttributeValue,
     structured_values::{NtfsAttributeList, NtfsFileName},
 };
-use std::{
-    fs::File,
-    io::{BufReader, Error, ErrorKind},
-};
+use std::{fs::File, io::BufReader};
 use tracing::{error, warn};
 
 /// Return FILENAME attribute data
@@ -80,23 +77,6 @@ pub(crate) fn get_attribute_data(
     }
 
     Ok(attr_data)
-}
-
-/// Get the size of a file by parsing the NTFS filesystem
-pub(crate) fn get_raw_file_size(
-    ntfs: &NtfsFile<'_>,
-    fs: &mut BufReader<SectorReader<File>>,
-) -> Result<u64, NtfsError> {
-    let attrib = match ntfs.data(fs, "") {
-        Some(result) => result,
-        None => {
-            return Err(NtfsError::Io(Error::new(
-                ErrorKind::InvalidData,
-                "Could not determine file size",
-            )));
-        }
-    };
-    Ok(attrib?.to_attribute()?.value_length())
 }
 
 /// Read the attribute data. Handles both resident and non-resident data.
