@@ -387,71 +387,6 @@ pub(crate) fn read_attribute(path: &str, attribute: &str) -> Result<Vec<u8>, Fil
     Err(FileSystemError::NoAttribute)
 }
 
-/// Struct containing File references to a User registry file (either NTUSER.dat or UsrClass.dat)
-#[derive(Debug)]
-pub(crate) struct UserRegistryFiles {
-    pub(crate) reg_reference: NtfsFileReference,
-    pub(crate) full_path: String,
-    pub(crate) filename: String, // Either NTUSER.DAT or UsrClass.dat
-}
-
-/// Get paths and NTFS file references for all user Registry files on a drive (NTUSER.DAT and UsrClass.dat)
-pub(crate) fn get_user_registry_files(
-    drive: char,
-) -> Result<Vec<UserRegistryFiles>, FileSystemError> {
-    let mut ntfs_parser = setup_ntfs_parser(drive)?;
-    let root_dir_result = ntfs_parser.ntfs.root_directory(&mut ntfs_parser.fs);
-    let root_dir = match root_dir_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to get NTFS root directory, error: {err:?}");
-            return Err(FileSystemError::RootDirectory);
-        }
-    };
-
-    let mut ntfs_options = NtfsOptions {
-        start_path: format!("{drive}:\\Users"),
-        start_path_depth: 1,
-        depth: 6,
-        path_regex: create_regex("").unwrap(), // Valid Regex, should never fail
-        file_regex: create_regex("(?i)(NTUSER|UsrClass)\\.DAT$").unwrap(), // Valid Regex, should never fail
-        filelist: Vec::new(),
-        directory_tracker: vec![format!("{drive}:")],
-    };
-
-    // Search and iterate through the NTFS system for User Registry files
-    let _ = iterate_ntfs(
-        root_dir,
-        &mut ntfs_parser.fs,
-        &ntfs_parser.ntfs,
-        &mut ntfs_options,
-    );
-
-    let mut user_reg_files: Vec<UserRegistryFiles> = Vec::new();
-
-    // Remove any possible false positives
-    for entries in ntfs_options.filelist {
-        let ntuser_depth = 4;
-        let mut reg_file = UserRegistryFiles {
-            reg_reference: entries.file,
-            full_path: entries.full_path,
-            filename: String::new(),
-        };
-        let usrclass_path = "\\appdata\\local\\microsoft\\windows\\usrclass.dat";
-        if reg_file.full_path.to_lowercase().ends_with("ntuser.dat")
-            && reg_file.full_path.split('\\').count() == ntuser_depth
-        {
-            reg_file.filename = String::from("NTUSER.DAT");
-            user_reg_files.push(reg_file);
-        } else if reg_file.full_path.to_lowercase().ends_with(usrclass_path) {
-            reg_file.filename = String::from("UsrClass.dat");
-            user_reg_files.push(reg_file);
-        }
-    }
-
-    Ok(user_reg_files)
-}
-
 /// Options for iterating the NTFS system
 pub(crate) struct NtfsOptions {
     pub(crate) start_path: String,
@@ -566,7 +501,7 @@ pub(crate) fn iterate_ntfs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{NtfsOptions, get_user_registry_files, iterate_ntfs, raw_reader};
+    use super::{NtfsOptions, iterate_ntfs, raw_reader};
     use crate::{
         filesystem::ntfs::{
             raw_files::{
@@ -654,41 +589,6 @@ mod tests {
                 break;
             }
         }
-    }
-
-    #[test]
-    fn test_get_user_registry_files() {
-        let result = get_user_registry_files('C').unwrap();
-
-        // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
-        assert!(result.len() >= 3);
-        let mut default = false;
-        for entry in result {
-            if entry.full_path.contains("Default") {
-                default = true;
-            }
-        }
-        assert_eq!(default, true)
-    }
-
-    #[test]
-    fn test_raw_read_by_file_ref() {
-        let result = get_user_registry_files('C').unwrap();
-
-        // Should at least have three (3). User (NTUSER and UsrClass), Default (NTUSER)
-        assert!(result.len() >= 3);
-        let mut default = false;
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        for entry in result {
-            if entry.full_path.contains("Default") {
-                default = true;
-            }
-            let buffer_result =
-                raw_read_by_file_ref(entry.reg_reference, &ntfs_parser.ntfs, &mut ntfs_parser.fs)
-                    .unwrap();
-            assert!(buffer_result.len() > 10000);
-        }
-        assert_eq!(default, true)
     }
 
     #[test]

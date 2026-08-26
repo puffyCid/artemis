@@ -6,6 +6,7 @@ use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use nom::AsBytes;
 use quick_xml::{Reader, XmlVersion, events::Event};
 use serde_json::{Map, Value};
+use tracing::warn;
 
 /// Read XML file into a JSON object
 pub(crate) fn js_read_xml(
@@ -23,7 +24,6 @@ pub(crate) fn js_read_xml(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-
     let xml_json = xml_to_json(&xml)?;
     let value = JsValue::from_json(&xml_json, context)?;
 
@@ -44,7 +44,11 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
         let value = match xml_reader.read_event_into(&mut buf) {
             Ok(result) => result,
             Err(err) => {
-                let issue = format!("Could not get parse xml: {err:?}");
+                warn!("Could not parse full XML: {err:?}");
+                if !root_elements.is_empty() {
+                    break;
+                }
+                let issue = format!("Could not get full parsed xml: {err:?}");
                 return Err(JsError::from_opaque(js_string!(issue).into()));
             }
         };

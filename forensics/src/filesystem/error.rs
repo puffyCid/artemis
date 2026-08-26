@@ -4,8 +4,6 @@ use std::fmt;
 pub(crate) enum FileSystemError {
     ReadDirectory,
     NotDirectory,
-    UserPaths,
-    NoUserParent,
     OpenFile,
     ReadFile,
     NotFile,
@@ -28,8 +26,6 @@ impl fmt::Display for FileSystemError {
         match self {
             FileSystemError::ReadDirectory => write!(f, "Could not read directory path"),
             FileSystemError::NotDirectory => write!(f, "Not a directory"),
-            FileSystemError::UserPaths => write!(f, "Could not determine user home paths"),
-            FileSystemError::NoUserParent => write!(f, "Could not find user parent path"),
             FileSystemError::BadGlob => write!(f, "Could not glob"),
             FileSystemError::OpenFile => write!(f, "Could not open file"),
             FileSystemError::ReadFile => write!(f, "Could not read file"),
