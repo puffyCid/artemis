@@ -109,7 +109,9 @@ impl OutputManager {
 
                 Ok(())
             }
-            EncoderMode::Streamed => self.write_stream(artifact_name, artifact_options, records),
+            EncoderMode::Streamed | EncoderMode::SharedStream => {
+                self.write_stream(artifact_name, artifact_options, records)
+            }
         }
     }
 
@@ -283,6 +285,15 @@ impl OutputManager {
         records: &mut dyn RecordStream,
         artifact_context: &ArtifactContext,
     ) -> OutputResult<()> {
+        if self.encoder.encoder_mode() == EncoderMode::SharedStream {
+            return self.write_shared_stream_records(
+                artifact_name,
+                artifact_options,
+                records,
+                artifact_context,
+            );
+        }
+
         let options_hash = hash_artifact_options(artifact_options)?;
         let should_finish = self.active_stream.as_ref().is_some_and(|act| {
             act.artifact_name != artifact_name || act.artifact_options_hash != options_hash
@@ -321,6 +332,93 @@ impl OutputManager {
         Ok(())
     }
 
+    fn write_shared_stream_records<T: Serialize>(
+        &mut self,
+        artifact_name: &str,
+        artifact_options: &T,
+        records: &mut dyn RecordStream,
+        artifact_context: &ArtifactContext,
+    ) -> OutputResult<()> {
+        let options_hash = hash_artifact_options(artifact_options)?;
+        let artifact_options_value = serde_json::to_value(artifact_options).unwrap_or_default();
+
+        let (output_file, record_count) = if let Some(active) = self.active_stream.as_mut() {
+            let count = active.writer.write_records(records, artifact_context)?;
+            active.artifact_name = artifact_name.to_string();
+            active.artifact_options_hash = options_hash.clone();
+            active.artifact_options = artifact_options_value.clone();
+            active.record_count += count;
+            (active.output_file.clone(), count)
+        } else {
+            let target = self.sink.stream_collection(self.encoder.extension())?;
+            let output_file = target.path.display().to_string();
+
+            let open = self
+                .encoder
+                .encode_stream(target, records, artifact_context)?;
+            let count = open.record_count;
+
+            self.active_stream = Some(ActiveStream {
+                artifact_name: artifact_name.to_string(),
+                artifact_options_hash: options_hash.clone(),
+                artifact_options: artifact_options_value.clone(),
+                output_file: output_file.clone(),
+                record_count: count,
+                writer: open.writer,
+            });
+            (output_file, count)
+        };
+
+        if !self.artifacts.iter().any(|name| name == artifact_name) {
+            self.artifacts.push(artifact_name.to_string());
+        }
+
+        self.record_shared_stream(
+            artifact_name.to_string(),
+            options_hash,
+            artifact_options_value,
+            output_file,
+            record_count,
+        );
+
+        Ok(())
+    }
+
+    fn record_shared_stream(
+        &mut self,
+        artifact_name: String,
+        artifact_option_hash: String,
+        artifact_options: Value,
+        output_file: String,
+        record_count: usize,
+    ) {
+        if let Some(run) = self.artifact_runs.iter_mut().find(|run| {
+            run.name == artifact_name && run.artifact_options_hash == artifact_option_hash
+        }) {
+            if record_count > 0 {
+                run.add_output_file(output_file, record_count);
+            }
+            return;
+        }
+
+        let output_files = if record_count > 0 {
+            vec![output_file]
+        } else {
+            Vec::new()
+        };
+
+        let mut run = ArtifactRunReport::new(
+            &artifact_name,
+            &artifact_options,
+            output_files,
+            record_count,
+            "completed",
+        );
+
+        run.artifact_options_hash = artifact_option_hash;
+        self.artifact_runs.push(run);
+    }
+
     /// Complete streaming to file on disk
     fn finish_stream(&mut self) -> OutputResult<()> {
         let Some(output) = self.active_stream.take() else {
@@ -336,6 +434,10 @@ impl OutputManager {
         } = output;
 
         writer.finish()?;
+        if self.encoder.encoder_mode() == EncoderMode::SharedStream {
+            return Ok(());
+        }
+
         self.record_complete_stream(
             artifact_name,
             artifact_options_hash,

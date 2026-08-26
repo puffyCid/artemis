@@ -1,0 +1,68 @@
+
+[output]
+name = "triage"
+directory = "./tmp"
+format = "sqlite"
+compress = false
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+destination = "local"
+
+[[artifacts]]
+artifact_name = "prefetch"
+[artifacts.prefetch]
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = true
+sha1 = false
+sha256 = false
+metadata = true
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+[[artifacts]]
+artifact_name = "amcache"
+[artifacts.amcache]
+
+[[artifacts]]
+artifact_name = "bits"
+[artifacts.bits]
+carve = true
+
+[[artifacts]]
+artifact_name = "rawfiles"
+[artifacts.rawfiles]
+drive_letter = 'C'
+start_path = "C:\\Users\\"
+depth = 3
+recover_indx = false
+md5 = false
+sha1 = false
+sha256 = false
+metadata = false
+path_regex = ""
+filename_regex = ""
+
+[[artifacts]]
+artifact_name = "registry" # Parses the whole Registry file
+[artifacts.registry]
+user_hives = true   # All NTUSER.DAT and UsrClass.dat
+system_hives = true # SYSTEM, SOFTWARE, SAM, SECURITY
+path_regex = ""     # Registry is converted to lowercase before all comparison operations. So any regex input will also be converted to lowercase
+
+[[artifacts]]
+artifact_name = "shellbags"
+[artifacts.shellbags]
+resolve_guids = true
+
+[[artifacts]]
+artifact_name = "shimcache"
+[artifacts.shimcache]
+
+[[artifacts]]
+artifact_name = "userassist"
+[artifacts.userassist]
+

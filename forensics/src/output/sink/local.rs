@@ -42,9 +42,23 @@ impl LocalSink {
         })
     }
 
+    /// Stream and write artifact to single file on disk
     pub(crate) fn stream_artifact(&self, artifact_name: &str, extension: &str) -> StreamTarget {
         let uuid = generate_uuid();
         let name = Self::safe_artifact_filename(artifact_name);
+        let filename = format!("{name}_{uuid}.{extension}");
+        StreamTarget::new(self.output_directory.join(filename))
+    }
+
+    /// Stream the entire artemis collection to a single file on disk
+    pub(crate) fn stream_collection(&self, extension: &str) -> StreamTarget {
+        let uuid = generate_uuid();
+        let name = self
+            .output_directory
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("artemis_collection");
+
         let filename = format!("{name}_{uuid}.{extension}");
         StreamTarget::new(self.output_directory.join(filename))
     }

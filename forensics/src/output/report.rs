@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     artifacts::os::systeminfo::info::get_info,
     filesystem::files::hash_file_data,
@@ -61,8 +63,15 @@ impl ArtifactRunReport {
 
     /// Track each file created from an artifact collection and update the `output_count` and `output_files`
     pub(crate) fn add_output_file(&mut self, output_file: String, record_count: usize) {
-        self.output_files.push(output_file);
-        self.output_count = self.output_files.len();
+        if !self
+            .output_files
+            .iter()
+            .any(|existing| existing == &output_file)
+        {
+            self.output_files.push(output_file);
+            self.output_count = self.output_files.len();
+        }
+
         self.record_count += record_count;
 
         let last_run_epoch = time_now();
@@ -110,7 +119,12 @@ impl CollectionReport {
         artifacts: Vec<String>,
         artifact_runs: Vec<ArtifactRunReport>,
     ) -> Self {
-        let total_output_files = artifact_runs.iter().map(|run| run.output_files.len()).sum();
+        let total_output_files = artifact_runs
+            .iter()
+            .flat_map(|run| run.output_files.iter())
+            .collect::<HashSet<_>>()
+            .len();
+
         Self {
             collection_id: context.collection_id,
             endpoint_id: context.endpoint_id.clone(),

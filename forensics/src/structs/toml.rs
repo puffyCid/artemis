@@ -75,6 +75,7 @@ pub enum OutputFormat {
     Text,
     Xml,
     Parquet,
+    Sqlite,
 }
 
 /// Determine where our data should be sent

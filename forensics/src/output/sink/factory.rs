@@ -87,6 +87,18 @@ impl Sink {
         }
     }
 
+    /// Stream entire collection results to destination
+    pub(crate) fn stream_collection(&self, extension: &str) -> OutputResult<StreamTarget> {
+        match self {
+            Self::Local(sink) => Ok(sink.stream_collection(extension)),
+
+            #[cfg(any(feature = "gcp", feature = "aws", feature = "azure", feature = "api"))]
+            _ => Err(OutputError::Config(String::from(
+                "streamed collection output only supports local destination",
+            ))),
+        }
+    }
+
     /// Finalizes destination-specific output.
     ///
     /// For local output, this may perform final zip compression and cleanup.
