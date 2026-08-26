@@ -6,9 +6,7 @@ pub(crate) fn read_text_unescaped(reader: &mut Reader<&[u8]>, name: QName<'_>) -
         .read_text(name)
         .unwrap_or(BytesText::new("failed to read xml"));
 
-    unescape(text.decode().unwrap_or_default().as_ref())
-        .unwrap_or(std::borrow::Cow::Borrowed(
-            text.decode().unwrap_or_default().as_ref(),
-        ))
+    unescape(&text)
+        .unwrap_or(std::borrow::Cow::Borrowed(&text))
         .into_owned()
 }

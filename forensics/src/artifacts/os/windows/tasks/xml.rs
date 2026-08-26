@@ -61,27 +61,27 @@ pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"RegistrationInfo" => {
+                "RegistrationInfo" => {
                     let reg_info = parse_registration(&mut reader);
                     task_xml.registration_info = Some(reg_info);
                 }
-                b"Triggers" => {
+                "Triggers" => {
                     let trig_info = parse_trigger(&mut reader);
                     task_xml.triggers = Some(trig_info);
                 }
-                b"Settings" => {
+                "Settings" => {
                     let set_info = parse_settings(&mut reader);
                     task_xml.settings = Some(set_info);
                 }
-                b"Principal" => {
+                "Principal" => {
                     let prin_info = parse_principals(&mut reader);
                     principals.push(prin_info);
                 }
-                b"Actions" => {
+                "Actions" => {
                     let action_info = parse_actions(&mut reader);
                     task_xml.actions = action_info;
                 }
-                b"Data" => {
+                "Data" => {
                     task_xml.data = Some(base64_encode_standard(
                         read_text_unescaped(&mut reader, tag.name()).as_bytes(),
                     ));

@@ -3,7 +3,6 @@ use crate::{
     utils::{encoding::read_xml, strings::extract_utf8_string},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
-use nom::AsBytes;
 use quick_xml::{Reader, XmlVersion, events::Event};
 use serde_json::{Map, Value};
 use tracing::warn;
@@ -55,13 +54,10 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
 
         match value {
             Event::Start(bytes_start) => {
-                let tag_name = extract_utf8_string(bytes_start.name().0);
+                let tag_name = bytes_start.name().0.to_string();
                 let mut current_map = Map::new();
                 for attr_value in bytes_start.attributes().flatten() {
-                    let key = format!(
-                        "@{}",
-                        String::from_utf8(attr_value.key.0.to_vec()).unwrap_or_default()
-                    );
+                    let key = format!("@{}", attr_value.key.0);
                     let value = attr_value
                         .normalized_value(XmlVersion::Implicit1_0)
                         .map_err(|err| {
@@ -75,7 +71,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 json_stack.push((tag_name, current_map));
             }
             Event::End(bytes_end) => {
-                let tag_name = extract_utf8_string(bytes_end.name().0);
+                let tag_name = bytes_end.name().0.to_string();
                 if let Some((popped_tag, mut popped_map)) = json_stack.pop() {
                     if popped_tag != tag_name {
                         let issue = format!("Got unexpected closing XML tag '{tag_name}'");
@@ -98,11 +94,11 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 }
             }
             Event::Empty(bytes_start) => {
-                let tag_name = extract_utf8_string(bytes_start.name().0);
+                let tag_name = bytes_start.name().0.to_string();
                 let mut current_map = Map::new();
 
                 for attr_value in bytes_start.attributes().flatten() {
-                    let key = format!("@{}", extract_utf8_string(attr_value.key.0));
+                    let key = format!("@{}", attr_value.key.0.to_string());
                     let value = attr_value
                         .normalized_value(XmlVersion::Implicit1_0)
                         .map_err(|err| {

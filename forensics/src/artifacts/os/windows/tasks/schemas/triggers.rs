@@ -1,5 +1,4 @@
 use crate::artifacts::os::windows::tasks::text::read_text_unescaped;
-use crate::utils::strings::extract_utf8_string;
 use common::windows::{
     BaseTriggers, BootTrigger, ByDay, ByMonth, ByMonthDayWeek, ByWeek, CalendarTrigger,
     EventTrigger, IdleTrigger, LogonTrigger, Repetition, SessionTrigger, TimeTrigger, Triggers,
@@ -30,18 +29,18 @@ pub(crate) fn parse_trigger(reader: &mut Reader<&[u8]>) -> Triggers {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"BootTrigger" => process_boot(&mut info, reader, true),
-                b"RegistrationTrigger" => process_boot(&mut info, reader, false),
-                b"IdleTrigger" => process_idle(&mut info, reader),
-                b"TimeTrigger" => process_time(&mut info, reader),
-                b"EventTrigger" => process_event(&mut info, reader),
-                b"LogonTrigger" => process_logon(&mut info, reader),
-                b"SessionStateChangeTrigger" => process_session(&mut info, reader),
-                b"CalendarTrigger" => process_calendar(&mut info, reader),
-                b"WnfStateChangeTrigger" => process_notification(&mut info, reader),
+                "BootTrigger" => process_boot(&mut info, reader, true),
+                "RegistrationTrigger" => process_boot(&mut info, reader, false),
+                "IdleTrigger" => process_idle(&mut info, reader),
+                "TimeTrigger" => process_time(&mut info, reader),
+                "EventTrigger" => process_event(&mut info, reader),
+                "LogonTrigger" => process_logon(&mut info, reader),
+                "SessionStateChangeTrigger" => process_session(&mut info, reader),
+                "CalendarTrigger" => process_calendar(&mut info, reader),
+                "WnfStateChangeTrigger" => process_notification(&mut info, reader),
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"Triggers" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "Triggers" => {
                 break;
             }
             _ => (),
@@ -74,13 +73,13 @@ fn process_boot(info: &mut Triggers, reader: &mut Reader<&[u8]>, is_boot: bool) 
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Delay" => {
+                "Delay" => {
                     boot.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
             Ok(Event::End(tag)) => match tag.name().as_ref() {
-                b"BootTrigger" | b"RegistrationTrigger" => break,
+                "BootTrigger" | "RegistrationTrigger" => break,
                 _ => (),
             },
             _ => (),
@@ -121,21 +120,21 @@ fn process_notification(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Delay" => {
+                "Delay" => {
                     wnf.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"StateName" => {
+                "StateName" => {
                     wnf.state_name = read_text_unescaped(reader, tag.name());
                 }
-                b"Data" => {
+                "Data" => {
                     wnf.data = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"DataOffset" => {
+                "DataOffset" => {
                     wnf.data_offset = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"WnfStateChangeTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "WnfStateChangeTrigger" => {
                 break;
             }
             _ => (),
@@ -166,7 +165,7 @@ fn process_idle(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             Ok(Event::Start(tag)) => {
                 process_common(&mut common, &tag.name(), reader);
             }
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"IdleTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "IdleTrigger" => {
                 break;
             }
             _ => (),
@@ -201,12 +200,12 @@ fn process_time(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"RandomDelay" => {
+                "RandomDelay" => {
                     time.random_delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"TimeTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "TimeTrigger" => {
                 break;
             }
             _ => (),
@@ -245,31 +244,31 @@ fn process_event(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Subscription" => {
+                "Subscription" => {
                     event
                         .subscription
                         .push(read_text_unescaped(reader, tag.name()));
                 }
-                b"Delay" => {
+                "Delay" => {
                     event.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"MatchingElement" => {
+                "MatchingElement" => {
                     event.matching_element = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"PeriodOfOccurrence" => {
+                "PeriodOfOccurrence" => {
                     event.period_of_occurrence = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"NumberOfOccurrences" => {
+                "NumberOfOccurrences" => {
                     event.number_of_occurrences = Some(
                         read_text_unescaped(reader, tag.name())
                             .parse()
                             .unwrap_or_default(),
                     );
                 }
-                b"ValueQueries" => event.value_queries = Some(process_event_values(reader)),
+                "ValueQueries" => event.value_queries = Some(process_event_values(reader)),
                 _ => process_common(&mut common, &tag.name(), reader),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"EventTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "EventTrigger" => {
                 break;
             }
             _ => (),
@@ -304,15 +303,15 @@ fn process_logon(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"UserId" => {
+                "UserId" => {
                     logon.user_id = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Delay" => {
+                "Delay" => {
                     logon.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"LogonTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "LogonTrigger" => {
                 break;
             }
             _ => (),
@@ -348,18 +347,18 @@ fn process_session(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Delay" => {
+                "Delay" => {
                     session.delay = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"StateChange" => {
+                "StateChange" => {
                     session.state_change = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"UserId" => {
+                "UserId" => {
                     session.user_id = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"SessionStateChangeTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "SessionStateChangeTrigger" => {
                 break;
             }
             _ => (),
@@ -397,18 +396,18 @@ fn process_calendar(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"RandomDelay" => {
+                "RandomDelay" => {
                     cal.random_delay = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"ScheduleByDay" => cal.schedule_by_day = Some(process_cal_day(reader)),
-                b"ScheduleByWeek" => cal.schedule_by_week = Some(process_cal_week(reader)),
-                b"ScheduleByMonth" => cal.schedule_by_month = Some(process_cal_month(reader)),
-                b"ScheduleByMonthDayOfWeek" => {
+                "ScheduleByDay" => cal.schedule_by_day = Some(process_cal_day(reader)),
+                "ScheduleByWeek" => cal.schedule_by_week = Some(process_cal_week(reader)),
+                "ScheduleByMonth" => cal.schedule_by_month = Some(process_cal_month(reader)),
+                "ScheduleByMonthDayOfWeek" => {
                     cal.schedule_by_month_day_of_week = Some(process_cal_month_day_week(reader));
                 }
                 _ => process_common(&mut common, &tag.name(), reader),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"CalendarTrigger" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "CalendarTrigger" => {
                 break;
             }
             _ => (),
@@ -422,26 +421,26 @@ fn process_calendar(info: &mut Triggers, reader: &mut Reader<&[u8]>) {
 /// Parse common values between all triggers
 fn process_common(common: &mut BaseTriggers, name: &QName<'_>, reader: &mut Reader<&[u8]>) {
     match name.as_ref() {
-        b"id" => {
+        "id" => {
             common.id = Some(read_text_unescaped(reader, *name));
         }
-        b"StartBoundary" => {
+        "StartBoundary" => {
             common.start_boundary = Some(read_text_unescaped(reader, *name));
         }
-        b"EndBoundary" => {
+        "EndBoundary" => {
             common.end_boundary = Some(read_text_unescaped(reader, *name));
         }
-        b"ExecutionTimeLimit" => {
+        "ExecutionTimeLimit" => {
             common.execution_time_limit = Some(read_text_unescaped(reader, *name));
         }
-        b"Enabled" => {
+        "Enabled" => {
             common.enabled = Some(
                 read_text_unescaped(reader, *name)
                     .parse()
                     .unwrap_or_default(),
             );
         }
-        b"Repetition" => {
+        "Repetition" => {
             process_repetition(common, reader);
         }
         _ => (),
@@ -464,13 +463,13 @@ fn process_repetition(common: &mut BaseTriggers, reader: &mut Reader<&[u8]>) {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Interval" => {
+                "Interval" => {
                     repetition.interval = read_text_unescaped(reader, tag.name());
                 }
-                b"Duration" => {
+                "Duration" => {
                     repetition.duration = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"StopAtDurationEnd" => {
+                "StopAtDurationEnd" => {
                     repetition.stop_at_duration_end = Some(
                         read_text_unescaped(reader, tag.name())
                             .parse()
@@ -479,7 +478,7 @@ fn process_repetition(common: &mut BaseTriggers, reader: &mut Reader<&[u8]>) {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"Repetition" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "Repetition" => {
                 break;
             }
             _ => (),
@@ -499,12 +498,12 @@ fn process_event_values(reader: &mut Reader<&[u8]>) -> Vec<String> {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Value" => {
+                "Value" => {
                     values.push(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ValueQueries" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ValueQueries" => {
                 break;
             }
             _ => (),
@@ -526,7 +525,7 @@ fn process_cal_day(reader: &mut Reader<&[u8]>) -> ByDay {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"DaysInterval" => {
+                "DaysInterval" => {
                     day.days_interval = Some(
                         read_text_unescaped(reader, tag.name())
                             .parse()
@@ -535,7 +534,7 @@ fn process_cal_day(reader: &mut Reader<&[u8]>) -> ByDay {
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ScheduleByDay" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ScheduleByDay" => {
                 break;
             }
             _ => (),
@@ -559,18 +558,18 @@ fn process_cal_week(reader: &mut Reader<&[u8]>) -> ByWeek {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"WeeksInterval" => {
+                "WeeksInterval" => {
                     week.weeks_interval = Some(
                         read_text_unescaped(reader, tag.name())
                             .parse()
                             .unwrap_or_default(),
                     );
                 }
-                b"DaysOfWeek" => (),
+                "DaysOfWeek" => (),
                 // Push days of week values. Ex: Monday, Tuesday, etc
-                _ => days.push(extract_utf8_string(tag.name().0)),
+                _ => days.push(tag.name().0.to_string()),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ScheduleByWeek" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ScheduleByWeek" => {
                 break;
             }
             _ => (),
@@ -596,14 +595,14 @@ fn process_cal_month(reader: &mut Reader<&[u8]>) -> ByMonth {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Months" => (),
-                b"DaysOfMonth" => {
+                "Months" => (),
+                "DaysOfMonth" => {
                     days.push(read_text_unescaped(reader, tag.name()));
                 }
-                // Push Months. Ex: July, Auguest, etc
-                _ => months.push(extract_utf8_string(tag.name().0)),
+                // Push Months. Ex: July, August, etc
+                _ => months.push(tag.name().0.to_string()),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ScheduleByMonth" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ScheduleByMonth" => {
                 break;
             }
             _ => (),
@@ -635,20 +634,20 @@ fn process_cal_month_day_week(reader: &mut Reader<&[u8]>) -> ByMonthDayWeek {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Months" => value = "months",
-                b"DaysOfWeek" => value = "days",
-                b"Weeks" => value = "weeks",
+                "Months" => value = "months",
+                "DaysOfWeek" => value = "days",
+                "Weeks" => value = "weeks",
                 _ => {
                     if value == "months" {
-                        months.push(extract_utf8_string(tag.name().0));
+                        months.push(tag.name().0.to_string());
                     } else if value == "weeks" {
                         weeks.push(read_text_unescaped(reader, tag.name()));
                     } else if value == "days" {
-                        days.push(extract_utf8_string(tag.name().0));
+                        days.push(tag.name().0.to_string());
                     }
                 }
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ScheduleByMonthDayOfWeek" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ScheduleByMonthDayOfWeek" => {
                 break;
             }
 
@@ -862,7 +861,7 @@ mod tests {
             wnf: Vec::new(),
         };
         process_logon(&mut result, &mut reader);
-        assert_eq!(result.logon[0].user_id.as_ref().unwrap(), "bob");
+        assert_eq!(result.logon[0].user_id.as_ref().unwrap(), "bo");
     }
 
     #[test]

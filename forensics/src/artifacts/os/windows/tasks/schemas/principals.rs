@@ -25,33 +25,33 @@ pub(crate) fn parse_principals(reader: &mut Reader<&[u8]>) -> Principals {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"UserId" => {
+                "UserId" => {
                     info.user_id = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"LogonType" => {
+                "LogonType" => {
                     info.logon_type = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"GroupId" => {
+                "GroupId" => {
                     info.group_id = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"DisplayName" => {
+                "DisplayName" => {
                     info.display_name = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"RunLevel" => {
+                "RunLevel" => {
                     info.run_level = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"ProcessTokenSidType" => {
+                "ProcessTokenSidType" => {
                     info.process_token_sid_type = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Privilege" => {
+                "Privilege" => {
                     privs.push(read_text_unescaped(reader, tag.name()));
                 }
-                b"id" => {
+                "id" => {
                     info.id_attribute = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => (),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"Principals" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "Principals" => {
                 break;
             }
             _ => (),
