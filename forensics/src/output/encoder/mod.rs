@@ -5,6 +5,7 @@ mod json;
 mod jsonl;
 mod metadata;
 mod parquet;
+mod sqlite;
 mod text;
 mod timeline;
 mod xml;
