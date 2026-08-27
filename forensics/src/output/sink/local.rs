@@ -83,6 +83,7 @@ impl LocalSink {
         self.output_directory.join(log)
     }
 
+    /// Ensure the output artifact filename is valid
     fn safe_artifact_filename(artifact_name: &str) -> String {
         let mut santize = artifact_name
             .chars()

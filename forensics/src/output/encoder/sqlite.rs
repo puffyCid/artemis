@@ -35,6 +35,8 @@ impl StreamArtifactEncoder for SqliteEncoder {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<EncoderStreamWriter> {
+        // Open a persistence connection to the sqlite database during the entire collection
+        // Should allow for faster transactions vs constantly opening the sqlite file
         let conn = open_connection(&target)?;
 
         let mut writer = SqliteWriter {
@@ -58,12 +60,14 @@ impl StreamArtifactEncoder for SqliteEncoder {
     }
 }
 
+/// Convert the `RecordStream` artifact entry to a basic array of JSON
 fn read_json_rows(
     records: &mut dyn RecordStream,
     context: &ArtifactContext,
 ) -> OutputResult<Vec<Map<String, Value>>> {
     let mut rows = Vec::new();
 
+    // Loop through all artifact entries
     while let Some(record) = records.next_record()? {
         let Record::Json(json_record) = record else {
             return Err(OutputError::UnsupportedRecord {
@@ -86,6 +90,7 @@ fn read_json_rows(
     Ok(rows)
 }
 
+/// Open the sqlite file for writing
 fn open_connection(target: &StreamTarget) -> OutputResult<Connection> {
     let conn =
         Connection::open(&target.path).map_err(|err| sqlite_path_error(&target.path, err))?;
@@ -95,7 +100,7 @@ fn open_connection(target: &StreamTarget) -> OutputResult<Connection> {
     Ok(conn)
 }
 
-/// Active sqlite writer for collection output
+/// Active sqlite writer for artifact collection output
 pub(crate) struct SqliteWriter {
     /// Full path to the streamed output file
     target: StreamTarget,
@@ -118,6 +123,7 @@ impl fmt::Debug for SqliteWriter {
 }
 
 impl SqliteWriter {
+    /// Write the `RecordStream` into sqlite file
     pub(crate) fn write_records(
         &mut self,
         records: &mut dyn RecordStream,
@@ -131,6 +137,7 @@ impl SqliteWriter {
         self.insert_artifact_rows(&context.artifact_name, &rows)
     }
 
+    /// Complete the sqlite transaction and finalize the write output
     pub(crate) fn finish(self) -> OutputResult<()> {
         self.conn
             .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode = DELETE;")
@@ -144,6 +151,7 @@ impl SqliteWriter {
         Ok(())
     }
 
+    /// Insert the array of JSON artifacts into sqlite
     fn insert_artifact_rows(
         &mut self,
         artifact_name: &str,
@@ -171,6 +179,7 @@ impl SqliteWriter {
             quote_identifier(&table)
         );
 
+        // Start inserting JSON records into sqlite file
         let transaction = self.conn.transaction().map_err(sqlite_error)?;
         {
             let mut statement = transaction.prepare(&sql).map_err(sqlite_error)?;
@@ -187,6 +196,7 @@ impl SqliteWriter {
         Ok(rows.len())
     }
 
+    /// Validate that the sqlite table exists or create it
     fn ensure_table(
         &mut self,
         artifact_name: &str,
@@ -198,6 +208,8 @@ impl SqliteWriter {
 
         let table = unique_table_name(artifact_name, &self.tables);
 
+        // Create schema for a new table
+        // Most columns will be TEXT
         let schema = SqliteSchema::infer(rows);
         let definitions = schema
             .columns
@@ -223,29 +235,35 @@ impl SqliteWriter {
     }
 }
 
+/// Schema associated with the artifact table
 #[derive(Clone, Debug)]
 struct SqliteSchema {
+    /// Columns associated with the table
     columns: Vec<ColumnSpec>,
+    /// Known columns inserted into table from first insertion
     known_fields: HashSet<String>,
 }
 
 impl SqliteSchema {
+    /// Determine the JSON key types and try to create table schema
     fn infer(rows: &[Map<String, Value>]) -> Self {
         let mut order = Vec::new();
-        let mut kinds = HashMap::new();
+        let mut column_kinds = HashMap::new();
 
+        // Loop through JSON data and determine value type
         for row in rows {
             for (key, value) in row {
-                if !kinds.contains_key(key) {
+                if !column_kinds.contains_key(key) {
                     order.push(key.clone());
-                    kinds.insert(key.clone(), ColumnKind::from_value(value));
+                    column_kinds.insert(key.clone(), ColumnKind::from_value(value));
                     continue;
                 }
 
-                let current = kinds.get(key).copied().unwrap_or(ColumnKind::Text);
-                kinds.insert(key.clone(), current.merge(ColumnKind::from_value(value)));
+                let current = column_kinds.get(key).copied().unwrap_or(ColumnKind::Text);
+                column_kinds.insert(key.clone(), current.merge(ColumnKind::from_value(value)));
             }
         }
+
         let mut used_names = HashSet::new();
         let mut known_fields = HashSet::new();
         let mut columns = Vec::new();
@@ -254,7 +272,10 @@ impl SqliteSchema {
             known_fields.insert(source_name.clone());
 
             let sql_name = unique_field_name(&source_name, &mut used_names);
-            let kind = kinds.get(&source_name).copied().unwrap_or(ColumnKind::Text);
+            let kind = column_kinds
+                .get(&source_name)
+                .copied()
+                .unwrap_or(ColumnKind::Text);
 
             columns.push(ColumnSpec {
                 source_name: Some(source_name),
@@ -262,6 +283,7 @@ impl SqliteSchema {
                 kind,
             });
         }
+
         columns.push(ColumnSpec {
             source_name: None,
             sql_name: unique_field_name("_extra_json", &mut used_names),
@@ -295,6 +317,7 @@ enum ColumnKind {
 }
 
 impl ColumnKind {
+    /// Determine Column type based on JSON value type
     fn from_value(value: &Value) -> Self {
         match value {
             Value::Bool(_) => Self::Bool,
@@ -322,6 +345,7 @@ impl ColumnKind {
         }
     }
 
+    /// Return the column type
     fn sql_type(self) -> &'static str {
         match self {
             Self::Bool | Self::Int64 => "INTEGER",
@@ -331,39 +355,31 @@ impl ColumnKind {
     }
 }
 
+/// Convert the JSON data into supported array of sql data
 fn bind_values(schema: &SqliteSchema, row: &Map<String, Value>) -> Vec<SqlValue> {
     schema
         .columns
         .iter()
         .map(|column| match &column.source_name {
             Some(name) => value_for_column(column.kind, row.get(name)),
-            None => extra_json(schema, row)
-                .map(SqlValue::Text)
-                .unwrap_or(SqlValue::Null),
+            None => extra_json(schema, row).map_or(SqlValue::Null, SqlValue::Text),
         })
         .collect()
 }
 
+/// Based on the column schema convert our JSON value to a compatible sql type
 fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
     let Some(json_value) = value else {
         return SqlValue::Null;
     };
 
     match kind {
-        ColumnKind::Bool => json_value
-            .as_bool()
-            .map(|flag| SqlValue::Integer(if flag { 1 } else { 0 }))
-            .unwrap_or(SqlValue::Null),
-        ColumnKind::Int64 => value_as_i64(json_value)
-            .map(SqlValue::Integer)
-            .unwrap_or(SqlValue::Null),
-        ColumnKind::Double => json_value
-            .as_f64()
-            .map(SqlValue::Real)
-            .unwrap_or(SqlValue::Null),
-        ColumnKind::Text => value_as_string(json_value)
-            .map(SqlValue::Text)
-            .unwrap_or(SqlValue::Null),
+        ColumnKind::Bool => json_value.as_bool().map_or(SqlValue::Null, |flag| {
+            SqlValue::Integer(if flag { 1 } else { 0 })
+        }),
+        ColumnKind::Int64 => value_as_i64(json_value).map_or(SqlValue::Null, SqlValue::Integer),
+        ColumnKind::Double => json_value.as_f64().map_or(SqlValue::Null, SqlValue::Real),
+        ColumnKind::Text => value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text),
     }
 }
 
@@ -391,6 +407,9 @@ fn value_as_string(value: &Value) -> Option<String> {
 }
 
 /// Serializes fields not present in the inferred schema into the `_extra_json` column
+///
+/// Typically will only happen if using `BoaJS` to write custom parsers
+/// and the output is **not** consistent
 fn extra_json(schema: &SqliteSchema, row: &Map<String, Value>) -> Option<String> {
     let mut extra = Map::new();
     for (key, value) in row {
@@ -410,10 +429,12 @@ fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
     let base = sanitize_ident(source);
     let mut candidate = base.clone();
     let mut suffix = 1;
+
     while used.contains(&candidate) {
         candidate = format!("{base}_{suffix}");
         suffix += 1;
     }
+
     used.insert(candidate.clone());
     candidate
 }
@@ -422,10 +443,12 @@ fn unique_table_name(artifact_name: &str, tables: &HashMap<String, SqliteSchema>
     let base = sanitize_ident(artifact_name);
     let mut candidate = base.clone();
     let mut suffix = 1;
+
     while tables.contains_key(&candidate) {
         candidate = format!("{base}_{suffix}");
         suffix += 1;
     }
+
     candidate
 }
 
@@ -484,7 +507,10 @@ mod tests {
     };
     use rusqlite::Connection;
     use serde_json::{Value, json};
-    use std::path::PathBuf;
+    use std::{
+        fs::{create_dir_all, remove_file},
+        path::PathBuf,
+    };
 
     fn test_context(artifact: &str) -> crate::output::context::ArtifactContext {
         let output = OutputConfig::default();
@@ -497,11 +523,11 @@ mod tests {
 
     fn target(name: &str) -> StreamTarget {
         let path = PathBuf::from("./tmp").join(format!("{name}.sqlite"));
-        let _ = std::fs::create_dir_all("./tmp");
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_file(format!("{}.wal", path.display()));
-        let _ = std::fs::remove_file(format!("{}-wal", path.display()));
-        let _ = std::fs::remove_file(format!("{}-shm", path.display()));
+        let _ = create_dir_all("./tmp");
+        let _ = remove_file(&path);
+        let _ = remove_file(format!("{}.wal", path.display()));
+        let _ = remove_file(format!("{}-wal", path.display()));
+        let _ = remove_file(format!("{}-shm", path.display()));
         StreamTarget::new(path)
     }
 

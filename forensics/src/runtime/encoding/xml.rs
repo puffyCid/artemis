@@ -98,7 +98,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 let mut current_map = Map::new();
 
                 for attr_value in bytes_start.attributes().flatten() {
-                    let key = format!("@{}", attr_value.key.0.to_string());
+                    let key = format!("@{}", attr_value.key.0);
                     let value = attr_value
                         .normalized_value(XmlVersion::Implicit1_0)
                         .map_err(|err| {
