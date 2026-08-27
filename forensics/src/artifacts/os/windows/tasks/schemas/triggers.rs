@@ -861,7 +861,7 @@ mod tests {
             wnf: Vec::new(),
         };
         process_logon(&mut result, &mut reader);
-        assert_eq!(result.logon[0].user_id.as_ref().unwrap(), "bo");
+        assert_eq!(result.logon[0].user_id.as_ref().unwrap(), "bob");
     }
 
     #[test]
