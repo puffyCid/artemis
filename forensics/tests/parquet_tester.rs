@@ -4,7 +4,7 @@ use std::fs::read;
 use std::path::PathBuf;
 
 #[test]
-fn test_parquest_tester() {
+fn test_parquet_tester() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/linux/parquet.toml");
 
@@ -20,7 +20,7 @@ fn test_parquest_tester() {
             let bytes = read(value).unwrap();
             let text = String::from_utf8(bytes).unwrap();
             if text.contains("\"total_output_files\":0,") {
-                panic!("missing parquest results??");
+                panic!("missing parquet results??");
             }
             continue;
         }
