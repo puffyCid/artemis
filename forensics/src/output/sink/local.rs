@@ -42,9 +42,24 @@ impl LocalSink {
         })
     }
 
+    /// Stream and write artifact to single file on disk
     pub(crate) fn stream_artifact(&self, artifact_name: &str, extension: &str) -> StreamTarget {
         let uuid = generate_uuid();
         let name = Self::safe_artifact_filename(artifact_name);
+        let filename = format!("{name}_{uuid}.{extension}");
+        StreamTarget::new(self.output_directory.join(filename))
+    }
+
+    /// Stream the entire artemis collection to a single file on disk
+    pub(crate) fn stream_collection(&self, extension: &str) -> StreamTarget {
+        let uuid = generate_uuid();
+        let name = Self::safe_artifact_filename(
+            self.output_directory
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("artemis_collection"),
+        );
+
         let filename = format!("{name}_{uuid}.{extension}");
         StreamTarget::new(self.output_directory.join(filename))
     }
@@ -69,6 +84,7 @@ impl LocalSink {
         self.output_directory.join(log)
     }
 
+    /// Ensure the output artifact filename is valid
     fn safe_artifact_filename(artifact_name: &str) -> String {
         let mut santize = artifact_name
             .chars()
@@ -98,12 +114,14 @@ impl LocalSink {
                 self.output_directory.display()
             ))
         })?;
+
         let entries = list_files(&output_dir).map_err(|err| {
             OutputError::Finalize(format!(
                 "failed to list output directory {}: {err:?}",
                 self.output_directory.display()
             ))
         })?;
+
         // Only delete files associated with Artemis output
         for entry in entries {
             if !entry.ends_with(".json")
@@ -113,6 +131,7 @@ impl LocalSink {
                 && !entry.ends_with(".zip")
                 && !entry.ends_with(".xml")
                 && !entry.ends_with(".parquet")
+                && !entry.ends_with(".sqlite")
             {
                 continue;
             }

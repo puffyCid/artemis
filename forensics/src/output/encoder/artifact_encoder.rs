@@ -5,6 +5,7 @@ use crate::output::{
         json::JsonEncoder,
         jsonl::JsonlEncoder,
         parquet::{ParquetEncoder, ParquetWriter},
+        sqlite::{SqliteEncoder, SqliteWriter},
         text::TextEncoder,
         timeline::TimelineEncoder,
         xml::XmlEncoder,
@@ -25,6 +26,13 @@ pub(crate) enum EncoderMode {
     ///
     /// For example, `EventLogs` are streamed into a single Parquet file
     Streamed,
+    /// Artifact records are stream into a single shared file
+    ///
+    /// **All artifacts** are streamed into a single shared file
+    ///
+    /// For example when outputting to sqlite. All artifacts are stored in
+    /// a single sqlite file
+    SharedStream,
 }
 
 /// Target file for streamed output
@@ -46,6 +54,8 @@ impl StreamTarget {
 pub(crate) enum StreamWriter {
     /// Stream the output to a single parquet file on disk
     Parquet(ParquetWriter),
+    /// Stream all output to a single sqlite file on disk
+    Sqlite(SqliteWriter),
 }
 
 /// Writer returned after opening a streamed encoder
@@ -70,6 +80,7 @@ impl StreamWriter {
     ) -> OutputResult<usize> {
         match self {
             Self::Parquet(writer) => writer.write_records(records, context),
+            Self::Sqlite(writer) => writer.write_records(records, context),
         }
     }
 
@@ -77,6 +88,7 @@ impl StreamWriter {
     pub(crate) fn finish(self) -> OutputResult<()> {
         match self {
             Self::Parquet(writer) => writer.finish(),
+            Self::Sqlite(writer) => writer.finish(),
         }
     }
 }
@@ -100,6 +112,8 @@ pub(crate) enum Encoder {
     Xml(XmlEncoder),
     /// Parquet encoder
     Parquet(ParquetEncoder),
+    /// Sqlite encoder
+    Sqlite(SqliteEncoder),
 }
 
 impl Encoder {
@@ -113,6 +127,7 @@ impl Encoder {
             Self::Text(encoder) => encoder.extension(),
             Self::Xml(encoder) => encoder.extension(),
             Self::Parquet(encoder) => encoder.extension(),
+            Self::Sqlite(encoder) => encoder.extension(),
         }
     }
 
@@ -128,6 +143,7 @@ impl Encoder {
             Self::Text(encoder) => encoder.mime_type(),
             Self::Xml(encoder) => encoder.mime_type(),
             Self::Parquet(encoder) => encoder.mime_type(),
+            Self::Sqlite(encoder) => encoder.mime_type(),
         }
     }
 
@@ -150,6 +166,9 @@ impl Encoder {
             Self::Parquet(_) => Err(OutputError::Encode(String::from(
                 "parquet output is streamed; use 'encode_stream' instead",
             ))),
+            Self::Sqlite(_) => Err(OutputError::Encode(String::from(
+                "sqlite output is streamed; use 'encode_stream' instead",
+            ))),
         }
     }
 
@@ -162,6 +181,7 @@ impl Encoder {
     ) -> OutputResult<EncoderStreamWriter> {
         match self {
             Self::Parquet(encoder) => encoder.encode_stream(target, records, context),
+            Self::Sqlite(encoder) => encoder.encode_stream(target, records, context),
             _ => Err(OutputError::Encode(format!(
                 "{} output is chunked and does not support streamed writers",
                 self.extension()
@@ -179,6 +199,7 @@ impl Encoder {
             | Encoder::Csv(_)
             | Encoder::Xml(_) => EncoderMode::Chunked,
             Encoder::Parquet(_) => EncoderMode::Streamed,
+            Encoder::Sqlite(_) => EncoderMode::SharedStream,
         }
     }
 }

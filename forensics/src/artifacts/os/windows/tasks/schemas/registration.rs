@@ -24,33 +24,33 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"URI" => {
+                "URI" => {
                     info.uri = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"SecurityDescriptor" => {
+                "SecurityDescriptor" => {
                     info.sid = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Source" => {
+                "Source" => {
                     info.source = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Date" => {
+                "Date" => {
                     info.date = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Author" => {
+                "Author" => {
                     info.author = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Version" => {
+                "Version" => {
                     info.version = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Description" => {
+                "Description" => {
                     info.description = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Documentation" => {
+                "Documentation" => {
                     info.documentation = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"RegistrationInfo" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "RegistrationInfo" => {
                 break;
             }
             _ => (),
@@ -83,7 +83,7 @@ mod tests {
                 }
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                    b"RegistrationInfo" => {
+                    "RegistrationInfo" => {
                         let reg_info = parse_registration(&mut reader);
                         assert_eq!(
                             reg_info.uri,
@@ -117,7 +117,7 @@ mod tests {
                 }
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                    b"RegistrationInfo" => {
+                    "RegistrationInfo" => {
                         let reg_info = parse_registration(&mut reader);
                         assert_eq!(
                             reg_info.uri,

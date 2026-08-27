@@ -21,13 +21,13 @@ pub(crate) fn parse_actions(reader: &mut Reader<&[u8]>) -> Actions {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Exec" => info.exec.push(process_exec(reader)),
-                b"ComHandler" => info.com_handler.push(process_com(reader)),
-                b"SendEmail" => info.send_email.push(process_email(reader)),
-                b"ShowMessage" => info.show_message.push(process_message(reader)),
+                "Exec" => info.exec.push(process_exec(reader)),
+                "ComHandler" => info.com_handler.push(process_com(reader)),
+                "SendEmail" => info.send_email.push(process_email(reader)),
+                "ShowMessage" => info.show_message.push(process_message(reader)),
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"Actions" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "Actions" => {
                 break;
             }
             _ => (),
@@ -53,18 +53,18 @@ fn process_exec(reader: &mut Reader<&[u8]>) -> ExecType {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Command" => {
+                "Command" => {
                     exec.command = read_text_unescaped(reader, tag.name());
                 }
-                b"Arguments" => {
+                "Arguments" => {
                     exec.arguments = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"WorkingDirectory" => {
+                "WorkingDirectory" => {
                     exec.working_directory = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"Exec" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "Exec" => {
                 break;
             }
             _ => (),
@@ -89,15 +89,15 @@ fn process_com(reader: &mut Reader<&[u8]>) -> ComHandlerType {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"ClassId" => {
+                "ClassId" => {
                     com.class_id = read_text_unescaped(reader, tag.name());
                 }
-                b"Data" => {
+                "Data" => {
                     com.data = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ComHandler" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ComHandler" => {
                 break;
             }
             _ => (),
@@ -134,39 +134,39 @@ fn process_email(reader: &mut Reader<&[u8]>) -> SendEmail {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Server" => {
+                "Server" => {
                     email.server = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Subject" => {
+                "Subject" => {
                     email.subject = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"To" => {
+                "To" => {
                     email.to = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Cc" => {
+                "Cc" => {
                     email.cc = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"Bcc" => {
+                "Bcc" => {
                     email.bcc = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"ReplyTo" => {
+                "ReplyTo" => {
                     email.reply_to = Some(read_text_unescaped(reader, tag.name()));
                 }
-                b"From" => {
+                "From" => {
                     email.from = read_text_unescaped(reader, tag.name());
                 }
-                b"Name" => {
+                "Name" => {
                     header_key = read_text_unescaped(reader, tag.name());
                 }
-                b"Value" => {
+                "Value" => {
                     header_value = read_text_unescaped(reader, tag.name());
                 }
-                b"File" => {
+                "File" => {
                     attachments.push(read_text_unescaped(reader, tag.name()));
                 }
                 _ => (),
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"SendEmail" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "SendEmail" => {
                 break;
             }
             _ => (),
@@ -202,15 +202,15 @@ fn process_message(reader: &mut Reader<&[u8]>) -> Message {
             }
             Ok(Event::Eof) => break,
             Ok(Event::Start(tag)) => match tag.name().as_ref() {
-                b"Body" => {
+                "Body" => {
                     message.body = read_text_unescaped(reader, tag.name());
                 }
-                b"Title" => {
+                "Title" => {
                     message.title = Some(read_text_unescaped(reader, tag.name()));
                 }
                 _ => break,
             },
-            Ok(Event::End(tag)) if tag.name().as_ref() == b"ShowMessage" => {
+            Ok(Event::End(tag)) if tag.name().as_ref() == "ShowMessage" => {
                 break;
             }
             _ => (),

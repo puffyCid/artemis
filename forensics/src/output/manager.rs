@@ -109,7 +109,9 @@ impl OutputManager {
 
                 Ok(())
             }
-            EncoderMode::Streamed => self.write_stream(artifact_name, artifact_options, records),
+            EncoderMode::Streamed | EncoderMode::SharedStream => {
+                self.write_stream(artifact_name, artifact_options, records)
+            }
         }
     }
 
@@ -186,6 +188,7 @@ impl OutputManager {
             &self.config.start_time_filter,
             &self.config.end_time_filter,
         );
+
         // If boa is enabled and we have a filter script
         // Filter records before writing them to Sink
         #[cfg(feature = "boa")]
@@ -230,7 +233,7 @@ impl OutputManager {
 
     /// Write artifact records to our configured destination `Sink`
     ///
-    /// This writer streams the data to a single on disk
+    /// This writer streams the data to a single file on disk
     fn write_stream<T: Serialize>(
         &mut self,
         artifact_name: &str,
@@ -283,6 +286,15 @@ impl OutputManager {
         records: &mut dyn RecordStream,
         artifact_context: &ArtifactContext,
     ) -> OutputResult<()> {
+        if self.encoder.encoder_mode() == EncoderMode::SharedStream {
+            return self.write_shared_stream_records(
+                artifact_name,
+                artifact_options,
+                records,
+                artifact_context,
+            );
+        }
+
         let options_hash = hash_artifact_options(artifact_options)?;
         let should_finish = self.active_stream.as_ref().is_some_and(|act| {
             act.artifact_name != artifact_name || act.artifact_options_hash != options_hash
@@ -315,9 +327,65 @@ impl OutputManager {
             record_count: open.record_count,
             writer: open.writer,
         });
+
         if !self.artifacts.iter().any(|name| name == artifact_name) {
             self.artifacts.push(artifact_name.to_string());
         }
+
+        Ok(())
+    }
+
+    /// Write records using a shared stream that stays open
+    /// through the entire collection run
+    fn write_shared_stream_records<T: Serialize>(
+        &mut self,
+        artifact_name: &str,
+        artifact_options: &T,
+        records: &mut dyn RecordStream,
+        artifact_context: &ArtifactContext,
+    ) -> OutputResult<()> {
+        let options_hash = hash_artifact_options(artifact_options)?;
+        let artifact_options_value = serde_json::to_value(artifact_options).unwrap_or_default();
+
+        let (output_file, record_count) = if let Some(active) = self.active_stream.as_mut() {
+            let count = active.writer.write_records(records, artifact_context)?;
+            active.artifact_name = artifact_name.to_string();
+            active.artifact_options_hash = options_hash.clone();
+            active.artifact_options = artifact_options_value.clone();
+            active.record_count += count;
+            (active.output_file.clone(), count)
+        } else {
+            let target = self.sink.stream_collection(self.encoder.extension())?;
+            let output_file = target.path.display().to_string();
+
+            let open = self
+                .encoder
+                .encode_stream(target, records, artifact_context)?;
+            let count = open.record_count;
+
+            self.active_stream = Some(ActiveStream {
+                artifact_name: artifact_name.to_string(),
+                artifact_options_hash: options_hash.clone(),
+                artifact_options: artifact_options_value.clone(),
+                output_file: output_file.clone(),
+                record_count: count,
+                writer: open.writer,
+            });
+            (output_file, count)
+        };
+
+        if !self.artifacts.iter().any(|name| name == artifact_name) {
+            self.artifacts.push(artifact_name.to_string());
+        }
+
+        self.record_shared_stream(
+            artifact_name.to_string(),
+            options_hash,
+            artifact_options_value,
+            output_file,
+            record_count,
+        );
+
         Ok(())
     }
 
@@ -336,6 +404,11 @@ impl OutputManager {
         } = output;
 
         writer.finish()?;
+        // `SharedStream` encoder updates the collection report during its stream run
+        if self.encoder.encoder_mode() == EncoderMode::SharedStream {
+            return Ok(());
+        }
+
         self.record_complete_stream(
             artifact_name,
             artifact_options_hash,
@@ -369,6 +442,44 @@ impl OutputManager {
             record_count,
             "completed",
         );
+
+        run.artifact_options_hash = artifact_option_hash;
+        self.artifact_runs.push(run);
+    }
+
+    /// Update our artifact run report every time we complete writing records to disk
+    /// when using a `SharedStream` encoder
+    fn record_shared_stream(
+        &mut self,
+        artifact_name: String,
+        artifact_option_hash: String,
+        artifact_options: Value,
+        output_file: String,
+        record_count: usize,
+    ) {
+        if let Some(run) = self.artifact_runs.iter_mut().find(|run| {
+            run.name == artifact_name && run.artifact_options_hash == artifact_option_hash
+        }) {
+            if record_count > 0 {
+                run.add_output_file(output_file, record_count);
+            }
+            return;
+        }
+
+        let output_files = if record_count > 0 {
+            vec![output_file]
+        } else {
+            Vec::new()
+        };
+
+        let mut run = ArtifactRunReport::new(
+            &artifact_name,
+            &artifact_options,
+            output_files,
+            record_count,
+            "completed",
+        );
+
         run.artifact_options_hash = artifact_option_hash;
         self.artifact_runs.push(run);
     }
@@ -769,6 +880,7 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
@@ -786,11 +898,14 @@ mod tests {
             .unwrap();
 
         manage.finalize().unwrap();
+
         let output_dir = PathBuf::from("./tmp").join(String::from("manager_js_collection"));
         assert!(output_dir.exists());
+
         let mut jsonl_files = Vec::new();
         let mut report_files = Vec::new();
         let mut log_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -802,13 +917,17 @@ mod tests {
                 log_files.push(path);
             }
         }
+
         assert!(!jsonl_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
+
         let jsonl_data = read_to_string(&jsonl_files[0]).unwrap();
         let lines = jsonl_data.lines().collect::<Vec<_>>();
         assert_eq!(lines.len(), 1);
+
         let first_record: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
+
         assert_eq!(first_record["path"], "/tmp/two.txt");
         assert_eq!(first_record["size"], 5);
         assert_eq!(first_record["message"], "You got filtered!");
@@ -843,9 +962,11 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
+
         let mut records = VecRecordStream::new(vec![
             Record::Json(JsonRecord::new(first)),
             Record::Json(JsonRecord::new(second)),
@@ -862,9 +983,11 @@ mod tests {
         manage.finalize().unwrap();
         let output_dir = PathBuf::from("./tmp").join(String::from("manager_js_async_collection"));
         assert!(output_dir.exists());
+
         let mut csv_files = Vec::new();
         let mut report_files = Vec::new();
         let mut log_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -876,11 +999,13 @@ mod tests {
                 log_files.push(path);
             }
         }
+
         assert!(!csv_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
         let csv_data = read_to_string(&csv_files[0]).unwrap();
         let lines = csv_data.lines().collect::<Vec<_>>();
+
         assert_eq!(lines.len(), 2);
         assert!(lines[1].contains("You got async filtered!"));
         assert!(lines[1].contains(",true"));
@@ -918,6 +1043,7 @@ mod tests {
         assert!(output_dir.exists());
         let mut txt_files = Vec::new();
         let mut report_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -927,12 +1053,15 @@ mod tests {
                 report_files.push(path);
             }
         }
+
         assert!(txt_files.len() >= 1);
         let txt_data = read_to_string(&txt_files[0]).unwrap();
         let lines = txt_data.lines().collect::<Vec<_>>();
         assert_eq!(lines, vec!["hello boa", "100", "true", "3.14", "null"]);
+
         let report_data = read_to_string(&report_files[0]).unwrap();
         let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
+
         assert_eq!(report["total_output_files"], 1);
         assert_eq!(report["artifact_runs"][0]["name"], "runtime_text");
         assert_eq!(report["artifact_runs"][0]["record_count"], 5);
@@ -956,6 +1085,7 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
@@ -982,6 +1112,7 @@ mod tests {
         let mut xml_files = Vec::new();
         let mut report_files = Vec::new();
         let mut log_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -993,9 +1124,11 @@ mod tests {
                 log_files.push(path);
             }
         }
+
         assert!(!xml_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
+
         let xml_data = read_to_string(&xml_files[0]).unwrap();
         assert!(xml_data.contains("<path>/tmp/one.txt</path>"));
     }
@@ -1017,6 +1150,7 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
@@ -1041,6 +1175,7 @@ mod tests {
         let mut par_files = Vec::new();
         let mut report_files = Vec::new();
         let mut log_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -1052,7 +1187,68 @@ mod tests {
                 log_files.push(path);
             }
         }
+
         assert!(!par_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+    }
+
+    #[test]
+    fn test_output_manager_sqlite() {
+        let name = String::from("manager_collection_sqlite");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Sqlite,
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+
+        manage
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
+            .unwrap();
+
+        manage.finalize().unwrap();
+
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection_sqlite"));
+        assert!(output_dir.exists());
+
+        let mut sqlite_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("manager_collection_sqlite") && name.ends_with(".sqlite") {
+                sqlite_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
+                log_files.push(path);
+            }
+        }
+
+        assert!(!sqlite_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
     }
