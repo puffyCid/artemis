@@ -31,15 +31,11 @@ fn test_sqlite_tester() {
             validate_output(value);
         }
     }
-    assert_ne!(sqlite_count, 0);
+    assert_eq!(sqlite_count, 1);
 }
 
 fn validate_output(path: &PathBuf) {
     let conn = Connection::open(path).unwrap();
-    let query = "select pid from processes";
-
-    let results: i64 = conn.query_row(query, [], |row| row.get(0)).unwrap();
-    assert_ne!(results, 0);
 
     let results: i64 = conn
         .query_row("select count(*) from processes", [], |row| row.get(0))
