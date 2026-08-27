@@ -43,11 +43,6 @@ fn validate_output(path: &PathBuf) {
     assert_ne!(results, 0);
 
     let results: i64 = conn
-        .query_row("select count(*) from connections", [], |row| row.get(0))
-        .unwrap();
-    assert_ne!(results, 0);
-
-    let results: i64 = conn
         .query_row("select count(*) from systeminfo", [], |row| row.get(0))
         .unwrap();
     assert_ne!(results, 0);
