@@ -22,47 +22,60 @@ pub(crate) enum ColumnKind {
     Utf8,
 }
 
-/// Infers a schema from the first chunk of artifact rows
-pub(crate) fn infer(rows: &[Map<String, Value>]) -> (Vec<ColumnSpec>, HashSet<String>) {
-    let mut order = Vec::new();
-    let mut kinds: HashMap<String, ColumnKind> = HashMap::new();
-    for row in rows {
-        for (key, value) in row {
-            if !kinds.contains_key(key) {
-                order.push(key.clone());
-                kinds.insert(key.clone(), ColumnKind::from_value(value));
-                continue;
+#[derive(Debug, Clone)]
+pub(crate) struct InferredSchema {
+    /// Ordered columns
+    pub(crate) columns: Vec<ColumnSpec>,
+    /// Source field names included in the inferred schema
+    pub(crate) known_fields: HashSet<String>,
+}
+
+impl InferredSchema {
+    /// Infers a schema from the first chunk of artifact rows
+    pub(crate) fn new(rows: &[Map<String, Value>]) -> Self {
+        let mut order = Vec::new();
+        let mut kinds: HashMap<String, ColumnKind> = HashMap::new();
+        for row in rows {
+            for (key, value) in row {
+                if !kinds.contains_key(key) {
+                    order.push(key.clone());
+                    kinds.insert(key.clone(), ColumnKind::from_value(value));
+                    continue;
+                }
+
+                let current = kinds.get(key).copied().unwrap_or(ColumnKind::Utf8);
+                kinds.insert(key.clone(), current.merge(ColumnKind::from_value(value)));
             }
-
-            let current = kinds.get(key).copied().unwrap_or(ColumnKind::Utf8);
-            kinds.insert(key.clone(), current.merge(ColumnKind::from_value(value)));
         }
-    }
 
-    let mut used_names = HashSet::new();
-    let mut known_fields = HashSet::new();
-    let mut columns = Vec::new();
+        let mut used_names = HashSet::new();
+        let mut known_fields = HashSet::new();
+        let mut columns = Vec::new();
 
-    for source_name in order {
-        known_fields.insert(source_name.clone());
+        for source_name in order {
+            known_fields.insert(source_name.clone());
 
-        let column_name = unique_field_name(&source_name, &mut used_names);
-        let kind = kinds.get(&source_name).copied().unwrap_or(ColumnKind::Utf8);
+            let column_name = unique_field_name(&source_name, &mut used_names);
+            let kind = kinds.get(&source_name).copied().unwrap_or(ColumnKind::Utf8);
+
+            columns.push(ColumnSpec {
+                source_name: Some(source_name),
+                column_name,
+                kind,
+            });
+        }
 
         columns.push(ColumnSpec {
-            source_name: Some(source_name),
-            column_name,
-            kind,
+            source_name: None,
+            column_name: unique_field_name("_extra_json", &mut used_names),
+            kind: ColumnKind::Utf8,
         });
+
+        Self {
+            columns,
+            known_fields,
+        }
     }
-
-    columns.push(ColumnSpec {
-        source_name: None,
-        column_name: unique_field_name("_extra_json", &mut used_names),
-        kind: ColumnKind::Utf8,
-    });
-
-    (columns, known_fields)
 }
 
 impl ColumnKind {

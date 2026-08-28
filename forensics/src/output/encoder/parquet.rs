@@ -6,7 +6,7 @@ use crate::output::{
         },
         helper::{
             record::{extra_json, read_json_rows, value_as_i64, value_as_string},
-            schema::{ColumnKind, ColumnSpec, infer},
+            schema::{ColumnKind, ColumnSpec, InferredSchema},
         },
     },
     error::{OutputError, OutputResult},
@@ -24,7 +24,7 @@ use parquet::{
     schema::parser::parse_message_type,
 };
 use serde_json::{Map, Value};
-use std::{collections::HashSet, fs::File, sync::Arc};
+use std::{fs::File, sync::Arc};
 
 /// Encodes artifact records into a single Parquet file
 #[derive(Debug, PartialEq)]
@@ -55,11 +55,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
         }
 
         // Infer the parquet schema from the first non-empty record chunk
-        let (columns, known_fields) = infer(&rows);
-        let schema = ParquetSchema {
-            columns,
-            known_fields,
-        };
+        let schema = InferredSchema::new(&rows);
         let message_type = schema.message_type();
 
         let parquet_schema = Arc::new(parse_message_type(&message_type).map_err(parquet_error)?);
@@ -97,7 +93,7 @@ pub(crate) struct ParquetWriter {
     /// Full path to the streamed output file
     target: StreamTarget,
     /// The parquet schema
-    schema: ParquetSchema,
+    schema: InferredSchema,
     /// Writer to the parquet file
     writer: SerializedFileWriter<File>,
 }
@@ -153,16 +149,7 @@ impl ParquetWriter {
     }
 }
 
-/// Schema inferred for a streamed parquet artifact
-#[derive(Debug)]
-struct ParquetSchema {
-    /// Ordered parquet columns
-    columns: Vec<ColumnSpec>,
-    /// Source field names included in the inferred schema
-    known_fields: HashSet<String>,
-}
-
-impl ParquetSchema {
+impl InferredSchema {
     /// Builds the parquet message type string
     fn message_type(&self) -> String {
         let mut message = String::from("message artemis {\n");
@@ -213,7 +200,7 @@ enum ColumnBatch {
 }
 
 /// Builds parquet column batches for the provided rows
-fn build_columns(schema: &ParquetSchema, rows: &[Map<String, Value>]) -> Vec<ColumnBatch> {
+fn build_columns(schema: &InferredSchema, rows: &[Map<String, Value>]) -> Vec<ColumnBatch> {
     schema
         .columns
         .iter()
@@ -223,7 +210,7 @@ fn build_columns(schema: &ParquetSchema, rows: &[Map<String, Value>]) -> Vec<Col
 
 /// Assemble each column value
 fn build_column(
-    schema: &ParquetSchema,
+    schema: &InferredSchema,
     column: &ColumnSpec,
     rows: &[Map<String, Value>],
 ) -> ColumnBatch {
@@ -318,7 +305,7 @@ fn f64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
 
 /// Construct string column
 fn utf8_column(
-    schema: &ParquetSchema,
+    schema: &InferredSchema,
     column: &ColumnSpec,
     rows: &[Map<String, Value>],
 ) -> ColumnBatch {

@@ -6,7 +6,7 @@ use crate::output::{
         },
         helper::{
             record::{extra_json, read_json_rows, sanitize_name, value_as_i64, value_as_string},
-            schema::{ColumnKind, ColumnSpec, infer},
+            schema::{ColumnKind, InferredSchema},
         },
     },
     error::{OutputError, OutputResult},
@@ -15,7 +15,7 @@ use crate::output::{
 use rusqlite::{Connection, Error, params_from_iter, types::Value as SqlValue};
 use serde_json::{Map, Value};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::{self, Formatter},
     path::Path,
 };
@@ -83,7 +83,7 @@ pub(crate) struct SqliteWriter {
     /// Mapping of artifact name to created table name
     artifact_tables: HashMap<String, String>,
     /// Schema inferred for each created table
-    tables: HashMap<String, SqliteSchema>,
+    tables: HashMap<String, InferredSchema>,
 }
 
 impl fmt::Debug for SqliteWriter {
@@ -184,11 +184,7 @@ impl SqliteWriter {
 
         // Create schema for a new table
         // Most columns will be TEXT
-        let (columns, known_fields) = infer(rows);
-        let schema = SqliteSchema {
-            columns,
-            known_fields,
-        };
+        let schema = InferredSchema::new(rows);
 
         let definitions = schema
             .columns
@@ -214,15 +210,6 @@ impl SqliteWriter {
     }
 }
 
-/// Schema associated with the artifact table
-#[derive(Clone, Debug)]
-struct SqliteSchema {
-    /// Columns associated with the table
-    columns: Vec<ColumnSpec>,
-    /// Known columns inserted into table from first insertion
-    known_fields: HashSet<String>,
-}
-
 impl ColumnKind {
     /// Return the column type
     fn sql_type(self) -> &'static str {
@@ -235,7 +222,7 @@ impl ColumnKind {
 }
 
 /// Convert the JSON data into supported array of sql data
-fn bind_values(schema: &SqliteSchema, row: &Map<String, Value>) -> Vec<SqlValue> {
+fn bind_values(schema: &InferredSchema, row: &Map<String, Value>) -> Vec<SqlValue> {
     schema
         .columns
         .iter()
@@ -263,7 +250,7 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
 }
 
 /// Converts an artifact name into a unique sqlite table name
-fn unique_table_name(artifact_name: &str, tables: &HashMap<String, SqliteSchema>) -> String {
+fn unique_table_name(artifact_name: &str, tables: &HashMap<String, InferredSchema>) -> String {
     let base = sanitize_name(artifact_name);
     let mut candidate = base.clone();
     let mut suffix = 1;
