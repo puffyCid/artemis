@@ -4,9 +4,9 @@ use crate::output::{
         artifact_encoder::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
-        helper::record::{
-            extra_json, read_json_rows, sanitize_name, unique_field_name, value_as_i64,
-            value_as_string,
+        helper::{
+            record::{extra_json, read_json_rows, sanitize_name, value_as_i64, value_as_string},
+            schema::{ColumnKind, ColumnSpec, infer},
         },
     },
     error::{OutputError, OutputResult},
@@ -139,7 +139,7 @@ impl SqliteWriter {
         let columns = schema
             .columns
             .iter()
-            .map(|column| quote_identifier(&column.sql_name))
+            .map(|column| quote_identifier(&column.column_name))
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -184,14 +184,19 @@ impl SqliteWriter {
 
         // Create schema for a new table
         // Most columns will be TEXT
-        let schema = SqliteSchema::infer(rows);
+        let (columns, known_fields) = infer(rows);
+        let schema = SqliteSchema {
+            columns,
+            known_fields,
+        };
+
         let definitions = schema
             .columns
             .iter()
             .map(|column| {
                 format!(
                     "{} {}",
-                    quote_identifier(&column.sql_name),
+                    quote_identifier(&column.column_name),
                     column.kind.sql_type()
                 )
             })
@@ -218,113 +223,13 @@ struct SqliteSchema {
     known_fields: HashSet<String>,
 }
 
-impl SqliteSchema {
-    /// Determine the JSON key types and try to create table schema
-    fn infer(rows: &[Map<String, Value>]) -> Self {
-        let mut order = Vec::new();
-        let mut column_kinds = HashMap::new();
-
-        // Loop through JSON data and determine value type
-        for row in rows {
-            for (key, value) in row {
-                if !column_kinds.contains_key(key) {
-                    order.push(key.clone());
-                    column_kinds.insert(key.clone(), ColumnKind::from_value(value));
-                    continue;
-                }
-
-                let current = column_kinds.get(key).copied().unwrap_or(ColumnKind::Text);
-                column_kinds.insert(key.clone(), current.merge(ColumnKind::from_value(value)));
-            }
-        }
-
-        let mut used_names = HashSet::new();
-        let mut known_fields = HashSet::new();
-        let mut columns = Vec::new();
-
-        for source_name in order {
-            known_fields.insert(source_name.clone());
-
-            let sql_name = unique_field_name(&source_name, &mut used_names);
-            let kind = column_kinds
-                .get(&source_name)
-                .copied()
-                .unwrap_or(ColumnKind::Text);
-
-            columns.push(ColumnSpec {
-                source_name: Some(source_name),
-                sql_name,
-                kind,
-            });
-        }
-
-        columns.push(ColumnSpec {
-            source_name: None,
-            sql_name: unique_field_name("_extra_json", &mut used_names),
-            kind: ColumnKind::Text,
-        });
-
-        Self {
-            columns,
-            known_fields,
-        }
-    }
-}
-
-/// Metadata for one sqlite column
-#[derive(Clone, Debug)]
-struct ColumnSpec {
-    /// Source JSON field name for the column
-    source_name: Option<String>,
-    /// The unique sqlite column name
-    sql_name: String,
-    /// Column type
-    kind: ColumnKind,
-}
-/// Supported sqlite column value types
-#[derive(Copy, Clone, Debug)]
-enum ColumnKind {
-    Bool,
-    Int64,
-    Double,
-    Text,
-}
-
 impl ColumnKind {
-    /// Determine Column type based on JSON value type
-    fn from_value(value: &Value) -> Self {
-        match value {
-            Value::Bool(_) => Self::Bool,
-            Value::Number(number) => {
-                if number.is_i64() || number.as_u64().is_some_and(|n| i64::try_from(n).is_ok()) {
-                    Self::Int64
-                } else if number.is_f64() {
-                    Self::Double
-                } else {
-                    Self::Text
-                }
-            }
-            Value::Array(_) | Value::Null | Value::Object(_) | Value::String(_) => Self::Text,
-        }
-    }
-
-    /// Merges inferred column types when a field has mixed value types in the schema chunk
-    fn merge(self, other: Self) -> Self {
-        match (self, other) {
-            (Self::Text, _) | (_, Self::Text) => Self::Text,
-            (Self::Double, _) | (_, Self::Double) => Self::Double,
-            (Self::Int64, Self::Int64) => Self::Int64,
-            (Self::Bool, Self::Bool) => Self::Bool,
-            _ => Self::Text,
-        }
-    }
-
     /// Return the column type
     fn sql_type(self) -> &'static str {
         match self {
             Self::Bool | Self::Int64 => "INTEGER",
             Self::Double => "REAL",
-            Self::Text => "TEXT",
+            Self::Utf8 => "TEXT",
         }
     }
 }
@@ -353,7 +258,7 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
         }),
         ColumnKind::Int64 => value_as_i64(json_value).map_or(SqlValue::Null, SqlValue::Integer),
         ColumnKind::Double => json_value.as_f64().map_or(SqlValue::Null, SqlValue::Real),
-        ColumnKind::Text => value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text),
+        ColumnKind::Utf8 => value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text),
     }
 }
 

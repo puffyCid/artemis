@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 
 /// Metadata for one column
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ColumnSpec {
     /// Source JSON field name for the column
     pub(crate) source_name: Option<String>,
