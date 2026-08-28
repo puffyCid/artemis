@@ -1,5 +1,6 @@
 pub(crate) mod artifact_encoder;
 mod csv;
+mod duckdb;
 pub(crate) mod factory;
 mod helper;
 mod json;

@@ -1,4 +1,4 @@
-use crate::output::encoder::helper::record::unique_field_name;
+use crate::output::encoder::helper::record::{sanitize_name, unique_field_name};
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 
@@ -117,6 +117,28 @@ impl ColumnKind {
             _ => Self::Utf8,
         }
     }
+}
+
+/// Converts an artifact name into a unique table name
+pub(crate) fn unique_table_name(
+    artifact_name: &str,
+    tables: &HashMap<String, InferredSchema>,
+) -> String {
+    let base = sanitize_name(artifact_name);
+    let mut candidate = base.clone();
+    let mut suffix = 1;
+
+    while tables.contains_key(&candidate) {
+        candidate = format!("{base}_{suffix}");
+        suffix += 1;
+    }
+
+    candidate
+}
+
+/// Try to properly escape quotes
+pub(crate) fn quote_identifier(name: &str) -> String {
+    format!("\"{}\"", name.replace('"', "\"\""))
 }
 
 #[cfg(test)]

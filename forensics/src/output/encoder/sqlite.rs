@@ -6,7 +6,7 @@ use crate::output::{
         },
         helper::{
             record::{extra_json, read_json_rows, sanitize_name, value_as_i64, value_as_string},
-            schema::{ColumnKind, InferredSchema},
+            schema::{ColumnKind, InferredSchema, quote_identifier, unique_table_name},
         },
     },
     error::{OutputError, OutputResult},
@@ -72,6 +72,14 @@ fn open_connection(target: &StreamTarget) -> OutputResult<Connection> {
         .map_err(sqlite_error)?;
 
     Ok(conn)
+}
+
+/// Convert a path-specific sqlite open error
+fn sqlite_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
+    OutputError::Encode(format!(
+        "failed to open sqlite file {}: {err}",
+        path.as_ref().display()
+    ))
 }
 
 /// Active sqlite writer for artifact collection output
@@ -249,36 +257,9 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
     }
 }
 
-/// Converts an artifact name into a unique sqlite table name
-fn unique_table_name(artifact_name: &str, tables: &HashMap<String, InferredSchema>) -> String {
-    let base = sanitize_name(artifact_name);
-    let mut candidate = base.clone();
-    let mut suffix = 1;
-
-    while tables.contains_key(&candidate) {
-        candidate = format!("{base}_{suffix}");
-        suffix += 1;
-    }
-
-    candidate
-}
-
-/// Quotes a sqlite identifier
-fn quote_identifier(name: &str) -> String {
-    format!("\"{}\"", name.replace('"', "\"\""))
-}
-
 /// Convert `rusqlite::Error` to `OutputError`
 fn sqlite_error(err: Error) -> OutputError {
     OutputError::Encode(format!("sqlite error: {err}"))
-}
-
-/// Convert a path-specific sqlite open error
-fn sqlite_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
-    OutputError::Encode(format!(
-        "failed to open sqlite file {}: {err}",
-        path.as_ref().display()
-    ))
 }
 
 #[cfg(test)]

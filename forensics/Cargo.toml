@@ -67,6 +67,9 @@ parquet = { version = "59.2.0", default-features = false, features = [
     "snap",
     "simdutf8",
 ] }
+duckdb = { version = "1.10505.0", default-features = false, features = [
+    "bundled",
+] }
 
 # Optional Stuff
 url = { version = "2.5.8", optional = true }
