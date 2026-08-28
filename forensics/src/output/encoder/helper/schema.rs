@@ -1,4 +1,5 @@
 use crate::output::encoder::helper::record::{sanitize_name, unique_field_name};
+use chrono::DateTime;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 
@@ -20,6 +21,9 @@ pub(crate) enum ColumnKind {
     Int64,
     Double,
     Utf8,
+    UnsignedInt64,
+    Timestamp,
+    Json,
 }
 
 /// Create a Schema based on first row of JSON
@@ -91,7 +95,9 @@ impl ColumnKind {
         match value {
             Value::Bool(_) => Self::Bool,
             Value::Number(number) => {
-                if number.is_i64() || number.as_u64().is_some_and(|n| i64::try_from(n).is_ok()) {
+                if number.is_u64() {
+                    Self::UnsignedInt64
+                } else if number.is_i64() {
                     Self::Int64
                 } else if number.is_f64() {
                     Self::Double
@@ -99,7 +105,9 @@ impl ColumnKind {
                     Self::Utf8
                 }
             }
-            Value::Null | Value::Array(_) | Value::Object(_) | Value::String(_) => Self::Utf8,
+            Value::Object(_) => Self::Json,
+            Value::String(val) if check_timestamp(val) => Self::Timestamp,
+            Value::Null | Value::Array(_) | Value::String(_) => Self::Utf8,
         }
     }
 
@@ -117,6 +125,15 @@ impl ColumnKind {
             _ => Self::Utf8,
         }
     }
+}
+
+fn check_timestamp(value: &str) -> bool {
+    // Shortest RFC 3339 datetime is '1970-01-01T00:00:00Z' (20 chars).
+    if value.len() < 20 || value.as_bytes().get(10) != Some(&b'T') {
+        return false;
+    }
+
+    DateTime::parse_from_rfc3339(value).is_ok()
 }
 
 /// Converts an artifact name into a unique table name

@@ -225,7 +225,7 @@ impl ColumnKind {
         match self {
             Self::Bool | Self::Int64 => "INTEGER",
             Self::Double => "REAL",
-            Self::Utf8 => "TEXT",
+            Self::Utf8 | Self::Json | Self::Timestamp | Self::UnsignedInt64 => "TEXT",
         }
     }
 }
@@ -254,7 +254,9 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
         }),
         ColumnKind::Int64 => value_as_i64(json_value).map_or(SqlValue::Null, SqlValue::Integer),
         ColumnKind::Double => json_value.as_f64().map_or(SqlValue::Null, SqlValue::Real),
-        ColumnKind::Utf8 => value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text),
+        ColumnKind::Utf8 | ColumnKind::Json | ColumnKind::Timestamp | ColumnKind::UnsignedInt64 => {
+            value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text)
+        }
     }
 }
 

@@ -5,7 +5,8 @@ use std::{
 };
 
 use duckdb::{
-    Connection, Error, appender_params_from_iter, params_from_iter, types::Value as DuckValue,
+    Connection, Error, appender_params_from_iter, params_from_iter,
+    types::{TimeUnit, Value as DuckValue},
 };
 use serde_json::{Map, Value};
 
@@ -14,7 +15,7 @@ use crate::output::{
     encoder::{
         artifact_encoder::{EncoderStreamWriter, StreamArtifactEncoder, StreamTarget},
         helper::{
-            record::{extra_json, read_json_rows, value_as_i64, value_as_string},
+            record::{extra_json, read_json_rows, value_as_i64, value_as_string, value_as_u64},
             schema::{ColumnKind, InferredSchema, quote_identifier, unique_table_name},
         },
     },
@@ -106,18 +107,6 @@ impl DuckWriter {
             OutputError::Encode(format!("missing duckdb schema for table {table}"))
         })?;
 
-        let columns = schema
-            .columns
-            .iter()
-            .map(|column| quote_identifier(&column.column_name))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let placeholder = (1..=schema.columns.len())
-            .map(|index| format!("?{index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-
         // Start inserting JSON records into duckdb file
         let transaction = self.conn.transaction().map_err(duckdb_error)?;
         {
@@ -183,6 +172,9 @@ impl ColumnKind {
             Self::Double => "DOUBLE",
             Self::Utf8 => "VARCHAR",
             Self::Bool => "BOOLEAN",
+            Self::Json => "JSON",
+            Self::Timestamp => "TIMESTAMP",
+            Self::UnsignedInt64 => "UBIGINT",
         }
     }
 }
@@ -213,7 +205,12 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> DuckValue {
         ColumnKind::Double => json_value
             .as_f64()
             .map_or(DuckValue::Null, DuckValue::Double),
-        ColumnKind::Utf8 => value_as_string(json_value).map_or(DuckValue::Null, DuckValue::Text),
+        ColumnKind::Utf8 | ColumnKind::Json | ColumnKind::Timestamp => {
+            value_as_string(json_value).map_or(DuckValue::Null, DuckValue::Text)
+        }
+        ColumnKind::UnsignedInt64 => {
+            value_as_u64(json_value).map_or(DuckValue::Null, DuckValue::UBigInt)
+        }
     }
 }
 

@@ -87,6 +87,12 @@ pub(crate) fn value_as_i64(value: &Value) -> Option<i64> {
     i64::try_from(value).ok()
 }
 
+/// Attempt to convert JSON value to unsigned integer
+pub(crate) fn value_as_u64(value: &Value) -> Option<u64> {
+    let number = value.as_number()?;
+    number.as_u64()
+}
+
 /// Converts a source field name into a unique column name
 pub(crate) fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
     let base = sanitize_name(source);
