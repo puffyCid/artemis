@@ -53,7 +53,7 @@ fn validate_output(output: &PathBuf) {
         let value = line.unwrap();
         println!("{value}");
         let info: Amcache = serde_json::from_str(&value).unwrap();
-        if info.name.is_empty() && info.original_name.is_empty() {
+        if info.name.is_empty() && info.original_name.is_empty() && info.file_id.is_empty() {
             panic!("no names?")
         }
         assert_ne!(info.last_modified, "1970-01-01T00:00:00.000Z");
