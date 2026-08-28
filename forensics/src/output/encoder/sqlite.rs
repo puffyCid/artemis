@@ -5,7 +5,7 @@ use crate::output::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
         helper::{
-            record::{extra_json, read_json_rows, sanitize_name, value_as_i64, value_as_string},
+            record::{extra_json, read_json_rows, value_as_i64, value_as_string},
             schema::{ColumnKind, InferredSchema, quote_identifier, unique_table_name},
         },
     },
@@ -30,6 +30,7 @@ impl StreamArtifactEncoder for SqliteEncoder {
     }
 
     fn mime_type(&self) -> &str {
+        // https://mimetype.io/application/vnd.sqlite3
         "application/vnd.sqlite3"
     }
 

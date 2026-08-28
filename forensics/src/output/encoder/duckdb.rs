@@ -4,7 +4,9 @@ use std::{
     path::Path,
 };
 
-use duckdb::{Connection, Error, params_from_iter, types::Value as DuckValue};
+use duckdb::{
+    Connection, Error, appender_params_from_iter, params_from_iter, types::Value as DuckValue,
+};
 use serde_json::{Map, Value};
 
 use crate::output::{
@@ -30,8 +32,7 @@ impl StreamArtifactEncoder for DuckEncoder {
     }
 
     fn mime_type(&self) -> &str {
-        // https://duckdb.org/2026/05/12/quack-remote-protocol#serialization
-        "application/duckdb"
+        "application/vnd.duckdb"
     }
 
     fn encode_stream(
@@ -101,7 +102,7 @@ impl DuckWriter {
         rows: &[Map<String, Value>],
     ) -> OutputResult<usize> {
         let table = self.ensure_table(artifact_name, rows)?;
-        let schema = self.tables.get(&table).cloned().ok_or_else(|| {
+        let schema = self.tables.get(&table).ok_or_else(|| {
             OutputError::Encode(format!("missing duckdb schema for table {table}"))
         })?;
 
@@ -117,21 +118,16 @@ impl DuckWriter {
             .collect::<Vec<_>>()
             .join(", ");
 
-        let sql = format!(
-            "INSERT INTO {} ({columns}) VALUES ({placeholder})",
-            quote_identifier(&table)
-        );
-
         // Start inserting JSON records into duckdb file
         let transaction = self.conn.transaction().map_err(duckdb_error)?;
         {
-            let mut statement = transaction.prepare(&sql).map_err(duckdb_error)?;
+            let mut appender = transaction.appender(&table).map_err(duckdb_error)?;
             for row in rows {
-                let values = bind_values(&schema, row);
-                statement
-                    .execute(params_from_iter(values))
+                appender
+                    .append_row(appender_params_from_iter(bind_values(schema, row)))
                     .map_err(duckdb_error)?;
             }
+            appender.flush().map_err(duckdb_error)?;
         }
 
         transaction.commit().map_err(duckdb_error)?;
@@ -183,7 +179,7 @@ impl ColumnKind {
     /// Return the column type
     fn duck_type(self) -> &'static str {
         match self {
-            Self::Int64 => "INTEGER",
+            Self::Int64 => "BIGINT",
             Self::Double => "DOUBLE",
             Self::Utf8 => "VARCHAR",
             Self::Bool => "BOOLEAN",
