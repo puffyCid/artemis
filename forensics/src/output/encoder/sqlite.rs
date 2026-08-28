@@ -4,7 +4,10 @@ use crate::output::{
         artifact_encoder::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
-        helper::record::{read_json_rows, sanitize_name, value_as_i64, value_as_string},
+        helper::record::{
+            extra_json, read_json_rows, sanitize_name, unique_field_name, value_as_i64,
+            value_as_string,
+        },
     },
     error::{OutputError, OutputResult},
     record::RecordStream,
@@ -333,7 +336,7 @@ fn bind_values(schema: &SqliteSchema, row: &Map<String, Value>) -> Vec<SqlValue>
         .iter()
         .map(|column| match &column.source_name {
             Some(name) => value_for_column(column.kind, row.get(name)),
-            None => extra_json(schema, row).map_or(SqlValue::Null, SqlValue::Text),
+            None => extra_json(&schema.known_fields, row).map_or(SqlValue::Null, SqlValue::Text),
         })
         .collect()
 }
@@ -352,39 +355,6 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
         ColumnKind::Double => json_value.as_f64().map_or(SqlValue::Null, SqlValue::Real),
         ColumnKind::Text => value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text),
     }
-}
-
-/// Serializes fields not present in the inferred schema into the `_extra_json` column
-///
-/// Typically will only happen if using `BoaJS` to write custom parsers
-/// and the output is **not** consistent
-fn extra_json(schema: &SqliteSchema, row: &Map<String, Value>) -> Option<String> {
-    let mut extra = Map::new();
-    for (key, value) in row {
-        if !schema.known_fields.contains(key) {
-            extra.insert(key.clone(), value.clone());
-        }
-    }
-
-    if extra.is_empty() {
-        return None;
-    }
-    serde_json::to_string(&Value::Object(extra)).ok()
-}
-
-/// Converts a source field name into a unique sqlite column name
-fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
-    let base = sanitize_name(source);
-    let mut candidate = base.clone();
-    let mut suffix = 1;
-
-    while used.contains(&candidate) {
-        candidate = format!("{base}_{suffix}");
-        suffix += 1;
-    }
-
-    used.insert(candidate.clone());
-    candidate
 }
 
 /// Converts an artifact name into a unique sqlite table name
@@ -421,7 +391,7 @@ fn sqlite_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
 
 #[cfg(test)]
 mod tests {
-    use super::{SqliteEncoder, sanitize_name};
+    use super::SqliteEncoder;
     use crate::{
         output::{
             context::CollectionContext,
@@ -614,6 +584,7 @@ mod tests {
         opened.writer.write_records(&mut second, &context).unwrap();
         opened.writer.finish().unwrap();
         let names = column_names(&path, "files");
+
         assert!(names.iter().any(|name| name == "path"));
         assert!(names.iter().any(|name| name == "_extra_json"));
         assert!(!names.iter().any(|name| name == "late_field"));
@@ -657,13 +628,5 @@ mod tests {
         assert_eq!(table_names(&path), vec!["files", "registry"]);
         assert_eq!(table_count(&path, "files"), 1);
         assert_eq!(table_count(&path, "registry"), 1);
-    }
-
-    #[test]
-    fn test_sanitize_name() {
-        assert_eq!(sanitize_name("eventlogs"), "eventlogs");
-        assert_eq!(sanitize_name("foo/bar"), "foo_bar");
-        assert_eq!(sanitize_name("1start"), "_1start");
-        assert_eq!(sanitize_name(""), "field");
     }
 }

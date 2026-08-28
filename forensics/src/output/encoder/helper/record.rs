@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::output::{
     context::ArtifactContext,
     encoder::metadata::append_metadata,
@@ -85,19 +87,55 @@ pub(crate) fn value_as_i64(value: &Value) -> Option<i64> {
     i64::try_from(value).ok()
 }
 
+/// Converts a source field name into a unique column name
+pub(crate) fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
+    let base = sanitize_name(source);
+    let mut candidate = base.clone();
+    let mut suffix = 1;
+
+    while used.contains(&candidate) {
+        candidate = format!("{base}_{suffix}");
+        suffix += 1;
+    }
+
+    used.insert(candidate.clone());
+    candidate
+}
+
+/// Serializes fields not present in the inferred schema into the `_extra_json` column
+///
+/// Typically will only happen if using `BoaJS` to write custom parsers
+/// and the output is **not** consistent
+pub(crate) fn extra_json(schema: &HashSet<String>, row: &Map<String, Value>) -> Option<String> {
+    let mut extra = Map::new();
+    for (key, value) in row {
+        if !schema.contains(key) {
+            extra.insert(key.clone(), value.clone());
+        }
+    }
+
+    if extra.is_empty() {
+        return None;
+    }
+
+    serde_json::to_string(&Value::Object(extra)).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         output::{
             context::CollectionContext,
-            encoder::helper::record::{read_json_rows, sanitize_name, value_as_string},
+            encoder::helper::record::{
+                extra_json, read_json_rows, sanitize_name, unique_field_name, value_as_string,
+            },
             error::OutputError,
             record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
         },
         structs::toml::OutputConfig,
     };
     use serde_json::{Map, Value, json};
-    use std::path::PathBuf;
+    use std::{collections::HashSet, path::PathBuf};
 
     fn json_record(value: Value) -> Record {
         Record::Json(JsonRecord::new(value.as_object().unwrap().clone()))
@@ -156,5 +194,26 @@ mod tests {
         for entry in test {
             assert_ne!(value_as_string(&entry), None);
         }
+    }
+
+    #[test]
+    fn test_unique_field_name() {
+        let name = "test";
+        let mut used = HashSet::new();
+        used.insert(String::from("test"));
+
+        assert_eq!(unique_field_name(name, &mut used), "test_1")
+    }
+
+    #[test]
+    fn test_extra_json() {
+        let test = HashSet::new();
+        let value = json!({
+            "path": "/tmp/one",
+            "size": 1
+        });
+
+        let result = extra_json(&test, value.as_object().unwrap()).unwrap();
+        assert_eq!(result, "{\"path\":\"/tmp/one\",\"size\":1}");
     }
 }

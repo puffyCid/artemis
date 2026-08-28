@@ -4,7 +4,10 @@ use crate::output::{
         artifact_encoder::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
-        helper::record::{read_json_rows, sanitize_name, value_as_i64, value_as_string},
+        helper::{
+            record::{extra_json, read_json_rows, value_as_i64, value_as_string},
+            schema::{ColumnKind, ColumnSpec, infer},
+        },
     },
     error::{OutputError, OutputResult},
     record::RecordStream,
@@ -21,11 +24,7 @@ use parquet::{
     schema::parser::parse_message_type,
 };
 use serde_json::{Map, Value};
-use std::{
-    collections::{HashMap, HashSet},
-    fs::File,
-    sync::Arc,
-};
+use std::{collections::HashSet, fs::File, sync::Arc};
 
 /// Encodes artifact records into a single Parquet file
 #[derive(Debug, PartialEq)]
@@ -56,7 +55,11 @@ impl StreamArtifactEncoder for ParquetEncoder {
         }
 
         // Infer the parquet schema from the first non-empty record chunk
-        let schema = ParquetSchema::infer(&rows);
+        let (columns, known_fields) = infer(&rows);
+        let schema = ParquetSchema {
+            columns,
+            known_fields,
+        };
         let message_type = schema.message_type();
 
         let parquet_schema = Arc::new(parse_message_type(&message_type).map_err(parquet_error)?);
@@ -160,63 +163,17 @@ struct ParquetSchema {
 }
 
 impl ParquetSchema {
-    /// Infers a parquet schema from the first chunk of artifact rows
-    fn infer(rows: &[Map<String, Value>]) -> Self {
-        let mut order = Vec::new();
-        let mut kinds: HashMap<String, ColumnKind> = HashMap::new();
-        for row in rows {
-            for (key, value) in row {
-                if !kinds.contains_key(key) {
-                    order.push(key.clone());
-                    kinds.insert(key.clone(), ColumnKind::from_value(value));
-                    continue;
-                }
-
-                let current = kinds.get(key).copied().unwrap_or(ColumnKind::Utf8);
-                kinds.insert(key.clone(), current.merge(ColumnKind::from_value(value)));
-            }
-        }
-
-        let mut used_names = HashSet::new();
-        let mut known_fields = HashSet::new();
-        let mut columns = Vec::new();
-
-        for source_name in order {
-            known_fields.insert(source_name.clone());
-
-            let parquet_name = Self::unique_field_name(&source_name, &mut used_names);
-            let kind = kinds.get(&source_name).copied().unwrap_or(ColumnKind::Utf8);
-
-            columns.push(ColumnSpec {
-                source_name: Some(source_name),
-                parquet_name,
-                kind,
-            });
-        }
-
-        columns.push(ColumnSpec {
-            source_name: None,
-            parquet_name: Self::unique_field_name("_extra_json", &mut used_names),
-            kind: ColumnKind::Utf8,
-        });
-
-        Self {
-            columns,
-            known_fields,
-        }
-    }
-
     /// Builds the parquet message type string
     fn message_type(&self) -> String {
         let mut message = String::from("message artemis {\n");
         for column in &self.columns {
             let field = match column.kind {
-                ColumnKind::Bool => format!("  optional BOOLEAN {};\n", column.parquet_name),
-                ColumnKind::Double => format!("  optional DOUBLE {};\n", column.parquet_name),
+                ColumnKind::Bool => format!("  optional BOOLEAN {};\n", column.column_name),
+                ColumnKind::Double => format!("  optional DOUBLE {};\n", column.column_name),
                 ColumnKind::Utf8 => {
-                    format!("  optional BYTE_ARRAY {} (UTF8);\n", column.parquet_name)
+                    format!("  optional BYTE_ARRAY {} (UTF8);\n", column.column_name)
                 }
-                ColumnKind::Int64 => format!("  optional INT64 {};\n", column.parquet_name),
+                ColumnKind::Int64 => format!("  optional INT64 {};\n", column.column_name),
             };
 
             message.push_str(&field);
@@ -224,75 +181,6 @@ impl ParquetSchema {
 
         message.push_str("}\n");
         message
-    }
-
-    /// Converts a source field name into a unique parquet column name
-    fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
-        let base = sanitize_name(source);
-        let mut candidate = base.clone();
-
-        let mut suffix = 1;
-        while used.contains(&candidate) {
-            candidate = format!("{base}_{suffix}");
-            suffix += 1;
-        }
-
-        used.insert(candidate.clone());
-        candidate
-    }
-}
-
-/// Metadata for one parquet column
-#[derive(Debug)]
-struct ColumnSpec {
-    /// Source JSON field name for the column
-    source_name: Option<String>,
-    /// The unique parquet column name
-    parquet_name: String,
-    /// Column type
-    kind: ColumnKind,
-}
-
-/// Supported parquet column value types
-#[derive(Copy, Clone, Debug)]
-enum ColumnKind {
-    Bool,
-    Int64,
-    Double,
-    Utf8,
-}
-
-impl ColumnKind {
-    /// Convert JSON value to `ColumnKind`
-    fn from_value(value: &Value) -> Self {
-        match value {
-            Value::Bool(_) => Self::Bool,
-            Value::Number(number) => {
-                if number.is_i64() || number.as_u64().is_some_and(|n| i64::try_from(n).is_ok()) {
-                    Self::Int64
-                } else if number.is_f64() {
-                    Self::Double
-                } else {
-                    Self::Utf8
-                }
-            }
-            Value::Null | Value::Array(_) | Value::Object(_) | Value::String(_) => Self::Utf8,
-        }
-    }
-
-    /// Merges inferred column types when a field has mixed value types in the schema chunk
-    ///
-    /// Example: `{"value": 1}` and later `{"value": 2.5}`
-    ///
-    /// The column type becomes `ColumnKind::Double`
-    fn merge(self, other: Self) -> Self {
-        match (self, other) {
-            (Self::Utf8, _) | (_, Self::Utf8) => Self::Utf8,
-            (Self::Double, _) | (_, Self::Double) => Self::Double,
-            (Self::Int64, Self::Int64) => Self::Int64,
-            (Self::Bool, Self::Bool) => Self::Bool,
-            _ => Self::Utf8,
-        }
     }
 }
 
@@ -439,7 +327,7 @@ fn utf8_column(
     for row in rows {
         let value = match &column.source_name {
             Some(name) => row.get(name).and_then(value_as_string),
-            None => extra_json(schema, row),
+            None => extra_json(&schema.known_fields, row),
         };
 
         if let Some(val) = value {
@@ -456,22 +344,6 @@ fn utf8_column(
         values,
         definition_levels,
     }
-}
-
-/// Serializes fields not present in the inferred schema into the `_extra_json` column
-fn extra_json(schema: &ParquetSchema, row: &Map<String, Value>) -> Option<String> {
-    let mut extra = Map::new();
-    for (key, value) in row {
-        if !schema.known_fields.contains(key) {
-            extra.insert(key.clone(), value.clone());
-        }
-    }
-
-    if extra.is_empty() {
-        return None;
-    }
-
-    serde_json::to_string(&Value::Object(extra)).ok()
 }
 
 /// Write the column to the parquet file
