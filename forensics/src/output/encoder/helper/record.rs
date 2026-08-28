@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::output::{
     context::ArtifactContext,
     encoder::metadata::append_metadata,
@@ -7,6 +5,7 @@ use crate::output::{
     record::{Record, RecordStream},
 };
 use serde_json::{Map, Value};
+use std::collections::HashSet;
 
 /// Converts JSON record values into rows.
 ///

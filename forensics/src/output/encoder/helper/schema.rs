@@ -95,10 +95,10 @@ impl ColumnKind {
         match value {
             Value::Bool(_) => Self::Bool,
             Value::Number(number) => {
-                if number.is_u64() {
-                    Self::UnsignedInt64
-                } else if number.is_i64() {
+                if number.is_i64() {
                     Self::Int64
+                } else if number.is_u64() {
+                    Self::UnsignedInt64
                 } else if number.is_f64() {
                     Self::Double
                 } else {
@@ -118,10 +118,10 @@ impl ColumnKind {
     /// The column type becomes `ColumnKind::Double`
     fn merge(self, other: Self) -> Self {
         match (self, other) {
+            (col_a, col_b) if col_a == col_b => col_a,
             (Self::Utf8, _) | (_, Self::Utf8) => Self::Utf8,
-            (Self::Double, _) | (_, Self::Double) => Self::Double,
-            (Self::Int64, Self::Int64) => Self::Int64,
-            (Self::Bool, Self::Bool) => Self::Bool,
+            (Self::Double, Self::Int64 | Self::UnsignedInt64)
+            | (Self::Int64 | Self::UnsignedInt64, Self::Double) => Self::Double,
             _ => Self::Utf8,
         }
     }
