@@ -4,16 +4,17 @@ use crate::output::{
         artifact_encoder::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
-        metadata::append_metadata,
+        helper::record::{read_json_rows, sanitize_name, value_as_i64, value_as_string},
     },
     error::{OutputError, OutputResult},
-    record::{Record, RecordStream},
+    record::RecordStream,
 };
-use rusqlite::{Connection, params_from_iter, types::Value as SqlValue};
+use rusqlite::{Connection, Error, params_from_iter, types::Value as SqlValue};
 use serde_json::{Map, Value};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Formatter},
+    path::Path,
 };
 
 /// Encodes artifact records into a single sqlite file
@@ -46,7 +47,7 @@ impl StreamArtifactEncoder for SqliteEncoder {
             tables: HashMap::new(),
         };
 
-        let rows = read_json_rows(records, context)?;
+        let rows = read_json_rows(records, context, self.extension())?;
         let record_count = if rows.is_empty() {
             0
         } else {
@@ -58,36 +59,6 @@ impl StreamArtifactEncoder for SqliteEncoder {
             record_count,
         })
     }
-}
-
-/// Convert the `RecordStream` artifact entry to a basic array of JSON
-fn read_json_rows(
-    records: &mut dyn RecordStream,
-    context: &ArtifactContext,
-) -> OutputResult<Vec<Map<String, Value>>> {
-    let mut rows = Vec::new();
-
-    // Loop through all artifact entries
-    while let Some(record) = records.next_record()? {
-        let Record::Json(json_record) = record else {
-            return Err(OutputError::UnsupportedRecord {
-                format: String::from("sqlite"),
-                record_type: record.kind().to_string(),
-            });
-        };
-
-        let mut value = json_record.into_value();
-        append_metadata(&mut value, context);
-        let Value::Object(fields) = value else {
-            return Err(OutputError::Encode(String::from(
-                "sqlite records must be JSON objects",
-            )));
-        };
-
-        rows.push(fields);
-    }
-
-    Ok(rows)
 }
 
 /// Open the sqlite file for writing
@@ -129,7 +100,7 @@ impl SqliteWriter {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<usize> {
-        let rows = read_json_rows(records, context)?;
+        let rows = read_json_rows(records, context, "sqlite")?;
         if rows.is_empty() {
             return Ok(0);
         }
@@ -383,29 +354,6 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
     }
 }
 
-/// Attempt to convert JSON value to integer
-fn value_as_i64(value: &Value) -> Option<i64> {
-    let number = value.as_number()?;
-    if let Some(val) = number.as_i64() {
-        return Some(val);
-    }
-
-    let value = number.as_u64()?;
-    i64::try_from(value).ok()
-}
-
-/// Attempt to convert JSON value to string
-fn value_as_string(value: &Value) -> Option<String> {
-    match value {
-        Value::Null => None,
-        Value::String(val) => Some(val.clone()),
-        Value::Bool(val) => Some(val.to_string()),
-        Value::Number(val) => Some(val.to_string()),
-        Value::Array(val) => serde_json::to_string(val).ok(),
-        Value::Object(val) => serde_json::to_string(val).ok(),
-    }
-}
-
 /// Serializes fields not present in the inferred schema into the `_extra_json` column
 ///
 /// Typically will only happen if using `BoaJS` to write custom parsers
@@ -426,7 +374,7 @@ fn extra_json(schema: &SqliteSchema, row: &Map<String, Value>) -> Option<String>
 
 /// Converts a source field name into a unique sqlite column name
 fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
-    let base = sanitize_ident(source);
+    let base = sanitize_name(source);
     let mut candidate = base.clone();
     let mut suffix = 1;
 
@@ -438,9 +386,10 @@ fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
     used.insert(candidate.clone());
     candidate
 }
+
 /// Converts an artifact name into a unique sqlite table name
 fn unique_table_name(artifact_name: &str, tables: &HashMap<String, SqliteSchema>) -> String {
-    let base = sanitize_ident(artifact_name);
+    let base = sanitize_name(artifact_name);
     let mut candidate = base.clone();
     let mut suffix = 1;
 
@@ -452,42 +401,18 @@ fn unique_table_name(artifact_name: &str, tables: &HashMap<String, SqliteSchema>
     candidate
 }
 
-/// Replaces unsupported sqlite identifier characters with underscores
-fn sanitize_ident(source: &str) -> String {
-    let mut name = source
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>();
-
-    if name.is_empty() {
-        name = String::from("field");
-    }
-
-    if name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-        name.insert(0, '_');
-    }
-
-    name
-}
-
 /// Quotes a sqlite identifier
 fn quote_identifier(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
 /// Convert `rusqlite::Error` to `OutputError`
-fn sqlite_error(err: rusqlite::Error) -> OutputError {
+fn sqlite_error(err: Error) -> OutputError {
     OutputError::Encode(format!("sqlite error: {err}"))
 }
 
 /// Convert a path-specific sqlite open error
-fn sqlite_path_error(path: impl AsRef<std::path::Path>, err: rusqlite::Error) -> OutputError {
+fn sqlite_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
     OutputError::Encode(format!(
         "failed to open sqlite file {}: {err}",
         path.as_ref().display()
@@ -496,7 +421,7 @@ fn sqlite_path_error(path: impl AsRef<std::path::Path>, err: rusqlite::Error) ->
 
 #[cfg(test)]
 mod tests {
-    use super::{SqliteEncoder, sanitize_ident};
+    use super::{SqliteEncoder, sanitize_name};
     use crate::{
         output::{
             context::CollectionContext,
@@ -735,10 +660,10 @@ mod tests {
     }
 
     #[test]
-    fn test_sanitize_ident() {
-        assert_eq!(sanitize_ident("eventlogs"), "eventlogs");
-        assert_eq!(sanitize_ident("foo/bar"), "foo_bar");
-        assert_eq!(sanitize_ident("1start"), "_1start");
-        assert_eq!(sanitize_ident(""), "field");
+    fn test_sanitize_name() {
+        assert_eq!(sanitize_name("eventlogs"), "eventlogs");
+        assert_eq!(sanitize_name("foo/bar"), "foo_bar");
+        assert_eq!(sanitize_name("1start"), "_1start");
+        assert_eq!(sanitize_name(""), "field");
     }
 }

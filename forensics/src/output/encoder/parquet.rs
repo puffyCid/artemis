@@ -4,10 +4,10 @@ use crate::output::{
         artifact_encoder::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
-        metadata::append_metadata,
+        helper::record::{read_json_rows, sanitize_name, value_as_i64, value_as_string},
     },
     error::{OutputError, OutputResult},
-    record::{Record, RecordStream},
+    record::RecordStream,
 };
 use parquet::{
     basic::Compression,
@@ -47,7 +47,7 @@ impl StreamArtifactEncoder for ParquetEncoder {
         context: &ArtifactContext,
     ) -> OutputResult<EncoderStreamWriter> {
         // Convert first record chunk into parquet rows and append collection metadata
-        let rows = read_json_rows(records, context)?;
+        let rows = read_json_rows(records, context, self.extension())?;
 
         if rows.is_empty() {
             return Err(OutputError::Encode(String::from(
@@ -88,37 +88,6 @@ impl StreamArtifactEncoder for ParquetEncoder {
     }
 }
 
-/// Converts JSON record values into parquet rows.
-///
-/// Parquet output currently supports only JSON object records.
-fn read_json_rows(
-    records: &mut dyn RecordStream,
-    context: &ArtifactContext,
-) -> OutputResult<Vec<Map<String, Value>>> {
-    let mut rows = Vec::new();
-
-    while let Some(record) = records.next_record()? {
-        let Record::Json(record) = record else {
-            return Err(OutputError::UnsupportedRecord {
-                format: String::from("parquet"),
-                record_type: record.kind().to_string(),
-            });
-        };
-
-        let mut value = record.into_value();
-        append_metadata(&mut value, context);
-        let Value::Object(fields) = value else {
-            return Err(OutputError::Encode(String::from(
-                "parquet records must be JSON objects",
-            )));
-        };
-
-        rows.push(fields);
-    }
-
-    Ok(rows)
-}
-
 /// Active parquet writer for one streamed artifact output
 #[derive(Debug)]
 pub(crate) struct ParquetWriter {
@@ -137,7 +106,7 @@ impl ParquetWriter {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<usize> {
-        let rows = read_json_rows(records, context)?;
+        let rows = read_json_rows(records, context, "parquet")?;
         if rows.is_empty() {
             return Ok(0);
         }
@@ -259,7 +228,7 @@ impl ParquetSchema {
 
     /// Converts a source field name into a unique parquet column name
     fn unique_field_name(source: &str, used: &mut HashSet<String>) -> String {
-        let base = Self::sanitize_field_name(source);
+        let base = sanitize_name(source);
         let mut candidate = base.clone();
 
         let mut suffix = 1;
@@ -270,30 +239,6 @@ impl ParquetSchema {
 
         used.insert(candidate.clone());
         candidate
-    }
-
-    /// Replaces unsupported parquet column-name characters with underscores
-    fn sanitize_field_name(source: &str) -> String {
-        let mut name = source
-            .chars()
-            .map(|c| {
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    c
-                } else {
-                    '_'
-                }
-            })
-            .collect::<String>();
-
-        if name.is_empty() {
-            name = String::from("field");
-        }
-
-        if name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-            name.insert(0, '_');
-        }
-
-        name
     }
 }
 
@@ -456,17 +401,6 @@ fn i64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
     }
 }
 
-/// Attempt to convert JSON value to integer
-fn value_as_i64(value: &Value) -> Option<i64> {
-    let number = value.as_number()?;
-    if let Some(val) = number.as_i64() {
-        return Some(val);
-    }
-
-    let value = number.as_u64()?;
-    i64::try_from(value).ok()
-}
-
 /// Construct float column
 fn f64_column(column: &ColumnSpec, rows: &[Map<String, Value>]) -> ColumnBatch {
     let mut values = Vec::new();
@@ -521,18 +455,6 @@ fn utf8_column(
     ColumnBatch::Utf8 {
         values,
         definition_levels,
-    }
-}
-
-/// Attempt to convert JSON value to string
-fn value_as_string(value: &Value) -> Option<String> {
-    match value {
-        Value::Null => None,
-        Value::String(val) => Some(val.clone()),
-        Value::Bool(val) => Some(val.to_string()),
-        Value::Number(val) => Some(val.to_string()),
-        Value::Array(val) => serde_json::to_string(val).ok(),
-        Value::Object(val) => serde_json::to_string(val).ok(),
     }
 }
 
