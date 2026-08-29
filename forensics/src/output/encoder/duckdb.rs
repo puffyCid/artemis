@@ -1,19 +1,9 @@
-use std::{
-    collections::HashMap,
-    fmt::{self, Formatter},
-    path::Path,
-};
-
-use duckdb::{
-    Connection, Error, appender_params_from_iter, params_from_iter,
-    types::{TimeUnit, Value as DuckValue},
-};
-use serde_json::{Map, Value};
-
 use crate::output::{
     context::ArtifactContext,
     encoder::{
-        artifact_encoder::{EncoderStreamWriter, StreamArtifactEncoder, StreamTarget},
+        artifact_encoder::{
+            EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
+        },
         helper::{
             record::{extra_json, read_json_rows, value_as_i64, value_as_string, value_as_u64},
             schema::{ColumnKind, InferredSchema, quote_identifier, unique_table_name},
@@ -21,6 +11,13 @@ use crate::output::{
     },
     error::{OutputError, OutputResult},
     record::RecordStream,
+};
+use duckdb::{Connection, Error, appender_params_from_iter, types::Value as DuckValue};
+use serde_json::{Map, Value};
+use std::{
+    collections::HashMap,
+    fmt::{self, Formatter},
+    path::Path,
 };
 
 /// Encodes artifact records into a single Duckdb file
@@ -42,7 +39,26 @@ impl StreamArtifactEncoder for DuckEncoder {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<EncoderStreamWriter> {
-        todo!()
+        let conn = open_connection(&target)?;
+
+        let mut writer = DuckWriter {
+            target,
+            conn,
+            artifact_tables: HashMap::new(),
+            tables: HashMap::new(),
+        };
+
+        let rows = read_json_rows(records, context, self.extension())?;
+        let record_count = if rows.is_empty() {
+            0
+        } else {
+            writer.insert_artifact_rows(&context.artifact_name, &rows)?
+        };
+
+        Ok(EncoderStreamWriter {
+            writer: StreamWriter::Duckdb(writer),
+            record_count,
+        })
     }
 }
 
@@ -231,4 +247,247 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> DuckValue {
 /// Convert `duckdb_error::Error` to `OutputError`
 fn duckdb_error(err: Error) -> OutputError {
     OutputError::Encode(format!("duckdb error: {err}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        output::{
+            context::{ArtifactContext, CollectionContext},
+            encoder::{
+                artifact_encoder::{StreamArtifactEncoder, StreamTarget},
+                duckdb::DuckEncoder,
+            },
+            record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
+        },
+        structs::toml::OutputConfig,
+    };
+    use duckdb::Connection;
+    use serde_json::{Value, json};
+    use std::{
+        fs::{create_dir_all, remove_file},
+        path::PathBuf,
+    };
+
+    fn test_context(artifact: &str) -> ArtifactContext {
+        let output = OutputConfig::default();
+        CollectionContext::new(&output, PathBuf::from("./tmp/duckdb_test.log")).artifact(
+            artifact,
+            &output.start_time_filter,
+            &output.end_time_filter,
+        )
+    }
+
+    fn target(name: &str) -> StreamTarget {
+        let path = PathBuf::from("./tmp").join(format!("{name}.duckdb"));
+        let _ = create_dir_all("./tmp");
+        let _ = remove_file(&path);
+        let _ = remove_file(format!("{}.wal", path.display()));
+        let _ = remove_file(format!("{}-wal", path.display()));
+        StreamTarget::new(path)
+    }
+
+    fn json_record(value: Value) -> Record {
+        Record::Json(JsonRecord::new(value.as_object().unwrap().clone()))
+    }
+
+    fn table_names(path: &PathBuf) -> Vec<String> {
+        let conn = Connection::open(path).unwrap();
+        let mut statement = conn
+            .prepare("SELECT table_name FROM duckdb_tables ORDER BY table_name")
+            .unwrap();
+        statement
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    }
+
+    fn column_names(path: &PathBuf, table: &str) -> Vec<String> {
+        let conn = Connection::open(path).unwrap();
+        let mut statement = conn
+            .prepare(&format!("PRAGMA table_info(\"{table}\")"))
+            .unwrap();
+        statement
+            .query_map([], |row| row.get::<_, String>(1))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    }
+
+    fn table_count(path: &PathBuf, table: &str) -> i64 {
+        let conn = Connection::open(path).unwrap();
+        conn.query_row(&format!("SELECT COUNT(*) FROM \"{table}\""), [], |row| {
+            row.get(0)
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn test_duckdb_encode_stream() {
+        let path = PathBuf::from("./tmp/duckdb_encode_stream.duckdb");
+        let target = target("duckdb_encode_stream");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut records = VecRecordStream::new(vec![
+            json_record(json!({"path": "/tmp/one", "size": 1})),
+            json_record(json!({"path": "/tmp/two", "size": 2})),
+        ]);
+        let opened = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap();
+        assert_eq!(opened.record_count, 2);
+
+        opened.writer.finish().unwrap();
+        assert_eq!(table_names(&path), vec!["files"]);
+        assert_eq!(table_count(&path, "files"), 2);
+
+        let names = column_names(&path, "files");
+        assert!(names.iter().any(|name| name == "path"));
+        assert!(names.iter().any(|name| name == "size"));
+        assert!(names.iter().any(|name| name == "collection_metadata"));
+        assert!(names.iter().any(|name| name == "_extra_json"));
+    }
+
+    #[test]
+    fn test_duckdb_write_records_second_chunk() {
+        let path = PathBuf::from("./tmp/duckdb_second_chunk.duckdb");
+        let target = target("duckdb_second_chunk");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one",
+            "size": 1
+        }))]);
+
+        let mut opened = encoder.encode_stream(target, &mut first, &context).unwrap();
+        let mut second = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/two",
+            "size": 2
+        }))]);
+
+        let count = opened.writer.write_records(&mut second, &context).unwrap();
+        assert_eq!(count, 1);
+        opened.writer.finish().unwrap();
+        assert_eq!(table_names(&path), vec!["files"]);
+        assert_eq!(table_count(&path, "files"), 2);
+    }
+
+    #[test]
+    fn test_duckdb_empty_first_chunk_has_no_table() {
+        let path = PathBuf::from("./tmp/duckdb_empty_first_chunk.duckdb");
+        let target = target("duckdb_empty_first_chunk");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut records = VecRecordStream::new(Vec::new());
+        let opened = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap();
+
+        assert_eq!(opened.record_count, 0);
+        opened.writer.finish().unwrap();
+        assert!(table_names(&path).is_empty());
+    }
+
+    #[test]
+    fn test_duckdb_empty_later_chunk_ok() {
+        let path = PathBuf::from("./tmp/duckdb_empty_later_chunk.duckdb");
+        let target = target("duckdb_empty_later_chunk");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one",
+            "size": 1
+        }))]);
+
+        let mut opened = encoder.encode_stream(target, &mut first, &context).unwrap();
+        let mut empty = VecRecordStream::new(Vec::new());
+        let count = opened.writer.write_records(&mut empty, &context).unwrap();
+        assert_eq!(count, 0);
+
+        opened.writer.finish().unwrap();
+        assert_eq!(table_names(&path), vec!["files"]);
+        assert_eq!(table_count(&path, "files"), 1);
+    }
+
+    #[test]
+    fn test_duckdb_unsupported_record() {
+        let target = target("duckdb_unsupported_record");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut records = VecRecordStream::new(vec![Record::Scalar(ScalarRecord::Text(
+            String::from("not json"),
+        ))]);
+
+        let err = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap_err();
+        assert!(err.to_string().contains("duckdb"));
+        assert!(err.to_string().contains("text"));
+    }
+
+    #[test]
+    fn test_duckdb_late_fields_extra_json_schema() {
+        let path = PathBuf::from("./tmp/duckdb_late_fields.duckdb");
+        let target = target("duckdb_late_fields");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one"
+        }))]);
+
+        let mut opened = encoder.encode_stream(target, &mut first, &context).unwrap();
+        let mut second = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/two",
+            "late_field": "value"
+        }))]);
+
+        opened.writer.write_records(&mut second, &context).unwrap();
+        opened.writer.finish().unwrap();
+        let names = column_names(&path, "files");
+
+        assert!(names.iter().any(|name| name == "path"));
+        assert!(names.iter().any(|name| name == "_extra_json"));
+        assert!(!names.iter().any(|name| name == "late_field"));
+        assert_eq!(table_count(&path, "files"), 2);
+
+        let conn = Connection::open(&path).unwrap();
+        let extra: Option<String> = conn
+            .query_row(
+                "SELECT _extra_json FROM files WHERE path = '/tmp/two'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(extra.unwrap().contains("late_field"));
+    }
+
+    #[test]
+    fn test_duckdb_two_artifacts_two_tables() {
+        let path = PathBuf::from("./tmp/duckdb_two_artifacts.duckdb");
+        let target = target("duckdb_two_artifacts");
+        let files_context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut first = VecRecordStream::new(vec![json_record(json!({
+            "path": "/tmp/one"
+        }))]);
+
+        let mut opened = encoder
+            .encode_stream(target, &mut first, &files_context)
+            .unwrap();
+        let registry_context = test_context("registry");
+        let mut second = VecRecordStream::new(vec![json_record(json!({
+            "key": "Software"
+        }))]);
+
+        opened
+            .writer
+            .write_records(&mut second, &registry_context)
+            .unwrap();
+        opened.writer.finish().unwrap();
+
+        assert_eq!(table_names(&path), vec!["files", "registry"]);
+        assert_eq!(table_count(&path, "files"), 1);
+        assert_eq!(table_count(&path, "registry"), 1);
+    }
 }

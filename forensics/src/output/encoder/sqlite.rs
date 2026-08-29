@@ -272,7 +272,7 @@ mod tests {
     use super::SqliteEncoder;
     use crate::{
         output::{
-            context::CollectionContext,
+            context::{ArtifactContext, CollectionContext},
             encoder::artifact_encoder::{StreamArtifactEncoder, StreamTarget},
             record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
         },
@@ -285,7 +285,7 @@ mod tests {
         path::PathBuf,
     };
 
-    fn test_context(artifact: &str) -> crate::output::context::ArtifactContext {
+    fn test_context(artifact: &str) -> ArtifactContext {
         let output = OutputConfig::default();
         CollectionContext::new(&output, PathBuf::from("./tmp/sqlite_test.log")).artifact(
             artifact,
