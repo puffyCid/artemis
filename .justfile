@@ -127,7 +127,7 @@ end2end:
 cli:
   cd cli && cargo build --release
 
-# Just build the artemis binary. But do not enable Yara-X or remote support
+# Just build the artemis binary. But do not enable Yara-X or remote upload support
 [group('features')]
 slim:
   cd cli && cargo build --release --no-default-features --features boa
