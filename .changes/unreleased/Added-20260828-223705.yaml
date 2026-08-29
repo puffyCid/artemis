@@ -1,0 +1,3 @@
+kind: Added
+body: Optional duckdb output support. Disabled by default
+time: 2026-08-28T22:37:05.777605019-04:00

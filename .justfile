@@ -54,7 +54,7 @@ mft: (_test "artifacts::os::windows::mft")
 runtime: (_test "runtime::")
 
 # Test only the Output workflow
-output: (_test "output::")
+output: (_test "--all-features output::")
 
 # Test only the Accessor workflow
 accessor: (_test "accessor::")

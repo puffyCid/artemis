@@ -327,6 +327,27 @@ mod tests {
         .unwrap()
     }
 
+    fn column_types(path: &PathBuf, table: &str) -> Vec<(String, String)> {
+        let conn = Connection::open(path).unwrap();
+        let mut statement = conn
+            .prepare(&format!("PRAGMA table_info(\"{table}\")"))
+            .unwrap();
+
+        statement
+            .query_map([], |row| Ok((row.get(1)?, row.get(2)?)))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    }
+
+    fn column_type(path: &PathBuf, table: &str, name: &str) -> String {
+        column_types(path, table)
+            .into_iter()
+            .find(|(column, _)| column == name)
+            .map(|(_, kind)| kind)
+            .unwrap_or_else(|| panic!("missing column {name}"))
+    }
+
     #[test]
     fn test_duckdb_encode_stream() {
         let path = PathBuf::from("./tmp/duckdb_encode_stream.duckdb");
@@ -494,5 +515,38 @@ mod tests {
         assert_eq!(table_names(&path), vec!["files", "registry"]);
         assert_eq!(table_count(&path, "files"), 1);
         assert_eq!(table_count(&path, "registry"), 1);
+    }
+
+    #[test]
+    fn test_duckdb_physical_column_types() {
+        let path = PathBuf::from("./tmp/duckdb_physical_types.duckdb");
+        let target = target("duckdb_physical_types");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut records = VecRecordStream::new(vec![json_record(json!({
+            "flag": true,
+            "count": 1,
+            "ratio": 1.5,
+            "path": "/tmp/one",
+            "meta": {"k": "v"},
+            "big": u64::MAX,
+            "timestamp": "2006-01-23T01:12:34.456Z",
+        }))]);
+
+        let opened = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap();
+        opened.writer.finish().unwrap();
+
+        assert_eq!(column_type(&path, "files", "flag"), "BOOLEAN");
+        assert_eq!(column_type(&path, "files", "count"), "BIGINT");
+        assert_eq!(column_type(&path, "files", "ratio"), "DOUBLE");
+        assert_eq!(column_type(&path, "files", "path"), "VARCHAR");
+        assert_eq!(column_type(&path, "files", "meta"), "JSON");
+
+        assert_eq!(column_type(&path, "files", "big"), "UBIGINT");
+        assert_eq!(column_type(&path, "files", "timestamp"), "TIMESTAMP");
+        assert_eq!(column_type(&path, "files", "collection_metadata"), "JSON");
+        assert_eq!(column_type(&path, "files", "_extra_json"), "VARCHAR");
     }
 }

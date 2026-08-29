@@ -43,7 +43,7 @@ pub struct OutputConfig {
     pub directory: PathBuf,
     /// Output location: local, aws, gcp, azure, or api
     pub destination: OutputDestination,
-    /// Output format: json, jsonl, or csv
+    /// Output format: json, jsonl, parquet, sqlite, timeline, DuckDB (if enabled) or csv
     pub format: OutputFormat,
     /// Whether to compress the results with gzip. The local output type is then compressed with zip
     pub compress: bool,
