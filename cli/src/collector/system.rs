@@ -30,7 +30,7 @@ pub(crate) enum Commands {
     Acquire {
         #[command(subcommand)]
         artifact: Option<CommandArgs>,
-        /// Output format. JSON, JSONL, CSV, XML, Parquet, Sqlite, or Timeline.
+        /// Output format. JSON, JSONL, CSV, XML, Parquet, Sqlite, Duckdb, or Timeline.
         #[arg(long, default_value_t = String::from("JSONL"))]
         format: String,
         /// Optional output directory for storing results
@@ -100,6 +100,7 @@ fn format_choice(format: &str) -> OutputFormat {
         "xml" => OutputFormat::Xml,
         "parquet" => OutputFormat::Parquet,
         "sqlite" => OutputFormat::Sqlite,
+        "duckdb" => OutputFormat::Duckdb,
         _ => OutputFormat::Jsonl,
     }
 }

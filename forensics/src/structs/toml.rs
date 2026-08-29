@@ -76,6 +76,7 @@ pub enum OutputFormat {
     Xml,
     Parquet,
     Sqlite,
+    Duckdb,
 }
 
 /// Determine where our data should be sent

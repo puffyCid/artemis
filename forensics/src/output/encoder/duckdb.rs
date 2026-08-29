@@ -294,7 +294,9 @@ mod tests {
     fn table_names(path: &PathBuf) -> Vec<String> {
         let conn = Connection::open(path).unwrap();
         let mut statement = conn
-            .prepare("SELECT table_name FROM duckdb_tables ORDER BY table_name")
+            .prepare(
+                "SELECT table_name FROM duckdb_tables() WHERE NOT internal ORDER BY table_name",
+            )
             .unwrap();
         statement
             .query_map([], |row| row.get(0))
@@ -339,6 +341,7 @@ mod tests {
         assert_eq!(opened.record_count, 2);
 
         opened.writer.finish().unwrap();
+        assert!(!PathBuf::from(format!("{}.wal", path.display())).exists());
         assert_eq!(table_names(&path), vec!["files"]);
         assert_eq!(table_count(&path, "files"), 2);
 

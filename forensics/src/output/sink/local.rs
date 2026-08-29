@@ -132,6 +132,7 @@ impl LocalSink {
                 && !entry.ends_with(".xml")
                 && !entry.ends_with(".parquet")
                 && !entry.ends_with(".sqlite")
+                && !entry.ends_with(".duckdb")
             {
                 continue;
             }
