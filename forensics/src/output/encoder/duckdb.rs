@@ -66,7 +66,7 @@ fn open_connection(target: &StreamTarget) -> OutputResult<Connection> {
     let conn =
         Connection::open(&target.path).map_err(|err| duckdb_path_error(&target.path, err))?;
 
-    conn.execute_batch("SET threads = 1; SET memory_limit = '512MB';")
+    conn.execute_batch("SET threads = 1; SET memory_limit = '256MB';")
         .map_err(duckdb_error)?;
 
     Ok(conn)

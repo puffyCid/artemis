@@ -531,6 +531,7 @@ mod tests {
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
         let mut second = Map::new();
+
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
         let mut records = VecRecordStream::new(vec![
@@ -556,6 +557,7 @@ mod tests {
         let mut jsonl_files = Vec::new();
         let mut report_files = Vec::new();
         let mut log_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -570,10 +572,12 @@ mod tests {
         assert!(!jsonl_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
+
         let jsonl_data = read_to_string(&jsonl_files[0]).unwrap();
         let lines = jsonl_data.lines().collect::<Vec<_>>();
         assert_eq!(lines.len(), 2);
         let first_record: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
+
         assert_eq!(first_record["path"], "/tmp/one.txt");
         assert_eq!(first_record["size"], 1235);
         assert_eq!(first_record["collection_metadata"]["endpoint_id"], "test");
@@ -582,11 +586,13 @@ mod tests {
             first_record["collection_metadata"]["artifact_name"],
             "files"
         );
+
         let second_record: serde_json::Value = serde_json::from_str(lines[1]).unwrap();
         assert_eq!(second_record["path"], "/tmp/two.txt");
         assert_eq!(second_record["size"], 5);
         let report_data = read_to_string(&report_files[0]).unwrap();
         let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
+
         assert_eq!(report["collection_id"], 0);
         assert_eq!(report["endpoint_id"], "test");
         assert_eq!(report["total_output_files"], 1);
@@ -596,6 +602,7 @@ mod tests {
             report["artifact_runs"][0]["artifact_options_hash"],
             "2297a2e4d2902655a171ae9b818ce092"
         );
+
         assert_eq!(report["artifact_runs"][0]["output_count"], 1);
         assert_eq!(report["artifact_runs"][0]["record_count"], 2);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
@@ -625,6 +632,7 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
@@ -632,6 +640,7 @@ mod tests {
             Record::Json(JsonRecord::new(first)),
             Record::Json(JsonRecord::new(second)),
         ]);
+
         let mock_me = server.mock(|when, then| {
             when.method(POST);
             then.status(200)
@@ -705,6 +714,7 @@ mod tests {
         let mut jsonl_files = Vec::new();
         let mut report_files = Vec::new();
         let mut log_files = Vec::new();
+
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
             let name = path.file_name().unwrap().to_string_lossy();
@@ -716,12 +726,15 @@ mod tests {
                 log_files.push(path);
             }
         }
+
         assert!(!jsonl_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
+
         let jsonl_data = read_to_string(&jsonl_files[0]).unwrap();
         let lines = jsonl_data.lines().collect::<Vec<_>>();
         let first_record: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
+
         assert_eq!(first_record["full_path"], "/tmp/one.txt");
         assert_eq!(first_record["arguments"], "1235");
         assert_eq!(first_record["collection_metadata"]["endpoint_id"], "test");
@@ -730,11 +743,14 @@ mod tests {
             first_record["collection_metadata"]["artifact_name"],
             "processes"
         );
+
         assert_eq!(first_record["message"], "/tmp/one.txt 1235");
         assert_eq!(first_record["datetime"], "2026-01-01T00:00:00.000Z");
         assert_eq!(first_record["data_type"], "system:processes:process");
+
         let report_data = read_to_string(&report_files[0]).unwrap();
         let report: serde_json::Value = serde_json::from_str(&report_data).unwrap();
+
         assert_eq!(report["collection_id"], 0);
         assert_eq!(report["endpoint_id"], "test");
         assert_eq!(report["total_output_files"], 1);
@@ -744,6 +760,7 @@ mod tests {
             report["artifact_runs"][0]["artifact_options_hash"],
             "2297a2e4d2902655a171ae9b818ce092"
         );
+
         assert_eq!(report["artifact_runs"][0]["output_count"], 1);
         assert_eq!(report["artifact_runs"][0]["record_count"], 1);
         assert_eq!(report["artifact_runs"][0]["status"], "completed");
@@ -772,6 +789,7 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
@@ -779,6 +797,7 @@ mod tests {
             Record::Json(JsonRecord::new(first)),
             Record::Json(JsonRecord::new(second)),
         ]);
+
         let mock_me = server.mock(|when, then| {
             when.method(PUT);
             then.status(200)
@@ -825,6 +844,7 @@ mod tests {
         let mut first = Map::new();
         first.insert("path".to_string(), "/tmp/one.txt".into());
         first.insert("size".to_string(), 1235.into());
+
         let mut second = Map::new();
         second.insert("path".to_string(), "/tmp/two.txt".into());
         second.insert("size".to_string(), 5.into());
@@ -832,6 +852,7 @@ mod tests {
             Record::Json(JsonRecord::new(first)),
             Record::Json(JsonRecord::new(second)),
         ]);
+
         let mock_me = server.mock(|when, then| {
             when.method(POST).header("x-artemis-endpoint_id", "abcd");
             then.status(200)
@@ -1249,6 +1270,66 @@ mod tests {
         }
 
         assert!(!sqlite_files.is_empty());
+        assert!(!report_files.is_empty());
+        assert!(!log_files.is_empty());
+    }
+
+    #[test]
+    fn test_output_manager_duckdb() {
+        let name = String::from("manager_collection_duckdb");
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Duckdb,
+            ..Default::default()
+        };
+
+        let mut manage = OutputManager::new(config).unwrap();
+        let mut first = Map::new();
+        first.insert("path".to_string(), "/tmp/one.txt".into());
+        first.insert("size".to_string(), 1235.into());
+
+        let mut second = Map::new();
+        second.insert("path".to_string(), "/tmp/two.txt".into());
+        second.insert("size".to_string(), 5.into());
+        let mut records = VecRecordStream::new(vec![
+            Record::Json(JsonRecord::new(first)),
+            Record::Json(JsonRecord::new(second)),
+        ]);
+
+        manage
+            .write_artifact(
+                "files",
+                &json!({"start_path": "./tmp", "depth": 99}),
+                &mut records,
+            )
+            .unwrap();
+
+        manage.finalize().unwrap();
+
+        let output_dir = PathBuf::from("./tmp").join(String::from("manager_collection_duckdb"));
+        assert!(output_dir.exists());
+
+        let mut duck_files = Vec::new();
+        let mut report_files = Vec::new();
+        let mut log_files = Vec::new();
+
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy();
+            if name.starts_with("manager_collection_duckdb") && name.ends_with(".duckdb") {
+                duck_files.push(path);
+            } else if name.starts_with("report_") && name.ends_with(".json") {
+                report_files.push(path);
+            } else if name.starts_with("artemis_") && name.ends_with(".jsonl") {
+                log_files.push(path);
+            }
+        }
+
+        assert!(!duck_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
     }
