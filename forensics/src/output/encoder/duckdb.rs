@@ -283,7 +283,6 @@ mod tests {
         let _ = create_dir_all("./tmp");
         let _ = remove_file(&path);
         let _ = remove_file(format!("{}.wal", path.display()));
-        let _ = remove_file(format!("{}-wal", path.display()));
         StreamTarget::new(path)
     }
 
