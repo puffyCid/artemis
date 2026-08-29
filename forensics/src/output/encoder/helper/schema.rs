@@ -1,4 +1,5 @@
-use crate::output::encoder::helper::record::unique_field_name;
+use crate::output::encoder::helper::record::{sanitize_name, unique_field_name};
+use chrono::DateTime;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 
@@ -20,6 +21,9 @@ pub(crate) enum ColumnKind {
     Int64,
     Double,
     Utf8,
+    UnsignedInt64,
+    Timestamp,
+    Json,
 }
 
 /// Create a Schema based on first row of JSON
@@ -91,15 +95,23 @@ impl ColumnKind {
         match value {
             Value::Bool(_) => Self::Bool,
             Value::Number(number) => {
-                if number.is_i64() || number.as_u64().is_some_and(|n| i64::try_from(n).is_ok()) {
+                // Check signed numbers first
+                // sqlite only supports signed numbers
+                // if we check unsigned first then many numbers will
+                // become TEXT in sqlite
+                if number.is_i64() {
                     Self::Int64
+                } else if number.is_u64() {
+                    Self::UnsignedInt64
                 } else if number.is_f64() {
                     Self::Double
                 } else {
                     Self::Utf8
                 }
             }
-            Value::Null | Value::Array(_) | Value::Object(_) | Value::String(_) => Self::Utf8,
+            Value::Object(_) => Self::Json,
+            Value::String(val) if check_timestamp(val) => Self::Timestamp,
+            Value::Null | Value::Array(_) | Value::String(_) => Self::Utf8,
         }
     }
 
@@ -110,13 +122,42 @@ impl ColumnKind {
     /// The column type becomes `ColumnKind::Double`
     fn merge(self, other: Self) -> Self {
         match (self, other) {
-            (Self::Utf8, _) | (_, Self::Utf8) => Self::Utf8,
-            (Self::Double, _) | (_, Self::Double) => Self::Double,
-            (Self::Int64, Self::Int64) => Self::Int64,
-            (Self::Bool, Self::Bool) => Self::Bool,
+            (col_a, col_b) if col_a == col_b => col_a,
+            (Self::Double, Self::Int64) | (Self::Int64, Self::Double) => Self::Double,
             _ => Self::Utf8,
         }
     }
+}
+
+fn check_timestamp(value: &str) -> bool {
+    // Shortest RFC 3339 datetime is '1970-01-01T00:00:00Z' (20 chars).
+    if value.len() < 20 || value.as_bytes().get(10) != Some(&b'T') {
+        return false;
+    }
+
+    DateTime::parse_from_rfc3339(value).is_ok()
+}
+
+/// Converts an artifact name into a unique table name
+pub(crate) fn unique_table_name(
+    artifact_name: &str,
+    tables: &HashMap<String, InferredSchema>,
+) -> String {
+    let base = sanitize_name(artifact_name);
+    let mut candidate = base.clone();
+    let mut suffix = 1;
+
+    while tables.contains_key(&candidate) {
+        candidate = format!("{base}_{suffix}");
+        suffix += 1;
+    }
+
+    candidate
+}
+
+/// Try to properly escape quotes
+pub(crate) fn quote_identifier(name: &str) -> String {
+    format!("\"{}\"", name.replace('"', "\"\""))
 }
 
 #[cfg(test)]
@@ -149,7 +190,8 @@ mod tests {
             "tags": ["a"],
             "meta": {"k": "v"},
             "empty": null,
-            "big": u64::MAX
+            "big": u64::MAX,
+            "timestamp": "2006-01-23T01:12:34.456Z",
         })]));
 
         assert_eq!(column(&schema, "flag").kind, ColumnKind::Bool);
@@ -157,9 +199,10 @@ mod tests {
         assert_eq!(column(&schema, "ratio").kind, ColumnKind::Double);
         assert_eq!(column(&schema, "path").kind, ColumnKind::Utf8);
         assert_eq!(column(&schema, "tags").kind, ColumnKind::Utf8);
-        assert_eq!(column(&schema, "meta").kind, ColumnKind::Utf8);
+        assert_eq!(column(&schema, "meta").kind, ColumnKind::Json);
         assert_eq!(column(&schema, "empty").kind, ColumnKind::Utf8);
-        assert_eq!(column(&schema, "big").kind, ColumnKind::Utf8);
+        assert_eq!(column(&schema, "big").kind, ColumnKind::UnsignedInt64);
+        assert_eq!(column(&schema, "timestamp").kind, ColumnKind::Timestamp);
     }
 
     #[test]

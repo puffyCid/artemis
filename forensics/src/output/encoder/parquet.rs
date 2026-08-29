@@ -157,8 +157,11 @@ impl InferredSchema {
             let field = match column.kind {
                 ColumnKind::Bool => format!("  optional BOOLEAN {};\n", column.column_name),
                 ColumnKind::Double => format!("  optional DOUBLE {};\n", column.column_name),
-                ColumnKind::Utf8 => {
+                ColumnKind::Utf8 | ColumnKind::Timestamp | ColumnKind::UnsignedInt64 => {
                     format!("  optional BYTE_ARRAY {} (UTF8);\n", column.column_name)
+                }
+                ColumnKind::Json => {
+                    format!("  optional BYTE_ARRAY {} (JSON);\n", column.column_name)
                 }
                 ColumnKind::Int64 => format!("  optional INT64 {};\n", column.column_name),
             };
@@ -218,7 +221,9 @@ fn build_column(
         ColumnKind::Bool => bool_column(column, rows),
         ColumnKind::Int64 => i64_column(column, rows),
         ColumnKind::Double => f64_column(column, rows),
-        ColumnKind::Utf8 => utf8_column(schema, column, rows),
+        ColumnKind::Utf8 | ColumnKind::Json | ColumnKind::Timestamp | ColumnKind::UnsignedInt64 => {
+            utf8_column(schema, column, rows)
+        }
     }
 }
 

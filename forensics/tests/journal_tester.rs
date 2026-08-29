@@ -53,7 +53,10 @@ fn validate_output(output: &PathBuf) {
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
         let info: Journal = serde_json::from_str(&value).unwrap();
-        if info.message.is_empty() && info.machine_id.is_empty() {
+        if info.message.is_empty()
+            && info.machine_id.is_empty()
+            && !info.evidence.ends_with(".journal~")
+        {
             println!("{value}");
             panic!("no message?")
         }

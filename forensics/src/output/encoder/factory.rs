@@ -7,6 +7,9 @@ use crate::{
     structs::toml::{OutputConfig, OutputFormat},
 };
 
+#[cfg(feature = "duck")]
+use crate::output::encoder::duckdb::DuckEncoder;
+
 /// Create an `Encoder` to output forensic data
 pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
     match config.format {
@@ -18,6 +21,8 @@ pub(crate) fn build_encoder(config: &OutputConfig) -> Encoder {
         OutputFormat::Xml => Encoder::Xml(XmlEncoder),
         OutputFormat::Parquet => Encoder::Parquet(ParquetEncoder),
         OutputFormat::Sqlite => Encoder::Sqlite(SqliteEncoder),
+        #[cfg(feature = "duck")]
+        OutputFormat::Duckdb => Encoder::Duckdb(DuckEncoder),
     }
 }
 

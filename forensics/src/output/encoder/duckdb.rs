@@ -5,14 +5,14 @@ use crate::output::{
             EncoderStreamWriter, StreamArtifactEncoder, StreamTarget, StreamWriter,
         },
         helper::{
-            record::{extra_json, read_json_rows, value_as_i64, value_as_string},
+            record::{extra_json, read_json_rows, value_as_i64, value_as_string, value_as_u64},
             schema::{ColumnKind, InferredSchema, quote_identifier, unique_table_name},
         },
     },
     error::{OutputError, OutputResult},
     record::RecordStream,
 };
-use rusqlite::{Connection, Error, params_from_iter, types::Value as SqlValue};
+use duckdb::{Connection, Error, appender_params_from_iter, types::Value as DuckValue};
 use serde_json::{Map, Value};
 use std::{
     collections::HashMap,
@@ -20,18 +20,17 @@ use std::{
     path::Path,
 };
 
-/// Encodes artifact records into a single sqlite file
+/// Encodes artifact records into a single Duckdb file
 #[derive(Debug, PartialEq)]
-pub(crate) struct SqliteEncoder;
+pub(crate) struct DuckEncoder;
 
-impl StreamArtifactEncoder for SqliteEncoder {
+impl StreamArtifactEncoder for DuckEncoder {
     fn extension(&self) -> &str {
-        "sqlite"
+        "duckdb"
     }
 
     fn mime_type(&self) -> &str {
-        // https://mimetype.io/application/vnd.sqlite3
-        "application/vnd.sqlite3"
+        "application/vnd.duckdb"
     }
 
     fn encode_stream(
@@ -40,11 +39,9 @@ impl StreamArtifactEncoder for SqliteEncoder {
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<EncoderStreamWriter> {
-        // Open a persistence connection to the sqlite database during the entire collection
-        // Should allow for faster transactions vs constantly opening the sqlite file
         let conn = open_connection(&target)?;
 
-        let mut writer = SqliteWriter {
+        let mut writer = DuckWriter {
             target,
             conn,
             artifact_tables: HashMap::new(),
@@ -59,35 +56,35 @@ impl StreamArtifactEncoder for SqliteEncoder {
         };
 
         Ok(EncoderStreamWriter {
-            writer: StreamWriter::Sqlite(writer),
+            writer: StreamWriter::Duckdb(writer),
             record_count,
         })
     }
 }
 
-/// Open the sqlite file for writing
 fn open_connection(target: &StreamTarget) -> OutputResult<Connection> {
     let conn =
-        Connection::open(&target.path).map_err(|err| sqlite_path_error(&target.path, err))?;
-    conn.pragma_update(None, "journal_mode", "WAL")
-        .map_err(sqlite_error)?;
+        Connection::open(&target.path).map_err(|err| duckdb_path_error(&target.path, err))?;
+
+    conn.execute_batch("SET threads = 1; SET memory_limit = '256MB';")
+        .map_err(duckdb_error)?;
 
     Ok(conn)
 }
 
-/// Convert a path-specific sqlite open error
-fn sqlite_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
+/// Convert a path-specific DuckDB open error
+fn duckdb_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
     OutputError::Encode(format!(
-        "failed to open sqlite file {}: {err}",
+        "failed to open DuckDB file {}: {err}",
         path.as_ref().display()
     ))
 }
 
-/// Active sqlite writer for artifact collection output
-pub(crate) struct SqliteWriter {
+/// Active DuckDB writer for artifact collection output
+pub(crate) struct DuckWriter {
     /// Full path to the streamed output file
     target: StreamTarget,
-    /// Sqlite connection reused for the entire collection
+    /// DuckDB connection reused for the entire collection
     conn: Connection,
     /// Mapping of artifact name to created table name
     artifact_tables: HashMap<String, String>,
@@ -95,24 +92,23 @@ pub(crate) struct SqliteWriter {
     tables: HashMap<String, InferredSchema>,
 }
 
-impl fmt::Debug for SqliteWriter {
+impl fmt::Debug for DuckWriter {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter
-            .debug_struct("SqliteWriter")
+            .debug_struct("DuckWriter")
             .field("target", &self.target)
             .field("tables", &self.artifact_tables)
             .finish()
     }
 }
 
-impl SqliteWriter {
-    /// Write the `RecordStream` into sqlite file
+impl DuckWriter {
     pub(crate) fn write_records(
         &mut self,
         records: &mut dyn RecordStream,
         context: &ArtifactContext,
     ) -> OutputResult<usize> {
-        let rows = read_json_rows(records, context, "sqlite")?;
+        let rows = read_json_rows(records, context, "duckdb")?;
         if rows.is_empty() {
             return Ok(0);
         }
@@ -120,15 +116,40 @@ impl SqliteWriter {
         self.insert_artifact_rows(&context.artifact_name, &rows)
     }
 
-    /// Complete the sqlite transaction and finalize the write output
+    fn insert_artifact_rows(
+        &mut self,
+        artifact_name: &str,
+        rows: &[Map<String, Value>],
+    ) -> OutputResult<usize> {
+        let table = self.ensure_table(artifact_name, rows)?;
+        let schema = self.tables.get(&table).ok_or_else(|| {
+            OutputError::Encode(format!("missing DuckDB schema for table {table}"))
+        })?;
+
+        // Start inserting JSON records into DuckDB file
+        let transaction = self.conn.transaction().map_err(duckdb_error)?;
+        {
+            let mut appender = transaction.appender(&table).map_err(duckdb_error)?;
+            for row in rows {
+                appender
+                    .append_row(appender_params_from_iter(bind_values(schema, row)))
+                    .map_err(duckdb_error)?;
+            }
+            appender.flush().map_err(duckdb_error)?;
+        }
+
+        transaction.commit().map_err(duckdb_error)?;
+
+        Ok(rows.len())
+    }
+
+    /// Complete the DuckDB transaction and finalize the write output
     pub(crate) fn finish(self) -> OutputResult<()> {
-        self.conn
-            .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode = DELETE;")
-            .map_err(sqlite_error)?;
+        self.conn.execute("CHECKPOINT", []).map_err(duckdb_error)?;
 
         self.conn.close().map_err(|(_, err)| {
             OutputError::Encode(format!(
-                "failed to close sqlite file {}: {err:?}",
+                "failed to close DuckDB file {}: {err:?}",
                 self.target.path.display()
             ))
         })?;
@@ -136,52 +157,7 @@ impl SqliteWriter {
         Ok(())
     }
 
-    /// Insert the array of JSON artifacts into sqlite
-    fn insert_artifact_rows(
-        &mut self,
-        artifact_name: &str,
-        rows: &[Map<String, Value>],
-    ) -> OutputResult<usize> {
-        let table = self.ensure_table(artifact_name, rows)?;
-        let schema = self.tables.get(&table).cloned().ok_or_else(|| {
-            OutputError::Encode(format!("missing sqlite schema for table {table}"))
-        })?;
-
-        let columns = schema
-            .columns
-            .iter()
-            .map(|column| quote_identifier(&column.column_name))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let placeholder = (1..=schema.columns.len())
-            .map(|index| format!("?{index}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let sql = format!(
-            "INSERT INTO {} ({columns}) VALUES ({placeholder})",
-            quote_identifier(&table)
-        );
-
-        // Start inserting JSON records into sqlite file
-        let transaction = self.conn.transaction().map_err(sqlite_error)?;
-        {
-            let mut statement = transaction.prepare(&sql).map_err(sqlite_error)?;
-            for row in rows {
-                let values = bind_values(&schema, row);
-                statement
-                    .execute(params_from_iter(values))
-                    .map_err(sqlite_error)?;
-            }
-        }
-
-        transaction.commit().map_err(sqlite_error)?;
-
-        Ok(rows.len())
-    }
-
-    /// Validate that the sqlite table exists or create it
+    /// Validate that the DuckDB table exists or create it
     fn ensure_table(
         &mut self,
         artifact_name: &str,
@@ -204,14 +180,14 @@ impl SqliteWriter {
                 format!(
                     "{} {}",
                     quote_identifier(&column.column_name),
-                    column.kind.sql_type()
+                    column.kind.duck_type()
                 )
             })
             .collect::<Vec<_>>()
             .join(", ");
 
         let sql = format!("CREATE TABLE {} ({definitions})", quote_identifier(&table));
-        self.conn.execute(&sql, []).map_err(sqlite_error)?;
+        self.conn.execute(&sql, []).map_err(duckdb_error)?;
 
         self.artifact_tables
             .insert(artifact_name.to_string(), table.clone());
@@ -223,62 +199,73 @@ impl SqliteWriter {
 
 impl ColumnKind {
     /// Return the column type
-    fn sql_type(self) -> &'static str {
+    fn duck_type(self) -> &'static str {
         match self {
-            Self::Bool | Self::Int64 => "INTEGER",
-            Self::Double => "REAL",
-            Self::Utf8 | Self::Json | Self::Timestamp | Self::UnsignedInt64 => "TEXT",
+            Self::Int64 => "BIGINT",
+            Self::Double => "DOUBLE",
+            Self::Utf8 => "VARCHAR",
+            Self::Bool => "BOOLEAN",
+            Self::Json => "JSON",
+            Self::Timestamp => "TIMESTAMP",
+            Self::UnsignedInt64 => "UBIGINT",
         }
     }
 }
 
-/// Convert the JSON data into supported array of sql data
-fn bind_values(schema: &InferredSchema, row: &Map<String, Value>) -> Vec<SqlValue> {
+/// Convert the JSON data into supported array of duck data
+fn bind_values(schema: &InferredSchema, row: &Map<String, Value>) -> Vec<DuckValue> {
     schema
         .columns
         .iter()
         .map(|column| match &column.source_name {
             Some(name) => value_for_column(column.kind, row.get(name)),
-            None => extra_json(&schema.known_fields, row).map_or(SqlValue::Null, SqlValue::Text),
+            None => extra_json(&schema.known_fields, row).map_or(DuckValue::Null, DuckValue::Text),
         })
         .collect()
 }
 
-/// Based on the column schema convert our JSON value to a compatible sql type
-fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> SqlValue {
+/// Based on the column schema convert our JSON value to a compatible duck type
+fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> DuckValue {
     let Some(json_value) = value else {
-        return SqlValue::Null;
+        return DuckValue::Null;
     };
 
     match kind {
-        ColumnKind::Bool => json_value.as_bool().map_or(SqlValue::Null, |flag| {
-            SqlValue::Integer(if flag { 1 } else { 0 })
-        }),
-        ColumnKind::Int64 => value_as_i64(json_value).map_or(SqlValue::Null, SqlValue::Integer),
-        ColumnKind::Double => json_value.as_f64().map_or(SqlValue::Null, SqlValue::Real),
-        ColumnKind::Utf8 | ColumnKind::Json | ColumnKind::Timestamp | ColumnKind::UnsignedInt64 => {
-            value_as_string(json_value).map_or(SqlValue::Null, SqlValue::Text)
+        ColumnKind::Bool => json_value
+            .as_bool()
+            .map_or(DuckValue::Null, DuckValue::Boolean),
+        ColumnKind::Int64 => value_as_i64(json_value).map_or(DuckValue::Null, DuckValue::BigInt),
+        ColumnKind::Double => json_value
+            .as_f64()
+            .map_or(DuckValue::Null, DuckValue::Double),
+        ColumnKind::Utf8 | ColumnKind::Json | ColumnKind::Timestamp => {
+            value_as_string(json_value).map_or(DuckValue::Null, DuckValue::Text)
+        }
+        ColumnKind::UnsignedInt64 => {
+            value_as_u64(json_value).map_or(DuckValue::Null, DuckValue::UBigInt)
         }
     }
 }
 
-/// Convert `rusqlite::Error` to `OutputError`
-fn sqlite_error(err: Error) -> OutputError {
-    OutputError::Encode(format!("sqlite error: {err}"))
+/// Convert `duckdb::Error` to `OutputError`
+fn duckdb_error(err: Error) -> OutputError {
+    OutputError::Encode(format!("DuckDB error: {err}"))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::SqliteEncoder;
     use crate::{
         output::{
             context::{ArtifactContext, CollectionContext},
-            encoder::artifact_encoder::{StreamArtifactEncoder, StreamTarget},
+            encoder::{
+                artifact_encoder::{StreamArtifactEncoder, StreamTarget},
+                duckdb::DuckEncoder,
+            },
             record::{JsonRecord, Record, ScalarRecord, VecRecordStream},
         },
         structs::toml::OutputConfig,
     };
-    use rusqlite::Connection;
+    use duckdb::Connection;
     use serde_json::{Value, json};
     use std::{
         fs::{create_dir_all, remove_file},
@@ -287,7 +274,7 @@ mod tests {
 
     fn test_context(artifact: &str) -> ArtifactContext {
         let output = OutputConfig::default();
-        CollectionContext::new(&output, PathBuf::from("./tmp/sqlite_test.log")).artifact(
+        CollectionContext::new(&output, PathBuf::from("./tmp/duckdb_test.log")).artifact(
             artifact,
             &output.start_time_filter,
             &output.end_time_filter,
@@ -295,12 +282,10 @@ mod tests {
     }
 
     fn target(name: &str) -> StreamTarget {
-        let path = PathBuf::from("./tmp").join(format!("{name}.sqlite"));
+        let path = PathBuf::from("./tmp").join(format!("{name}.duckdb"));
         let _ = create_dir_all("./tmp");
         let _ = remove_file(&path);
         let _ = remove_file(format!("{}.wal", path.display()));
-        let _ = remove_file(format!("{}-wal", path.display()));
-        let _ = remove_file(format!("{}-shm", path.display()));
         StreamTarget::new(path)
     }
 
@@ -311,7 +296,9 @@ mod tests {
     fn table_names(path: &PathBuf) -> Vec<String> {
         let conn = Connection::open(path).unwrap();
         let mut statement = conn
-            .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+            .prepare(
+                "SELECT table_name FROM duckdb_tables() WHERE NOT internal ORDER BY table_name",
+            )
             .unwrap();
         statement
             .query_map([], |row| row.get(0))
@@ -340,12 +327,33 @@ mod tests {
         .unwrap()
     }
 
+    fn column_types(path: &PathBuf, table: &str) -> Vec<(String, String)> {
+        let conn = Connection::open(path).unwrap();
+        let mut statement = conn
+            .prepare(&format!("PRAGMA table_info(\"{table}\")"))
+            .unwrap();
+
+        statement
+            .query_map([], |row| Ok((row.get(1)?, row.get(2)?)))
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap()
+    }
+
+    fn column_type(path: &PathBuf, table: &str, name: &str) -> String {
+        column_types(path, table)
+            .into_iter()
+            .find(|(column, _)| column == name)
+            .map(|(_, kind)| kind)
+            .unwrap_or_else(|| panic!("missing column {name}"))
+    }
+
     #[test]
-    fn test_sqlite_encode_stream() {
-        let path = PathBuf::from("./tmp/sqlite_encode_stream.sqlite");
-        let target = target("sqlite_encode_stream");
+    fn test_duckdb_encode_stream() {
+        let path = PathBuf::from("./tmp/duckdb_encode_stream.duckdb");
+        let target = target("duckdb_encode_stream");
         let context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut records = VecRecordStream::new(vec![
             json_record(json!({"path": "/tmp/one", "size": 1})),
             json_record(json!({"path": "/tmp/two", "size": 2})),
@@ -356,6 +364,7 @@ mod tests {
         assert_eq!(opened.record_count, 2);
 
         opened.writer.finish().unwrap();
+        assert!(!PathBuf::from(format!("{}.wal", path.display())).exists());
         assert_eq!(table_names(&path), vec!["files"]);
         assert_eq!(table_count(&path, "files"), 2);
 
@@ -367,11 +376,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sqlite_write_records_second_chunk() {
-        let path = PathBuf::from("./tmp/sqlite_second_chunk.sqlite");
-        let target = target("sqlite_second_chunk");
+    fn test_duckdb_write_records_second_chunk() {
+        let path = PathBuf::from("./tmp/duckdb_second_chunk.duckdb");
+        let target = target("duckdb_second_chunk");
         let context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut first = VecRecordStream::new(vec![json_record(json!({
             "path": "/tmp/one",
             "size": 1
@@ -391,11 +400,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sqlite_empty_first_chunk_has_no_table() {
-        let path = PathBuf::from("./tmp/sqlite_empty_first_chunk.sqlite");
-        let target = target("sqlite_empty_first_chunk");
+    fn test_duckdb_empty_first_chunk_has_no_table() {
+        let path = PathBuf::from("./tmp/duckdb_empty_first_chunk.duckdb");
+        let target = target("duckdb_empty_first_chunk");
         let context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut records = VecRecordStream::new(Vec::new());
         let opened = encoder
             .encode_stream(target, &mut records, &context)
@@ -407,11 +416,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sqlite_empty_later_chunk_ok() {
-        let path = PathBuf::from("./tmp/sqlite_empty_later_chunk.sqlite");
-        let target = target("sqlite_empty_later_chunk");
+    fn test_duckdb_empty_later_chunk_ok() {
+        let path = PathBuf::from("./tmp/duckdb_empty_later_chunk.duckdb");
+        let target = target("duckdb_empty_later_chunk");
         let context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut first = VecRecordStream::new(vec![json_record(json!({
             "path": "/tmp/one",
             "size": 1
@@ -428,10 +437,10 @@ mod tests {
     }
 
     #[test]
-    fn test_sqlite_unsupported_record() {
-        let target = target("sqlite_unsupported_record");
+    fn test_duckdb_unsupported_record() {
+        let target = target("duckdb_unsupported_record");
         let context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut records = VecRecordStream::new(vec![Record::Scalar(ScalarRecord::Text(
             String::from("not json"),
         ))]);
@@ -439,16 +448,16 @@ mod tests {
         let err = encoder
             .encode_stream(target, &mut records, &context)
             .unwrap_err();
-        assert!(err.to_string().contains("sqlite"));
+        assert!(err.to_string().contains("duckdb"));
         assert!(err.to_string().contains("text"));
     }
 
     #[test]
-    fn test_sqlite_late_fields_extra_json_schema() {
-        let path = PathBuf::from("./tmp/sqlite_late_fields.sqlite");
-        let target = target("sqlite_late_fields");
+    fn test_duckdb_late_fields_extra_json_schema() {
+        let path = PathBuf::from("./tmp/duckdb_late_fields.duckdb");
+        let target = target("duckdb_late_fields");
         let context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut first = VecRecordStream::new(vec![json_record(json!({
             "path": "/tmp/one"
         }))]);
@@ -480,11 +489,11 @@ mod tests {
     }
 
     #[test]
-    fn test_sqlite_two_artifacts_two_tables() {
-        let path = PathBuf::from("./tmp/sqlite_two_artifacts.sqlite");
-        let target = target("sqlite_two_artifacts");
+    fn test_duckdb_two_artifacts_two_tables() {
+        let path = PathBuf::from("./tmp/duckdb_two_artifacts.duckdb");
+        let target = target("duckdb_two_artifacts");
         let files_context = test_context("files");
-        let encoder = SqliteEncoder;
+        let encoder = DuckEncoder;
         let mut first = VecRecordStream::new(vec![json_record(json!({
             "path": "/tmp/one"
         }))]);
@@ -506,5 +515,38 @@ mod tests {
         assert_eq!(table_names(&path), vec!["files", "registry"]);
         assert_eq!(table_count(&path, "files"), 1);
         assert_eq!(table_count(&path, "registry"), 1);
+    }
+
+    #[test]
+    fn test_duckdb_physical_column_types() {
+        let path = PathBuf::from("./tmp/duckdb_physical_types.duckdb");
+        let target = target("duckdb_physical_types");
+        let context = test_context("files");
+        let encoder = DuckEncoder;
+        let mut records = VecRecordStream::new(vec![json_record(json!({
+            "flag": true,
+            "count": 1,
+            "ratio": 1.5,
+            "path": "/tmp/one",
+            "meta": {"k": "v"},
+            "big": u64::MAX,
+            "timestamp": "2006-01-23T01:12:34.456Z",
+        }))]);
+
+        let opened = encoder
+            .encode_stream(target, &mut records, &context)
+            .unwrap();
+        opened.writer.finish().unwrap();
+
+        assert_eq!(column_type(&path, "files", "flag"), "BOOLEAN");
+        assert_eq!(column_type(&path, "files", "count"), "BIGINT");
+        assert_eq!(column_type(&path, "files", "ratio"), "DOUBLE");
+        assert_eq!(column_type(&path, "files", "path"), "VARCHAR");
+        assert_eq!(column_type(&path, "files", "meta"), "JSON");
+
+        assert_eq!(column_type(&path, "files", "big"), "UBIGINT");
+        assert_eq!(column_type(&path, "files", "timestamp"), "TIMESTAMP");
+        assert_eq!(column_type(&path, "files", "collection_metadata"), "JSON");
+        assert_eq!(column_type(&path, "files", "_extra_json"), "VARCHAR");
     }
 }

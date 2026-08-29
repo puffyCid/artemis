@@ -54,7 +54,7 @@ mft: (_test "artifacts::os::windows::mft")
 runtime: (_test "runtime::")
 
 # Test only the Output workflow
-output: (_test "output::")
+output: (_test "--features duck output::")
 
 # Test only the Accessor workflow
 accessor: (_test "accessor::")
@@ -99,7 +99,7 @@ test:
 
 # Test the entire artemis project using nextest
 nextest:
-  cargo nextest run --release
+  cargo nextest run --release --all-features
 
 # Run End to End tests
 end2end:
@@ -123,27 +123,32 @@ end2end:
   cargo test --release --test logon_tester
 
 # Just build the artemis binary
-[group('workspace')]
+[group('features')]
 cli:
   cd cli && cargo build --release
 
-# Just build the artemis binary. But do not enable Yara-X or remote support
-[group('workspace')]
+# Just build the artemis binary. But do not enable Yara-X or remote upload support
+[group('features')]
 slim:
   cd cli && cargo build --release --no-default-features --features boa
 
 # Build artemis binary with all features disabled
-[group('workspace')]
+[group('features')]
 tiny:
   cd cli && cargo build --release --no-default-features
 
+# Build artemis binary with all features enabled
+[group('features')]
+duck:
+  cd cli && cargo build --release --all-features
+
 # Just build the artemis binary and enable profiling
-[group('workspace')]
+[group('features')]
 profile:
   cd cli && cargo build --profile profile
 
 # Just build the forensics library
-[group('workspace')]
+[group('features')]
 forensics:
   cd forensics && cargo build --release
 

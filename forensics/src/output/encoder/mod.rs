@@ -1,5 +1,7 @@
 pub(crate) mod artifact_encoder;
 mod csv;
+#[cfg(feature = "duck")]
+mod duckdb;
 pub(crate) mod factory;
 mod helper;
 mod json;
