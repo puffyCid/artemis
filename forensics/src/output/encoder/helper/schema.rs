@@ -123,7 +123,6 @@ impl ColumnKind {
     fn merge(self, other: Self) -> Self {
         match (self, other) {
             (col_a, col_b) if col_a == col_b => col_a,
-            (Self::Utf8, _) | (_, Self::Utf8) => Self::Utf8,
             (Self::Double, Self::Int64) | (Self::Int64, Self::Double) => Self::Double,
             _ => Self::Utf8,
         }

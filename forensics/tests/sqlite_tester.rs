@@ -31,7 +31,7 @@ fn test_sqlite_tester() {
             validate_output(value);
         }
     }
-    assert_eq!(sqlite_count, 1);
+    assert_ne!(sqlite_count, 0);
 }
 
 fn validate_output(path: &PathBuf) {

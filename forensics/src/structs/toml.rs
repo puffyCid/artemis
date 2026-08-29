@@ -76,6 +76,7 @@ pub enum OutputFormat {
     Xml,
     Parquet,
     Sqlite,
+    #[cfg(feature = "duck")]
     Duckdb,
 }
 

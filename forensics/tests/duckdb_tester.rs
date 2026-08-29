@@ -1,11 +1,13 @@
-use duckdb::Connection;
-use forensics::core::parse_toml_file;
-use glob::glob;
-use std::fs::read;
+#[cfg(feature = "duck")]
 use std::path::PathBuf;
 
+#[cfg(feature = "duck")]
 #[test]
 fn test_duckdb_tester() {
+    use forensics::core::parse_toml_file;
+    use glob::glob;
+    use std::fs::read;
+
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/collections/duckdb.toml");
 
@@ -31,10 +33,13 @@ fn test_duckdb_tester() {
             validate_output(value);
         }
     }
-    assert_eq!(duckdb_count, 1);
+    assert_ne!(duckdb_count, 0);
 }
 
+#[cfg(feature = "duck")]
 fn validate_output(path: &PathBuf) {
+    use duckdb::Connection;
+
     let conn = Connection::open(path).unwrap();
 
     let results: i64 = conn

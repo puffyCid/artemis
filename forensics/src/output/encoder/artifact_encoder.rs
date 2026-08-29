@@ -2,7 +2,6 @@ use crate::output::{
     context::ArtifactContext,
     encoder::{
         csv::CsvEncoder,
-        duckdb::{DuckEncoder, DuckWriter},
         json::JsonEncoder,
         jsonl::JsonlEncoder,
         parquet::{ParquetEncoder, ParquetWriter},
@@ -15,6 +14,9 @@ use crate::output::{
     record::RecordStream,
 };
 use std::{io::Write, path::PathBuf};
+
+#[cfg(feature = "duck")]
+use crate::output::encoder::duckdb::{DuckEncoder, DuckWriter};
 
 /// Describes how the encoder will write artifact records
 #[derive(Debug, PartialEq)]
@@ -58,6 +60,7 @@ pub(crate) enum StreamWriter {
     /// Stream all output to a single sqlite file on disk
     Sqlite(SqliteWriter),
     /// Stream all output to a single duckdb file on disk
+    #[cfg(feature = "duck")]
     Duckdb(DuckWriter),
 }
 
@@ -84,6 +87,7 @@ impl StreamWriter {
         match self {
             Self::Parquet(writer) => writer.write_records(records, context),
             Self::Sqlite(writer) => writer.write_records(records, context),
+            #[cfg(feature = "duck")]
             Self::Duckdb(writer) => writer.write_records(records, context),
         }
     }
@@ -93,6 +97,7 @@ impl StreamWriter {
         match self {
             Self::Parquet(writer) => writer.finish(),
             Self::Sqlite(writer) => writer.finish(),
+            #[cfg(feature = "duck")]
             Self::Duckdb(writer) => writer.finish(),
         }
     }
@@ -120,6 +125,7 @@ pub(crate) enum Encoder {
     /// Sqlite encoder
     Sqlite(SqliteEncoder),
     /// Duckdb encoder
+    #[cfg(feature = "duck")]
     Duckdb(DuckEncoder),
 }
 
@@ -135,6 +141,7 @@ impl Encoder {
             Self::Xml(encoder) => encoder.extension(),
             Self::Parquet(encoder) => encoder.extension(),
             Self::Sqlite(encoder) => encoder.extension(),
+            #[cfg(feature = "duck")]
             Self::Duckdb(encoder) => encoder.extension(),
         }
     }
@@ -152,6 +159,7 @@ impl Encoder {
             Self::Xml(encoder) => encoder.mime_type(),
             Self::Parquet(encoder) => encoder.mime_type(),
             Self::Sqlite(encoder) => encoder.mime_type(),
+            #[cfg(feature = "duck")]
             Self::Duckdb(encoder) => encoder.mime_type(),
         }
     }
@@ -178,6 +186,7 @@ impl Encoder {
             Self::Sqlite(_) => Err(OutputError::Encode(String::from(
                 "sqlite output is streamed; use 'encode_stream' instead",
             ))),
+            #[cfg(feature = "duck")]
             Self::Duckdb(_) => Err(OutputError::Encode(String::from(
                 "duckdb output is streamed; use 'encode_stream' instead",
             ))),
@@ -194,6 +203,7 @@ impl Encoder {
         match self {
             Self::Parquet(encoder) => encoder.encode_stream(target, records, context),
             Self::Sqlite(encoder) => encoder.encode_stream(target, records, context),
+            #[cfg(feature = "duck")]
             Self::Duckdb(encoder) => encoder.encode_stream(target, records, context),
             _ => Err(OutputError::Encode(format!(
                 "{} output is chunked and does not support streamed writers",
@@ -212,7 +222,9 @@ impl Encoder {
             | Encoder::Csv(_)
             | Encoder::Xml(_) => EncoderMode::Chunked,
             Encoder::Parquet(_) => EncoderMode::Streamed,
-            Encoder::Sqlite(_) | Encoder::Duckdb(_) => EncoderMode::SharedStream,
+            Encoder::Sqlite(_) => EncoderMode::SharedStream,
+            #[cfg(feature = "duck")]
+            Encoder::Duckdb(_) => EncoderMode::SharedStream,
         }
     }
 }

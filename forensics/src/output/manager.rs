@@ -1274,6 +1274,7 @@ mod tests {
         assert!(!log_files.is_empty());
     }
 
+    #[cfg(feature = "duck")]
     #[test]
     fn test_output_manager_duckdb() {
         let name = String::from("manager_collection_duckdb");

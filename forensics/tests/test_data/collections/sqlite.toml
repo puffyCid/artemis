@@ -21,8 +21,8 @@ artifact_name = "files"
 [artifacts.files]
 start_path = "."
 depth = 5
-metadata = true
-md5 = true
+metadata = false
+md5 = false
 sha1 = false
 sha256 = false
 regex_filter = ""

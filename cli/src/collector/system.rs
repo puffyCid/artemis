@@ -100,6 +100,7 @@ fn format_choice(format: &str) -> OutputFormat {
         "xml" => OutputFormat::Xml,
         "parquet" => OutputFormat::Parquet,
         "sqlite" => OutputFormat::Sqlite,
+        #[cfg(feature = "duck")]
         "duckdb" => OutputFormat::Duckdb,
         _ => OutputFormat::Jsonl,
     }
