@@ -95,6 +95,10 @@ impl ColumnKind {
         match value {
             Value::Bool(_) => Self::Bool,
             Value::Number(number) => {
+                // Check signed numbers first
+                // sqlite only supports signed numbers
+                // if we check unsigned first then many numbers will
+                // become TEXT in sqlite
                 if number.is_i64() {
                     Self::Int64
                 } else if number.is_u64() {
