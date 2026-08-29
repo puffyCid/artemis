@@ -1,0 +1,34 @@
+
+[output]
+name = "duckdb_collection"
+directory = "./tmp"
+format = "duckdb"
+compress = false
+endpoint_id = "6c51b123-1522-4572-9f2a-0bd5abd81b82"
+collection_id = 1
+destination = "local"
+
+[[artifacts]]
+artifact_name = "processes"
+[artifacts.processes]
+md5 = false
+sha1 = false
+sha256 = false
+metadata = false
+
+[[artifacts]]
+artifact_name = "files"
+[artifacts.files]
+start_path = "."
+depth = 5
+metadata = true
+md5 = true
+sha1 = false
+sha256 = false
+regex_filter = ""
+
+[[artifacts]]
+artifact_name = "systeminfo"
+
+[[artifacts]]
+artifact_name = "connections"

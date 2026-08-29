@@ -66,22 +66,25 @@ fn open_connection(target: &StreamTarget) -> OutputResult<Connection> {
     let conn =
         Connection::open(&target.path).map_err(|err| duckdb_path_error(&target.path, err))?;
 
+    conn.execute_batch("SET threads = 1; SET memory_limit = '512MB';")
+        .map_err(duckdb_error)?;
+
     Ok(conn)
 }
 
-/// Convert a path-specific duckdb open error
+/// Convert a path-specific DuckDB open error
 fn duckdb_path_error(path: impl AsRef<Path>, err: Error) -> OutputError {
     OutputError::Encode(format!(
-        "failed to open duckdb file {}: {err}",
+        "failed to open DuckDB file {}: {err}",
         path.as_ref().display()
     ))
 }
 
-/// Active duckdb writer for artifact collection output
+/// Active DuckDB writer for artifact collection output
 pub(crate) struct DuckWriter {
     /// Full path to the streamed output file
     target: StreamTarget,
-    /// Duckdb connection reused for the entire collection
+    /// DuckDB connection reused for the entire collection
     conn: Connection,
     /// Mapping of artifact name to created table name
     artifact_tables: HashMap<String, String>,
@@ -120,10 +123,10 @@ impl DuckWriter {
     ) -> OutputResult<usize> {
         let table = self.ensure_table(artifact_name, rows)?;
         let schema = self.tables.get(&table).ok_or_else(|| {
-            OutputError::Encode(format!("missing duckdb schema for table {table}"))
+            OutputError::Encode(format!("missing DuckDB schema for table {table}"))
         })?;
 
-        // Start inserting JSON records into duckdb file
+        // Start inserting JSON records into DuckDB file
         let transaction = self.conn.transaction().map_err(duckdb_error)?;
         {
             let mut appender = transaction.appender(&table).map_err(duckdb_error)?;
@@ -140,13 +143,13 @@ impl DuckWriter {
         Ok(rows.len())
     }
 
-    /// Complete the duckdb transaction and finalize the write output
+    /// Complete the DuckDB transaction and finalize the write output
     pub(crate) fn finish(self) -> OutputResult<()> {
         self.conn.execute("CHECKPOINT", []).map_err(duckdb_error)?;
 
         self.conn.close().map_err(|(_, err)| {
             OutputError::Encode(format!(
-                "failed to close duckdb file {}: {err:?}",
+                "failed to close DuckDB file {}: {err:?}",
                 self.target.path.display()
             ))
         })?;
@@ -154,7 +157,7 @@ impl DuckWriter {
         Ok(())
     }
 
-    /// Validate that the duckdb table exists or create it
+    /// Validate that the DuckDB table exists or create it
     fn ensure_table(
         &mut self,
         artifact_name: &str,
@@ -244,9 +247,9 @@ fn value_for_column(kind: ColumnKind, value: Option<&Value>) -> DuckValue {
     }
 }
 
-/// Convert `duckdb_error::Error` to `OutputError`
+/// Convert `duckdb::Error` to `OutputError`
 fn duckdb_error(err: Error) -> OutputError {
-    OutputError::Encode(format!("duckdb error: {err}"))
+    OutputError::Encode(format!("DuckDB error: {err}"))
 }
 
 #[cfg(test)]
