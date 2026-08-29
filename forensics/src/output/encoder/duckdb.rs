@@ -124,6 +124,20 @@ impl DuckWriter {
         Ok(rows.len())
     }
 
+    /// Complete the duckdb transaction and finalize the write output
+    pub(crate) fn finish(self) -> OutputResult<()> {
+        self.conn.execute("CHECKPOINT", []).map_err(duckdb_error)?;
+
+        self.conn.close().map_err(|(_, err)| {
+            OutputError::Encode(format!(
+                "failed to close duckdb file {}: {err:?}",
+                self.target.path.display()
+            ))
+        })?;
+
+        Ok(())
+    }
+
     /// Validate that the duckdb table exists or create it
     fn ensure_table(
         &mut self,

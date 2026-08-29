@@ -124,12 +124,14 @@ impl SqliteWriter {
     pub(crate) fn finish(self) -> OutputResult<()> {
         self.conn
             .execute_batch("PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode = DELETE;")
-            .map_err(|err| {
-                OutputError::Encode(format!(
-                    "failed to close sqlite file {}: {err:?}",
-                    self.target.path.display()
-                ))
-            })?;
+            .map_err(sqlite_error)?;
+
+        self.conn.close().map_err(|(_, err)| {
+            OutputError::Encode(format!(
+                "failed to close sqlite file {}: {err:?}",
+                self.target.path.display()
+            ))
+        })?;
 
         Ok(())
     }

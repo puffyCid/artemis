@@ -124,8 +124,7 @@ impl ColumnKind {
         match (self, other) {
             (col_a, col_b) if col_a == col_b => col_a,
             (Self::Utf8, _) | (_, Self::Utf8) => Self::Utf8,
-            (Self::Double, Self::Int64 | Self::UnsignedInt64)
-            | (Self::Int64 | Self::UnsignedInt64, Self::Double) => Self::Double,
+            (Self::Double, Self::Int64) | (Self::Int64, Self::Double) => Self::Double,
             _ => Self::Utf8,
         }
     }
@@ -192,7 +191,8 @@ mod tests {
             "tags": ["a"],
             "meta": {"k": "v"},
             "empty": null,
-            "big": u64::MAX
+            "big": u64::MAX,
+            "timestamp": "2006-01-23T01:12:34.456Z",
         })]));
 
         assert_eq!(column(&schema, "flag").kind, ColumnKind::Bool);
@@ -200,9 +200,10 @@ mod tests {
         assert_eq!(column(&schema, "ratio").kind, ColumnKind::Double);
         assert_eq!(column(&schema, "path").kind, ColumnKind::Utf8);
         assert_eq!(column(&schema, "tags").kind, ColumnKind::Utf8);
-        assert_eq!(column(&schema, "meta").kind, ColumnKind::Utf8);
+        assert_eq!(column(&schema, "meta").kind, ColumnKind::Json);
         assert_eq!(column(&schema, "empty").kind, ColumnKind::Utf8);
-        assert_eq!(column(&schema, "big").kind, ColumnKind::Utf8);
+        assert_eq!(column(&schema, "big").kind, ColumnKind::UnsignedInt64);
+        assert_eq!(column(&schema, "timestamp").kind, ColumnKind::Timestamp);
     }
 
     #[test]
