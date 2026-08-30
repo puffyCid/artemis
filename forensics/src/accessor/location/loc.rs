@@ -26,13 +26,17 @@ impl Location {
             return Err(AccessorError::location(value, "location cannot be empty"));
         }
 
-        if let Some((source_part, inner_part)) = value.split_once('!') {
+        if has_scheme(value)
+            && let Some((source_part, inner_part)) = value.split_once('!')
+        {
             return parse_schemed_location(source_part, Some(inner_part));
         }
 
         // Determine the scheme of the data
         // Can be ntfs, host, zip, or others
-        if let Some((scheme, remainder)) = split_scheme_prefix(value) {
+        if has_scheme(value)
+            && let Some((scheme, remainder)) = split_scheme_prefix(value)
+        {
             return parse_schemed_location(&format!("{scheme}:{remainder}"), None);
         }
 
@@ -195,6 +199,13 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
         source,
         inner_path,
     })
+}
+
+/// Check if the file path starts with a valid `Scheme`
+fn has_scheme(path: &str) -> bool {
+    (path.to_lowercase().starts_with(Scheme::Ntfs.as_str())
+        || path.to_lowercase().starts_with(Scheme::Zip.as_str()))
+        && !is_relative_host_path(path)
 }
 
 /// Split the scheme part of the input
