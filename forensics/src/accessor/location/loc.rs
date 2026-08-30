@@ -541,11 +541,13 @@ mod tests {
     }
 
     #[test]
-    fn test_glob_exclamation() {
+    fn test_ntfs_glob_exclamation() {
         let test = "ntfs:C:\\Users\\file!name*";
         let (loc, pattern) = Location::split_glob_pattern(test).unwrap();
         assert_eq!(loc.inner_path.display(), "C:\\Users");
         assert_eq!(pattern, "file!name*");
+        assert_eq!(loc.scheme, Scheme::Ntfs);
+        assert_eq!(loc.source.unwrap().display(), "C:");
     }
 
     #[test]
