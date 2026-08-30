@@ -78,13 +78,6 @@ impl Location {
             });
         }
 
-        if is_absolute_host_path(input) {
-            return Err(AccessorError::location(
-                input,
-                "expected a source spec such as host:, ntfs:C:, or zip:/path/archive.zip",
-            ));
-        }
-
         Err(AccessorError::location(
             input,
             "expected a source spec such as host:, ntfs:C:, or zip:/path/archive.zip",
