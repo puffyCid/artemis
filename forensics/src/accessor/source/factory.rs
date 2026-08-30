@@ -164,7 +164,7 @@ pub(crate) fn open_reader_on_source(
 ///
 /// Does not accept scheme prefixes or `!` container syntax — only paths within the source
 pub(crate) fn parse_inner_path(inner: &str) -> AccessorResult<InnerPath> {
-    let inner = inner.trim();
+    // Empty string means we return the archive root
     if inner.is_empty() {
         return Ok(InnerPath::empty());
     }

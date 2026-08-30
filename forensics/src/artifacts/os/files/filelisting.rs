@@ -199,8 +199,12 @@ fn file_metadata(
 
     // Get executable metadata if enabled
     if options.metadata.is_some_and(|b| b) && file_entry.is_file {
+        // Filelisting can only run on host platforms.
+        // Always make sure we tell the `Accessor` to use the `Host Accessor`
+        // Should prevent confusion when paths contain `zip:/file.zip/ntfs:files.txt`
         file_entry.binary_info =
-            executable_metadata(&entry.path().display().to_string(), plat).unwrap_or_default();
+            executable_metadata(&format!("host:{}", &entry.path().display()), plat)
+                .unwrap_or_default();
     }
 
     let hashes = Hashes {

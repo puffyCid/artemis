@@ -215,7 +215,7 @@ mod tests {
             attributes::{
                 AttributeFlags, file_attribute_flags, get_filename_attribute, read_attribute_data,
             },
-            raw_files::{NtfsOptions, iterate_ntfs, raw_reader},
+            raw_files::{NtfsOptions, iterate_ntfs},
             sector_reader::SectorReader,
             setup::setup_ntfs_parser,
         },

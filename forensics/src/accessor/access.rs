@@ -24,7 +24,7 @@ use tracing::info;
 ///
 /// Input is parsed into [`Location`] structure which is composed of (scheme, optional source path, and inner path)
 ///
-/// Example: `zip:test.zip!/home/test.txt`
+/// Example: `zip:test.zip!./home/test.txt`
 ///
 /// `Scheme` - `zip`
 /// `Source path` - `test.zip`
@@ -160,6 +160,9 @@ impl Accessor {
     /// Open a source for repeated reads
     ///
     /// Examples: `host:`, `ntfs:C:`, `zip:/path/archive.zip`
+    ///
+    /// Can be used to handle weird source names.
+    /// For example: `zip:/path/archive!ntfs:.zip`
     pub(crate) fn open_source(&mut self, source: &str) -> AccessorResult<SourceHandle> {
         let loc = Location::parse_source(source)?;
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;

@@ -540,16 +540,15 @@ pub(crate) fn inner_to_ntfs_path(inner: &InnerPath, drive: char) -> (String, Str
 
 /// Remove drive characters and ADS if present
 fn strip_drive_prefix_and_ads(path: &str, drive: char) -> (String, String) {
-    let trimmed = path.trim();
     let lower = format!("{}:", drive.to_ascii_lowercase());
     let upper = format!("{}:", drive.to_ascii_uppercase());
 
-    let remainder = if let Some(rest) = trimmed.strip_prefix(&lower) {
+    let remainder = if let Some(rest) = path.strip_prefix(&lower) {
         rest
-    } else if let Some(rest) = trimmed.strip_prefix(&upper) {
+    } else if let Some(rest) = path.strip_prefix(&upper) {
         rest
     } else {
-        trimmed
+        path
     };
 
     let (clean_path, attribute_name) = match remainder.rsplit_once(':') {
