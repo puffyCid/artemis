@@ -1,7 +1,7 @@
 use super::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 use super::artifacts::os::macos::{
-    EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
-    MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
+    FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions,
+    MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
 };
 use super::artifacts::os::windows::{MftOptions, OutlookOptions};
 use crate::output::marker::MarkerTracker;
@@ -112,7 +112,6 @@ pub struct Artifacts {
     pub unifiedlogs: Option<UnifiedLogsOptions>,
     pub users_macos: Option<MacosUsersOptions>,
     pub groups_macos: Option<MacosGroupsOptions>,
-    pub emond: Option<EmondOptions>,
     pub launchd: Option<LaunchdOptions>,
     pub loginitems: Option<LoginitemsOptions>,
     pub fseventsd: Option<FseventsOptions>,

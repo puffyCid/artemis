@@ -48,27 +48,6 @@ pub(crate) fn groups_macos(data: &mut Value) -> bool {
     true
 }
 
-/// Timeline macOS emond
-pub(crate) fn emond(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
-    if !data.is_object() {
-        return false;
-    }
-    let Some(plist_created) = data["plist_created"].as_str() else {
-        return false;
-    };
-
-    if filter_data(plist_created, start, end) {
-        return false;
-    }
-    data["datetime"] = plist_created.into();
-    data["message"] = data["name"].as_str().unwrap_or_default().into();
-    data["artifact"] = "Emond".into();
-    data["data_type"] = "macos:plist:emond:entry".into();
-    data["timestamp_desc"] = "PLIST Created".into();
-
-    true
-}
-
 pub(crate) fn fsevents(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
     if !data.is_object() {
         return false;
@@ -239,7 +218,7 @@ pub(crate) fn sudo_macos(data: &mut Value, start: &Option<String>, end: &Option<
 #[cfg(test)]
 mod tests {
     use crate::artifacts::macos::{
-        emond, fsevents, groups_macos, launchd, loginitems, spotlight, unifiedlogs, users_macos,
+        fsevents, groups_macos, launchd, loginitems, spotlight, unifiedlogs, users_macos,
     };
     use serde_json::json;
 
@@ -265,19 +244,6 @@ mod tests {
         assert!(groups_macos(&mut test));
         assert_eq!(test["artifact"], "macOS Group");
         assert_eq!(test["message"], "bob");
-    }
-
-    #[test]
-    fn test_emond() {
-        let mut test = json!({
-            "plist_created": "2024-01-01T00:00:00.000Z",
-            "name": "bob rule",
-        });
-
-        assert!(emond(&mut test, &None, &None));
-        assert_eq!(test["datetime"], "2024-01-01T00:00:00.000Z");
-        assert_eq!(test["artifact"], "Emond");
-        assert_eq!(test["message"], "bob rule");
     }
 
     #[test]

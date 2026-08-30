@@ -1,6 +1,5 @@
 use super::{
     accounts::{groups::grab_groups, users::grab_users},
-    emond::parser::grab_emond,
     error::MacArtifactError,
     fsevents::parser::grab_fseventsd,
     launchd::launchdaemon::grab_launchd,
@@ -12,8 +11,8 @@ use super::{
 use crate::{
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::{
-        EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
-        MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
+        FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions, MacosSudoOptions,
+        MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
     },
 };
 use tracing::{error, warn};
@@ -39,41 +38,6 @@ pub(crate) fn loginitems(
     let artifact_name = "loginitems";
     if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
         error!("Failed to output loginitems: {err:?}");
-        return Err(MacArtifactError::Output);
-    }
-
-    Ok(())
-}
-
-/// Parse macOS `Emond`
-pub(crate) fn emond(
-    manager: &mut OutputManager,
-    options: &EmondOptions,
-) -> Result<(), MacArtifactError> {
-    let results = grab_emond(options);
-    let entries = match results {
-        Ok(result) => result,
-        Err(err) => {
-            warn!("Failed to parse emond rules: {err:?}");
-            return Err(MacArtifactError::Emond);
-        }
-    };
-
-    if entries.is_empty() {
-        return Ok(());
-    }
-
-    let mut records = match serialize_records_to_stream(entries) {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to serialize emond: {err:?}");
-            return Err(MacArtifactError::Serialize);
-        }
-    };
-
-    let artifact_name = "emond";
-    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
-        error!("Failed to output emond: {err:?}");
         return Err(MacArtifactError::Output);
     }
 
@@ -234,12 +198,12 @@ mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::macos::artifacts::{
-            emond, fseventsd, groups_macos, launchd, loginitems, spotlight, sudo_logs_macos,
-            unifiedlogs, users_macos,
+            fseventsd, groups_macos, launchd, loginitems, spotlight, sudo_logs_macos, unifiedlogs,
+            users_macos,
         },
         output::manager::OutputManager,
         structs::artifacts::os::macos::{
-            EmondOptions, FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
+            FseventsOptions, LaunchdOptions, LoginitemsOptions, MacosGroupsOptions,
             MacosSudoOptions, MacosUsersOptions, SpotlightOptions, UnifiedLogsOptions,
         },
     };
@@ -263,14 +227,6 @@ mod tests {
         let mut output = output_options("loginitems_test", "./tmp", false);
 
         let status = loginitems(&mut output, &LoginitemsOptions { alt_file: None }).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_emond() {
-        let mut output = output_options("emond_test", "./tmp", false);
-
-        let status = emond(&mut output, &EmondOptions { alt_dir: None }).unwrap();
         assert_eq!(status, ());
     }
 
