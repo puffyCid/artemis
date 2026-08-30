@@ -203,9 +203,9 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
 
 /// Check if the file path starts with a valid `Scheme`
 fn has_scheme(path: &str) -> bool {
-    (path.to_lowercase().starts_with(Scheme::Ntfs.as_str())
-        || path.to_lowercase().starts_with(Scheme::Zip.as_str()))
-        && !is_relative_host_path(path)
+    path.to_lowercase().starts_with(Scheme::Ntfs.as_str())
+        || path.to_lowercase().starts_with(Scheme::Zip.as_str())
+        || path.to_lowercase().starts_with(Scheme::Host.as_str())
 }
 
 /// Split the scheme part of the input
@@ -348,12 +348,67 @@ mod tests {
     }
 
     #[test]
-    fn test_location_raw() {
+    fn test_location_ntfs() {
         let test = "ntfs:C:\\home\\test.txt";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Ntfs);
         assert_eq!(result.inner_path.display(), "C:\\home\\test.txt");
         assert_eq!(result.source.unwrap().display(), "C:");
+    }
+
+    #[test]
+    fn test_location_tricky() {
+        let test = "C:\\home\\ntfs:file!text.txt";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(result.inner_path.display(), "C:\\home\\ntfs:file!text.txt");
+        assert!(result.source.is_none());
+    }
+
+    #[test]
+    fn test_location_colon_in_path() {
+        let test =
+            "/home/dev/.local/share/gvfs-metadata/sftp:host=192.168.1.147,port=1739-9ea94643.log";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(
+            result.inner_path.display(),
+            "/home/dev/.local/share/gvfs-metadata/sftp:host=192.168.1.147,port=1739-9ea94643.log"
+        );
+        assert!(result.source.is_none());
+    }
+
+    #[test]
+    fn test_location_exclamation_in_path() {
+        let test = "/home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(
+            result.inner_path.display(),
+            "/home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art"
+        );
+        assert!(result.source.is_none());
+    }
+
+    #[test]
+    fn test_location_zip_exclamation_in_path() {
+        let test = "zip:file.zip!./home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Zip);
+        assert_eq!(
+            result.inner_path.display(),
+            "home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art"
+        );
+        assert_eq!(result.source.unwrap().display(), "file.zip");
+    }
+
+    #[test]
+    fn test_location_not_a_zip() {
+        let test = "host:zip:/file.zip/Amcache.hve";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(result.inner_path.display(), "zip:/file.zip/Amcache.hve");
+        assert!(result.source.is_none());
     }
 
     #[test]
