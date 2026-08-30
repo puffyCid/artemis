@@ -396,10 +396,22 @@ mod tests {
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(
-            result.inner_path.display(),
+            result.inner_path.as_path(),
             "home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art"
         );
         assert_eq!(result.source.unwrap().display(), "file.zip");
+    }
+
+    #[test]
+    fn test_location_exclamation_in_windows_mixed_path() {
+        let test = "file.zip!\\home\\dev\\.cache/vlc/art/artistalbum/singer/I like Music! /art";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(
+            result.inner_path.as_path(),
+            "file.zip!\\home\\dev\\.cache/vlc/art/artistalbum/singer/I like Music! /art"
+        );
+        assert!(result.source.is_none());
     }
 
     #[test]

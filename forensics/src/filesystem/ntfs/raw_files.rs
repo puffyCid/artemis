@@ -504,9 +504,7 @@ mod tests {
     use super::{NtfsOptions, iterate_ntfs, raw_reader};
     use crate::{
         filesystem::ntfs::{
-            raw_files::{
-                raw_hash_data, raw_read_by_file_ref, raw_read_data, raw_read_file, read_attribute,
-            },
+            raw_files::{raw_hash_data, raw_read_data, raw_read_file, read_attribute},
             sector_reader::SectorReader,
             setup::setup_ntfs_parser,
         },
