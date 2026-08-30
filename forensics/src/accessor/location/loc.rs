@@ -28,8 +28,8 @@ impl Location {
 
         if let Some(scheme) = scheme_prefix(value) {
             return match scheme {
-                Scheme::Host => parse_schemed_location(value, None),
-                Scheme::Zip | Scheme::Ntfs => {
+                Scheme::Host | Scheme::Ntfs => parse_schemed_location(value, None),
+                Scheme::Zip => {
                     if let Some((source_part, inner_part)) = value.split_once('!') {
                         parse_schemed_location(source_part, Some(inner_part))
                     } else {
@@ -105,11 +105,9 @@ impl Location {
     /// Example: `/var/log/*.log` -> (`/var/log/`, `*.log`)
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
         // Check for disk images or container files
-        // 'zip:test.zip!*' or 'ntfs:image.raw!/users/*/*.txt'
-        if matches!(
-            scheme_prefix(input).map(|scheme| scheme),
-            Some(Scheme::Zip | Scheme::Ntfs)
-        ) && let Some((source_path, inner_glob)) = input.split_once('!')
+        // 'zip:test.zip!*' or in future 'dd:image.raw!/users/*/*.txt'
+        if matches!(scheme_prefix(input), Some(Scheme::Zip | Scheme::Ntfs))
+            && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
 
@@ -182,6 +180,7 @@ impl Location {
     }
 }
 
+/// Check the input path to see if matches a supported `Scheme`
 fn scheme_prefix(input: &str) -> Option<Scheme> {
     let (scheme, _) = split_scheme_prefix(input)?;
     Scheme::parse(scheme).ok()
@@ -578,9 +577,18 @@ mod tests {
 
     #[test]
     fn test_glob_windows_bang_is_host() {
-        let (loc, pattern) = Location::split_glob_pattern(r"C:\home\ntfs:file!text*").unwrap();
+        let (loc, pattern) = Location::split_glob_pattern("C:\\home\\ntfs:file!text*").unwrap();
         assert_eq!(loc.scheme, Scheme::Host);
-        assert_eq!(loc.inner_path.display(), r"C:\home");
+        assert_eq!(loc.inner_path.display(), "C:\\home");
         assert_eq!(pattern, "ntfs:file!text*");
+    }
+
+    #[test]
+    fn test_ntfs_exclamation() {
+        let test = "ntfs:C:\\Users\\file!name.txt";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Ntfs);
+        assert_eq!(result.inner_path.display(), "C:\\Users\\file!name.txt");
+        assert_eq!(result.source.unwrap().display(), "C:");
     }
 }
