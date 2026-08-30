@@ -541,6 +541,14 @@ mod tests {
     }
 
     #[test]
+    fn test_glob_exclamation() {
+        let test = "ntfs:C:\\Users\\file!name*";
+        let (loc, pattern) = Location::split_glob_pattern(test).unwrap();
+        assert_eq!(loc.inner_path.display(), "C:\\Users");
+        assert_eq!(pattern, "file!name*");
+    }
+
+    #[test]
     fn test_location_host_escape_with_exclamation() {
         let test = "host:/home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
         let result = Location::parse(test).unwrap();
