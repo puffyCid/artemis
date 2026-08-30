@@ -24,7 +24,7 @@ use tracing::info;
 ///
 /// Input is parsed into [`Location`] structure which is composed of (scheme, optional source path, and inner path)
 ///
-/// Example: `zip:test.zip!/home/test.txt`
+/// Example: `zip:test.zip!./home/test.txt`
 ///
 /// `Scheme` - `zip`
 /// `Source path` - `test.zip`

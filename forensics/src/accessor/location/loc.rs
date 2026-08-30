@@ -21,19 +21,18 @@ pub(crate) struct Location {
 impl Location {
     /// Parse the provided input string into a `Location` structure
     pub(crate) fn parse(input: &str) -> AccessorResult<Self> {
-        let value = input.trim();
-        if value.is_empty() {
-            return Err(AccessorError::location(value, "location cannot be empty"));
+        if input.is_empty() {
+            return Err(AccessorError::location(input, "location cannot be empty"));
         }
 
-        if let Some(scheme) = scheme_prefix(value) {
+        if let Some(scheme) = scheme_prefix(input) {
             return match scheme {
-                Scheme::Host | Scheme::Ntfs => parse_schemed_location(value, None),
+                Scheme::Host | Scheme::Ntfs => parse_schemed_location(input, None),
                 Scheme::Zip => {
-                    if let Some((source_part, inner_part)) = value.split_once('!') {
+                    if let Some((source_part, inner_part)) = input.split_once('!') {
                         parse_schemed_location(source_part, Some(inner_part))
                     } else {
-                        parse_schemed_location(value, None)
+                        parse_schemed_location(input, None)
                     }
                 }
             };
@@ -41,34 +40,33 @@ impl Location {
 
         // If we do not have a location scheme
         // We try to represent the input as data on a live system
-        if is_host_path(value) {
+        if is_host_path(input) {
             return Ok(Self {
                 scheme: Scheme::Host,
                 source: None,
-                inner_path: InnerPath::new(PathBuf::from(value)),
+                inner_path: InnerPath::new(PathBuf::from(input)),
             });
         }
 
         Err(AccessorError::location(
-            value,
+            input,
             "expected an absolute host path or a scheme prefix such as host:, ntfs:, or zip:",
         ))
     }
 
     /// Parse just the source of the data into a `Location` structure
     pub(crate) fn parse_source(input: &str) -> AccessorResult<Self> {
-        let value = input.trim();
-        if value.is_empty() {
-            return Err(AccessorError::location(value, "source cannot be empty"));
+        if input.is_empty() {
+            return Err(AccessorError::location(input, "source cannot be empty"));
         }
 
         // Determine the scheme of the data
         // Can be ntfs, host, zip, or others
-        if let Some((scheme, remainder)) = split_scheme_prefix(value) {
+        if let Some((scheme, remainder)) = split_scheme_prefix(input) {
             let scheme_value = Scheme::parse(scheme)?;
             if scheme_value == Scheme::Host && !remainder.is_empty() {
                 return Err(AccessorError::location(
-                    value,
+                    input,
                     "host source must be written as host: with no trailing path",
                 ));
             }
@@ -80,7 +78,7 @@ impl Location {
             });
         }
 
-        if is_absolute_host_path(value) {
+        if is_absolute_host_path(input) {
             return Err(AccessorError::location(
                 input,
                 "expected a source spec such as host:, ntfs:C:, or zip:/path/archive.zip",
@@ -139,32 +137,31 @@ impl Location {
 
     /// Parse the provided glob pattern
     pub(crate) fn parse_glob_pattern(input: &str) -> AccessorResult<(String, String)> {
-        let value = input.trim();
-        if value.is_empty() {
-            return Err(AccessorError::location(value, "glob input cannot be empty"));
+        if input.is_empty() {
+            return Err(AccessorError::location(input, "glob input cannot be empty"));
         }
 
-        let glob_at = value
+        let glob_at = input
             .char_indices()
             .find(|(_, ch)| matches!(ch, '*' | '?' | '['))
-            .map_or(value.len(), |(index, _)| index);
+            .map_or(input.len(), |(index, _)| index);
 
-        let (location_part, pattern) = match value[..glob_at].rfind(['/', '\\']) {
-            Some(0) if matches!(value.as_bytes().first(), Some(b'/' | b'\\')) => {
-                (value[..1].to_string(), value[1..].to_string())
+        let (location_part, pattern) = match input[..glob_at].rfind(['/', '\\']) {
+            Some(0) if matches!(input.as_bytes().first(), Some(b'/' | b'\\')) => {
+                (input[..1].to_string(), input[1..].to_string())
             }
-            Some(sep) => (value[..sep].to_string(), value[sep + 1..].to_string()),
-            None => (String::new(), value.to_string()),
+            Some(sep) => (input[..sep].to_string(), input[sep + 1..].to_string()),
+            None => (String::new(), input.to_string()),
         };
 
         // If the user provide a directory path but no pattern. Treat as a single glob
-        if value.ends_with(['/', '\\']) && pattern.is_empty() {
+        if input.ends_with(['/', '\\']) && pattern.is_empty() {
             return Ok((location_part, String::from("*")));
         }
 
         if pattern.is_empty() {
             return Err(AccessorError::location(
-                value,
+                input,
                 "empty glob pattern must contain a wildcard",
             ));
         }
@@ -608,5 +605,13 @@ mod tests {
         let result = Location::parse_source("zip:file.zip!inner").unwrap();
         assert_eq!(result.source.unwrap().display(), "file.zip!inner");
         assert!(result.inner_path.is_empty());
+    }
+
+    #[test]
+    fn test_zip_space() {
+        let result = Location::parse("zip:file.zip!./inner.txt ").unwrap();
+        assert_eq!(result.scheme, Scheme::Zip);
+        assert_eq!(result.inner_path.display(), "inner.txt ");
+        assert_eq!(result.source.unwrap().display(), "file.zip");
     }
 }
