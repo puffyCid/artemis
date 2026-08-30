@@ -62,13 +62,6 @@ impl Location {
             return Err(AccessorError::location(value, "source cannot be empty"));
         }
 
-        if value.contains('!') {
-            return Err(AccessorError::location(
-                value,
-                "source strings cannot contain '!'",
-            ));
-        }
-
         // Determine the scheme of the data
         // Can be ntfs, host, zip, or others
         if let Some((scheme, remainder)) = split_scheme_prefix(value) {
@@ -106,7 +99,7 @@ impl Location {
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
         // Check for disk images or container files
         // 'zip:test.zip!*' or in future 'dd:image.raw!/users/*/*.txt'
-        if matches!(scheme_prefix(input), Some(Scheme::Zip | Scheme::Ntfs))
+        if matches!(scheme_prefix(input), Some(Scheme::Zip))
             && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
@@ -590,5 +583,20 @@ mod tests {
         assert_eq!(result.scheme, Scheme::Ntfs);
         assert_eq!(result.inner_path.display(), "C:\\Users\\file!name.txt");
         assert_eq!(result.source.unwrap().display(), "C:");
+    }
+
+    #[test]
+    fn test_parse_source_zip_exclamation_in_name() {
+        let result = Location::parse_source("zip:/tmp/weird!name.zip").unwrap();
+        assert_eq!(result.scheme, Scheme::Zip);
+        assert_eq!(result.source.unwrap().display(), "/tmp/weird!name.zip");
+        assert!(result.inner_path.is_empty());
+    }
+
+    #[test]
+    fn test_parse_source_zip_location_is_literal_name() {
+        let result = Location::parse_source("zip:file.zip!inner").unwrap();
+        assert_eq!(result.source.unwrap().display(), "file.zip!inner");
+        assert!(result.inner_path.is_empty());
     }
 }
