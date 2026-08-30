@@ -276,7 +276,7 @@ fn parse_raw_source(remainder: &str, raw: RawFileSystem) -> AccessorResult<Optio
 
 /// Identify the inner path of a `Scheme`
 ///
-/// Example: `zip:data.zip!/home/test.txt` returns `/home/test.txt` for `InnerPath`
+/// Example: `zip:data.zip!./home/test.txt` returns `/home/test.txt` for `InnerPath`
 fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath> {
     match scheme {
         Scheme::Host => {
