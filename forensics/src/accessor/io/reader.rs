@@ -26,6 +26,7 @@ impl ReaderLocation {
         let display_path = input.into();
         let full_path = strip_scheme(&display_path).to_string();
         let filename = filename_from_display(&display_path);
+
         Self {
             display_path,
             full_path,
@@ -43,14 +44,14 @@ impl ReaderLocation {
 
     /// Location of the file. Includes the scheme in the path
     ///
-    /// Example: `ntfs:C:\\Users\\dev\NTUSER.DAT`
+    /// Example: `ntfs:C:\\Users\\dev\\NTUSER.DAT`
     pub(crate) fn display_path(&self) -> &str {
         &self.display_path
     }
 
     /// Location of the file with no `Scheme`
     ///
-    /// Example: `C:\\Users\\dev\NTUSER.DAT`
+    /// Example: `C:\\Users\\dev\\NTUSER.DAT`
     pub(crate) fn full_path(&self) -> &str {
         &self.full_path
     }
@@ -196,5 +197,83 @@ impl AccessorReader {
             source: SourceReader::Stream(Box::new(reader)),
             location,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ReaderLocation, filename_from_display};
+    use crate::accessor::location::scheme::{Scheme, strip_scheme};
+
+    #[test]
+    fn test_strip_scheme_keeps_drive_letters_and_bare_paths() {
+        assert_eq!(strip_scheme("/var/log/syslog"), "/var/log/syslog");
+        assert_eq!(
+            strip_scheme("C:\\Windows\\file.txt"),
+            "C:\\Windows\\file.txt"
+        );
+
+        assert_eq!(strip_scheme("host:/var/log/syslog"), "/var/log/syslog");
+        assert_eq!(
+            strip_scheme("ntfs:C:\\Windows\\System32\\config\\SOFTWARE"),
+            "C:\\Windows\\System32\\config\\SOFTWARE"
+        );
+
+        assert_eq!(
+            strip_scheme("zip:/tmp/file.zip!./path/to/tex.txt"),
+            "/tmp/file.zip!./path/to/tex.txt"
+        );
+
+        assert_eq!(strip_scheme("HOST:/tmp/foo"), "/tmp/foo");
+    }
+
+    #[test]
+    fn test_host_windows_path_omits_scheme() {
+        let location = ReaderLocation::from_scheme(Scheme::Host, "C:\\Users\\dev\\NTUSER.DAT");
+
+        assert_eq!(location.display_path(), "host:C:\\Users\\dev\\NTUSER.DAT");
+        assert_eq!(location.full_path(), "C:\\Users\\dev\\NTUSER.DAT");
+        assert_eq!(location.filename(), "NTUSER.DAT");
+    }
+
+    #[test]
+    fn test_ntfs_ads_filename_is_stream_name() {
+        let location = ReaderLocation::from_display("ntfs:C:\\$Secure:$SDS");
+
+        assert_eq!(location.display_path(), "ntfs:C:\\$Secure:$SDS");
+        assert_eq!(location.full_path(), "C:\\$Secure:$SDS");
+        assert_eq!(location.filename(), "$SDS");
+    }
+
+    #[test]
+    fn test_ntfs_mft_is_not_treated_as_ads() {
+        let location = ReaderLocation::from_scheme(Scheme::Ntfs, "C:\\$MFT");
+
+        assert_eq!(location.display_path(), "ntfs:C:\\$MFT");
+        assert_eq!(location.filename(), "$MFT");
+    }
+
+    #[test]
+    fn test_zip_root_entry_and_windows_archive() {
+        let nested = ReaderLocation::from_display("zip:C:\\tmp\\file.zip!home/id_ed25519");
+        assert_eq!(nested.filename(), "id_ed25519");
+        assert_eq!(nested.full_path(), "C:\\tmp\\file.zip!home/id_ed25519");
+        let root = ReaderLocation::from_display("zip:/tmp/file.zip!tex.txt");
+        assert_eq!(root.filename(), "tex.txt");
+    }
+
+    #[test]
+    fn test_filename_from_display_edges() {
+        assert_eq!(
+            filename_from_display("host:C:\\Users\\test\\NTUSER.DAT"),
+            "NTUSER.DAT"
+        );
+        assert_eq!(filename_from_display("ntfs:C:\\$Secure:$SDS"), "$SDS");
+
+        assert_eq!(
+            filename_from_display("zip:file.zip!./path/to/tex.txt"),
+            "tex.txt"
+        );
+        assert_eq!(filename_from_display("C:\\Windows\\file.txt"), "file.txt");
     }
 }

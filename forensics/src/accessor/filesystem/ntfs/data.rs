@@ -934,4 +934,14 @@ mod tests {
         let bytes = reader.read_file(&path, None).unwrap();
         assert_eq!(bytes.len(), 262512);
     }
+
+    #[test]
+    fn test_ntfs_reader_location() {
+        let fs = test_fs();
+        let reader = fs.reader(&hello_path()).unwrap();
+
+        assert!(reader.location.display_path().starts_with("ntfs:"));
+        assert!(reader.location.full_path().contains("hello world.txt"));
+        assert_eq!(reader.location.filename(), "hello world.txt");
+    }
 }

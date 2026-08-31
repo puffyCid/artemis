@@ -781,4 +781,26 @@ mod tests {
         let entries = zipfs.globfs(&inner(""), "**/*").unwrap();
         assert_eq!(entries.len(), 11);
     }
+
+    #[test]
+    fn test_zipfs_reader_location() {
+        let dir = setup("test_zipfs_reader_location");
+        let archive = dir.join("file.zip");
+        write_zip(&archive, &[("path/to/tex.txt", b"zip payload")]);
+
+        let zipfs = ZipFs::new(archive.clone()).unwrap();
+        let reader = zipfs.reader(&inner("path/to/tex.txt"), None).unwrap();
+
+        assert_eq!(
+            reader.location.display_path(),
+            format!("zip:{}!path/to/tex.txt", archive.display())
+        );
+
+        assert_eq!(
+            reader.location.full_path(),
+            format!("{}!path/to/tex.txt", archive.display())
+        );
+
+        assert_eq!(reader.location.filename(), "tex.txt");
+    }
 }

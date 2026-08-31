@@ -113,7 +113,7 @@ impl NtfsSource {
 }
 
 impl SourceBackend for NtfsSource {
-    fn source_id(&self) -> crate::accessor::entry::locator::SourceId {
+    fn source_id(&self) -> SourceId {
         SourceId::RawNtfs(self.drive)
     }
 

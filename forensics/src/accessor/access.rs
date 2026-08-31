@@ -516,4 +516,36 @@ mod tests {
         let entries = access.globfs("C:\\Users\\*\\NTUSER*").unwrap();
         assert!(!entries.is_empty());
     }
+
+    #[test]
+    fn test_open_reader_host_location() {
+        let mut access = Accessor::with_defaults();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let reader = access.open_reader(test_location.to_str().unwrap()).unwrap();
+        assert_eq!(
+            reader.location.display_path(),
+            format!("host:{}", test_location.display().to_string())
+        );
+
+        assert_eq!(reader.location.filename(), "document.odt");
+    }
+
+    #[test]
+    fn test_open_reader_explicit_host_prefix() {
+        let mut access = Accessor::with_defaults();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let reader = access
+            .open_reader(&format!("host:{}", test_location.display()))
+            .unwrap();
+
+        assert_eq!(
+            reader.location.display_path(),
+            format!("host:{}", test_location.display().to_string())
+        );
+        assert_eq!(reader.location.filename(), "document.odt");
+    }
 }
