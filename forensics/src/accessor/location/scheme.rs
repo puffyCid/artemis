@@ -31,3 +31,14 @@ impl Scheme {
         }
     }
 }
+
+/// Strip a supported scheme prefix. Windows drive letters such as `C:` are kept
+pub(crate) fn strip_scheme(location: &str) -> &str {
+    let Some((scheme, remainder)) = location.split_once(':') else {
+        return location;
+    };
+    if scheme.len() <= 1 || Scheme::parse(scheme).is_err() {
+        return location;
+    }
+    remainder
+}

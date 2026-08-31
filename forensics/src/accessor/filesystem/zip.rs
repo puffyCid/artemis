@@ -8,7 +8,7 @@ use crate::accessor::{
         DescendGuard, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
         path_component_count,
     },
-    io::reader::AccessorReader,
+    io::reader::{AccessorReader, ReaderLocation},
     location::path::InnerPath,
 };
 use glob::Pattern;
@@ -348,7 +348,10 @@ impl ZipFs {
         max_read_size: Option<u64>,
     ) -> AccessorResult<AccessorReader> {
         let bytes = self.read_file(inner, max_read_size)?;
-        Ok(AccessorReader::memory(bytes))
+        let prefix = Self::inner_to_prefix(inner);
+        let location = ReaderLocation::from_display(self.display_entry_path(&prefix));
+
+        Ok(AccessorReader::memory(bytes, location))
     }
 
     /// Open a `AccessorReader` to the provided `FileHandle`
@@ -360,7 +363,11 @@ impl ZipFs {
         max_read_size: Option<u64>,
     ) -> AccessorResult<AccessorReader> {
         let bytes = self.read_handle(handle, max_read_size)?;
-        Ok(AccessorReader::memory(bytes))
+
+        Ok(AccessorReader::memory(
+            bytes,
+            ReaderLocation::from_display(handle.display_path()),
+        ))
     }
 
     /// Helper to convert `InnerPath` to String for zip content file access

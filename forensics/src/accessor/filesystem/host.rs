@@ -8,8 +8,8 @@ use crate::accessor::{
         DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
         normalize_glob_pattern, path_component_count,
     },
-    io::reader::AccessorReader,
-    location::path::InnerPath,
+    io::reader::{AccessorReader, ReaderLocation},
+    location::{path::InnerPath, scheme::Scheme},
 };
 use glob::Pattern;
 use std::{
@@ -184,12 +184,15 @@ impl HostFs {
         if !path.exists() {
             return Err(AccessorError::not_found(path.display().to_string()));
         }
+
         if !path.is_file() {
             return Err(AccessorError::not_a_file(path.display().to_string()));
         }
 
+        let location = ReaderLocation::from_scheme(Scheme::Host, HostFs::display_path(&path));
         let file = File::open(&path).map_err(|err| AccessorError::io_path(path, err))?;
-        Ok(AccessorReader::Host(file))
+
+        Ok(AccessorReader::host(file, location))
     }
 
     /// Open a `AccessorReader` to the provided `FileHandle`

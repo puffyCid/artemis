@@ -12,8 +12,8 @@ use crate::accessor::{
         },
         wof::{decompress_wof, is_wof_file},
     },
-    io::reader::AccessorReader,
-    location::path::InnerPath,
+    io::reader::{AccessorReader, ReaderLocation},
+    location::{path::InnerPath, scheme::Scheme},
 };
 use ntfs::{NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue};
 use std::{cmp::Ordering, fmt, mem};
@@ -92,15 +92,21 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
     ///
     /// Supports both forward and back slashes. Example: C:\\Users\\test.txt or `C:/Users/test.txt`
     pub(crate) fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
-        let (inner_path, _) = inner_to_ntfs_path(inner, self.drive);
+        let (inner_path, attribute_name) = inner_to_ntfs_path(inner, self.drive);
         let display_path = display_ntfs_path(self.drive, &inner_path);
+
+        let location = if attribute_name.is_empty() {
+            ReaderLocation::from_scheme(Scheme::Ntfs, &display_path)
+        } else {
+            ReaderLocation::from_scheme(Scheme::Ntfs, format!("{display_path}:{attribute_name}"))
+        };
 
         let stream = self.volume.with_reader(|ntfs, reader| {
             let file = resolve_file(ntfs, reader, &inner_path)?;
             open_stream_reader(Arc::clone(&self.volume), reader, &file, &display_path)
         })?;
 
-        Ok(AccessorReader::stream(stream))
+        Ok(AccessorReader::stream(stream, location))
     }
 
     /// Create an `AccessorReader` to stream a file by its file reference
@@ -123,7 +129,10 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
                     open_stream_reader(Arc::clone(&self.volume), reader, &file, display_path)
                 })?;
 
-                Ok(AccessorReader::stream(stream))
+                Ok(AccessorReader::stream(
+                    stream,
+                    ReaderLocation::from_display(handle.display_path()),
+                ))
             }
             _ => Err(AccessorError::invalid_handle(format!(
                 "ntfs source cannot open reader handle for {}",

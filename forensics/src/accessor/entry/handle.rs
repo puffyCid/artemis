@@ -58,6 +58,10 @@ impl FileHandle {
     }
 
     /// Return a `FileHandle` as a string
+    ///
+    /// Includes the `Scheme` in the path (except `Scheme::Host`)
+    ///
+    /// Example: `zip:test.zip!./test.txt` or `ntfs:C:\\Users\\dev\\test.txt`
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
