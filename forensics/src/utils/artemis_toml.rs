@@ -90,7 +90,7 @@ mod tests {
         let url = format!("http://127.0.0.1:{port}");
         let value = ArtemisToml::remote_artemis_toml(&url).unwrap();
         assert_eq!(value.output.name, "macos_collection");
-        assert_eq!(value.artifacts.len(), 10);
+        assert_eq!(value.artifacts.len(), 9);
         mock_me.assert();
     }
 
