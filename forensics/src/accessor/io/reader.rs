@@ -124,7 +124,7 @@ pub(crate) struct AccessorReader {
     /// Reader to stream target file
     source: SourceReader,
     /// Path metadata about the target
-    location: ReaderLocation,
+    pub(crate) location: ReaderLocation,
 }
 
 impl Read for AccessorReader {

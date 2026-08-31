@@ -42,3 +42,16 @@ pub(crate) fn strip_scheme(location: &str) -> &str {
     }
     remainder
 }
+
+/// Split the scheme part of the input
+///
+/// Example: `ntfs:C:\Users\test.txt` into ('ntfs', and 'C:\Users\test.txt')
+pub(crate) fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
+    let (scheme, remainder) = input.split_once(':')?;
+    // If we get a drive letter for Windows treat that as live system
+    // Ex: 'C:\\Users\\test.txt' The scheme would be 'C'
+    if scheme.is_empty() || scheme.len() == 1 {
+        return None;
+    }
+    Some((scheme, remainder))
+}
