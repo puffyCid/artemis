@@ -60,7 +60,7 @@ impl FileHandle {
     /// Return a `FileHandle` as a string
     ///
     /// Use `scheme_path` if you want the current `Scheme` in the path prefix
-    pub(crate) fn display_path(&self) -> String {
+    pub(crate) fn full_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
             FileLocator::Ntfs { display_path, .. } => display_path.clone(),
@@ -73,7 +73,7 @@ impl FileHandle {
     /// Return a `FileHandle` as a string
     ///
     /// Example: `zip:test.zip!./test.txt` or `ntfs:C:\\Users\\dev\\test.txt`
-    pub(crate) fn scheme_path(&self) -> String {
+    pub(crate) fn display_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
             FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
