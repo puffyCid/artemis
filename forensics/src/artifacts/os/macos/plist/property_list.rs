@@ -35,20 +35,6 @@ pub(crate) fn parse_plist_file_handle(
     parse_plist_data(&bytes)
 }
 
-/// Parse a `plist` from given path and return a dictionary `plist`.
-/// Use only if you are certain the `plist` file is a Dictionary format.
-/// Otherwise  use `parse_plist_file` which will handle any `plist` format
-pub(crate) fn parse_plist_file_dict(path: &str) -> Result<Dictionary, PlistError> {
-    let plist_result = plist::from_file(path);
-    match plist_result {
-        Ok(result) => Ok(result),
-        Err(err) => {
-            error!("Could not read plist file {path}: {err:?}");
-            Err(PlistError::File)
-        }
-    }
-}
-
 /// Parse a `plist` from bytes and return a Value (any `plist` value)
 pub(crate) fn parse_plist_data(data: &[u8]) -> Result<Value, PlistError> {
     let plist_result = plist::from_bytes(data);
@@ -67,24 +53,6 @@ pub(crate) fn get_dictionary(plist_value: &Value) -> Result<Dictionary, PlistErr
     match result {
         Some(data) => Ok(data.clone()),
         None => Err(PlistError::Dictionary),
-    }
-}
-
-/// Return a `plist` bytes as base64 string
-pub(crate) fn get_boolean(plist_value: &Value) -> Result<bool, PlistError> {
-    let result = plist_value.as_boolean();
-    match result {
-        Some(data) => Ok(data),
-        None => Err(PlistError::Bool),
-    }
-}
-
-/// Return a `plist` value as dictionary
-pub(crate) fn get_string(plist_value: &Value) -> Result<String, PlistError> {
-    let result = plist_value.as_string();
-    match result {
-        Some(data) => Ok(data.to_string()),
-        None => Err(PlistError::String),
     }
 }
 
@@ -112,8 +80,8 @@ mod tests {
         artifacts::os::macos::plist::{
             error::PlistError,
             property_list::{
-                get_array, get_boolean, get_dictionary, get_float, get_string, parse_plist_data,
-                parse_plist_file, parse_plist_file_handle,
+                get_array, get_dictionary, get_float, parse_plist_data, parse_plist_file,
+                parse_plist_file_handle,
             },
         },
         filesystem::files::read_file,
@@ -144,14 +112,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_boolean() {
-        let test = Value::Boolean(true);
-        let results = get_boolean(&test).unwrap();
-
-        assert_eq!(results, true);
-    }
-
-    #[test]
     fn test_get_dictionary() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/loginitems/backgrounditems_sierra.btm");
@@ -178,13 +138,6 @@ mod tests {
                 _ => {}
             }
         }
-    }
-
-    #[test]
-    fn test_get_string() {
-        let test: Value = Value::String(String::from("test"));
-        let results = get_string(&test).unwrap();
-        assert_eq!(results, "test");
     }
 
     #[test]

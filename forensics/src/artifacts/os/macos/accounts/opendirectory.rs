@@ -360,11 +360,9 @@ mod tests {
     use crate::artifacts::os::macos::accounts::opendirectory::get_account_policy;
     use crate::artifacts::os::macos::accounts::opendirectory::get_array_values;
     use crate::artifacts::os::macos::accounts::opendirectory::parse_users_plist;
+    use crate::artifacts::os::macos::plist::property_list::parse_plist_file;
     use crate::{
-        artifacts::os::macos::{
-            accounts::opendirectory::OpendirectoryUsers,
-            plist::property_list::parse_plist_file_dict,
-        },
+        artifacts::os::macos::accounts::opendirectory::OpendirectoryUsers,
         utils::encoding::base64_decode_standard,
     };
     use plist::{Dictionary, Value};
@@ -375,8 +373,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/users/nobody.plist");
 
-        let downloads: Dictionary =
-            parse_plist_file_dict(&test_location.display().to_string()).unwrap();
+        let binding = parse_plist_file(&test_location.display().to_string()).unwrap();
+        let downloads = binding.as_dictionary().unwrap();
         let mut shell: Vec<String> = Vec::new();
         for (key, value) in downloads {
             if key != "shell" {

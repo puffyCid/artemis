@@ -190,7 +190,7 @@ mod tests {
         accessor::access::Accessor,
         artifacts::os::macos::{
             loginitems::plist::bundle_plist,
-            plist::{error::PlistError, property_list::parse_plist_file_dict},
+            plist::{error::PlistError, property_list::parse_plist_file},
         },
     };
     use plist::Value;
@@ -213,7 +213,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/loginitems/backgrounditems_sierra.btm");
 
-        let login_items = parse_plist_file_dict(&test_location.display().to_string()).unwrap();
+        let binding = parse_plist_file(&test_location.display().to_string()).unwrap();
+        let login_items = binding.as_dictionary().unwrap();
 
         let mut results = Vec::new();
         for (key, value) in login_items {
@@ -222,7 +223,7 @@ mod tests {
             }
 
             if let Value::Array(value_array) = value {
-                results = get_array_values(value_array, "test").unwrap();
+                results = get_array_values(value_array.to_vec(), "test").unwrap();
             }
         }
         assert_eq!(results.len(), 1);
