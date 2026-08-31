@@ -283,12 +283,6 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
     },
-    /// macos: Parse Emond persistence. Removed in Ventura
-    Emond {
-        /// Alternative path to Emond
-        #[arg(long, default_value = None)]
-        alt_dir: Option<String>,
-    },
     /// macos: Parse LoginItems
     Loginitems {
         /// Alternative file path

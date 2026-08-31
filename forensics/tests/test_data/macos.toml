@@ -22,10 +22,6 @@ artifact_name = "loginitems"
 [artifacts.loginitems]
 
 [[artifacts]]
-artifact_name = "emond"
-[artifacts.emond]
-
-[[artifacts]]
 artifact_name = "fseventsd"
 [artifacts.fseventsd]
 

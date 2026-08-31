@@ -1,7 +1,6 @@
 use super::{
     accounts::{js_groups_macos, js_users_macos},
     bookmarks::js_bookmark,
-    emond::js_emond,
     fsevents::js_fsevents,
     launchd::js_launchd,
     loginitems::js_loginitems,
@@ -31,12 +30,6 @@ pub(crate) fn macos_functions(context: &mut Context) {
         JsString::from("js_bookmark"),
         1,
         NativeFunction::from_fn_ptr(js_bookmark),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_emond"),
-        1,
-        NativeFunction::from_fn_ptr(js_emond),
     );
 
     let _ = context.register_global_callable(

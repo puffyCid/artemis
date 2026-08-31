@@ -18,9 +18,6 @@ sha256 = false
 metadata = false
 
 [[artifacts]]
-artifact_name = "emond"
-
-[[artifacts]]
 artifact_name = "loginitems"
 
 [[artifacts]]
