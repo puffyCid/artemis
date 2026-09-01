@@ -130,6 +130,7 @@ mod tests {
                 size: 0,
                 full_path: String::new(),
                 display_path: String::new(),
+                filename: String::new(),
             },
         }];
 

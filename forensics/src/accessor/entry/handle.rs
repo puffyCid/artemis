@@ -82,15 +82,7 @@ impl FileHandle {
     ///
     /// Example: `zip:test.zip!./test.txt` returns `test.txt`. NTFS ADS will return the ADS name if provided
     pub(crate) fn filename(&self) -> String {
-        let scheme_path = match &self.locator {
-            FileLocator::Host { path } => format!("host:{}", path.display().to_string()),
-            FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
-            FileLocator::Zip { archive, entry, .. } => {
-                format!("zip:{}!{entry}", archive.display())
-            }
-        };
-
-        filename_from_display(&scheme_path)
+        filename_from_display(&self.display_path())
     }
 
     /// Return a `FileHandle` as a string
@@ -172,23 +164,9 @@ impl DirHandle {
 
     /// Return the filename from a `DirHandle` as a string
     ///
-    /// Example: `zip:test.zip!./test.txt` returns `test.txt`. NTFS ADS will return the ADS name if provided
+    /// Example: `zip:test.zip!./test` returns `test`
     pub(crate) fn filename(&self) -> String {
-        let scheme_path = match &self.locator {
-            DirLocator::Host { path } => format!("host:{}", path.display().to_string()),
-            DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
-            DirLocator::Zip {
-                archive, prefix, ..
-            } => {
-                if prefix.is_empty() {
-                    format!("zip:{}", archive.display())
-                } else {
-                    format!("zip:{}!{prefix}", archive.display())
-                }
-            }
-        };
-
-        filename_from_display(&scheme_path)
+        filename_from_display(&self.display_path())
     }
 
     /// Return the `Scheme` associated with the `DirHandle`
