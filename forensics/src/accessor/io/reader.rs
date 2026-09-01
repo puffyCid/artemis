@@ -301,4 +301,20 @@ mod tests {
         );
         assert_eq!(filename_from_display("C:\\Windows\\file.txt"), "file.txt");
     }
+
+    #[test]
+    fn test_files_exclamations() {
+        assert_eq!(
+            filename_from_display("host:/home/dev/I like Music!.mp3"),
+            "I like Music!.mp3"
+        );
+        assert_eq!(
+            filename_from_display("C:\\Users\\dev\\file!name.txt"),
+            "file!name.txt"
+        );
+        assert_eq!(
+            filename_from_display("zip:file.zip!./path/to/tex.txt"),
+            "tex.txt"
+        );
+    }
 }
