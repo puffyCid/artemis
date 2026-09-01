@@ -396,7 +396,7 @@ mod tests {
         let test = "host:/zip:file.zip/Amcache.hve";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Host);
-        assert_eq!(result.inner_path.display(), "/zip:/file.zip/Amcache.hve");
+        assert_eq!(result.inner_path.display(), "/zip:file.zip/Amcache.hve");
         assert!(result.source.is_none());
     }
 
