@@ -80,7 +80,7 @@ impl ReaderLocation {
 
 /// Filename of the target file.
 ///
-/// Zip locations use the inner entry after `!` (`zip:file.zip!./path/to/tex.txt` → `tex.txt`).
+/// Zip locations use the inner entry after `!` (`zip:/file.zip!./path/to/tex.txt` → `tex.txt`).
 /// NTFS ADS streams use the attribute name (`ntfs:C:\$Secure:$SDS` returns `$SDS`).
 pub(crate) fn filename_from_display(display_path: &str) -> String {
     let scheme = location_scheme(display_path);
@@ -324,7 +324,7 @@ mod tests {
         assert_eq!(filename_from_display("ntfs:C:\\$Secure:$SDS"), "$SDS");
 
         assert_eq!(
-            filename_from_display("zip:file.zip!./path/to/tex.txt"),
+            filename_from_display("zip:/file.zip!./path/to/tex.txt"),
             "tex.txt"
         );
         assert_eq!(filename_from_display("C:\\Windows\\file.txt"), "file.txt");
@@ -341,7 +341,7 @@ mod tests {
             "file!name.txt"
         );
         assert_eq!(
-            filename_from_display("zip:file.zip!./path/to/tex.txt"),
+            filename_from_display("zip:/file.zip!./path/to/tex.txt"),
             "tex.txt"
         );
     }
@@ -376,7 +376,7 @@ mod tests {
     #[test]
     fn test_extension_uses_filename_not_path() {
         assert_eq!(
-            extension_from_filename(&filename_from_display("zip:file.zip!./path/to/tex.txt")),
+            extension_from_filename(&filename_from_display("zip:/file.zip!./path/to/tex.txt")),
             "txt"
         );
         assert_eq!(
