@@ -13,9 +13,9 @@ impl<T: Read + Seek + Debug> ReadSeek for T {}
 /// Location metadata for an opened `AccessorReader`
 #[derive(Debug)]
 pub(crate) struct ReaderLocation {
-    /// Location including scheme. Examples: `host:/var/log/syslog`, `ntfs:C:\$MFT`, `zip:file.zip!path/to/tex.txt`
+    /// Location including scheme. Examples: `host:/var/log/syslog`, `ntfs:C:\$MFT`, `zip:/file.zip!path/to/tex.txt`
     display_path: String,
-    /// Location with the scheme stripped. Examples: `/var/log/syslog`, `C:\$MFT`, `file.zip!path/to/tex.txt`
+    /// Location with the scheme stripped. Examples: `/var/log/syslog`, `C:\$MFT`, `/file.zip!path/to/tex.txt`
     full_path: String,
     /// Target filename. For zip entries this is the inner file (`tex.txt`), not the archive name. If ADS is provided for NTFS, then this will be the ADS name
     filename: String,
@@ -380,7 +380,9 @@ mod tests {
             "txt"
         );
         assert_eq!(
-            extension_from_filename(&filename_from_display("zip:archive.tar.gz!home/id_ed25519")),
+            extension_from_filename(&filename_from_display(
+                "zip:C:\\archive.tar.gz!home/id_ed25519"
+            )),
             ""
         );
 
