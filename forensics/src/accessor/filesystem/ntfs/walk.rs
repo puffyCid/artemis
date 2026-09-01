@@ -22,7 +22,7 @@ struct PendingChild {
     file_ref: NtfsEntryRef,
     /// Type of child. File, Directory, or Unsupported
     kind: EntryKind,
-    /// Full path to the child with `Scheme::Ntfs`
+    /// Full path to the child
     display_path: String,
 }
 
@@ -81,7 +81,9 @@ fn process_child_entries<T: Read + Seek>(
             // Only files have sizes
             EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
         };
-        let meta = EntryMeta::new(child.kind.clone(), size, child.display_path.clone());
+
+        let scheme_path = format!("ntfs:{}", child.display_path);
+        let meta = EntryMeta::new(child.kind.clone(), size, scheme_path);
         let handle = match child.kind {
             EntryKind::Directory => ItemHandle::Directory(DirHandle::new(DirLocator::Ntfs {
                 drive,
@@ -190,7 +192,7 @@ fn collect_index_children<'a, R: Read + Seek>(
                             EntryKind::File
                         };
                         let display_path = if parent_display.is_empty() {
-                            format!("ntfs:{drive}:\\{name}")
+                            format!("{drive}:\\{name}")
                         } else {
                             format!("{parent_display}\\{name}")
                         };
