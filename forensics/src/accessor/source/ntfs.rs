@@ -113,7 +113,7 @@ impl NtfsSource {
 }
 
 impl SourceBackend for NtfsSource {
-    fn source_id(&self) -> crate::accessor::entry::locator::SourceId {
+    fn source_id(&self) -> SourceId {
         SourceId::RawNtfs(self.drive)
     }
 
@@ -195,7 +195,7 @@ mod tests {
                 .read_dir_handle(entry.handle.as_directory().unwrap())
                 .unwrap();
 
-            if entry.meta.display_path == "C:\\Users" {
+            if entry.meta.full_path == "C:\\Users" {
                 assert!(!entries.is_empty());
             }
         }

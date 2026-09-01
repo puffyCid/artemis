@@ -56,7 +56,7 @@ pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("Could not read xml data: {err:?}");
+                error!("Could not read all xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -93,6 +93,20 @@ pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
     }
     task_xml.principals = Some(principals);
 
+    if task_xml.actions.com_handler.is_empty()
+        && task_xml.actions.exec.is_empty()
+        && task_xml.actions.send_email.is_empty()
+        && task_xml.actions.show_message.is_empty()
+        && task_xml.registration_info.is_none()
+        && task_xml.triggers.is_none()
+        && task_xml.settings.is_none()
+        && task_xml.data.is_none()
+        && task_xml.principals.as_ref().is_some_and(|v| v.is_empty())
+    {
+        error!("File '{path} is not an xml file. Everything was empty");
+        return Err(TaskError::ReadXml);
+    }
+
     Ok(task_xml)
 }
 
@@ -114,7 +128,10 @@ mod tests {
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
-        assert_eq!(result.evidence, test_location.display().to_string())
+        assert_eq!(
+            result.evidence,
+            format!("host:{}", test_location.display().to_string())
+        )
     }
 
     #[test]
@@ -131,7 +148,10 @@ mod tests {
             "S-1-5-19"
         );
         assert_eq!(result.actions.com_handler.len(), 1);
-        assert_eq!(result.evidence, test_location.display().to_string());
+        assert_eq!(
+            result.evidence,
+            format!("host:{}", test_location.display().to_string())
+        );
         assert!(result.triggers.unwrap().event[0].subscription[0].contains("<QueryList>"));
     }
 

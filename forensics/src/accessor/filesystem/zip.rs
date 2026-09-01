@@ -8,7 +8,7 @@ use crate::accessor::{
         DescendGuard, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
         path_component_count,
     },
-    io::reader::AccessorReader,
+    io::reader::{AccessorReader, ReaderLocation},
     location::path::InnerPath,
 };
 use glob::Pattern;
@@ -348,7 +348,10 @@ impl ZipFs {
         max_read_size: Option<u64>,
     ) -> AccessorResult<AccessorReader> {
         let bytes = self.read_file(inner, max_read_size)?;
-        Ok(AccessorReader::memory(bytes))
+        let prefix = Self::inner_to_prefix(inner);
+        let location = ReaderLocation::from_display(self.display_entry_path(&prefix));
+
+        Ok(AccessorReader::memory(bytes, location))
     }
 
     /// Open a `AccessorReader` to the provided `FileHandle`
@@ -360,7 +363,11 @@ impl ZipFs {
         max_read_size: Option<u64>,
     ) -> AccessorResult<AccessorReader> {
         let bytes = self.read_handle(handle, max_read_size)?;
-        Ok(AccessorReader::memory(bytes))
+
+        Ok(AccessorReader::memory(
+            bytes,
+            ReaderLocation::from_display(handle.display_path()),
+        ))
     }
 
     /// Helper to convert `InnerPath` to String for zip content file access
@@ -773,5 +780,27 @@ mod tests {
 
         let entries = zipfs.globfs(&inner(""), "**/*").unwrap();
         assert_eq!(entries.len(), 11);
+    }
+
+    #[test]
+    fn test_zipfs_reader_location() {
+        let dir = setup("test_zipfs_reader_location");
+        let archive = dir.join("file.zip");
+        write_zip(&archive, &[("path/to/tex.txt", b"zip payload")]);
+
+        let zipfs = ZipFs::new(archive.clone()).unwrap();
+        let reader = zipfs.reader(&inner("path/to/tex.txt"), None).unwrap();
+
+        assert_eq!(
+            reader.location.display_path(),
+            format!("zip:{}!path/to/tex.txt", archive.display())
+        );
+
+        assert_eq!(
+            reader.location.full_path(),
+            format!("{}!path/to/tex.txt", archive.display())
+        );
+
+        assert_eq!(reader.location.filename(), "tex.txt");
     }
 }

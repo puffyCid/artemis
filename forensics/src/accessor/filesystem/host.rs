@@ -8,8 +8,8 @@ use crate::accessor::{
         DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
         normalize_glob_pattern, path_component_count,
     },
-    io::reader::AccessorReader,
-    location::path::InnerPath,
+    io::reader::{AccessorReader, ReaderLocation},
+    location::{path::InnerPath, scheme::Scheme},
 };
 use glob::Pattern;
 use std::{
@@ -184,12 +184,15 @@ impl HostFs {
         if !path.exists() {
             return Err(AccessorError::not_found(path.display().to_string()));
         }
+
         if !path.is_file() {
             return Err(AccessorError::not_a_file(path.display().to_string()));
         }
 
+        let location = ReaderLocation::from_scheme(Scheme::Host, HostFs::full_path(&path));
         let file = File::open(&path).map_err(|err| AccessorError::io_path(path, err))?;
-        Ok(AccessorReader::Host(file))
+
+        Ok(AccessorReader::host(file, location))
     }
 
     /// Open a `AccessorReader` to the provided `FileHandle`
@@ -216,8 +219,15 @@ impl HostFs {
         }
     }
 
-    /// Return target path as a String
+    /// Return target path as a String with the `Scheme::Host`
+    ///
+    /// Example: `host:/etc/config.conf`
     fn display_path(path: &Path) -> String {
+        format!("host:{}", path.display())
+    }
+
+    /// Return target path as a String
+    fn full_path(path: &Path) -> String {
         path.display().to_string()
     }
 
@@ -250,7 +260,7 @@ impl HostFs {
                     }
                     debug!(
                         "Globbing path '{}' with pattern '{pattern}' at relative '{relative}'. Current depth is {depth:?}/{max_depth:?}",
-                        entry.meta.display_path
+                        entry.meta.full_path
                     );
 
                     if guard.should_descend(&relative, depth, max_depth) {
@@ -323,6 +333,7 @@ mod tests {
     fn test_read_file_handle() {
         let dir = setup("test_read_file_handle");
         write_file(&dir, "hello.txt", b"hello world");
+
         let inner = inner(&dir, "hello.txt");
         let handle = FileHandle::host(inner.as_path().to_path_buf());
         let bytes = HostFs::read_handle(&handle, Some(200)).unwrap();
@@ -340,6 +351,7 @@ mod tests {
     fn test_open_reader_skips_max_read_size() {
         let dir = setup("test_open_reader_skips_max_read_size");
         write_file(&dir, "big.bin", &[1, 2, 3, 4]);
+
         let mut reader = HostFs::reader(&inner(&dir, "big.bin")).unwrap();
         let mut buf = Vec::new();
         let size = reader.read_to_end(&mut buf).unwrap();
@@ -381,5 +393,22 @@ mod tests {
         let results = HostFs::globfs(&inner(&test_location, ""), "**/*.toml").unwrap();
 
         assert!(results.len() >= 10);
+    }
+
+    #[test]
+    fn test_hostfs_reader_location() {
+        let dir = setup("test_hostfs_reader_location");
+        write_file(&dir, "syslog", b"log");
+        let path = dir.join("syslog");
+
+        let reader = HostFs::reader(&inner(&dir, "syslog")).unwrap();
+
+        assert_eq!(
+            reader.location.display_path(),
+            format!("host:{}", path.display().to_string())
+        );
+        assert_eq!(reader.location.full_path(), path.display().to_string());
+        assert_eq!(reader.location.filename(), "syslog");
+        assert!(reader.location.display_path().starts_with("host:"));
     }
 }

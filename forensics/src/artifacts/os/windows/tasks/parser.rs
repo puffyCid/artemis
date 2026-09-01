@@ -85,62 +85,59 @@ fn extract_tasks(
             continue;
         };
 
-        // Parse XML Task files
-        if !handle.display_path().ends_with(".job") && !handle.display_path().ends_with(".DAT") {
-            // If running on a live Windows system. We can parse SOFTWARE Registry file for additional data
-            if handle.scheme() == Scheme::Host
-                && options.alt_file.is_none()
-                && cache.is_empty()
-                && !reg_error
-            {
-                // Attempt to parse the SOFTWARE Registry file only
-                // If we fail, we do not try anymore
-                match cache_info(handle.display_path().chars().next().unwrap_or_default()) {
-                    Ok(result) => cache = result,
-                    Err(_) => reg_error = true,
-                }
+        // Check for legacy Schedule Task format first
+        if handle.extension().eq_ignore_ascii_case("job") {
+            if let Ok(result) = read_job(handle) {
+                let info = job_info(&result);
+                tasks.push(info);
+                continue;
             }
-
-            let task_data = match parse_xml(handle) {
-                Ok(result) => result,
-                Err(err) => {
-                    warn!(
-                        "Could not parse Task File at {}: {err:?}",
-                        handle.display_path()
-                    );
-                    continue;
-                }
-            };
-
-            let mut info = xml_info(&task_data);
-            if let Some(value) = cache.get(&info.path.to_lowercase()) {
-                info.id = value.id.clone();
-                info.last_error_code = value.last_error_code;
-                info.last_run = value.last_run.clone();
-                info.created = value.created.clone();
-                info.last_successful_run = value.last_successful_run.clone();
-                info.registry_file = value.registry_file.clone();
-                info.registry_task_path = value.registry_task_path.clone();
-                info.registry_tree_path = value.registry_tree_path.clone();
-                info.security_descriptor = value.security_description.clone();
-            }
-
-            tasks.push(info);
-        } else {
-            let job_result = match read_job(handle) {
-                Ok(result) => result,
-                Err(err) => {
-                    warn!(
-                        "Could not parse Task Job {}: {err:?}",
-                        handle.display_path()
-                    );
-                    continue;
-                }
-            };
-
-            let info = job_info(&job_result);
-            tasks.push(info);
+            warn!("Could not parse Task Job {}", handle.display_path());
         }
+
+        // Now try XML Schedule Tasks
+        // They usually do not have extensions
+        // But nothing prevents a user from adding an extension
+
+        // If running on a live Windows system. We can parse SOFTWARE Registry file for additional data
+        if handle.scheme() == Scheme::Host
+            && options.alt_file.is_none()
+            && cache.is_empty()
+            && !reg_error
+        {
+            // Attempt to parse the SOFTWARE Registry file only
+            // If we fail, we do not try anymore
+            match cache_info(handle.full_path().chars().next().unwrap_or_default()) {
+                Ok(result) => cache = result,
+                Err(_) => reg_error = true,
+            }
+        }
+
+        let task_data = match parse_xml(handle) {
+            Ok(result) => result,
+            Err(err) => {
+                warn!(
+                    "Could not parse Task File at {}: {err:?}",
+                    handle.display_path()
+                );
+                continue;
+            }
+        };
+
+        let mut info = xml_info(&task_data);
+        if let Some(value) = cache.get(&info.path.to_lowercase()) {
+            info.id = value.id.clone();
+            info.last_error_code = value.last_error_code;
+            info.last_run = value.last_run.clone();
+            info.created = value.created.clone();
+            info.last_successful_run = value.last_successful_run.clone();
+            info.registry_file = value.registry_file.clone();
+            info.registry_task_path = value.registry_task_path.clone();
+            info.registry_tree_path = value.registry_tree_path.clone();
+            info.security_descriptor = value.security_description.clone();
+        }
+
+        tasks.push(info);
     }
 
     Ok(tasks)

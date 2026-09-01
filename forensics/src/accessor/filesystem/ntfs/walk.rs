@@ -81,7 +81,9 @@ fn process_child_entries<T: Read + Seek>(
             // Only files have sizes
             EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
         };
-        let meta = EntryMeta::new(child.kind.clone(), size, child.display_path.clone());
+
+        let scheme_path = format!("ntfs:{}", child.display_path);
+        let meta = EntryMeta::new(child.kind.clone(), size, scheme_path);
         let handle = match child.kind {
             EntryKind::Directory => ItemHandle::Directory(DirHandle::new(DirLocator::Ntfs {
                 drive,

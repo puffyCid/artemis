@@ -104,6 +104,11 @@ pub(crate) fn is_absolute_host_path(input: &str) -> bool {
     if input.is_empty() {
         return false;
     }
+
+    if is_unc_path(input) {
+        return true;
+    }
+
     let path = Path::new(input);
     if path.has_root() {
         return true;
@@ -116,6 +121,11 @@ pub(crate) fn is_absolute_host_path(input: &str) -> bool {
         && input.get(2..).is_none_or(|remaining| {
             remaining.is_empty() || remaining.starts_with('\\') || remaining.starts_with('/')
         })
+}
+
+/// Check for network UNC path
+fn is_unc_path(input: &str) -> bool {
+    input.starts_with("\\\\") || input.starts_with("//")
 }
 
 /// Determine if our provided input is a relative path to the data
@@ -168,5 +178,11 @@ mod tests {
         assert!(!is_absolute_host_path("../test"));
         assert!(is_absolute_host_path("/test"));
         assert!(!is_absolute_host_path(""));
+
+        assert!(is_absolute_host_path(r"C:\Users"));
+        assert!(is_absolute_host_path("C:"));
+        assert!(is_absolute_host_path(r"\\server\share\file.txt"));
+        assert!(is_absolute_host_path("//server/share/file.txt"));
+        assert!(!is_absolute_host_path("data.zip"));
     }
 }

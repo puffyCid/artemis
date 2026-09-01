@@ -391,11 +391,7 @@ mod tests {
                 continue;
             }
 
-            if entry
-                .meta
-                .display_path
-                .contains("document.odt!manifest.rdf")
-            {
+            if entry.meta.full_path.contains("document.odt!manifest.rdf") {
                 let bytes = access
                     .read_file_handle(&entry.handle.as_file().unwrap())
                     .unwrap();
@@ -446,7 +442,7 @@ mod tests {
         assert!(!files.is_empty());
 
         for file in files {
-            if file.meta.display_path == "C:\\$MFT" {
+            if file.meta.full_path == "C:\\$MFT" {
                 assert!(file.meta.size > 100);
             }
         }
@@ -471,10 +467,10 @@ mod tests {
                 .unwrap();
 
             let path_results = access
-                .source_read_dir(&source, &file.meta.display_path)
+                .source_read_dir(&source, &file.meta.full_path)
                 .unwrap();
             assert_eq!(path_results, results);
-            if file.meta.display_path == "C:\\Users" {
+            if file.meta.full_path == "C:\\Users" {
                 assert!(!results.is_empty());
                 assert!(!path_results.is_empty());
             }
@@ -515,5 +511,37 @@ mod tests {
         let mut access = Accessor::with_defaults();
         let entries = access.globfs("C:\\Users\\*\\NTUSER*").unwrap();
         assert!(!entries.is_empty());
+    }
+
+    #[test]
+    fn test_open_reader_host_location() {
+        let mut access = Accessor::with_defaults();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let reader = access.open_reader(test_location.to_str().unwrap()).unwrap();
+        assert_eq!(
+            reader.location.display_path(),
+            format!("host:{}", test_location.display().to_string())
+        );
+
+        assert_eq!(reader.location.filename(), "document.odt");
+    }
+
+    #[test]
+    fn test_open_reader_explicit_host_prefix() {
+        let mut access = Accessor::with_defaults();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let reader = access
+            .open_reader(&format!("host:{}", test_location.display()))
+            .unwrap();
+
+        assert_eq!(
+            reader.location.display_path(),
+            format!("host:{}", test_location.display().to_string())
+        );
+        assert_eq!(reader.location.filename(), "document.odt");
     }
 }

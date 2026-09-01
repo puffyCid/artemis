@@ -135,40 +135,44 @@ where
     }
 }
 
-/// Parsed NTFS volume backed by any [`Read`] + [`Seek`] source
+/// Parsed NTFS volume backed by any `Read` + `Seek` source
 ///
 /// Used for live raw drives (Windows), disk images (any OS), and future image formats
 /// All reads that touch the underlying byte source go through [`Self::with_reader`]
 pub(crate) struct NtfsVolume<R: Read + Seek + Send> {
-    display_id: String,
+    /// Target NTFS volume we are reading
+    target_path: String,
+    /// `Ntfs` structure we are parsing
     ntfs: Ntfs,
+    /// Reader being used to access the volume
     reader: Mutex<R>,
 }
 
 impl<R: Read + Seek + Send> NtfsVolume<R> {
     /// Create a `NtfsVolume` reader from a provided reader
-    pub(crate) fn open(mut reader: R, display_id: impl Into<String>) -> AccessorResult<Self> {
-        let display_id_value = display_id.into();
+    pub(crate) fn open(mut reader: R, path: impl Into<String>) -> AccessorResult<Self> {
+        let target_path = path.into();
         let mut ntfs = Ntfs::new(&mut reader).map_err(|err| AccessorError::Ntfs {
-            path: Some(display_id_value.clone()),
+            path: Some(target_path.clone()),
             reason: err.to_string(),
         })?;
+
         ntfs.read_upcase_table(&mut reader)
-            .map_err(|err| AccessorError::Ntfs {
-                path: Some(display_id_value.clone()),
+            .map_err(|err: ntfs::NtfsError| AccessorError::Ntfs {
+                path: Some(target_path.clone()),
                 reason: err.to_string(),
             })?;
 
         Ok(Self {
-            display_id: display_id_value,
+            target_path,
             ntfs,
             reader: Mutex::new(reader),
         })
     }
 
-    /// Return active `display_id`
-    pub(crate) fn display_id(&self) -> &str {
-        &self.display_id
+    /// Return active `target_path`
+    pub(crate) fn target_path(&self) -> &str {
+        &self.target_path
     }
 
     /// Return information about the `NTFS` volume
@@ -188,7 +192,7 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
     /// Ensure our `NTFS` reader is properly locked. Should always be safe since artemis will always be single-threaded
     fn lock_reader(&self) -> AccessorResult<MutexGuard<'_, R>> {
         self.reader.lock().map_err(|err| AccessorError::Ntfs {
-            path: Some(self.display_id.clone()),
+            path: Some(self.target_path.clone()),
             reason: format!("ntfs volume reader lock poisoned: {err:?}"),
         })
     }

@@ -1,6 +1,7 @@
 use crate::accessor::{
     entry::locator::{DirLocator, FileLocator},
-    location::scheme::Scheme,
+    io::reader::{extension_from_filename, filename_from_display},
+    location::scheme::{Scheme, strip_scheme},
 };
 use std::path::PathBuf;
 
@@ -25,16 +26,27 @@ pub(crate) struct EntryMeta {
     /// Size of entry
     pub(crate) size: u64,
     /// Human readable path to the entry
+    pub(crate) full_path: String,
+    /// Filename of for the entry
+    pub(crate) filename: String,
+    /// Extension for the filename if any
+    pub(crate) extension: String,
+    /// Human readable path to the entry with `Scheme`
     pub(crate) display_path: String,
 }
 
 impl EntryMeta {
     /// Create a `EntryMeta` value
     pub(crate) fn new(kind: EntryKind, size: u64, display_path: impl Into<String>) -> Self {
+        let path = display_path.into();
+        let filename = filename_from_display(&path);
         Self {
             kind,
             size,
-            display_path: display_path.into(),
+            full_path: strip_scheme(&path).to_string(),
+            extension: extension_from_filename(&filename),
+            filename,
+            display_path: path,
         }
     }
 }
@@ -58,9 +70,38 @@ impl FileHandle {
     }
 
     /// Return a `FileHandle` as a string
-    pub(crate) fn display_path(&self) -> String {
+    ///
+    /// Use `display_path` if you want the current `Scheme` in the path prefix
+    pub(crate) fn full_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
+            FileLocator::Ntfs { display_path, .. } => display_path.clone(),
+            FileLocator::Zip { archive, entry, .. } => {
+                format!("{}!{entry}", archive.display())
+            }
+        }
+    }
+
+    /// Return the filename from a `FileHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test.txt` returns `test.txt`. NTFS ADS will return the ADS name if provided
+    pub(crate) fn filename(&self) -> String {
+        filename_from_display(&self.display_path())
+    }
+
+    /// Return the extension from a `FileHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test.txt` returns `txt`
+    pub(crate) fn extension(&self) -> String {
+        extension_from_filename(&self.filename())
+    }
+
+    /// Return a `FileHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test.txt` or `ntfs:C:\\Users\\dev\\test.txt`
+    pub(crate) fn display_path(&self) -> String {
+        match &self.locator {
+            FileLocator::Host { path } => format!("host:{}", path.display()),
             FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
@@ -99,7 +140,7 @@ impl DirHandle {
     /// Return a `DirHandle` as a string
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
-            DirLocator::Host { path } => path.display().to_string(),
+            DirLocator::Host { path } => format!("host:{}", path.display()),
             DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             DirLocator::Zip {
                 archive, prefix, ..
@@ -111,6 +152,39 @@ impl DirHandle {
                 }
             }
         }
+    }
+
+    /// Return a `DirHandle` as a string
+    ///
+    /// Use `display_path` if you want the current `Scheme` in the path prefix
+    pub(crate) fn full_path(&self) -> String {
+        match &self.locator {
+            DirLocator::Host { path } => path.display().to_string(),
+            DirLocator::Ntfs { display_path, .. } => display_path.clone(),
+            DirLocator::Zip {
+                archive, prefix, ..
+            } => {
+                if prefix.is_empty() {
+                    archive.display().to_string()
+                } else {
+                    format!("{}!{prefix}", archive.display())
+                }
+            }
+        }
+    }
+
+    /// Return the filename from a `DirHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test` returns `test`
+    pub(crate) fn filename(&self) -> String {
+        filename_from_display(&self.display_path())
+    }
+
+    /// Return the extension from a `DirHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test` returns empty string
+    pub(crate) fn extension(&self) -> String {
+        extension_from_filename(&self.filename())
     }
 
     /// Return the `Scheme` associated with the `DirHandle`
@@ -163,6 +237,8 @@ impl ItemHandle {
     }
 
     /// Return the path for the `ItemHandle`
+    ///
+    /// Includes the `Scheme` prefix
     pub(crate) fn display_path(&self) -> String {
         match self {
             Self::File(handle) | Self::Unsupported(handle) => handle.display_path(),

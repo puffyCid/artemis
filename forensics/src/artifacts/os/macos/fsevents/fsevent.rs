@@ -1,4 +1,5 @@
 use crate::{
+    accessor::entry::handle::FileHandle,
     artifacts::os::macos::fsevents::error::FsEventsError,
     filesystem::metadata::get_timestamps,
     utils::{
@@ -23,7 +24,7 @@ struct FsEventsHeader {
 /// Extract the `FsEvent` data from bytes
 pub(crate) fn extract_fsevents(
     data: Vec<u8>,
-    evidence: String,
+    handle: &FileHandle,
 ) -> Result<Vec<FsEvents>, FsEventsError> {
     let bytes = match decompress_gzip_data(data) {
         Ok(result) => result,
@@ -33,10 +34,13 @@ pub(crate) fn extract_fsevents(
         }
     };
 
-    let events = match fsevents_data(&bytes, &evidence) {
+    let events = match fsevents_data(&bytes, handle) {
         Ok((_, result)) => result,
         Err(err) => {
-            error!("Failed to parse FsEvent file {evidence}, err: {err:?}");
+            error!(
+                "Failed to parse FsEvent file {}, err: {err:?}",
+                handle.display_path()
+            );
             return Err(FsEventsError::Files);
         }
     };
@@ -47,7 +51,7 @@ pub(crate) fn extract_fsevents(
 /// Parse provided `FsEvent` data
 pub(crate) fn fsevents_data<'a>(
     data: &'a [u8],
-    path: &str,
+    handle: &FileHandle,
 ) -> nom::IResult<&'a [u8], Vec<FsEvents>> {
     let mut total_fsevents = Vec::new();
     let mut input = data;
@@ -69,7 +73,7 @@ pub(crate) fn fsevents_data<'a>(
             take(fsevents_header.stream_size - header_size)(fsevents_data)?;
 
         // Parse `FsEvent` stream data
-        let (_result, mut fsevents) = get_fsevent(fsevent_data, fsevents_header.signature, path)?;
+        let (_result, mut fsevents) = get_fsevent(fsevent_data, fsevents_header.signature, handle)?;
         total_fsevents.append(&mut fsevents);
         input = stream_input;
     }
@@ -78,13 +82,17 @@ pub(crate) fn fsevents_data<'a>(
 }
 
 /// Begin parsing `FsEvent` stream
-fn get_fsevent<'a>(data: &'a [u8], sig: u32, path: &str) -> nom::IResult<&'a [u8], Vec<FsEvents>> {
+fn get_fsevent<'a>(
+    data: &'a [u8],
+    sig: u32,
+    handle: &FileHandle,
+) -> nom::IResult<&'a [u8], Vec<FsEvents>> {
     let mut input_results = data;
     let mut fsevents_array: Vec<FsEvents> = Vec::new();
 
     // Parse `FsEvent` stream and get each `FsEvent` record
     while !input_results.is_empty() {
-        let (input_data, fsevent_results) = get_fsevent_data(input_results, sig, path)?;
+        let (input_data, fsevent_results) = get_fsevent_data(input_results, sig, handle)?;
         input_results = input_data;
         fsevents_array.push(fsevent_results);
     }
@@ -110,21 +118,22 @@ fn fsevents_header(data: &[u8]) -> nom::IResult<&[u8], FsEventsHeader> {
 fn get_fsevent_data<'a>(
     data: &'a [u8],
     sig: u32,
-    evidence: &str,
+    handle: &FileHandle,
 ) -> nom::IResult<&'a [u8], FsEvents> {
     let mut fsevent_data = FsEvents {
         flags: Vec::new(),
         path: String::new(),
         node: 0,
         event_id: 0,
-        evidence: evidence.to_string(),
+        evidence: handle.display_path(),
         evidence_created: String::from("1601-01-01T00:00:00Z"),
         evidence_modified: String::from("1601-01-01T00:00:00Z"),
         evidence_changed: String::from("1601-01-01T00:00:00Z"),
         evidence_accessed: String::from("1601-01-01T00:00:00Z"),
     };
 
-    let meta_result = get_timestamps(evidence);
+    // strip any accessor `Scheme` when getting timestamps
+    let meta_result = get_timestamps(&handle.full_path());
     match meta_result {
         Ok(result) => {
             fsevent_data.evidence_accessed = result.accessed;
@@ -260,7 +269,7 @@ fn match_flags(flags: u32) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        accessor::access::Accessor,
+        accessor::{access::Accessor, entry::handle::FileHandle},
         artifacts::os::macos::fsevents::fsevent::{
             extract_fsevents, fsevents_data, fsevents_header, get_fsevent, get_fsevent_data,
             match_flags,
@@ -282,10 +291,13 @@ mod tests {
     fn test_fsevents_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
-        let test_path: &str = &test_location.display().to_string();
-        let files = Accessor::with_defaults().read_file(test_path).unwrap();
+        let test_path = test_location.display().to_string();
+        let files = Accessor::with_defaults().read_file(&test_path).unwrap();
         let decom_bytes = decompress_gzip_data(files).unwrap();
-        let (results, data) = fsevents_data(&decom_bytes, test_path).unwrap();
+
+        let handle = FileHandle::host(test_location);
+
+        let (results, data) = fsevents_data(&decom_bytes, &handle).unwrap();
         assert_eq!(results.len(), 0);
         assert_eq!(data.len(), 736);
     }
@@ -295,6 +307,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/fsevents/Headers/dls2header");
         let buffer = fs::read(test_location).unwrap();
+
         let (_, header) = fsevents_header(&buffer).unwrap();
         assert_eq!(header.signature, 1145852722);
         assert_eq!(header.stream_size, 78970);
@@ -306,9 +319,9 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/Uncompressed/0000000000027d79");
         let buffer = fs::read(test_location.clone()).unwrap();
         let (input, header) = fsevents_header(&buffer).unwrap();
+        let handle = FileHandle::host(test_location);
 
-        let (_, results) =
-            get_fsevent_data(input, header.signature, test_location.to_str().unwrap()).unwrap();
+        let (_, results) = get_fsevent_data(input, header.signature, &handle).unwrap();
 
         assert_eq!(results.event_id, 163140);
         assert_eq!(results.path, "/Volumes/Preboot");
@@ -325,9 +338,9 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/Uncompressed/0000000000027d79");
         let buffer = fs::read(test_location.clone()).unwrap();
         let (input, header) = fsevents_header(&buffer).unwrap();
+        let handle = FileHandle::host(test_location);
 
-        let (input, results) =
-            get_fsevent(input, header.signature, test_location.to_str().unwrap()).unwrap();
+        let (input, results) = get_fsevent(input, header.signature, &handle).unwrap();
         assert_eq!(results.len(), 736);
         assert_eq!(input.len(), 0);
     }
@@ -339,7 +352,7 @@ mod tests {
             116, 82, 101, 118, 105, 115, 105, 111, 110, 115, 45, 86, 49, 48, 48, 47, 46, 99, 115,
             0, 95, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 234, 121, 17, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        let (results, data) = fsevents_data(&test, "test").unwrap();
+        let (results, data) = fsevents_data(&test, &FileHandle::host("test")).unwrap();
         assert_eq!(results.len(), 0);
         assert_eq!(data.len(), 1);
     }
@@ -349,8 +362,10 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/fsevents/DLS2/0000000000027d79");
         let test_path = test_location.display().to_string();
+        let handle = FileHandle::host(test_location);
+
         let files = Accessor::with_defaults().read_file(&test_path).unwrap();
-        let results = extract_fsevents(files, test_path).unwrap();
+        let results = extract_fsevents(files, &handle).unwrap();
         assert_eq!(results.len(), 736)
     }
 
@@ -361,7 +376,9 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/Malformed/malformed");
         let test_path = test_location.display().to_string();
         let files = Accessor::with_defaults().read_file(&test_path).unwrap();
-        let _ = extract_fsevents(files, test_path).unwrap();
+        let handle = FileHandle::host(test_location);
+
+        let _ = extract_fsevents(files, &handle).unwrap();
     }
 
     #[test]
@@ -370,7 +387,9 @@ mod tests {
         test_location.push("tests/test_data/macos/fsevents/DLS1/0000000000027d7a");
         let test_path = test_location.display().to_string();
         let files = Accessor::with_defaults().read_file(&test_path).unwrap();
-        let results = extract_fsevents(files, test_path).unwrap();
+        let handle = FileHandle::host(test_location);
+
+        let results = extract_fsevents(files, &handle).unwrap();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].path, "/.fseventsd/sl-compat");

@@ -87,7 +87,7 @@ fn extract_launchd_data(paths: Vec<GlobMatch>, accessor: &mut Accessor) -> Vec<L
             changed: String::from("1601-01-01T00:00:00Z"),
         };
 
-        let meta_result = get_timestamps(&file_handle.display_path());
+        let meta_result = get_timestamps(&file_handle.full_path());
         if let Ok(result) = meta_result {
             launchd_data.created = result.created;
             launchd_data.modified = result.modified;
@@ -128,7 +128,10 @@ mod tests {
             meta: EntryMeta {
                 kind: EntryKind::Directory,
                 size: 0,
+                full_path: String::new(),
                 display_path: String::new(),
+                filename: String::new(),
+                extension: String::new(),
             },
         }];
 

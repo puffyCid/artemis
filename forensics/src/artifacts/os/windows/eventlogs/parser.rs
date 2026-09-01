@@ -20,7 +20,6 @@ use crate::{
         entry::handle::{EntryKind, GlobMatch},
         io::reader::AccessorReader,
     },
-    filesystem::files::file_extension,
     output::{
         manager::OutputManager,
         record::{
@@ -221,7 +220,7 @@ fn extract_eventlogs(
             continue;
         };
 
-        if file_extension(&handle.display_path()) != "evtx" {
+        if !handle.extension().eq_ignore_ascii_case("evtx") {
             continue;
         }
 

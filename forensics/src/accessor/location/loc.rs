@@ -2,7 +2,7 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     location::{
         path::{InnerPath, SourcePath, is_absolute_host_path, is_host_path, is_relative_host_path},
-        scheme::Scheme,
+        scheme::{Scheme, location_scheme, split_scheme_prefix},
     },
 };
 use std::path::PathBuf;
@@ -25,7 +25,7 @@ impl Location {
             return Err(AccessorError::location(input, "location cannot be empty"));
         }
 
-        if let Some(scheme) = scheme_prefix(input) {
+        if let Some(scheme) = location_scheme(input) {
             return match scheme {
                 Scheme::Host | Scheme::Ntfs => parse_schemed_location(input, None),
                 Scheme::Zip => {
@@ -90,7 +90,7 @@ impl Location {
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
         // Check for disk images or container files
         // 'zip:test.zip!*' or in future 'dd:image.raw!/users/*/*.txt'
-        if matches!(scheme_prefix(input), Some(Scheme::Zip))
+        if matches!(location_scheme(input), Some(Scheme::Zip))
             && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
@@ -163,12 +163,6 @@ impl Location {
     }
 }
 
-/// Check the input path to see if matches a supported `Scheme`
-fn scheme_prefix(input: &str) -> Option<Scheme> {
-    let (scheme, _) = split_scheme_prefix(input)?;
-    Scheme::parse(scheme).ok()
-}
-
 /// Parse Scheme prefix into a `Location` structure
 fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> AccessorResult<Location> {
     let (scheme, remainder) = split_scheme_prefix(source_part).ok_or_else(|| {
@@ -192,19 +186,6 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
     })
 }
 
-/// Split the scheme part of the input
-///
-/// Example: `ntfs:C:\Users\test.txt` into ('ntfs', and 'C:\Users\test.txt')
-fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
-    let (scheme, remainder) = input.split_once(':')?;
-    // If we get a drive letter for Windows treat that as live system
-    // Ex: 'C:\\Users\\test.txt' The scheme would be 'C'
-    if scheme.is_empty() || scheme.len() == 1 {
-        return None;
-    }
-    Some((scheme, remainder))
-}
-
 /// Determine the `SourcePath` based on `Scheme` and remaining path
 fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<SourcePath>> {
     match scheme {
@@ -217,10 +198,10 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
                     "zip source requires an archive path",
                 ));
             }
-            if !is_host_path(remainder) {
+            if !is_absolute_host_path(remainder) {
                 return Err(AccessorError::location(
                     remainder,
-                    "zip archive paths must be absolute or relative host paths",
+                    "zip archive paths must be absolute host paths",
                 ));
             }
             Ok(Some(SourcePath::new(PathBuf::from(remainder))))
@@ -321,14 +302,14 @@ mod tests {
 
     #[test]
     fn test_location() {
-        let test = "zip:data.zip!./home/test.txt";
+        let test = "zip:/data.zip!./home/test.txt";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(
             result.inner_path.display().replace('\\', "/"),
             "home/test.txt"
         );
-        assert_eq!(result.source.unwrap().display(), "data.zip");
+        assert_eq!(result.source.unwrap().display(), "/data.zip");
     }
 
     #[test]
@@ -376,14 +357,14 @@ mod tests {
 
     #[test]
     fn test_location_zip_exclamation_in_path() {
-        let test = "zip:file.zip!./home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
+        let test = "zip:/file.zip!./home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(
             result.inner_path.as_path(),
             "home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art"
         );
-        assert_eq!(result.source.unwrap().display(), "file.zip");
+        assert_eq!(result.source.unwrap().display(), "/file.zip");
     }
 
     #[test]
@@ -399,11 +380,23 @@ mod tests {
     }
 
     #[test]
-    fn test_location_not_a_zip() {
+    fn test_location_neither_scheme_or_zip() {
         let test = "host:zip:/file.zip/Amcache.hve";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Host);
-        assert_eq!(result.inner_path.display(), "zip:/file.zip/Amcache.hve");
+        assert_eq!(
+            result.inner_path.display(),
+            "host:zip:/file.zip/Amcache.hve"
+        );
+        assert!(result.source.is_none());
+    }
+
+    #[test]
+    fn test_location_not_a_zip() {
+        let test = "host:/zip:file.zip/Amcache.hve";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(result.inner_path.display(), "/zip:file.zip/Amcache.hve");
         assert!(result.source.is_none());
     }
 
@@ -451,10 +444,10 @@ mod tests {
 
     #[test]
     fn test_location_glob_exact_path() {
-        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/wtmp").unwrap();
+        let (loc, pattern) = Location::split_glob_pattern("zip:/test.zip!var/log/wtmp").unwrap();
         assert_eq!(
             loc.source.unwrap(),
-            SourcePath::new(PathBuf::from("test.zip"))
+            SourcePath::new(PathBuf::from("/test.zip"))
         );
         assert_eq!(loc.scheme, Scheme::Zip);
         assert!(loc.inner_path.display().contains("var"));
@@ -502,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_glob_zip_root() {
-        let err = Location::split_glob_pattern("zip:test.zip!").unwrap_err();
+        let err = Location::split_glob_pattern("zip:/test.zip!").unwrap_err();
         assert!(
             matches!(err, AccessorError::Location { input, reason } if input == "" && reason == "glob input cannot be empty")
         );
@@ -510,7 +503,7 @@ mod tests {
 
     #[test]
     fn test_glob_zip_root_path() {
-        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!/").unwrap();
+        let (loc, pattern) = Location::split_glob_pattern("zip:/test.zip!/").unwrap();
         assert_eq!(pattern, "*");
         assert_eq!(loc.scheme, Scheme::Zip);
         assert_eq!(loc.inner_path, InnerPath::new(PathBuf::from("")));
@@ -518,9 +511,10 @@ mod tests {
 
     #[test]
     fn test_glob_zip_folder() {
-        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/").unwrap();
+        let (loc, pattern) = Location::split_glob_pattern("zip:/test.zip!var/log/").unwrap();
         assert_eq!(pattern, "*");
         assert!(loc.inner_path.display().contains("var"));
+        assert_eq!(loc.scheme, Scheme::Zip);
     }
 
     #[test]
@@ -595,16 +589,57 @@ mod tests {
 
     #[test]
     fn test_parse_source_zip_location_is_literal_name() {
-        let result = Location::parse_source("zip:file.zip!inner").unwrap();
-        assert_eq!(result.source.unwrap().display(), "file.zip!inner");
+        let result = Location::parse_source("zip:/file.zip!inner").unwrap();
+        assert_eq!(result.source.unwrap().display(), "/file.zip!inner");
         assert!(result.inner_path.is_empty());
     }
 
     #[test]
     fn test_zip_space() {
-        let result = Location::parse("zip:file.zip!./inner.txt ").unwrap();
+        let result = Location::parse("zip:/file.zip!./inner.txt ").unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(result.inner_path.display(), "inner.txt ");
-        assert_eq!(result.source.unwrap().display(), "file.zip");
+        assert_eq!(result.source.unwrap().display(), "/file.zip");
+    }
+
+    #[test]
+    fn test_relative_scheme_lookalike_is_host() {
+        for test in [
+            "host:foo",
+            "ntfs:foo",
+            "zip:data.zip",
+            "zip:data.zip!entry.txt",
+        ] {
+            let result = Location::parse(test).unwrap();
+
+            assert_eq!(result.scheme, Scheme::Host, "{test}");
+            assert_eq!(result.inner_path.display(), test, "{test}");
+            assert!(result.source.is_none(), "{test}");
+        }
+    }
+
+    #[test]
+    fn test_host_and_zip_require_absolute_remainder() {
+        let host = Location::parse("host:/etc/passwd").unwrap();
+        assert_eq!(host.scheme, Scheme::Host);
+        assert_eq!(host.inner_path.display(), "/etc/passwd");
+
+        let zip = Location::parse("zip:/tmp/data.zip!./home/test.txt").unwrap();
+        assert_eq!(zip.scheme, Scheme::Zip);
+        assert_eq!(zip.source.unwrap().display(), "/tmp/data.zip");
+
+        let unc = Location::parse(r"host:\\server\share\file.txt").unwrap();
+        assert_eq!(unc.scheme, Scheme::Host);
+        assert_eq!(unc.inner_path.display(), r"\\server\share\file.txt");
+    }
+
+    #[test]
+    fn test_parse_source_zip_relative_archive_is_error() {
+        let err = Location::parse_source("zip:file.zip").unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccessorError::Location { reason, .. } if reason.contains("absolute")
+        ));
     }
 }
