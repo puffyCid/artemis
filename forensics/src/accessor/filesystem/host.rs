@@ -189,7 +189,7 @@ impl HostFs {
             return Err(AccessorError::not_a_file(path.display().to_string()));
         }
 
-        let location = ReaderLocation::from_scheme(Scheme::Host, HostFs::display_path(&path));
+        let location = ReaderLocation::from_scheme(Scheme::Host, HostFs::full_path(&path));
         let file = File::open(&path).map_err(|err| AccessorError::io_path(path, err))?;
 
         Ok(AccessorReader::host(file, location))
@@ -219,8 +219,15 @@ impl HostFs {
         }
     }
 
-    /// Return target path as a String
+    /// Return target path as a String with the `Scheme::Host`
+    ///
+    /// Example: `host:/etc/config.conf`
     fn display_path(path: &Path) -> String {
+        format!("host:{}", path.display())
+    }
+
+    /// Return target path as a String
+    fn full_path(path: &Path) -> String {
         path.display().to_string()
     }
 

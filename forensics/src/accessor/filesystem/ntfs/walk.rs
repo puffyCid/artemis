@@ -22,7 +22,7 @@ struct PendingChild {
     file_ref: NtfsEntryRef,
     /// Type of child. File, Directory, or Unsupported
     kind: EntryKind,
-    /// Full path to the child
+    /// Full path to the child with `Scheme::Ntfs`
     display_path: String,
 }
 
@@ -190,7 +190,7 @@ fn collect_index_children<'a, R: Read + Seek>(
                             EntryKind::File
                         };
                         let display_path = if parent_display.is_empty() {
-                            format!("{drive}:\\{name}")
+                            format!("ntfs:{drive}:\\{name}")
                         } else {
                             format!("{parent_display}\\{name}")
                         };

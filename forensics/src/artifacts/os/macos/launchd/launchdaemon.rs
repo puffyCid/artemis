@@ -129,6 +129,7 @@ mod tests {
                 kind: EntryKind::Directory,
                 size: 0,
                 full_path: String::new(),
+                display_path: String::new(),
             },
         }];
 
