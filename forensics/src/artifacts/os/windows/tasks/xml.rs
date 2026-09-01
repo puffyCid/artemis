@@ -101,7 +101,7 @@ pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
         && task_xml.triggers.is_none()
         && task_xml.settings.is_none()
         && task_xml.data.is_none()
-        && task_xml.principals.is_some_and(|v| v.is_empty())
+        && task_xml.principals.as_ref().is_some_and(|v| v.is_empty())
     {
         error!("File '{path} is not an xml file. Everything was empty");
         return Err(TaskError::ReadXml);
