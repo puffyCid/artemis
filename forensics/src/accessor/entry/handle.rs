@@ -59,7 +59,7 @@ impl FileHandle {
 
     /// Return a `FileHandle` as a string
     ///
-    /// Use `scheme_path` if you want the current `Scheme` in the path prefix
+    /// Use `display_path` if you want the current `Scheme` in the path prefix
     pub(crate) fn full_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
@@ -75,7 +75,7 @@ impl FileHandle {
     /// Example: `zip:test.zip!./test.txt` or `ntfs:C:\\Users\\dev\\test.txt`
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
-            FileLocator::Host { path } => path.display().to_string(),
+            FileLocator::Host { path } => format!("host:{}", path.display().to_string()),
             FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
@@ -114,8 +114,27 @@ impl DirHandle {
     /// Return a `DirHandle` as a string
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
-            DirLocator::Host { path } => path.display().to_string(),
+            DirLocator::Host { path } => format!("host:{}", path.display().to_string()),
             DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
+            DirLocator::Zip {
+                archive, prefix, ..
+            } => {
+                if prefix.is_empty() {
+                    format!("zip:{}", archive.display())
+                } else {
+                    format!("zip:{}!{prefix}", archive.display())
+                }
+            }
+        }
+    }
+
+    /// Return a `DirHandle` as a string
+    ///
+    /// Use `display_path` if you want the current `Scheme` in the path prefix
+    pub(crate) fn full_path(&self) -> String {
+        match &self.locator {
+            DirLocator::Host { path } => path.display().to_string(),
+            DirLocator::Ntfs { display_path, .. } => display_path.clone(),
             DirLocator::Zip {
                 archive, prefix, ..
             } => {

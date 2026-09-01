@@ -1,4 +1,4 @@
-use crate::accessor::location::scheme::{Scheme, strip_scheme};
+use crate::accessor::location::scheme::{Scheme, scheme_prefix, strip_scheme};
 use std::{
     fmt::Debug,
     fs::File,
@@ -22,6 +22,10 @@ pub(crate) struct ReaderLocation {
 
 impl ReaderLocation {
     /// Return a new `ReaderLocation` based on provided input string
+    ///
+    /// **Must** provided the full scheme path
+    ///
+    /// Ex: `ntfs:C:\\Users\\dev\\test.txt` or `host:/etc/config.conf`
     pub(crate) fn from_display(input: impl Into<String>) -> Self {
         let display_path = input.into();
         let full_path = strip_scheme(&display_path).to_string();
@@ -69,9 +73,13 @@ impl ReaderLocation {
 /// Zip locations use the inner entry after `!` (`zip:file.zip!./path/to/tex.txt` → `tex.txt`).
 /// NTFS ADS streams use the attribute name (`ntfs:C:\$Secure:$SDS` returns `$SDS`).
 fn filename_from_display(display_path: &str) -> String {
-    let value = match display_path.split_once('!') {
-        Some((_, inner)) => inner,
-        None => strip_scheme(display_path),
+    let value = if scheme_prefix(display_path).is_some_and(|scheme| scheme == Scheme::Zip) {
+        match display_path.split_once('!') {
+            Some((_, inner)) => inner,
+            None => strip_scheme(display_path),
+        }
+    } else {
+        strip_scheme(display_path)
     };
 
     let target = value.trim_start_matches("./").trim_end_matches(['/', '\\']);
@@ -243,6 +251,23 @@ mod tests {
         assert_eq!(location.display_path(), "ntfs:C:\\$Secure:$SDS");
         assert_eq!(location.full_path(), "C:\\$Secure:$SDS");
         assert_eq!(location.filename(), "$SDS");
+    }
+
+    #[test]
+    fn test_host_not_ads() {
+        let location = ReaderLocation::from_display(
+            "host:/home/user/Downloads/sftp:192.168.1.1:24/users:file.txt",
+        );
+
+        assert_eq!(
+            location.display_path(),
+            "host:/home/user/Downloads/sftp:192.168.1.1:24/users:file.txt"
+        );
+        assert_eq!(
+            location.full_path(),
+            "/home/user/Downloads/sftp:192.168.1.1:24/users:file.txt"
+        );
+        assert_eq!(location.filename(), "users:file.txt");
     }
 
     #[test]

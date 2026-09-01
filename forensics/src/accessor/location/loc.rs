@@ -1,8 +1,6 @@
 use crate::accessor::{
-    error::{AccessorError, AccessorResult},
-    location::{
-        path::{InnerPath, SourcePath, is_absolute_host_path, is_host_path, is_relative_host_path},
-        scheme::{Scheme, split_scheme_prefix},
+    error::{AccessorError, AccessorResult}, location::{
+        path::{InnerPath, SourcePath, is_absolute_host_path, is_host_path, is_relative_host_path}, scheme::{Scheme, scheme_prefix, split_scheme_prefix},
     },
 };
 use std::path::PathBuf;
@@ -161,12 +159,6 @@ impl Location {
 
         Ok((location_part, pattern))
     }
-}
-
-/// Check the input path to see if matches a supported `Scheme`
-fn scheme_prefix(input: &str) -> Option<Scheme> {
-    let (scheme, _) = split_scheme_prefix(input)?;
-    Scheme::parse(scheme).ok()
 }
 
 /// Parse Scheme prefix into a `Location` structure

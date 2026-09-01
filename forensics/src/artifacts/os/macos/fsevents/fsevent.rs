@@ -1,7 +1,5 @@
 use crate::{
-    artifacts::os::macos::fsevents::error::FsEventsError,
-    filesystem::metadata::get_timestamps,
-    utils::{
+    accessor::location::scheme::strip_scheme, artifacts::os::macos::fsevents::error::FsEventsError, filesystem::metadata::get_timestamps, utils::{
         compression::decompress::decompress_gzip_data,
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf8_string,
@@ -124,7 +122,8 @@ fn get_fsevent_data<'a>(
         evidence_accessed: String::from("1601-01-01T00:00:00Z"),
     };
 
-    let meta_result = get_timestamps(evidence);
+    // strip any accessor `Scheme` when getting timestamps
+    let meta_result = get_timestamps(strip_scheme(evidence));
     match meta_result {
         Ok(result) => {
             fsevent_data.evidence_accessed = result.accessed;

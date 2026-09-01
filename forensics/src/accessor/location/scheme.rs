@@ -55,3 +55,9 @@ pub(crate) fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
     }
     Some((scheme, remainder))
 }
+
+/// Check the input path to see if matches a supported `Scheme`
+pub(crate) fn scheme_prefix(input: &str) -> Option<Scheme> {
+    let (scheme, _) = split_scheme_prefix(input)?;
+    Scheme::parse(scheme).ok()
+}
