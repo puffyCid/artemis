@@ -1,4 +1,7 @@
-use crate::accessor::error::{AccessorError, AccessorResult};
+use crate::accessor::{
+    error::{AccessorError, AccessorResult},
+    location::path::is_absolute_host_path,
+};
 
 /// Accces method to use when accessing data
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -28,6 +31,34 @@ impl Scheme {
             "ntfs" => Ok(Self::Ntfs),
             "zip" => Ok(Self::Zip),
             _ => Err(AccessorError::unsupported_scheme(value)),
+        }
+    }
+}
+
+/// Determine the input `Scheme` when parsing the input location
+/// If a location path is not absolute. Then we
+/// default to `Scheme::Host`
+///
+/// `ntfs:C:\\Users\\test.txt` returns `Scheme::Ntfs`
+///
+/// `zip:/home/downloads/test.zip!./test` returns `Scheme::Zip`
+///
+/// `zip:file.zip!.test` is returns `Scheme::Host` since its a relative path
+pub(crate) fn location_scheme(input: &str) -> Option<Scheme> {
+    let scheme = scheme_prefix(input)?;
+    let remainder = strip_scheme(input);
+
+    if remainder.is_empty() {
+        return Some(scheme);
+    }
+
+    match scheme {
+        Scheme::Host | Scheme::Ntfs => is_absolute_host_path(remainder).then_some(scheme),
+        Scheme::Zip => {
+            let archive = remainder
+                .split_once('!')
+                .map_or(remainder, |(archive, _)| archive);
+            is_absolute_host_path(archive).then_some(scheme)
         }
     }
 }

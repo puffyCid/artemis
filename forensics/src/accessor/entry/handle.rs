@@ -101,7 +101,7 @@ impl FileHandle {
     /// Example: `zip:test.zip!./test.txt` or `ntfs:C:\\Users\\dev\\test.txt`
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
-            FileLocator::Host { path } => format!("host:{}", path.display().to_string()),
+            FileLocator::Host { path } => format!("host:{}", path.display()),
             FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
@@ -140,7 +140,7 @@ impl DirHandle {
     /// Return a `DirHandle` as a string
     pub(crate) fn display_path(&self) -> String {
         match &self.locator {
-            DirLocator::Host { path } => format!("host:{}", path.display().to_string()),
+            DirLocator::Host { path } => format!("host:{}", path.display()),
             DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
             DirLocator::Zip {
                 archive, prefix, ..

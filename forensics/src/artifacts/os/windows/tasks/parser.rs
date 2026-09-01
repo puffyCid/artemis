@@ -86,13 +86,13 @@ fn extract_tasks(
         };
 
         // Check for legacy Schedule Task format first
-        if handle.extension().to_ascii_lowercase() == "job" {
+        if handle.extension().eq_ignore_ascii_case("job") {
             if let Ok(result) = read_job(handle) {
                 let info = job_info(&result);
                 tasks.push(info);
                 continue;
             }
-            warn!("Could not parse Task Job {}", handle.display_path())
+            warn!("Could not parse Task Job {}", handle.display_path());
         }
 
         // Now try XML Schedule Tasks

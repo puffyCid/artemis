@@ -220,7 +220,7 @@ fn extract_eventlogs(
             continue;
         };
 
-        if handle.extension().to_ascii_lowercase() != "evtx" {
+        if !handle.extension().eq_ignore_ascii_case("evtx") {
             continue;
         }
 
