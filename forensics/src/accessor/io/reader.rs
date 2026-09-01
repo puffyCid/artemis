@@ -72,7 +72,7 @@ impl ReaderLocation {
 ///
 /// Zip locations use the inner entry after `!` (`zip:file.zip!./path/to/tex.txt` → `tex.txt`).
 /// NTFS ADS streams use the attribute name (`ntfs:C:\$Secure:$SDS` returns `$SDS`).
-fn filename_from_display(display_path: &str) -> String {
+pub(crate) fn filename_from_display(display_path: &str) -> String {
     let scheme = scheme_prefix(display_path);
     let value = if scheme.is_some_and(|scheme| scheme == Scheme::Zip) {
         match display_path.split_once('!') {

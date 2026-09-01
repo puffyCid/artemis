@@ -163,7 +163,10 @@ mod tests {
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
-        assert_eq!(result.evidence, test_location.display().to_string())
+        assert_eq!(
+            result.evidence,
+            format!("host:{}", test_location.display().to_string())
+        )
     }
 
     #[test]

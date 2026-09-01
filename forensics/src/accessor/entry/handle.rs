@@ -1,5 +1,6 @@
 use crate::accessor::{
     entry::locator::{DirLocator, FileLocator},
+    io::reader::filename_from_display,
     location::scheme::{Scheme, strip_scheme},
 };
 use std::path::PathBuf;
@@ -26,6 +27,8 @@ pub(crate) struct EntryMeta {
     pub(crate) size: u64,
     /// Human readable path to the entry
     pub(crate) full_path: String,
+    /// Filename of for the entry
+    pub(crate) filename: String,
     /// Human readable path to the entry with `Scheme`
     pub(crate) display_path: String,
 }
@@ -38,6 +41,7 @@ impl EntryMeta {
             kind,
             size,
             full_path: strip_scheme(&path).to_string(),
+            filename: filename_from_display(&path),
             display_path: path,
         }
     }
@@ -72,6 +76,21 @@ impl FileHandle {
                 format!("{}!{entry}", archive.display())
             }
         }
+    }
+
+    /// Return the filename from a `FileHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test.txt` returns `test.txt`. NTFS ADS will return the ADS name if provided
+    pub(crate) fn filename(&self) -> String {
+        let scheme_path = match &self.locator {
+            FileLocator::Host { path } => format!("host:{}", path.display().to_string()),
+            FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
+            FileLocator::Zip { archive, entry, .. } => {
+                format!("zip:{}!{entry}", archive.display())
+            }
+        };
+
+        filename_from_display(&scheme_path)
     }
 
     /// Return a `FileHandle` as a string
@@ -149,6 +168,27 @@ impl DirHandle {
                 }
             }
         }
+    }
+
+    /// Return the filename from a `DirHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test.txt` returns `test.txt`. NTFS ADS will return the ADS name if provided
+    pub(crate) fn filename(&self) -> String {
+        let scheme_path = match &self.locator {
+            DirLocator::Host { path } => format!("host:{}", path.display().to_string()),
+            DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
+            DirLocator::Zip {
+                archive, prefix, ..
+            } => {
+                if prefix.is_empty() {
+                    format!("zip:{}", archive.display())
+                } else {
+                    format!("zip:{}!{prefix}", archive.display())
+                }
+            }
+        };
+
+        filename_from_display(&scheme_path)
     }
 
     /// Return the `Scheme` associated with the `DirHandle`
