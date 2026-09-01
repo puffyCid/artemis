@@ -43,7 +43,7 @@ impl Scheme {
 ///
 /// `zip:/home/downloads/test.zip!./test` returns `Scheme::Zip`
 ///
-/// `zip:file.zip!.test` is returns `Scheme::Host` since its a relative path
+/// `zip:file.zip!.test` returns `Scheme::Host` since its a relative path
 pub(crate) fn location_scheme(input: &str) -> Option<Scheme> {
     let scheme = scheme_prefix(input)?;
     let remainder = strip_scheme(input);

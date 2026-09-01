@@ -514,6 +514,7 @@ mod tests {
         let (loc, pattern) = Location::split_glob_pattern("zip:/test.zip!var/log/").unwrap();
         assert_eq!(pattern, "*");
         assert!(loc.inner_path.display().contains("var"));
+        assert_eq!(loc.scheme, Scheme::Zip);
     }
 
     #[test]
