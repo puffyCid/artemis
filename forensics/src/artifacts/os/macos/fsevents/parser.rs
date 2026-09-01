@@ -57,7 +57,7 @@ pub(crate) fn grab_fseventsd(
                 }
             };
 
-            let events = match extract_fsevents(bytes, file_handle.display_path()) {
+            let events = match extract_fsevents(bytes, file_handle) {
                 Ok(result) => result,
                 Err(err) => {
                     warn!("Could not parse '{path}': {err:?}");
@@ -76,17 +76,37 @@ pub(crate) fn grab_fseventsd(
 
 /// Parse a single `FsEvent` file
 pub(crate) fn grab_fsventsd_file(path: &str) -> Result<Vec<FsEvents>, FsEventsError> {
-    let bytes = match Accessor::with_defaults().read_file(path) {
+    let mut accessor = Accessor::with_defaults();
+    let paths = match accessor.globfs(path) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read file '{path}': {err:?}");
+            error!("Could not get file '{path}': {err:?}");
             return Err(FsEventsError::Files);
         }
     };
-    let events = match extract_fsevents(bytes, path.to_string()) {
+
+    let Some(path) = paths.first() else {
+        error!("Empty FsEvents files");
+        return Ok(Vec::new());
+    };
+
+    let Some(handle) = path.handle.as_file() else {
+        error!("No FsEvents file");
+        return Ok(Vec::new());
+    };
+
+    let bytes = match accessor.read_file_handle(handle) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not parse '{path}': {err:?}");
+            error!("Could not read file '{}': {err:?}", handle.display_path());
+            return Err(FsEventsError::Files);
+        }
+    };
+
+    let events = match extract_fsevents(bytes, handle) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not parse '{}': {err:?}", handle.display_path());
             return Err(FsEventsError::Files);
         }
     };
