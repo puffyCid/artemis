@@ -85,9 +85,9 @@ fn extract_tasks(
             continue;
         };
 
-        let extension = handle.extension();
+        let extension = handle.extension().to_ascii_lowercase();
         // Parse XML Task files
-        if extension != "job" && extension != "DAT" {
+        if extension != "job" && extension != "dat" {
             // If running on a live Windows system. We can parse SOFTWARE Registry file for additional data
             if handle.scheme() == Scheme::Host
                 && options.alt_file.is_none()
@@ -127,7 +127,7 @@ fn extract_tasks(
             }
 
             tasks.push(info);
-        } else {
+        } else if extension == "job" {
             let job_result = match read_job(handle) {
                 Ok(result) => result,
                 Err(err) => {

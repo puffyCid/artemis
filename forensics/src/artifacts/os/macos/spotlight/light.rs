@@ -114,7 +114,7 @@ pub(crate) fn setup_spotlight_reader(glob_path: &str) -> Result<StoreMeta, Spotl
             continue;
         };
 
-        if !file_handle.display_path().contains("store.db") {
+        if file_handle.filename() != "store.db" {
             continue;
         }
 

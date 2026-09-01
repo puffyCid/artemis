@@ -331,7 +331,7 @@ fn save_shellbags(shellbag_vec: &mut Vec<Shellbag>, shell_map: &HashMap<String, 
 }
 
 #[cfg(test)]
-#[cfg(target_os = "windows")]
+
 mod tests {
     use crate::{
         accessor::{access::Accessor, entry::handle::FileHandle},
@@ -349,6 +349,7 @@ mod tests {
     use std::{collections::HashMap, path::PathBuf};
 
     #[test]
+    #[cfg(target_os = "windows")]
     fn test_grab_shellbags() {
         let options = ShellbagsOptions {
             resolve_guids: true,
@@ -361,7 +362,7 @@ mod tests {
     #[test]
     fn test_alt_shellbags() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
         let result = alt_shellbags(test_location.to_str().unwrap(), false).unwrap();
         assert_eq!(result.len(), 0);
     }
@@ -369,8 +370,8 @@ mod tests {
     #[test]
     fn test_extract_shellbags() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
-        let regex = create_regex(r"software\\microsoft\\windows\\shell\\bagmru").unwrap();
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
+        let regex = create_regex(r"software/microsoft/windows/shell/bagmru").unwrap();
         let clsids = HashMap::new();
         let handle = FileHandle::host(test_location);
 
@@ -391,7 +392,7 @@ mod tests {
     #[test]
     fn test_extract_registry_shellbags() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests\\test_data\\windows\\registry\\win10\\NTUSER.DAT");
+        test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
 
         let mut accessor = Accessor::with_defaults();
         let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
