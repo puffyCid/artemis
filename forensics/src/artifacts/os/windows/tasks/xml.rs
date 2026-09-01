@@ -56,7 +56,7 @@ pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
     loop {
         match reader.read_event() {
             Err(err) => {
-                error!("Could not read xml data: {err:?}");
+                error!("Could not read all xml data: {err:?}");
                 break;
             }
             Ok(Event::Eof) => break,
@@ -92,6 +92,20 @@ pub(crate) fn process_xml(xml: &str, path: &str) -> Result<TaskXml, TaskError> {
         }
     }
     task_xml.principals = Some(principals);
+
+    if task_xml.actions.com_handler.is_empty()
+        && task_xml.actions.exec.is_empty()
+        && task_xml.actions.send_email.is_empty()
+        && task_xml.actions.show_message.is_empty()
+        && task_xml.registration_info.is_none()
+        && task_xml.triggers.is_none()
+        && task_xml.settings.is_none()
+        && task_xml.data.is_none()
+        && task_xml.principals.is_none()
+    {
+        error!("File '{path} is not an xml file. Everything was empty");
+        return Err(TaskError::ReadXml);
+    }
 
     Ok(task_xml)
 }
