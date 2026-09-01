@@ -1,4 +1,4 @@
-use crate::accessor::location::scheme::{Scheme, scheme_prefix, strip_scheme};
+use crate::accessor::location::scheme::{Scheme, location_scheme, strip_scheme};
 use std::{
     fmt::Debug,
     fs::File,
@@ -83,7 +83,7 @@ impl ReaderLocation {
 /// Zip locations use the inner entry after `!` (`zip:file.zip!./path/to/tex.txt` → `tex.txt`).
 /// NTFS ADS streams use the attribute name (`ntfs:C:\$Secure:$SDS` returns `$SDS`).
 pub(crate) fn filename_from_display(display_path: &str) -> String {
-    let scheme = scheme_prefix(display_path);
+    let scheme = location_scheme(display_path);
     let value = if scheme.is_some_and(|scheme| scheme == Scheme::Zip) {
         match display_path.split_once('!') {
             Some((_, inner)) => inner,
