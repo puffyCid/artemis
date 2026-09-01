@@ -3,6 +3,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::{self, Cursor, Read, Seek, SeekFrom},
+    path::Path,
 };
 
 /// Combines Read + Seek + Debug into a single trait object
@@ -18,6 +19,8 @@ pub(crate) struct ReaderLocation {
     full_path: String,
     /// Target filename. For zip entries this is the inner file (`tex.txt`), not the archive name. If ADS is provided for NTFS, then this will be the ADS name
     filename: String,
+    /// Extension for target filename
+    extension: String,
 }
 
 impl ReaderLocation {
@@ -30,11 +33,13 @@ impl ReaderLocation {
         let display_path = input.into();
         let full_path = strip_scheme(&display_path).to_string();
         let filename = filename_from_display(&display_path);
+        let extension = extension_from_filename(&filename);
 
         Self {
             display_path,
             full_path,
             filename,
+            extension,
         }
     }
 
@@ -120,6 +125,15 @@ fn ads_filename(name: &str) -> String {
     }
 
     ads.to_string()
+}
+
+/// Return extension for a filename if any
+pub(crate) fn extension_from_filename(name: &str) -> String {
+    Path::new(name)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_string()
 }
 
 /// Backend source for `AccessorReader`
@@ -217,7 +231,10 @@ impl AccessorReader {
 #[cfg(test)]
 mod tests {
     use super::{ReaderLocation, filename_from_display};
-    use crate::accessor::location::scheme::{Scheme, strip_scheme};
+    use crate::accessor::{
+        io::reader::extension_from_filename,
+        location::scheme::{Scheme, strip_scheme},
+    };
 
     #[test]
     fn test_strip_scheme_keeps_drive_letters_and_bare_paths() {
@@ -321,6 +338,73 @@ mod tests {
         assert_eq!(
             filename_from_display("zip:file.zip!./path/to/tex.txt"),
             "tex.txt"
+        );
+    }
+
+    #[test]
+    fn test_extension_from_filename() {
+        assert_eq!(extension_from_filename("file.txt"), "txt");
+        assert_eq!(extension_from_filename("archive.tar.gz"), "gz");
+
+        assert_eq!(extension_from_filename("NTUSER.DAT"), "DAT");
+        assert_eq!(extension_from_filename("setup.EXE"), "EXE");
+
+        assert_eq!(extension_from_filename("Makefile"), "");
+        assert_eq!(extension_from_filename("$MFT"), "");
+        assert_eq!(extension_from_filename("$SDS"), "");
+        assert_eq!(extension_from_filename("id_ed25519"), "");
+
+        assert_eq!(extension_from_filename(".bashrc"), "");
+        assert_eq!(extension_from_filename(".gitignore"), "");
+        assert_eq!(extension_from_filename(".foo.bar"), "bar");
+
+        assert_eq!(extension_from_filename("file."), "");
+        assert_eq!(extension_from_filename(""), "");
+        assert_eq!(extension_from_filename("."), "");
+        assert_eq!(extension_from_filename(".."), "");
+
+        assert_eq!(extension_from_filename("Zone.Identifier"), "Identifier");
+        assert_eq!(extension_from_filename("users:file.txt"), "txt");
+        assert_eq!(extension_from_filename("I like Music!.mp3"), "mp3");
+    }
+
+    #[test]
+    fn test_extension_uses_filename_not_path() {
+        assert_eq!(
+            extension_from_filename(&filename_from_display("zip:file.zip!./path/to/tex.txt")),
+            "txt"
+        );
+        assert_eq!(
+            extension_from_filename(&filename_from_display("zip:archive.tar.gz!home/id_ed25519")),
+            ""
+        );
+
+        assert_eq!(
+            extension_from_filename(&filename_from_display("ntfs:C:\\$Secure:$SDS")),
+            ""
+        );
+
+        assert_eq!(
+            extension_from_filename(&filename_from_display(
+                "ntfs:C:\\Users\\dev\\file.txt:Zone.Identifier"
+            )),
+            "Identifier"
+        );
+        assert_eq!(
+            extension_from_filename(&filename_from_display("host:/var/log/syslog")),
+            ""
+        );
+
+        assert_eq!(
+            extension_from_filename(&filename_from_display("host:C:\\Users\\dev\\NTUSER.DAT")),
+            "DAT"
+        );
+
+        assert_eq!(
+            extension_from_filename(&filename_from_display(
+                "host:/home/user/Downloads/sftp:192.168.1.1:24/users:file.txt"
+            )),
+            "txt"
         );
     }
 }

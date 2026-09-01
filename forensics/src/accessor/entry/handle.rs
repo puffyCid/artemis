@@ -1,6 +1,6 @@
 use crate::accessor::{
     entry::locator::{DirLocator, FileLocator},
-    io::reader::filename_from_display,
+    io::reader::{extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
 use std::path::PathBuf;
@@ -29,6 +29,8 @@ pub(crate) struct EntryMeta {
     pub(crate) full_path: String,
     /// Filename of for the entry
     pub(crate) filename: String,
+    /// Extension for the filename if any
+    pub(crate) extension: String,
     /// Human readable path to the entry with `Scheme`
     pub(crate) display_path: String,
 }
@@ -37,11 +39,13 @@ impl EntryMeta {
     /// Create a `EntryMeta` value
     pub(crate) fn new(kind: EntryKind, size: u64, display_path: impl Into<String>) -> Self {
         let path = display_path.into();
+        let filename = filename_from_display(&path);
         Self {
             kind,
             size,
             full_path: strip_scheme(&path).to_string(),
-            filename: filename_from_display(&path),
+            extension: extension_from_filename(&filename),
+            filename,
             display_path: path,
         }
     }
@@ -83,6 +87,13 @@ impl FileHandle {
     /// Example: `zip:test.zip!./test.txt` returns `test.txt`. NTFS ADS will return the ADS name if provided
     pub(crate) fn filename(&self) -> String {
         filename_from_display(&self.display_path())
+    }
+
+    /// Return the extension from a `FileHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test.txt` returns `txt`
+    pub(crate) fn extension(&self) -> String {
+        extension_from_filename(&self.filename())
     }
 
     /// Return a `FileHandle` as a string
@@ -169,6 +180,13 @@ impl DirHandle {
         filename_from_display(&self.display_path())
     }
 
+    /// Return the extension from a `DirHandle` as a string
+    ///
+    /// Example: `zip:test.zip!./test` returns ``
+    pub(crate) fn extension(&self) -> String {
+        extension_from_filename(&self.filename())
+    }
+
     /// Return the `Scheme` associated with the `DirHandle`
     pub(crate) fn scheme(&self) -> Scheme {
         match &self.locator {
@@ -219,6 +237,8 @@ impl ItemHandle {
     }
 
     /// Return the path for the `ItemHandle`
+    ///
+    /// Includes the `Scheme` prefix
     pub(crate) fn display_path(&self) -> String {
         match self {
             Self::File(handle) | Self::Unsupported(handle) => handle.display_path(),

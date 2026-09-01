@@ -50,7 +50,7 @@ fn extract_userassist(paths: Vec<GlobMatch>) -> Result<Vec<UserAssistReg>, UserA
     for hive in paths {
         // UserAssist only exists in NTUSER.DAT hives
         if hive.meta.kind != EntryKind::File
-            || !hive.meta.full_path.to_lowercase().ends_with("ntuser.dat")
+            || hive.meta.filename.to_ascii_lowercase() != "ntuser.dat"
         {
             continue;
         }

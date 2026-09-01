@@ -9,7 +9,6 @@ use crate::{
         entry::handle::{EntryKind, FileHandle, GlobMatch},
     },
     artifacts::os::macos::spotlight::error::SpotlightError,
-    filesystem::files::get_filename,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -45,7 +44,7 @@ pub(crate) fn get_spotlight_meta(
             continue;
         };
 
-        meta_maps.insert(get_filename(&file_handle.display_path()), file_handle);
+        meta_maps.insert(file_handle.filename(), file_handle);
     }
 
     if let Some(header_handle) = meta_maps.get("dbStr-1.map.header")
