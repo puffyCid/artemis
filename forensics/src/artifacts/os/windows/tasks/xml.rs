@@ -114,7 +114,10 @@ mod tests {
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
-        assert_eq!(result.evidence, test_location.display().to_string())
+        assert_eq!(
+            result.evidence,
+            format!("host:{}", test_location.display().to_string())
+        )
     }
 
     #[test]
@@ -131,7 +134,10 @@ mod tests {
             "S-1-5-19"
         );
         assert_eq!(result.actions.com_handler.len(), 1);
-        assert_eq!(result.evidence, test_location.display().to_string());
+        assert_eq!(
+            result.evidence,
+            format!("host:{}", test_location.display().to_string())
+        );
         assert!(result.triggers.unwrap().event[0].subscription[0].contains("<QueryList>"));
     }
 

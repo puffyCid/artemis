@@ -371,7 +371,7 @@ mod tests {
     fn test_extract_shellbags() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/registry/win10/NTUSER.DAT");
-        let regex = create_regex(r"software/microsoft/windows/shell/bagmru").unwrap();
+        let regex = create_regex(r"software\\microsoft\\windows\\shell\\bagmru").unwrap();
         let clsids = HashMap::new();
         let handle = FileHandle::host(test_location);
 
