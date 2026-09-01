@@ -9,8 +9,8 @@ use std::{
 pub(crate) trait ReadSeek: Read + Seek + Debug {}
 impl<T: Read + Seek + Debug> ReadSeek for T {}
 
-#[derive(Debug)]
 /// Location metadata for an opened `AccessorReader`
+#[derive(Debug)]
 pub(crate) struct ReaderLocation {
     /// Location including scheme. Examples: `host:/var/log/syslog`, `ntfs:C:\$MFT`, `zip:file.zip!path/to/tex.txt`
     display_path: String,
@@ -23,7 +23,7 @@ pub(crate) struct ReaderLocation {
 impl ReaderLocation {
     /// Return a new `ReaderLocation` based on provided input string
     ///
-    /// **Must** provided the full scheme path
+    /// **Must** provide the full scheme path
     ///
     /// Ex: `ntfs:C:\\Users\\dev\\test.txt` or `host:/etc/config.conf`
     pub(crate) fn from_display(input: impl Into<String>) -> Self {
@@ -84,13 +84,18 @@ fn filename_from_display(display_path: &str) -> String {
 
     let target = value.trim_start_matches("./").trim_end_matches(['/', '\\']);
 
-    let name = target
+    let filename = target
         .rsplit(['/', '\\'])
         .next()
         .unwrap_or(target)
         .to_string();
 
-    ads_filename(&name)
+    // If using `Scheme::Ntfs` check for ADS data
+    if scheme_prefix(display_path).is_some_and(|scheme| scheme == Scheme::Ntfs) {
+        return ads_filename(&filename);
+    }
+
+    filename
 }
 
 /// Return the ADS stream name if available

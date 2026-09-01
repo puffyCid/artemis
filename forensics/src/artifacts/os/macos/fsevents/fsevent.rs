@@ -1,5 +1,8 @@
 use crate::{
-    accessor::location::scheme::strip_scheme, artifacts::os::macos::fsevents::error::FsEventsError, filesystem::metadata::get_timestamps, utils::{
+    accessor::location::scheme::strip_scheme,
+    artifacts::os::macos::fsevents::error::FsEventsError,
+    filesystem::metadata::get_timestamps,
+    utils::{
         compression::decompress::decompress_gzip_data,
         nom_helper::{Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes},
         strings::extract_utf8_string,

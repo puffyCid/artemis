@@ -139,9 +139,9 @@ impl DirHandle {
                 archive, prefix, ..
             } => {
                 if prefix.is_empty() {
-                    format!("zip:{}", archive.display())
+                    format!("{}", archive.display())
                 } else {
-                    format!("zip:{}!{prefix}", archive.display())
+                    format!("{}!{prefix}", archive.display())
                 }
             }
         }

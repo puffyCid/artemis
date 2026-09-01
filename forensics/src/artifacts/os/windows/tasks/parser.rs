@@ -95,7 +95,7 @@ fn extract_tasks(
             {
                 // Attempt to parse the SOFTWARE Registry file only
                 // If we fail, we do not try anymore
-                match cache_info(handle.display_path().chars().next().unwrap_or_default()) {
+                match cache_info(handle.full_path().chars().next().unwrap_or_default()) {
                     Ok(result) => cache = result,
                     Err(_) => reg_error = true,
                 }

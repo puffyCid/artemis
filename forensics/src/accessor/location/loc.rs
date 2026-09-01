@@ -1,6 +1,8 @@
 use crate::accessor::{
-    error::{AccessorError, AccessorResult}, location::{
-        path::{InnerPath, SourcePath, is_absolute_host_path, is_host_path, is_relative_host_path}, scheme::{Scheme, scheme_prefix, split_scheme_prefix},
+    error::{AccessorError, AccessorResult},
+    location::{
+        path::{InnerPath, SourcePath, is_absolute_host_path, is_host_path, is_relative_host_path},
+        scheme::{Scheme, scheme_prefix, split_scheme_prefix},
     },
 };
 use std::path::PathBuf;
