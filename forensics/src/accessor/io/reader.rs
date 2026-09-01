@@ -71,6 +71,11 @@ impl ReaderLocation {
     pub(crate) fn filename(&self) -> &str {
         &self.filename
     }
+
+    /// Filename extension (if any) associated with the reader
+    pub(crate) fn extension(&self) -> &str {
+        &self.extension
+    }
 }
 
 /// Filename of the target file.

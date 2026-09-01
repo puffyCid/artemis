@@ -182,7 +182,7 @@ impl DirHandle {
 
     /// Return the extension from a `DirHandle` as a string
     ///
-    /// Example: `zip:test.zip!./test` returns ``
+    /// Example: `zip:test.zip!./test` returns empty string
     pub(crate) fn extension(&self) -> String {
         extension_from_filename(&self.filename())
     }

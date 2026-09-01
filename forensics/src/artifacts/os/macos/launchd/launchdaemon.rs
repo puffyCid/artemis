@@ -131,6 +131,7 @@ mod tests {
                 full_path: String::new(),
                 display_path: String::new(),
                 filename: String::new(),
+                extension: String::new(),
             },
         }];
 
