@@ -125,7 +125,7 @@ mod tests {
                 if !file
                     .handle
                     .as_file()
-                    .is_some_and(|f| f.extension() == "lnk")
+                    .is_some_and(|f| f.extension().to_ascii_lowercase() == "lnk")
                 {
                     continue;
                 }
