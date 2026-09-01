@@ -125,7 +125,7 @@ pub(crate) fn is_absolute_host_path(input: &str) -> bool {
 
 /// Check for network UNC path
 fn is_unc_path(input: &str) -> bool {
-    input.starts_with("\\") || input.starts_with("//")
+    input.starts_with("\\\\") || input.starts_with("//")
 }
 
 /// Determine if our provided input is a relative path to the data
@@ -175,10 +175,6 @@ mod tests {
 
     #[test]
     fn test_is_absolute_host_path() {
-        assert!(!is_absolute_host_path("../test"));
-        assert!(is_absolute_host_path("/test"));
-        assert!(!is_absolute_host_path(""));
-
         assert!(!is_absolute_host_path("../test"));
         assert!(is_absolute_host_path("/test"));
         assert!(!is_absolute_host_path(""));
