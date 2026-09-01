@@ -302,14 +302,14 @@ mod tests {
 
     #[test]
     fn test_location() {
-        let test = "zip:data.zip!./home/test.txt";
+        let test = "zip:/data.zip!./home/test.txt";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(
             result.inner_path.display().replace('\\', "/"),
             "home/test.txt"
         );
-        assert_eq!(result.source.unwrap().display(), "data.zip");
+        assert_eq!(result.source.unwrap().display(), "/data.zip");
     }
 
     #[test]
@@ -357,14 +357,14 @@ mod tests {
 
     #[test]
     fn test_location_zip_exclamation_in_path() {
-        let test = "zip:file.zip!./home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
+        let test = "zip:/file.zip!./home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(
             result.inner_path.as_path(),
             "home/dev/.cache/vlc/art/artistalbum/singer/I like Music! /art"
         );
-        assert_eq!(result.source.unwrap().display(), "file.zip");
+        assert_eq!(result.source.unwrap().display(), "/file.zip");
     }
 
     #[test]
@@ -380,11 +380,23 @@ mod tests {
     }
 
     #[test]
-    fn test_location_not_a_zip() {
+    fn test_location_neither_scheme_or_zip() {
         let test = "host:zip:/file.zip/Amcache.hve";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Host);
-        assert_eq!(result.inner_path.display(), "zip:/file.zip/Amcache.hve");
+        assert_eq!(
+            result.inner_path.display(),
+            "host:zip:/file.zip/Amcache.hve"
+        );
+        assert!(result.source.is_none());
+    }
+
+    #[test]
+    fn test_location_not_a_zip() {
+        let test = "host:/zip:file.zip/Amcache.hve";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Host);
+        assert_eq!(result.inner_path.display(), "/zip:/file.zip/Amcache.hve");
         assert!(result.source.is_none());
     }
 
@@ -432,10 +444,10 @@ mod tests {
 
     #[test]
     fn test_location_glob_exact_path() {
-        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!var/log/wtmp").unwrap();
+        let (loc, pattern) = Location::split_glob_pattern("zip:/test.zip!var/log/wtmp").unwrap();
         assert_eq!(
             loc.source.unwrap(),
-            SourcePath::new(PathBuf::from("test.zip"))
+            SourcePath::new(PathBuf::from("/test.zip"))
         );
         assert_eq!(loc.scheme, Scheme::Zip);
         assert!(loc.inner_path.display().contains("var"));
@@ -483,7 +495,7 @@ mod tests {
 
     #[test]
     fn test_glob_zip_root() {
-        let err = Location::split_glob_pattern("zip:test.zip!").unwrap_err();
+        let err = Location::split_glob_pattern("zip:/test.zip!").unwrap_err();
         assert!(
             matches!(err, AccessorError::Location { input, reason } if input == "" && reason == "glob input cannot be empty")
         );
@@ -491,7 +503,7 @@ mod tests {
 
     #[test]
     fn test_glob_zip_root_path() {
-        let (loc, pattern) = Location::split_glob_pattern("zip:test.zip!/").unwrap();
+        let (loc, pattern) = Location::split_glob_pattern("zip:/test.zip!/").unwrap();
         assert_eq!(pattern, "*");
         assert_eq!(loc.scheme, Scheme::Zip);
         assert_eq!(loc.inner_path, InnerPath::new(PathBuf::from("")));
@@ -576,17 +588,17 @@ mod tests {
 
     #[test]
     fn test_parse_source_zip_location_is_literal_name() {
-        let result = Location::parse_source("zip:file.zip!inner").unwrap();
-        assert_eq!(result.source.unwrap().display(), "file.zip!inner");
+        let result = Location::parse_source("zip:/file.zip!inner").unwrap();
+        assert_eq!(result.source.unwrap().display(), "/file.zip!inner");
         assert!(result.inner_path.is_empty());
     }
 
     #[test]
     fn test_zip_space() {
-        let result = Location::parse("zip:file.zip!./inner.txt ").unwrap();
+        let result = Location::parse("zip:/file.zip!./inner.txt ").unwrap();
         assert_eq!(result.scheme, Scheme::Zip);
         assert_eq!(result.inner_path.display(), "inner.txt ");
-        assert_eq!(result.source.unwrap().display(), "file.zip");
+        assert_eq!(result.source.unwrap().display(), "/file.zip");
     }
 
     #[test]
