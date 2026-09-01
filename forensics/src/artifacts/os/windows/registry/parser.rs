@@ -446,7 +446,7 @@ mod tests {
         assert!(result.len() >= 3);
         let mut default = false;
         for entry in result {
-            if entry.meta.display_path.contains("Default") {
+            if entry.meta.full_path.contains("Default") {
                 default = true;
             }
         }

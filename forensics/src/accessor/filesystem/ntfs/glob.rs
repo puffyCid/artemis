@@ -105,7 +105,7 @@ fn glob_path_pattern<T: Read + Seek + Send>(
                     else {
                         return Err(AccessorError::invalid_handle(format!(
                             "ntfs glob expected ntfs directory handle for {}",
-                            entry.meta.display_path
+                            entry.meta.full_path
                         )));
                     };
                     let children =

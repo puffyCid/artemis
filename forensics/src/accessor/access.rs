@@ -446,7 +446,7 @@ mod tests {
         assert!(!files.is_empty());
 
         for file in files {
-            if file.meta.display_path == "C:\\$MFT" {
+            if file.meta.full_path == "C:\\$MFT" {
                 assert!(file.meta.size > 100);
             }
         }
@@ -471,10 +471,10 @@ mod tests {
                 .unwrap();
 
             let path_results = access
-                .source_read_dir(&source, &file.meta.display_path)
+                .source_read_dir(&source, &file.meta.full_path)
                 .unwrap();
             assert_eq!(path_results, results);
-            if file.meta.display_path == "C:\\Users" {
+            if file.meta.full_path == "C:\\Users" {
                 assert!(!results.is_empty());
                 assert!(!path_results.is_empty());
             }

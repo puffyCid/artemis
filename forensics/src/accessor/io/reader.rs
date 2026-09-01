@@ -73,7 +73,8 @@ impl ReaderLocation {
 /// Zip locations use the inner entry after `!` (`zip:file.zip!./path/to/tex.txt` → `tex.txt`).
 /// NTFS ADS streams use the attribute name (`ntfs:C:\$Secure:$SDS` returns `$SDS`).
 fn filename_from_display(display_path: &str) -> String {
-    let value = if scheme_prefix(display_path).is_some_and(|scheme| scheme == Scheme::Zip) {
+    let scheme = scheme_prefix(display_path);
+    let value = if scheme.is_some_and(|scheme| scheme == Scheme::Zip) {
         match display_path.split_once('!') {
             Some((_, inner)) => inner,
             None => strip_scheme(display_path),
@@ -91,7 +92,7 @@ fn filename_from_display(display_path: &str) -> String {
         .to_string();
 
     // If using `Scheme::Ntfs` check for ADS data
-    if scheme_prefix(display_path).is_some_and(|scheme| scheme == Scheme::Ntfs) {
+    if scheme.is_some_and(|scheme| scheme == Scheme::Ntfs) {
         return ads_filename(&filename);
     }
 
@@ -241,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_host_windows_path_omits_scheme() {
+    fn test_host_windows_path_scheme() {
         let location = ReaderLocation::from_scheme(Scheme::Host, "C:\\Users\\dev\\NTUSER.DAT");
 
         assert_eq!(location.display_path(), "host:C:\\Users\\dev\\NTUSER.DAT");

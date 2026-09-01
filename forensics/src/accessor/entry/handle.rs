@@ -25,16 +25,16 @@ pub(crate) struct EntryMeta {
     /// Size of entry
     pub(crate) size: u64,
     /// Human readable path to the entry
-    pub(crate) display_path: String,
+    pub(crate) full_path: String,
 }
 
 impl EntryMeta {
     /// Create a `EntryMeta` value
-    pub(crate) fn new(kind: EntryKind, size: u64, display_path: impl Into<String>) -> Self {
+    pub(crate) fn new(kind: EntryKind, size: u64, full_path: impl Into<String>) -> Self {
         Self {
             kind,
             size,
-            display_path: display_path.into(),
+            full_path: full_path.into(),
         }
     }
 }
@@ -139,7 +139,7 @@ impl DirHandle {
                 archive, prefix, ..
             } => {
                 if prefix.is_empty() {
-                    format!("{}", archive.display())
+                    archive.display().to_string()
                 } else {
                     format!("{}!{prefix}", archive.display())
                 }

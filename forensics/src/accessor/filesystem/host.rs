@@ -253,7 +253,7 @@ impl HostFs {
                     }
                     debug!(
                         "Globbing path '{}' with pattern '{pattern}' at relative '{relative}'. Current depth is {depth:?}/{max_depth:?}",
-                        entry.meta.display_path
+                        entry.meta.full_path
                     );
 
                     if guard.should_descend(&relative, depth, max_depth) {

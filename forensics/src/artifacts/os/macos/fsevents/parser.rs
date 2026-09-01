@@ -41,8 +41,7 @@ pub(crate) fn grab_fseventsd(
         };
 
         for file in files {
-            if file.meta.kind != EntryKind::File
-                || file.meta.display_path.ends_with("fseventsd-uuid")
+            if file.meta.kind != EntryKind::File || file.meta.full_path.ends_with("fseventsd-uuid")
             {
                 continue;
             }
