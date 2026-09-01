@@ -108,6 +108,7 @@ fn glob_path_pattern<T: Read + Seek + Send>(
                             entry.meta.full_path
                         )));
                     };
+
                     let children =
                         match list_children_handle(&fs.volume, dir_ref, display_path, fs.drive) {
                             Ok(result) => result,
@@ -116,6 +117,7 @@ fn glob_path_pattern<T: Read + Seek + Send>(
                                 continue;
                             }
                         };
+
                     glob_path_pattern(fs, children, pattern, &relative, max_depth, guard, matches)?;
                 }
             }

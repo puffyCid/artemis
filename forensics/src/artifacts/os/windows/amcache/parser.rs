@@ -36,7 +36,7 @@ pub(crate) fn grab_amcache(options: &AmcacheOptions) -> Result<Vec<Amcache>, Amc
                 return Err(AmcacheError::DefaultDrive);
             }
         };
-        format!("ntfs:{drive}:\\Windows\\*\\Programs\\Amcache.hve")
+        format!("ntfs:{drive}:\\Windows\\AppCompat\\Programs\\Amcache.hve")
     };
 
     amcache_file(&pattern)
