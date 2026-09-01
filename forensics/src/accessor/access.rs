@@ -391,11 +391,7 @@ mod tests {
                 continue;
             }
 
-            if entry
-                .meta
-                .display_path
-                .contains("document.odt!manifest.rdf")
-            {
+            if entry.meta.full_path.contains("document.odt!manifest.rdf") {
                 let bytes = access
                     .read_file_handle(&entry.handle.as_file().unwrap())
                     .unwrap();

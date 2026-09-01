@@ -1,6 +1,6 @@
 use crate::accessor::{
     entry::locator::{DirLocator, FileLocator},
-    location::scheme::Scheme,
+    location::scheme::{Scheme, strip_scheme},
 };
 use std::path::PathBuf;
 
@@ -26,15 +26,19 @@ pub(crate) struct EntryMeta {
     pub(crate) size: u64,
     /// Human readable path to the entry
     pub(crate) full_path: String,
+    /// Human readable path to the entry with `Scheme`
+    pub(crate) display_path: String,
 }
 
 impl EntryMeta {
     /// Create a `EntryMeta` value
-    pub(crate) fn new(kind: EntryKind, size: u64, full_path: impl Into<String>) -> Self {
+    pub(crate) fn new(kind: EntryKind, size: u64, display_path: impl Into<String>) -> Self {
+        let path = display_path.into();
         Self {
             kind,
             size,
-            full_path: full_path.into(),
+            full_path: strip_scheme(&path).to_string(),
+            display_path: path,
         }
     }
 }

@@ -128,7 +128,7 @@ mod tests {
             meta: EntryMeta {
                 kind: EntryKind::Directory,
                 size: 0,
-                display_path: String::new(),
+                full_path: String::new(),
             },
         }];
 
