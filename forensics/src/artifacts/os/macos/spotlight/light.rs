@@ -38,7 +38,7 @@ pub(crate) fn parse_spotlight(
             continue;
         };
 
-        if !file_handle.display_path().ends_with("store.db") {
+        if file_handle.filename() != "store.db" {
             continue;
         }
 

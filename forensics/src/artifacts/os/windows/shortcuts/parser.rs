@@ -125,7 +125,7 @@ mod tests {
                 if !file
                     .handle
                     .as_file()
-                    .is_some_and(|f| f.display_path().ends_with("lnk"))
+                    .is_some_and(|f| f.extension() == "lnk")
                 {
                     continue;
                 }

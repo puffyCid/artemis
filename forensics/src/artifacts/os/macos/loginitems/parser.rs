@@ -72,7 +72,7 @@ fn extract_loginitem(paths: Vec<GlobMatch>, accessor: &mut Accessor) -> Vec<Logi
             }
         };
 
-        if file_handle.display_path().ends_with(".btm") {
+        if file_handle.extension() == "btm" {
             let mut items = match get_bookmarks(&bytes, &file_handle.display_path()) {
                 Ok(result) => result,
                 Err(_err) => continue,

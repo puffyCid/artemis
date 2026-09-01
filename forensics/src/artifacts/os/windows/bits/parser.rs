@@ -63,15 +63,13 @@ pub(crate) fn grab_bits(options: &BitsOptions) -> Result<Vec<BitsInfo>, BitsErro
         };
 
         // Modern versions of BITS use ESE db
-        if handle.display_path().ends_with("qmgr.db") {
+        if handle.filename() == "qmgr.db" {
             let mut value = parse_ese_bits(handle, options.carve)?;
             values.append(&mut value);
             continue;
         }
 
-        if handle.display_path().ends_with("qmgr0.dat")
-            || handle.display_path().ends_with("qmgr1.dat")
-        {
+        if handle.filename() == "qmgr0.dat" || handle.filename() == "qmgr1.dat" {
             let mut value = legacy_bits(handle, options.carve)?;
             values.append(&mut value);
         }

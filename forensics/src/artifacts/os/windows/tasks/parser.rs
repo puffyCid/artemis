@@ -85,8 +85,9 @@ fn extract_tasks(
             continue;
         };
 
+        let extension = handle.extension();
         // Parse XML Task files
-        if !handle.display_path().ends_with(".job") && !handle.display_path().ends_with(".DAT") {
+        if extension != "job" && extension != "DAT" {
             // If running on a live Windows system. We can parse SOFTWARE Registry file for additional data
             if handle.scheme() == Scheme::Host
                 && options.alt_file.is_none()

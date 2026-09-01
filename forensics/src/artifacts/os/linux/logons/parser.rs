@@ -67,9 +67,9 @@ pub(crate) fn grab_logon_file(
     file_handle: &FileHandle,
     logons: &mut Vec<Logon>,
 ) {
-    if !file_handle.display_path().ends_with("wtmp")
-        && !file_handle.display_path().ends_with("utmp")
-        && !file_handle.display_path().ends_with("btmp")
+    if file_handle.extension() != "wtmp"
+        && file_handle.extension() != "utmp"
+        && !file_handle.extension() != "btmp"
     {
         warn!(
             "Provided unsupported logon file {}",
@@ -89,7 +89,7 @@ pub(crate) fn grab_logon_file(
         }
     };
 
-    let status = if file_handle.display_path().ends_with("btmp") {
+    let status = if file_handle.extension() == "btmp"s {
         Status::Failed
     } else {
         Status::Success
