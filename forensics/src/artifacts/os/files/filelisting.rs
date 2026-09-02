@@ -203,7 +203,7 @@ fn file_metadata(
         // Always make sure we tell the `Accessor` to use the `Host Accessor`
         // Should prevent confusion when paths contain `zip:/file.zip/ntfs:files.txt`
         file_entry.binary_info =
-            executable_metadata(&format!("host:{}", &entry.path().display()), plat)
+            executable_metadata(&format!("host:{}", entry.path().display()), plat)
                 .unwrap_or_default();
     }
 

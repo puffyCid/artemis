@@ -295,12 +295,14 @@ impl DirEntry {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct EntryStat {
     pub(crate) meta: EntryMeta,
     pub(crate) times: Vec<Timestamp>,
 }
 
-enum Timestamp {
+#[derive(Debug)]
+pub(crate) enum Timestamp {
     Created(String),
     Modified(String),
     Accessed(String),

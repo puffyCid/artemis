@@ -1,6 +1,9 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, DirHandle, EntryKind, EntryMeta, FileHandle, GlobMatch, ItemHandle},
+        handle::{
+            DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, GlobMatch,
+            ItemHandle, Timestamp,
+        },
         locator::{DirLocator, FileLocator},
     },
     error::{AccessorError, AccessorResult},
@@ -13,7 +16,7 @@ use crate::accessor::{
 };
 use glob::Pattern;
 use std::{
-    fs::{self, File, metadata, read},
+    fs::{self, File, Metadata, metadata, read, symlink_metadata},
     path::{Path, PathBuf},
 };
 use tracing::debug;
@@ -210,6 +213,52 @@ impl HostFs {
         }
     }
 
+    /// Return metadata and timestamps for provided path
+    pub(crate) fn stat(inner: &InnerPath) -> AccessorResult<EntryStat> {
+        let path = HostFs::resolve_host_path(inner);
+        if !path.exists() {
+            return Err(AccessorError::not_found(HostFs::display_path(&path)));
+        }
+
+        // We will not follow symbolic links
+        let meta = symlink_metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
+
+        let kind = if meta.is_dir() {
+            EntryKind::Directory
+        } else if meta.is_file() {
+            EntryKind::File
+        } else {
+            EntryKind::Unsupported
+        };
+
+        Ok(EntryStat {
+            meta: EntryMeta::new(kind, meta.len(), HostFs::display_path(&path)),
+            times: HostFs::host_times(&meta),
+        })
+    }
+
+    /// Return metadata and timestamps for a `FileHandle`
+    pub(crate) fn stat_handle(handle: &FileHandle) -> AccessorResult<EntryStat> {
+        match &handle.locator {
+            FileLocator::Host { path } => HostFs::stat(&InnerPath::new(path.clone())),
+            _ => Err(AccessorError::invalid_handle(format!(
+                "host source cannot stat file handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
+    /// Return metadata and timestamps for a `DirHandle`
+    pub(crate) fn stat_dir_handle(handle: &DirHandle) -> AccessorResult<EntryStat> {
+        match &handle.locator {
+            DirLocator::Host { path } => HostFs::stat(&InnerPath::new(path.clone())),
+            _ => Err(AccessorError::invalid_handle(format!(
+                "host source cannot stat directory handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
     /// Return `PathBuf` from `InnerPath`
     fn resolve_host_path(inner: &InnerPath) -> PathBuf {
         if inner.is_empty() {
@@ -280,12 +329,115 @@ impl HostFs {
 
         Ok(())
     }
+
+    /// Return timestamps for a live host system
+    fn host_times(meta: &Metadata) -> Vec<Timestamp> {
+        let mut times = Vec::new();
+
+        // Rust cannot get Windows Changed timestamps :(
+        #[cfg(target_os = "windows")]
+        {
+            use crate::utils::time::filetime_to_iso;
+            use std::os::windows::fs::MetadataExt;
+
+            if meta.creation_time() != 0 {
+                times.push(Timestamp::Created(filetime_to_iso(meta.creation_time())));
+            }
+
+            if meta.last_write_time() != 0 {
+                times.push(Timestamp::Modified(filetime_to_iso(meta.last_write_time())));
+            }
+
+            if meta.last_access_time() != 0 {
+                times.push(Timestamp::Accessed(filetime_to_iso(
+                    meta.last_access_time(),
+                )));
+            }
+        }
+
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        {
+            use crate::utils::time::unixepoch_to_iso_with_nano;
+
+            #[cfg(target_os = "linux")]
+            use std::os::linux::fs::MetadataExt;
+
+            #[cfg(target_os = "macos")]
+            use std::os::macos::fs::MetadataExt;
+
+            times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
+                meta.st_mtime(),
+                meta.st_mtime_nsec(),
+            )));
+            times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
+                meta.st_atime(),
+                meta.st_atime_nsec(),
+            )));
+            times.push(Timestamp::Changed(unixepoch_to_iso_with_nano(
+                meta.st_ctime(),
+                meta.st_ctime_nsec(),
+            )));
+        }
+
+        #[cfg(target_os = "linux")]
+        if let Ok(created) = meta.created() {
+            use crate::utils::time::unixepoch_microseconds_to_iso;
+            use std::time::UNIX_EPOCH;
+
+            if created > UNIX_EPOCH {
+                let micros = created
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_micros();
+
+                times.push(Timestamp::Created(unixepoch_microseconds_to_iso(
+                    micros as i64,
+                )));
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            use crate::utils::time::unixepoch_to_iso_with_nano;
+            times.push(Timestamp::Created(unixepoch_to_iso_with_nano(
+                meta.st_birthtime(),
+                meta.st_birthtime_nsec(),
+            )));
+        }
+
+        #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+        use std::os::unix::fs::MetadataExt;
+
+        #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+        {
+            use crate::utils::time::unixepoch_to_iso_with_nano;
+
+            times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
+                meta.atime(),
+                meta.atime_nsec(),
+            )));
+
+            times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
+                meta.mtime(),
+                meta.mtime_nsec(),
+            )));
+
+            times.push(Timestamp::Changed(unixepoch_to_iso_with_nano(
+                meta.ctime(),
+                meta.ctime_nsec(),
+            )));
+        }
+
+        times
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
-        entry::handle::FileHandle, error::AccessorError, filesystem::host::HostFs,
+        entry::handle::{DirHandle, EntryKind, FileHandle},
+        error::AccessorError,
+        filesystem::host::HostFs,
         location::path::InnerPath,
     };
     use std::{
@@ -410,5 +562,42 @@ mod tests {
         assert_eq!(reader.location.full_path(), path.display().to_string());
         assert_eq!(reader.location.filename(), "syslog");
         assert!(reader.location.display_path().starts_with("host:"));
+    }
+
+    #[test]
+    fn test_hostfs_stat() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests");
+        let results = HostFs::stat(&inner(&test_location, "")).unwrap();
+
+        assert!(results.times.len() >= 3);
+        assert_eq!(results.meta.kind, EntryKind::Directory);
+    }
+
+    #[test]
+    fn test_hostfs_stat_file_handle() {
+        let dir = setup("test_hostfs_reader_handle");
+        write_file(&dir, "stat.bin", &[1, 2, 3, 4, 5]);
+
+        let inner = inner(&dir, "stat.bin");
+        let handle = FileHandle::host(inner.as_path().to_path_buf());
+
+        let results = HostFs::stat_handle(&handle).unwrap();
+
+        assert!(results.times.len() >= 3);
+        assert_eq!(results.meta.kind, EntryKind::File);
+    }
+
+    #[test]
+    fn test_hostfs_stat_dir_handle() {
+        let dir = setup("test_hostfs_reader_handle");
+
+        let inner = inner(&dir, "");
+        let handle = DirHandle::host(inner.as_path().to_path_buf());
+
+        let results = HostFs::stat_dir_handle(&handle).unwrap();
+
+        assert!(results.times.len() >= 3);
+        assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 }
