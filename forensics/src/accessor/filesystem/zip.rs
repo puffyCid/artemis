@@ -1,6 +1,9 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, DirHandle, EntryKind, EntryMeta, FileHandle, GlobMatch, ItemHandle},
+        handle::{
+            DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, GlobMatch,
+            ItemHandle, Timestamp,
+        },
         locator::{DirLocator, FileLocator},
     },
     error::{AccessorError, AccessorResult},
@@ -11,9 +14,10 @@ use crate::accessor::{
     io::reader::{AccessorReader, ReaderLocation},
     location::path::InnerPath,
 };
+use chrono::{NaiveDate, NaiveTime, SecondsFormat, TimeZone, Utc};
 use glob::Pattern;
 use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Mutex};
-use zip::ZipArchive;
+use zip::{DateTime, ZipArchive};
 
 /// A record representing a zip content entry
 #[derive(Debug, Clone)]
@@ -26,6 +30,8 @@ struct ZipEntryRecord {
     is_dir: bool,
     /// Decompressed size
     size: u64,
+    /// Last modified timestamp of zip entry (DOS timestamp)
+    modified: Option<String>,
 }
 
 /// Represents our zip archive file
@@ -72,9 +78,8 @@ impl ZipIndex {
                 .map_err(|err| AccessorError::zip(archive_path.clone(), err.to_string()))?;
 
             let path = ZipFs::normalize_zip_path(entry.name());
-            let is_dir = entry.is_dir();
-            let size = entry.size();
 
+            let is_dir = entry.is_dir();
             if !is_dir && !path.is_empty() {
                 // If a zip file contains duplicate path. Something could be wrong with the zip file, ex: corruption
                 if file_paths.contains_key(&path) {
@@ -85,12 +90,15 @@ impl ZipIndex {
                 }
                 file_paths.insert(path.clone(), entries.len());
             }
+            let size = entry.size();
+            let modified = entry.last_modified().and_then(zip_datetime_to_iso);
 
             entries.push(ZipEntryRecord {
                 index,
                 path,
                 is_dir,
                 size,
+                modified,
             });
         }
 
@@ -106,6 +114,12 @@ impl ZipIndex {
         self.file_paths
             .get(path)
             .and_then(|position| self.entries.get(*position))
+    }
+
+    /// Return the `ZipEntryRecord` associated with file or directory in the zip file
+    fn record_for_path(&self, path: &str) -> Option<&ZipEntryRecord> {
+        self.record_at(path)
+            .or_else(|| self.entries.iter().find(|entry| entry.path == path))
     }
 
     /// Return the Directory index for path
@@ -311,34 +325,6 @@ impl ZipFs {
         Ok(matches)
     }
 
-    /// Return a zip entry match for our glob
-    fn zip_child_to_glob_match(&self, child: ZipChild) -> GlobMatch {
-        let (handle, kind, size, display_path) = match child {
-            ZipChild::File { record, .. } => (
-                ItemHandle::File(FileHandle::new(FileLocator::Zip {
-                    archive: self.index.archive_path.clone(),
-                    entry_index: record.index as u32,
-                    entry: record.path.clone(),
-                })),
-                EntryKind::File,
-                record.size,
-                self.display_entry_path(&record.path),
-            ),
-            ZipChild::Directory { prefix, .. } => (
-                ItemHandle::Directory(DirHandle::new(DirLocator::Zip {
-                    archive: self.index.archive_path.clone(),
-                    entry_index: self.index.dir_entry_index(&prefix),
-                    prefix: prefix.clone(),
-                })),
-                EntryKind::Directory,
-                0,
-                self.display_entry_path(&prefix),
-            ),
-        };
-
-        GlobMatch::new(handle, EntryMeta::new(kind, size, display_path))
-    }
-
     /// Open a `AccessorReader` to the provided `InnerPath`
     ///
     /// Due to the zip file crate limitations this reader reads the file into memory
@@ -368,6 +354,136 @@ impl ZipFs {
             bytes,
             ReaderLocation::from_display(handle.display_path()),
         ))
+    }
+
+    /// Return metadata and timestamp for provided `InnerPath`
+    pub(crate) fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        let path = Self::inner_to_prefix(inner);
+
+        if let Some(record) = self.index.record_for_path(&path) {
+            return Ok(self.stat_from_record(record));
+        }
+
+        if path.is_empty() || !self.list_children(&path)?.is_empty() {
+            return Ok(self.stat_virtual_dir(&path));
+        }
+
+        Err(AccessorError::not_found(self.display_entry_path(&path)))
+    }
+
+    /// Return metadata and timestamp for zip file handle
+    pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        match &handle.locator {
+            FileLocator::Zip {
+                archive,
+                entry_index,
+                entry,
+            } => {
+                if archive != &self.index.archive_path {
+                    return Err(AccessorError::invalid_handle(format!(
+                        "zip source cannot stat file handle for {}",
+                        handle.display_path()
+                    )));
+                }
+
+                let record = self
+                    .index
+                    .entries
+                    .iter()
+                    .find(|record| record.index == *entry_index as usize)
+                    .ok_or_else(|| AccessorError::not_found(handle.display_path()))?;
+
+                if record.path != *entry {
+                    return Err(AccessorError::invalid_handle(format!(
+                        "zip entry path mismatch for {}",
+                        handle.display_path()
+                    )));
+                }
+
+                Ok(self.stat_from_record(record))
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "zip source cannot stat file handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
+    /// Return metadata and timestamp for zip directory handle
+    pub(crate) fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        match &handle.locator {
+            DirLocator::Zip {
+                archive, prefix, ..
+            } => {
+                if archive != &self.index.archive_path {
+                    return Err(AccessorError::invalid_handle(format!(
+                        "zip source cannot stat directory handle for {}",
+                        handle.display_path()
+                    )));
+                }
+
+                self.stat(&InnerPath::new(PathBuf::from(prefix.clone())))
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "zip source cannot stat directory handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
+    /// Return metadata and timestamp for zip record
+    fn stat_from_record(&self, record: &ZipEntryRecord) -> EntryStat {
+        let kind = if record.is_dir {
+            EntryKind::Directory
+        } else {
+            EntryKind::File
+        };
+
+        let mut times = Vec::new();
+        if let Some(modified) = &record.modified {
+            times.push(Timestamp::Modified(modified.clone()));
+        }
+
+        EntryStat {
+            meta: EntryMeta::new(kind, record.size, self.display_entry_path(&record.path)),
+            times,
+        }
+    }
+
+    /// Return metadata and timestamp for zip directory
+    fn stat_virtual_dir(&self, prefix: &str) -> EntryStat {
+        EntryStat {
+            meta: EntryMeta::new(EntryKind::Directory, 0, self.display_entry_path(prefix)),
+            times: Vec::new(),
+        }
+    }
+
+    /// Return a zip entry match for our glob
+    fn zip_child_to_glob_match(&self, child: ZipChild) -> GlobMatch {
+        let (handle, kind, size, display_path) = match child {
+            ZipChild::File { record, .. } => (
+                ItemHandle::File(FileHandle::new(FileLocator::Zip {
+                    archive: self.index.archive_path.clone(),
+                    entry_index: record.index as u32,
+                    entry: record.path.clone(),
+                })),
+                EntryKind::File,
+                record.size,
+                self.display_entry_path(&record.path),
+            ),
+            ZipChild::Directory { prefix, .. } => (
+                ItemHandle::Directory(DirHandle::new(DirLocator::Zip {
+                    archive: self.index.archive_path.clone(),
+                    entry_index: self.index.dir_entry_index(&prefix),
+                    prefix: prefix.clone(),
+                })),
+                EntryKind::Directory,
+                0,
+                self.display_entry_path(&prefix),
+            ),
+        };
+
+        GlobMatch::new(handle, EntryMeta::new(kind, size, display_path))
     }
 
     /// Helper to convert `InnerPath` to String for zip content file access
@@ -574,6 +690,26 @@ fn glob_path_pattern(
     Ok(())
 }
 
+/// Convert the ZIP DOS timestamp to ISO RFC 3389 format
+fn zip_datetime_to_iso(datetime: DateTime) -> Option<String> {
+    let date = NaiveDate::from_ymd_opt(
+        i32::from(datetime.year()),
+        u32::from(datetime.month()),
+        u32::from(datetime.day()),
+    )?;
+
+    let time = NaiveTime::from_hms_opt(
+        u32::from(datetime.hour()),
+        u32::from(datetime.minute()),
+        u32::from(datetime.second()),
+    )?;
+
+    Some(
+        Utc.from_utc_datetime(&date.and_time(time))
+            .to_rfc3339_opts(SecondsFormat::Millis, true),
+    )
+}
+
 /// Structure to represent zip entries
 #[derive(Debug, Clone)]
 enum ZipChild {
@@ -608,7 +744,7 @@ impl ZipChild {
 mod tests {
     use crate::accessor::{
         entry::{
-            handle::{EntryKind, FileHandle},
+            handle::{EntryKind, FileHandle, Timestamp},
             locator::FileLocator,
         },
         error::AccessorError,
@@ -802,5 +938,27 @@ mod tests {
         );
 
         assert_eq!(reader.location.filename(), "tex.txt");
+    }
+
+    #[test]
+    fn test_zipfs_stat() {
+        let dir = setup("test_zipfs_stat");
+        let archive = dir.join("archive.zip");
+        write_zip(&archive, &[("home/test.txt", b"zip payload")]);
+
+        let zipfs = ZipFs::new(archive).unwrap();
+        let file = zipfs.stat(&inner("home/test.txt")).unwrap();
+
+        assert_eq!(file.meta.filename, "test.txt");
+        assert_eq!(file.meta.kind, EntryKind::File);
+        assert!(
+            file.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Modified(_)))
+        );
+
+        let virt = zipfs.stat(&inner("home")).unwrap();
+        assert_eq!(virt.meta.kind, EntryKind::Directory);
+        assert!(virt.times.is_empty());
     }
 }
