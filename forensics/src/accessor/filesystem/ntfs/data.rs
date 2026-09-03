@@ -1,21 +1,30 @@
-use crate::accessor::{
-    entry::{
-        handle::{DirEntry, DirHandle, FileHandle},
-        locator::{DirLocator, FileLocator},
-    },
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{
-        attributes::read_named_data,
-        volume::NtfsVolume,
-        walk::{
-            get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref, resolve_file,
+use crate::{
+    accessor::{
+        entry::{
+            handle::{DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, Timestamp},
+            locator::{DirLocator, FileLocator},
         },
-        wof::{decompress_wof, is_wof_file},
+        error::{AccessorError, AccessorResult},
+        filesystem::ntfs::{
+            attributes::read_named_data,
+            volume::NtfsVolume,
+            walk::{
+                get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref,
+                resolve_entry, resolve_file,
+            },
+            wof::{decompress_wof, is_wof_file},
+        },
+        io::reader::{AccessorReader, ReaderLocation},
+        location::{path::InnerPath, scheme::Scheme},
     },
-    io::reader::{AccessorReader, ReaderLocation},
-    location::{path::InnerPath, scheme::Scheme},
+    utils::time::filetime_to_iso,
 };
-use ntfs::{NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue};
+use ntfs::{
+    NtfsAttributeType::FileName,
+    NtfsFile, NtfsReadSeek,
+    attribute_value::NtfsAttributeValue,
+    structured_values::{NtfsFileName, NtfsFileNamespace},
+};
 use std::{cmp::Ordering, fmt, mem};
 use std::{
     io::{self, Read, Seek, SeekFrom},
@@ -172,6 +181,197 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
             ))),
         }
     }
+
+    /// Return metadata and timetamps for a NTFS path
+    pub(crate) fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        let (inner_path, attribute_name) = inner_to_ntfs_path(inner, self.drive);
+        let display_path = display_ntfs_path(self.drive, &inner_path);
+
+        let path = if attribute_name.is_empty() {
+            display_path
+        } else {
+            format!("{display_path}:{attribute_name}")
+        };
+
+        self.volume.with_reader(|ntfs, reader| {
+            let file = resolve_entry(ntfs, reader, &inner_path)?;
+
+            self.stat_from_file(reader, ntfs, &file, &path)
+        })
+    }
+
+    /// Return metadata and timetamps for a file handle
+    pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        match &handle.locator {
+            FileLocator::Ntfs {
+                drive,
+                file_ref,
+                display_path,
+            } => {
+                if *drive != self.drive {
+                    return Err(AccessorError::invalid_handle(format!(
+                        "ntfs source cannot stat file handle for {}",
+                        handle.display_path()
+                    )));
+                }
+
+                self.volume.with_reader(|ntfs, reader| {
+                    let file = open_by_ref(ntfs, reader, file_ref)?;
+                    self.stat_from_file(reader, ntfs, &file, display_path)
+                })
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "ntfs source cannot stat file handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
+    /// Return metadata and timetamps for a directory handle
+    pub(crate) fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        match &handle.locator {
+            DirLocator::Ntfs {
+                drive,
+                dir_ref,
+                display_path,
+            } => {
+                if *drive != self.drive {
+                    return Err(AccessorError::invalid_handle(format!(
+                        "ntfs source cannot stat directory handle for {}",
+                        handle.display_path()
+                    )));
+                }
+                self.volume.with_reader(|ntfs, reader| {
+                    let file = open_by_ref(ntfs, reader, dir_ref)?;
+                    self.stat_from_file(reader, ntfs, &file, display_path)
+                })
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "ntfs source cannot stat directory handle for {}",
+                handle.display_path()
+            ))),
+        }
+    }
+
+    /// Return metadata and timetamps for a NTFS entry
+    fn stat_from_file<R: Read + Seek>(
+        &self,
+        reader: &mut R,
+        ntfs: &ntfs::Ntfs,
+        file: &NtfsFile<'_>,
+        display_path: &str,
+    ) -> AccessorResult<EntryStat> {
+        let kind = if file.is_directory() {
+            EntryKind::Directory
+        } else {
+            EntryKind::File
+        };
+
+        let size = if kind == EntryKind::File {
+            get_file_size(ntfs, reader, file.file_record_number())?
+        } else {
+            0
+        };
+
+        Ok(EntryStat {
+            meta: EntryMeta::new(kind, size, format!("ntfs:{display_path}")),
+            times: ntfs_times(reader, file)?,
+        })
+    }
+}
+
+/// Extract all 8 timestamps for a NTFS entry
+fn ntfs_times<R: Read + Seek>(
+    reader: &mut R,
+    file: &NtfsFile<'_>,
+) -> AccessorResult<Vec<Timestamp>> {
+    let info = file.info().map_err(ntfs_err)?;
+    let mut times = Vec::new();
+
+    push_filetime(
+        &mut times,
+        Timestamp::Created,
+        info.creation_time().nt_timestamp(),
+    );
+
+    push_filetime(
+        &mut times,
+        Timestamp::Modified,
+        info.modification_time().nt_timestamp(),
+    );
+
+    push_filetime(
+        &mut times,
+        Timestamp::Accessed,
+        info.access_time().nt_timestamp(),
+    );
+
+    push_filetime(
+        &mut times,
+        Timestamp::Changed,
+        info.mft_record_modification_time().nt_timestamp(),
+    );
+
+    if let Some(name) = first_non_dos_filename(reader, file)? {
+        push_filetime(
+            &mut times,
+            Timestamp::FilenameCreated,
+            name.creation_time().nt_timestamp(),
+        );
+
+        push_filetime(
+            &mut times,
+            Timestamp::FilenameModified,
+            name.modification_time().nt_timestamp(),
+        );
+
+        push_filetime(
+            &mut times,
+            Timestamp::FilenameAccessed,
+            name.access_time().nt_timestamp(),
+        );
+
+        push_filetime(
+            &mut times,
+            Timestamp::FilenameChanged,
+            name.mft_record_modification_time().nt_timestamp(),
+        );
+    }
+
+    Ok(times)
+}
+
+/// Extract the Filetime for the NTFS entry
+fn first_non_dos_filename<R: Read + Seek>(
+    reader: &mut R,
+    file: &NtfsFile<'_>,
+) -> AccessorResult<Option<NtfsFileName>> {
+    let mut attrs = file.attributes();
+    while let Some(attr_value) = attrs.next(reader) {
+        let item = attr_value.map_err(ntfs_err)?;
+        let attr = item.to_attribute().map_err(ntfs_err)?;
+
+        if attr.ty().map_err(ntfs_err)? != FileName {
+            continue;
+        }
+
+        let name = attr
+            .structured_value::<_, NtfsFileName>(reader)
+            .map_err(ntfs_err)?;
+
+        if name.namespace() == NtfsFileNamespace::Dos {
+            continue;
+        }
+
+        return Ok(Some(name));
+    }
+
+    Ok(None)
+}
+
+/// Convert Windows Filetime to RFC 3339
+fn push_filetime(times: &mut Vec<Timestamp>, kind: fn(String) -> Timestamp, filetime: u64) {
+    times.push(kind(filetime_to_iso(filetime)))
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem
@@ -583,7 +783,10 @@ pub(crate) fn display_ntfs_path(drive: char, inner_path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
-        entry::{handle::FileHandle, locator::FileLocator},
+        entry::{
+            handle::{EntryKind, FileHandle, Timestamp},
+            locator::FileLocator,
+        },
         error::AccessorError,
         filesystem::ntfs::{
             data::{NtfsFs, strip_drive_prefix_and_ads},
@@ -605,7 +808,7 @@ mod tests {
     }
 
     fn hello_path() -> InnerPath {
-        InnerPath::new(PathBuf::from("hello/hello world.txt"))
+        InnerPath::new(PathBuf::from("hello\\hello world.txt"))
     }
 
     fn main_ts_path() -> InnerPath {
@@ -720,7 +923,7 @@ mod tests {
     fn test_seek_current_and_end() {
         let fs = test_fs();
         let mut stream = fs.reader(&hello_path()).unwrap();
-        stream.seek(SeekFrom::End(-5)).unwrap(); // "world\n"
+        stream.seek(SeekFrom::End(-5)).unwrap();
         let mut buf = [0u8; 8];
         let size = stream.read(&mut buf).unwrap();
 
@@ -743,6 +946,7 @@ mod tests {
         let mut stream = fs.reader(&hello_path()).unwrap();
         let mut first = [0u8; 12];
         let mut second = [0u8; 12];
+
         stream.read_exact(&mut first).unwrap();
         stream.seek(SeekFrom::Start(0)).unwrap();
         stream.read_exact(&mut second).unwrap();
@@ -943,5 +1147,26 @@ mod tests {
         assert!(reader.location.display_path().starts_with("ntfs:"));
         assert!(reader.location.full_path().contains("hello world.txt"));
         assert_eq!(reader.location.filename(), "hello world.txt");
+    }
+
+    #[test]
+    fn test_ntfs_stat() {
+        let fs = test_fs();
+        let stat = fs.stat(&hello_path()).unwrap();
+        println!("{stat:?}");
+
+        assert_eq!(stat.meta.filename, "hello world.txt");
+        assert_eq!(stat.meta.kind, EntryKind::File);
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Accessed(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::FilenameModified(_)))
+        );
     }
 }

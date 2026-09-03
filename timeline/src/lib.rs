@@ -18,7 +18,6 @@
     clippy::flat_map_option,
     clippy::float_cmp_const,
     clippy::fn_params_excessive_bools,
-    clippy::from_iter_instead_of_collect,
     clippy::if_let_mutex,
     clippy::implicit_clone,
     clippy::imprecise_flops,

@@ -109,11 +109,21 @@ pub(crate) fn resolve_file<'a, R: Read + Seek>(
     reader: &mut R,
     inner_path: &str,
 ) -> AccessorResult<NtfsFile<'a>> {
-    let components = split_inner_path(inner_path);
-    if components.is_empty() {
+    let entry = resolve_entry(ntfs, reader, inner_path)?;
+    if entry.is_directory() {
         return Err(AccessorError::not_a_file(inner_path));
     }
 
+    Ok(entry)
+}
+
+/// Return a `NtfsFile` for a file or directory
+pub(crate) fn resolve_entry<'a, R: Read + Seek>(
+    ntfs: &'a Ntfs,
+    reader: &mut R,
+    inner_path: &str,
+) -> AccessorResult<NtfsFile<'a>> {
+    let components = split_inner_path(inner_path);
     let mut current = ntfs.root_directory(reader).map_err(ntfs_err)?;
 
     for (component_index, component) in components.iter().enumerate() {
@@ -134,10 +144,6 @@ pub(crate) fn resolve_file<'a, R: Read + Seek>(
         };
 
         current = entry.to_file(ntfs, reader).map_err(ntfs_err)?;
-    }
-
-    if current.is_directory() {
-        return Err(AccessorError::not_a_file(inner_path));
     }
 
     Ok(current)

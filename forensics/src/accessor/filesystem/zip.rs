@@ -690,7 +690,7 @@ fn glob_path_pattern(
     Ok(())
 }
 
-/// Convert the ZIP DOS timestamp to ISO RFC 3389 format
+/// Convert the ZIP DOS timestamp to ISO RFC RFC 3339 format
 fn zip_datetime_to_iso(datetime: DateTime) -> Option<String> {
     let date = NaiveDate::from_ymd_opt(
         i32::from(datetime.year()),

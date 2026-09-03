@@ -130,7 +130,6 @@ fn format_message(
     let mut plus_option = String::new();
     let mut width_value = 0;
     let mut precision_value = 0;
-    let message;
 
     if options
         .flags
@@ -153,30 +152,28 @@ fn format_message(
         .as_ref()
         .is_some_and(|f| f.contains(&Flags::AlignLeft) && f.contains(&Flags::Spaces))
     {
-        message = format!(
+        format!(
             "{plus_symbol}{:<width$.precision$}",
             serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
             width = width_value as usize,
             precision = precision_value as usize,
             plus_symbol = plus_option
-        );
+        )
     } else if options
         .flags
         .as_ref()
         .is_some_and(|f| f.contains(&Flags::AlignLeft) && f.contains(&Flags::Zeros))
     {
-        message = format!(
+        format!(
             "{plus_symbol}{:0<width$.precision$}",
             serde_json::from_value(data.clone()).unwrap_or(data.to_string()),
             width = width_value as usize,
             precision = precision_value as usize,
             plus_symbol = plus_option
-        );
+        )
     } else {
-        message = serde_json::from_value(data.clone()).unwrap_or(data.to_string());
+        serde_json::from_value(data.clone()).unwrap_or(data.to_string())
     }
-
-    message
 }
 
 /// Get the %# number from string. Ex: %1!s! returns: (!s!, (%1, 1))
