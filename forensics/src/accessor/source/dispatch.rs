@@ -17,7 +17,7 @@ pub(crate) enum Source {
     /// Use a zip file as the source
     Zip(ZipSource),
     /// Use raw NTFS Windows drive as the source
-    RawNtfs(NtfsSource),
+    Ntfs(NtfsSource),
 }
 
 impl Source {
@@ -26,7 +26,7 @@ impl Source {
         match self {
             Self::Host(source) => source.read_file(inner),
             Self::Zip(source) => source.read_file(inner),
-            Self::RawNtfs(source) => source.read_file(inner),
+            Self::Ntfs(source) => source.read_file(inner),
         }
     }
 
@@ -35,7 +35,7 @@ impl Source {
         match self {
             Self::Host(source) => source.read_dir(inner),
             Self::Zip(source) => source.read_dir(inner),
-            Self::RawNtfs(source) => source.read_dir(inner),
+            Self::Ntfs(source) => source.read_dir(inner),
         }
     }
 
@@ -43,7 +43,7 @@ impl Source {
         match self {
             Self::Host(source) => source.read_dir_handle(handle),
             Self::Zip(source) => source.read_dir_handle(handle),
-            Self::RawNtfs(source) => source.read_dir_handle(handle),
+            Self::Ntfs(source) => source.read_dir_handle(handle),
         }
     }
 
@@ -52,7 +52,7 @@ impl Source {
         match self {
             Self::Host(source) => source.globfs(dir, pattern),
             Self::Zip(source) => source.globfs(dir, pattern),
-            Self::RawNtfs(source) => source.globfs(dir, pattern),
+            Self::Ntfs(source) => source.globfs(dir, pattern),
         }
     }
 
@@ -61,7 +61,7 @@ impl Source {
         match self {
             Self::Host(source) => source.read_file_handle(handle),
             Self::Zip(source) => source.read_file_handle(handle),
-            Self::RawNtfs(source) => source.read_file_handle(handle),
+            Self::Ntfs(source) => source.read_file_handle(handle),
         }
     }
 
@@ -70,7 +70,7 @@ impl Source {
         match self {
             Self::Host(source) => source.open_reader_handle(handle),
             Self::Zip(source) => source.open_reader_handle(handle),
-            Self::RawNtfs(source) => source.open_reader_handle(handle),
+            Self::Ntfs(source) => source.open_reader_handle(handle),
         }
     }
 
@@ -79,7 +79,7 @@ impl Source {
         match self {
             Self::Host(source) => source.open_reader(inner),
             Self::Zip(source) => source.open_reader(inner),
-            Self::RawNtfs(source) => source.open_reader(inner),
+            Self::Ntfs(source) => source.open_reader(inner),
         }
     }
 
@@ -88,7 +88,15 @@ impl Source {
         match self {
             Source::Host(source) => source.stat(inner),
             Source::Zip(source) => source.stat(inner),
-            Source::RawNtfs(source) => source.stat(inner),
+            Source::Ntfs(source) => source.stat(inner),
+        }
+    }
+
+    pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        match self {
+            Source::Host(source) => source.stat_handle(handle),
+            Source::Zip(source) => source.stat_handle(handle),
+            Source::Ntfs(source) => source.stat_handle(handle),
         }
     }
 }

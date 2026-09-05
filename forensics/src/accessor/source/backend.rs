@@ -38,4 +38,6 @@ pub(crate) trait SourceBackend {
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
 
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat>;
+
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
 }

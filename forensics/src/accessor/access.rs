@@ -163,7 +163,7 @@ impl Accessor {
         let source_id = build_source(&loc, &self.config, &mut self.cache)?;
 
         info!(
-            "Stat file {location} using source '{}'. Scheme: {}",
+            "Stat path {location} using source '{}'. Scheme: {}",
             source_id.display(),
             loc.scheme.as_str()
         );

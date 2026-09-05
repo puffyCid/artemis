@@ -341,7 +341,7 @@ fn ntfs_times<R: Read + Seek>(
     Ok(times)
 }
 
-/// Extract the Filetime for the NTFS entry
+/// Extract the FILENAME timestamp for the NTFS entry
 fn first_non_dos_filename<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
@@ -370,6 +370,8 @@ fn first_non_dos_filename<R: Read + Seek>(
 }
 
 /// Convert Windows Filetime to RFC 3339
+///
+/// `kind` a function constructor that returns enum `Timestamp`
 fn push_filetime(times: &mut Vec<Timestamp>, kind: fn(String) -> Timestamp, filetime: u64) {
     times.push(kind(filetime_to_iso(filetime)))
 }
@@ -1153,7 +1155,6 @@ mod tests {
     fn test_ntfs_stat() {
         let fs = test_fs();
         let stat = fs.stat(&hello_path()).unwrap();
-        println!("{stat:?}");
 
         assert_eq!(stat.meta.filename, "hello world.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);

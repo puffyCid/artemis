@@ -69,6 +69,10 @@ impl SourceBackend for ZipSource {
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
         self.fs.stat(inner)
     }
+
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        self.fs.stat_handle(handle)
+    }
 }
 
 #[cfg(test)]

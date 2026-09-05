@@ -45,7 +45,10 @@ trait NtfsFsBackend: Send {
     fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader>;
     /// Open a file for streaming via ntfs disk access by file reference
     fn reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
+    /// Return metadata and timestamps for provided path
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat>;
+    /// Return metadata and timestamps for provided `FileHandle`
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
 }
 
 impl<T> NtfsFsBackend for NtfsFs<T>
@@ -87,6 +90,10 @@ where
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
         self.stat(inner)
     }
+
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        self.stat_handle(handle)
+    }
 }
 
 impl NtfsSource {
@@ -119,7 +126,7 @@ impl NtfsSource {
 
 impl SourceBackend for NtfsSource {
     fn source_id(&self) -> SourceId {
-        SourceId::RawNtfs(self.drive)
+        SourceId::Ntfs(self.drive)
     }
 
     fn read_file(&self, inner: &InnerPath) -> AccessorResult<Vec<u8>> {
@@ -152,6 +159,10 @@ impl SourceBackend for NtfsSource {
 
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
         self.fs.stat(inner)
+    }
+
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        self.fs.stat_handle(handle)
     }
 }
 
