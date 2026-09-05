@@ -576,7 +576,7 @@ mod tests {
 
     #[test]
     fn test_hostfs_stat_file_handle() {
-        let dir = setup("test_hostfs_reader_handle");
+        let dir = setup("test_hostfs_stat_handle");
         write_file(&dir, "stat.bin", &[1, 2, 3, 4, 5]);
 
         let inner = inner(&dir, "stat.bin");
@@ -590,7 +590,7 @@ mod tests {
 
     #[test]
     fn test_hostfs_stat_dir_handle() {
-        let dir = setup("test_hostfs_reader_handle");
+        let dir = setup("test_hostfs_stat_dir_handle");
 
         let inner = inner(&dir, "");
         let handle = DirHandle::host(inner.as_path().to_path_buf());

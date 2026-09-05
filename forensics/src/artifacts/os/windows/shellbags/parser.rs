@@ -339,10 +339,9 @@ mod tests {
             registry::helper::get_registry_keys_handle,
             shellbags::parser::{
                 RegInfo, Shellbag, alt_shellbags, extract_registry_shellbags, extract_shellbags,
-                grab_shellbags, parse_shellbags, save_shellbags, update_shellbags,
+                save_shellbags, update_shellbags,
             },
         },
-        structs::artifacts::os::windows::ShellbagsOptions,
         utils::regex_options::create_regex,
     };
     use common::windows::{ShellItem, ShellType};
@@ -351,6 +350,11 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_grab_shellbags() {
+        use crate::{
+            artifacts::os::windows::shellbags::parser::grab_shellbags,
+            structs::artifacts::os::windows::ShellbagsOptions,
+        };
+
         let options = ShellbagsOptions {
             resolve_guids: true,
             alt_file: None,
