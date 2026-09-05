@@ -14,6 +14,7 @@ use crate::accessor::{
     io::reader::{AccessorReader, ReaderLocation},
     location::{path::InnerPath, scheme::Scheme},
 };
+use crate::utils::time::unixepoch_to_iso_with_nano;
 use glob::Pattern;
 use std::{
     fs::{self, File, Metadata, metadata, read, symlink_metadata},
@@ -216,9 +217,6 @@ impl HostFs {
     /// Return metadata and timestamps for provided path
     pub(crate) fn stat(inner: &InnerPath) -> AccessorResult<EntryStat> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&path)));
-        }
 
         // We will not follow symbolic links
         let meta = symlink_metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
@@ -355,16 +353,14 @@ impl HostFs {
             }
         }
 
+        #[cfg(target_os = "linux")]
+        use std::os::linux::fs::MetadataExt;
+
+        #[cfg(target_os = "macos")]
+        use std::os::macos::fs::MetadataExt;
+
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
-            use crate::utils::time::unixepoch_to_iso_with_nano;
-
-            #[cfg(target_os = "linux")]
-            use std::os::linux::fs::MetadataExt;
-
-            #[cfg(target_os = "macos")]
-            use std::os::macos::fs::MetadataExt;
-
             times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
                 meta.st_mtime(),
                 meta.st_mtime_nsec(),
@@ -398,7 +394,6 @@ impl HostFs {
 
         #[cfg(target_os = "macos")]
         {
-            use crate::utils::time::unixepoch_to_iso_with_nano;
             times.push(Timestamp::Created(unixepoch_to_iso_with_nano(
                 meta.st_birthtime(),
                 meta.st_birthtime_nsec(),
@@ -410,8 +405,6 @@ impl HostFs {
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
         {
-            use crate::utils::time::unixepoch_to_iso_with_nano;
-
             times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
                 meta.atime(),
                 meta.atime_nsec(),
