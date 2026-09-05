@@ -321,7 +321,7 @@ impl Accessor {
         source: &SourceHandle,
         inner: &str,
     ) -> AccessorResult<EntryStat> {
-        info!("Reading path {inner} with source {}", source.display());
+        info!("Stat path {inner} with source {}", source.display());
         stat_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
@@ -456,7 +456,7 @@ mod tests {
         let results = access
             .read_dir(&test_location.display().to_string())
             .unwrap();
-        assert!(!results.is_empty())
+        assert!(!results.is_empty());
     }
 
     #[test]
@@ -627,5 +627,41 @@ mod tests {
             format!("host:{}", test_location.display().to_string())
         );
         assert_eq!(reader.location.filename(), "document.odt");
+    }
+
+    #[test]
+    fn test_stat() {
+        let mut access = Accessor::with_defaults();
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/archives/document.odt");
+
+        let meta = access.stat(test_location.to_str().unwrap()).unwrap();
+        assert!(!meta.times.is_empty());
+
+        assert_eq!(meta.meta.size, 10493);
+    }
+
+    #[test]
+    fn test_stat_handles() {
+        let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut access = Accessor::with_defaults();
+        let results = access
+            .read_dir(&test_location.display().to_string())
+            .unwrap();
+        assert!(!results.is_empty());
+
+        for entry in results {
+            if entry.is_directory() {
+                let meta = access
+                    .stat_dir_handle(entry.handle.as_directory().unwrap())
+                    .unwrap();
+                assert!(!meta.times.is_empty());
+
+                continue;
+            }
+
+            let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
+            assert!(!meta.times.is_empty());
+        }
     }
 }

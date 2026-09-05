@@ -218,4 +218,18 @@ mod tests {
             .unwrap();
         assert_eq!(bytes.len(), 974);
     }
+
+    #[test]
+    fn test_zip_stat() {
+        let dir = setup("test_zip_source_read_file");
+        let archive = dir.join("archive.zip");
+        write_zip(&archive, &[("inner.txt", b"zip source payload")]);
+        let source = ZipSource::new(&AccessorConfig::default(), archive).unwrap();
+
+        let meta = source
+            .stat(&InnerPath::new(PathBuf::from("inner.txt")))
+            .unwrap();
+
+        assert!(!meta.times.is_empty());
+    }
 }
