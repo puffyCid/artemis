@@ -184,7 +184,7 @@ pub(crate) fn stat_handle_on_source(
     source_from_cache(cache, source_id)?.stat_handle(handle)
 }
 
-/// Stat a file using a `DirHandle`, without reparsing the location
+/// Stat a directory using a `DirHandle`, without reparsing the location
 pub(crate) fn stat_dir_handle_on_source(
     cache: &SourceCache,
     source_id: &SourceId,

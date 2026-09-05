@@ -217,7 +217,7 @@ impl Accessor {
         Ok(SourceHandle::new(source_id))
     }
 
-    /// Read a file relative to an opened source
+    /// Read a file from an opened source
     pub(crate) fn source_read_file(
         &self,
         source: &SourceHandle,
@@ -227,7 +227,7 @@ impl Accessor {
         read_file_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
-    /// List a directory relative to an opened source
+    /// List a directory from an opened source
     pub(crate) fn source_read_dir(
         &self,
         source: &SourceHandle,
@@ -237,7 +237,7 @@ impl Accessor {
         read_dir_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
-    /// List a directory handle relative to an opened source
+    /// List a directory handle from an opened source
     pub(crate) fn source_read_dir_handle(
         &self,
         source: &SourceHandle,
@@ -253,7 +253,7 @@ impl Accessor {
         read_dir_handle_on_source(&self.cache, source.id(), handle)
     }
 
-    /// Read a file handle relative to an opened source
+    /// Read a file handle from an opened source
     pub(crate) fn source_read_file_handle(
         &self,
         source: &SourceHandle,
@@ -269,7 +269,7 @@ impl Accessor {
         read_file_handle_on_source(&self.cache, source.id(), handle)
     }
 
-    /// Glob relative to an opened source directory
+    /// Glob from an opened source directory
     pub(crate) fn source_globfs(
         &self,
         source: &SourceHandle,
@@ -289,7 +289,7 @@ impl Accessor {
         )
     }
 
-    /// Open a reader relative to an opened source
+    /// Open a reader from an opened source
     pub(crate) fn source_open_reader(
         &self,
         source: &SourceHandle,
@@ -299,7 +299,7 @@ impl Accessor {
         open_reader_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
     }
 
-    /// Open a reader for a file handle relative to an opened source
+    /// Open a reader for a file handle from an opened source
     pub(crate) fn source_open_reader_handle(
         &self,
         source: &SourceHandle,
@@ -313,6 +313,48 @@ impl Accessor {
 
         validate_file_handle_for_source(source.id(), &handle.locator)?;
         open_reader_handle_on_source(&self.cache, source.id(), handle)
+    }
+
+    /// Return metadata and timestamps for a path from an opened source
+    pub(crate) fn source_stat(
+        &self,
+        source: &SourceHandle,
+        inner: &str,
+    ) -> AccessorResult<EntryStat> {
+        info!("Reading path {inner} with source {}", source.display());
+        stat_on_source(&self.cache, source.id(), &parse_inner_path(inner)?)
+    }
+
+    /// Return metadata and timestamps for a `FileHandle` from an opened source
+    pub(crate) fn source_stat_handle(
+        &self,
+        source: &SourceHandle,
+        handle: &FileHandle,
+    ) -> AccessorResult<EntryStat> {
+        info!(
+            "Stat file handle {} with source {}",
+            handle.display_path(),
+            source.display()
+        );
+
+        validate_file_handle_for_source(source.id(), &handle.locator)?;
+        stat_handle_on_source(&self.cache, source.id(), handle)
+    }
+
+    /// Return metadata and timestamps for a `DirHandle` from an opened source
+    pub(crate) fn source_stat_dir_handle(
+        &self,
+        source: &SourceHandle,
+        handle: &DirHandle,
+    ) -> AccessorResult<EntryStat> {
+        info!(
+            "Stat directory handle {} with source {}",
+            handle.display_path(),
+            source.display()
+        );
+
+        validate_dir_handle_for_source(source.id(), &handle.locator)?;
+        stat_dir_handle_on_source(&self.cache, source.id(), handle)
     }
 }
 
