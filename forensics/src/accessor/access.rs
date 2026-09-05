@@ -22,7 +22,7 @@ use tracing::info;
 ///
 /// This accessor supports reading from a variety of sources
 ///
-/// Input is parsed into [`Location`] structure which is composed of (scheme, optional source path, and inner path)
+/// Input is parsed into `Location` structure which is composed of (scheme, optional source path, and inner path)
 ///
 /// Example: `zip:test.zip!./home/test.txt`
 ///
@@ -360,7 +360,11 @@ impl Accessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{access::Accessor, entry::handle::EntryKind};
+    use crate::accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, Timestamp},
+        error::AccessorError,
+    };
     use std::{
         fs::{self, File},
         io::{Read, Write},
@@ -663,5 +667,142 @@ mod tests {
             let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
             assert!(!meta.times.is_empty());
         }
+    }
+
+    #[test]
+    fn test_host_accessor_stat_not_found() {
+        let mut access = Accessor::with_defaults();
+        let err = access.stat("host:/no/such/stat-file").unwrap_err();
+
+        assert!(matches!(err, AccessorError::NotFound { .. }));
+    }
+
+    #[test]
+    fn test_host_accessor_stat_handle() {
+        let dir = setup("test_host_accessor_stat_handle");
+        write_file(&dir, "stat.txt", b"hello");
+        let mut access = Accessor::with_defaults();
+        let matches = access.globfs(&format!("{}/*", dir.display())).unwrap();
+
+        let file = matches
+            .iter()
+            .find(|entry| entry.meta.filename == "stat.txt")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let stat = access.stat_handle(file).unwrap();
+
+        assert_eq!(stat.meta.filename, "stat.txt");
+        assert!(stat.times.len() >= 3);
+    }
+
+    #[test]
+    fn test_host_accessor_source_stat() {
+        let dir = setup("test_host_accessor_source_stat");
+        write_file(&dir, "stat.txt", b"hello");
+        let path = dir.join("stat.txt");
+        let mut access = Accessor::with_defaults();
+
+        let source = access.open_source("host:").unwrap();
+        let stat = access
+            .source_stat(&source, &path.display().to_string())
+            .unwrap();
+
+        assert_eq!(stat.meta.filename, "stat.txt");
+        assert_eq!(stat.meta.kind, EntryKind::File);
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Modified(_)))
+        );
+
+        let matches = access
+            .source_globfs(&source, &format!("{}/*", dir.display()))
+            .unwrap();
+
+        let file = matches
+            .iter()
+            .find(|entry| entry.meta.filename == "stat.txt")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let handle_stat = access.source_stat_handle(&source, file).unwrap();
+        assert_eq!(handle_stat.meta.filename, "stat.txt");
+
+        let parent = matches
+            .iter()
+            .find(|entry| entry.meta.kind == EntryKind::Directory)
+            .and_then(|entry| entry.handle.as_directory());
+
+        if let Some(dir_handle) = parent {
+            let dir_stat = access.source_stat_dir_handle(&source, dir_handle).unwrap();
+            assert_eq!(dir_stat.meta.kind, EntryKind::Directory);
+        }
+    }
+
+    #[test]
+    fn test_zip_accessor_source_stat() {
+        let mut archive = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        archive.push("tests/test_data/archives/document.odt");
+        let mut access = Accessor::with_defaults();
+
+        let source = access
+            .open_source(&format!("zip:{}", archive.display()))
+            .unwrap();
+
+        let file = access.source_stat(&source, "content.xml").unwrap();
+        assert_eq!(file.meta.filename, "content.xml");
+        assert!(
+            file.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Modified(_)))
+        );
+
+        let virt = access.source_stat(&source, "META-INF").unwrap();
+        assert_eq!(virt.meta.kind, EntryKind::Directory);
+        assert!(virt.times.is_empty());
+
+        let matches = access.source_globfs(&source, "*").unwrap();
+        let handle = matches
+            .iter()
+            .find(|entry| entry.meta.filename == "content.xml")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let handle_stat = access.source_stat_handle(&source, handle).unwrap();
+        assert_eq!(handle_stat.meta.filename, "content.xml");
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_ntfs_accessor_source_stat() {
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source("ntfs:C").unwrap();
+        let mft = access.source_stat(&source, "$MFT").unwrap();
+
+        assert_eq!(mft.meta.filename, "$MFT");
+        assert!(
+            mft.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::FilenameModified(_)))
+        );
+
+        let entries = access.source_globfs(&source, "*").unwrap();
+        let file = entries
+            .iter()
+            .find(|entry| entry.meta.filename == "$MFT")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let handle_stat = access.source_stat_handle(&source, file).unwrap();
+        assert_eq!(handle_stat.meta.filename, "$MFT");
     }
 }
