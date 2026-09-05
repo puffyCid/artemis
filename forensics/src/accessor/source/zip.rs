@@ -221,7 +221,7 @@ mod tests {
 
     #[test]
     fn test_zip_stat() {
-        let dir = setup("test_zip_source_read_file");
+        let dir = setup("test_zip_source_stat");
         let archive = dir.join("archive.zip");
         write_zip(&archive, &[("inner.txt", b"zip source payload")]);
         let source = ZipSource::new(&AccessorConfig::default(), archive).unwrap();

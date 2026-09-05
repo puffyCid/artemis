@@ -662,10 +662,10 @@ mod tests {
                 assert!(!meta.times.is_empty());
 
                 continue;
+            } else if entry.is_file() {
+                let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
+                assert!(!meta.times.is_empty());
             }
-
-            let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
-            assert!(!meta.times.is_empty());
         }
     }
 
@@ -804,5 +804,110 @@ mod tests {
 
         let handle_stat = access.source_stat_handle(&source, file).unwrap();
         assert_eq!(handle_stat.meta.filename, "$MFT");
+    }
+
+    #[test]
+    fn test_host_accessor_source_stat_dir_handle() {
+        let dir = setup("test_host_accessor_source_stat_dir_handle");
+        write_file(&dir, "nested/stat.txt", b"hello");
+
+        let mut access = Accessor::with_defaults();
+        let source = access.open_source("host:").unwrap();
+        let matches = access
+            .source_globfs(&source, &format!("{}/*", dir.display()))
+            .unwrap();
+
+        let dir_handle = matches
+            .iter()
+            .find(|entry| entry.meta.kind == EntryKind::Directory)
+            .unwrap()
+            .handle
+            .as_directory()
+            .unwrap();
+
+        let stat = access.source_stat_dir_handle(&source, dir_handle).unwrap();
+        assert_eq!(stat.meta.kind, EntryKind::Directory);
+        assert_eq!(stat.meta.filename, "nested");
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Modified(_)))
+        );
+    }
+
+    #[test]
+    fn test_zip_accessor_stat() {
+        let mut archive = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        archive.push("tests/test_data/archives/document.odt");
+        let mut access = Accessor::with_defaults();
+
+        let file = access
+            .stat(&format!("zip:{}!content.xml", archive.display()))
+            .unwrap();
+
+        assert_eq!(file.meta.filename, "content.xml");
+        assert_eq!(file.meta.kind, EntryKind::File);
+
+        assert!(
+            file.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Modified(_)))
+        );
+
+        let virt = access
+            .stat(&format!("zip:{}!META-INF", archive.display()))
+            .unwrap();
+        assert_eq!(virt.meta.kind, EntryKind::Directory);
+        assert!(virt.times.is_empty());
+    }
+
+    #[test]
+    fn test_zip_accessor_source_stat_dir_handle() {
+        let mut archive = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        archive.push("tests/test_data/archives/document.odt");
+
+        let mut access = Accessor::with_defaults();
+        let source = access
+            .open_source(&format!("zip:{}", archive.display()))
+            .unwrap();
+
+        let matches = access.source_globfs(&source, "*").unwrap();
+        let dir_handle = matches
+            .iter()
+            .find(|entry| entry.meta.filename == "META-INF")
+            .unwrap()
+            .handle
+            .as_directory()
+            .unwrap();
+
+        let stat = access.source_stat_dir_handle(&source, dir_handle).unwrap();
+
+        assert_eq!(stat.meta.kind, EntryKind::Directory);
+        assert!(stat.times.is_empty());
+    }
+
+    #[test]
+    fn test_source_stat_handle_rejects_other_source() {
+        let mut archive = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        archive.push("tests/test_data/archives/document.odt");
+        let mut access = Accessor::with_defaults();
+
+        let host = access.open_source("host:").unwrap();
+        let zip = access
+            .open_source(&format!("zip:{}", archive.display()))
+            .unwrap();
+
+        let matches = access.source_globfs(&zip, "*").unwrap();
+        let zip_file = matches
+            .iter()
+            .find(|entry| entry.handle.as_file().is_some())
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let err = access.source_stat_handle(&host, zip_file).unwrap_err();
+        assert!(matches!(err, AccessorError::InvalidHandle { .. }));
     }
 }

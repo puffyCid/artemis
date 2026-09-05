@@ -196,7 +196,7 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
         self.volume.with_reader(|ntfs, reader| {
             let file = resolve_entry(ntfs, reader, &inner_path)?;
 
-            self.stat_from_file(reader, ntfs, &file, &path)
+            stat_from_file(reader, ntfs, &file, &path)
         })
     }
 
@@ -217,7 +217,7 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
 
                 self.volume.with_reader(|ntfs, reader| {
                     let file = open_by_ref(ntfs, reader, file_ref)?;
-                    self.stat_from_file(reader, ntfs, &file, display_path)
+                    stat_from_file(reader, ntfs, &file, display_path)
                 })
             }
             _ => Err(AccessorError::invalid_handle(format!(
@@ -243,7 +243,7 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
                 }
                 self.volume.with_reader(|ntfs, reader| {
                     let file = open_by_ref(ntfs, reader, dir_ref)?;
-                    self.stat_from_file(reader, ntfs, &file, display_path)
+                    stat_from_file(reader, ntfs, &file, display_path)
                 })
             }
             _ => Err(AccessorError::invalid_handle(format!(
@@ -252,32 +252,31 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
             ))),
         }
     }
+}
 
-    /// Return metadata and timetamps for a NTFS entry
-    fn stat_from_file<R: Read + Seek>(
-        &self,
-        reader: &mut R,
-        ntfs: &ntfs::Ntfs,
-        file: &NtfsFile<'_>,
-        display_path: &str,
-    ) -> AccessorResult<EntryStat> {
-        let kind = if file.is_directory() {
-            EntryKind::Directory
-        } else {
-            EntryKind::File
-        };
+/// Return metadata and timetamps for a NTFS entry
+fn stat_from_file<R: Read + Seek>(
+    reader: &mut R,
+    ntfs: &ntfs::Ntfs,
+    file: &NtfsFile<'_>,
+    display_path: &str,
+) -> AccessorResult<EntryStat> {
+    let kind = if file.is_directory() {
+        EntryKind::Directory
+    } else {
+        EntryKind::File
+    };
 
-        let size = if kind == EntryKind::File {
-            get_file_size(ntfs, reader, file.file_record_number())?
-        } else {
-            0
-        };
+    let size = if kind == EntryKind::File {
+        get_file_size(ntfs, reader, file.file_record_number())?
+    } else {
+        0
+    };
 
-        Ok(EntryStat {
-            meta: EntryMeta::new(kind, size, format!("ntfs:{display_path}")),
-            times: ntfs_times(reader, file)?,
-        })
-    }
+    Ok(EntryStat {
+        meta: EntryMeta::new(kind, size, format!("ntfs:{display_path}")),
+        times: ntfs_times(reader, file)?,
+    })
 }
 
 /// Extract all 8 timestamps for a NTFS entry
@@ -373,7 +372,7 @@ fn first_non_dos_filename<R: Read + Seek>(
 ///
 /// `kind` a function constructor that returns enum `Timestamp`
 fn push_filetime(times: &mut Vec<Timestamp>, kind: fn(String) -> Timestamp, filetime: u64) {
-    times.push(kind(filetime_to_iso(filetime)))
+    times.push(kind(filetime_to_iso(filetime)));
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem
@@ -1162,6 +1161,42 @@ mod tests {
             stat.times
                 .iter()
                 .any(|time| matches!(time, Timestamp::Accessed(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Modified(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Created(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::Changed(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::FilenameAccessed(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::FilenameCreated(_)))
+        );
+
+        assert!(
+            stat.times
+                .iter()
+                .any(|time| matches!(time, Timestamp::FilenameChanged(_)))
         );
 
         assert!(
