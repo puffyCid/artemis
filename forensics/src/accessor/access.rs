@@ -1,7 +1,7 @@
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
-    entry::handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+    entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
     error::AccessorResult,
     io::reader::AccessorReader,
     location::loc::Location,
@@ -10,7 +10,7 @@ use crate::accessor::{
             build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
             open_reader_on_source, parse_inner_path, read_dir_handle_on_source, read_dir_on_source,
             read_file_handle_on_source, read_file_on_source, source_id_from_dir_locator,
-            source_id_from_file_locator, validate_dir_handle_for_source,
+            source_id_from_file_locator, stat_on_source, validate_dir_handle_for_source,
             validate_file_handle_for_source,
         },
         handle::SourceHandle,
@@ -155,6 +155,20 @@ impl Accessor {
         );
 
         open_reader_handle_on_source(&self.cache, &source_id, handle)
+    }
+
+    /// Return metadata and timestamps for provided path
+    pub(crate) fn stat(&mut self, location: &str) -> AccessorResult<EntryStat> {
+        let loc = Location::parse(location)?;
+        let source_id = build_source(&loc, &self.config, &mut self.cache)?;
+
+        info!(
+            "Stat file {location} using source '{}'. Scheme: {}",
+            source_id.display(),
+            loc.scheme.as_str()
+        );
+
+        stat_on_source(&self.cache, &source_id, &loc.inner_path)
     }
 
     /// Open a source for repeated reads

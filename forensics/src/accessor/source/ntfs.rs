@@ -1,7 +1,7 @@
 use crate::accessor::{
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::{AccessorError, AccessorResult},
@@ -45,6 +45,7 @@ trait NtfsFsBackend: Send {
     fn reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader>;
     /// Open a file for streaming via ntfs disk access by file reference
     fn reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat>;
 }
 
 impl<T> NtfsFsBackend for NtfsFs<T>
@@ -81,6 +82,10 @@ where
 
     fn reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         self.reader_handle(handle)
+    }
+
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        self.stat(inner)
     }
 }
 
@@ -143,6 +148,10 @@ impl SourceBackend for NtfsSource {
 
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         self.fs.reader_handle(handle)
+    }
+
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        self.fs.stat(inner)
     }
 }
 

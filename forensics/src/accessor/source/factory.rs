@@ -2,7 +2,7 @@ use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::{DirLocator, FileLocator, SourceId},
     },
     error::{AccessorError, AccessorResult},
@@ -155,6 +155,14 @@ pub(crate) fn open_reader_on_source(
     inner: &InnerPath,
 ) -> AccessorResult<AccessorReader> {
     source_from_cache(cache, source_id)?.open_reader(inner)
+}
+
+pub(crate) fn stat_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    inner: &InnerPath,
+) -> AccessorResult<EntryStat> {
+    source_from_cache(cache, source_id)?.stat(inner)
 }
 
 /// Parse a relative inner path

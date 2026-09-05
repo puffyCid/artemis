@@ -1,5 +1,5 @@
 use crate::accessor::{
-    entry::handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+    entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
     error::AccessorResult,
     io::reader::AccessorReader,
     location::path::InnerPath,
@@ -80,6 +80,15 @@ impl Source {
             Self::Host(source) => source.open_reader(inner),
             Self::Zip(source) => source.open_reader(inner),
             Self::RawNtfs(source) => source.open_reader(inner),
+        }
+    }
+
+    /// Stat and return metadata and timestamps for provided path
+    pub(crate) fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        match self {
+            Source::Host(source) => source.stat(inner),
+            Source::Zip(source) => source.stat(inner),
+            Source::RawNtfs(source) => source.stat(inner),
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::accessor::{
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::AccessorResult,
@@ -64,6 +64,10 @@ impl SourceBackend for ZipSource {
 
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         self.fs.reader_handle(handle, self.max_read_size)
+    }
+
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        self.fs.stat(inner)
     }
 }
 

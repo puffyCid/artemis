@@ -1,6 +1,6 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::AccessorResult,
@@ -36,4 +36,6 @@ pub(crate) trait SourceBackend {
 
     /// Create a `AccessorReader` for provided `FileHandle`. Allows `Read+Seek` for provided file
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
+
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat>;
 }
