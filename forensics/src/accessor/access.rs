@@ -10,8 +10,8 @@ use crate::accessor::{
             build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
             open_reader_on_source, parse_inner_path, read_dir_handle_on_source, read_dir_on_source,
             read_file_handle_on_source, read_file_on_source, source_id_from_dir_locator,
-            source_id_from_file_locator, stat_on_source, validate_dir_handle_for_source,
-            validate_file_handle_for_source,
+            source_id_from_file_locator, stat_dir_handle_on_source, stat_handle_on_source,
+            stat_on_source, validate_dir_handle_for_source, validate_file_handle_for_source,
         },
         handle::SourceHandle,
     },
@@ -169,6 +169,34 @@ impl Accessor {
         );
 
         stat_on_source(&self.cache, &source_id, &loc.inner_path)
+    }
+
+    /// Return metadata and timestamps for provided `FileHandle`
+    pub(crate) fn stat_handle(&mut self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        let source_id = source_id_from_file_locator(&handle.locator)?;
+        ensure_source(&source_id, &self.config, &mut self.cache)?;
+
+        info!(
+            "Stat file {} via handle using source '{}'",
+            handle.display_path(),
+            source_id.display(),
+        );
+
+        stat_handle_on_source(&self.cache, &source_id, handle)
+    }
+
+    /// Return metadata and timestamps for provided `DirHandle`
+    pub(crate) fn stat_dir_handle(&mut self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        let source_id = source_id_from_dir_locator(&handle.locator)?;
+        ensure_source(&source_id, &self.config, &mut self.cache)?;
+
+        info!(
+            "Stat directory {} via handle using source '{}'",
+            handle.display_path(),
+            source_id.display(),
+        );
+
+        stat_dir_handle_on_source(&self.cache, &source_id, handle)
     }
 
     /// Open a source for repeated reads

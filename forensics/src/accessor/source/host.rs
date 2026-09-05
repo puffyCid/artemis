@@ -65,6 +65,10 @@ impl SourceBackend for HostSource {
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
         HostFs::stat_handle(handle)
     }
+
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        HostFs::stat_dir_handle(handle)
+    }
 }
 
 #[cfg(test)]

@@ -49,6 +49,8 @@ trait NtfsFsBackend: Send {
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat>;
     /// Return metadata and timestamps for provided `FileHandle`
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
+    /// Return metadata and timestamps for provided `DirHandle`
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat>;
 }
 
 impl<T> NtfsFsBackend for NtfsFs<T>
@@ -93,6 +95,10 @@ where
 
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
         self.stat_handle(handle)
+    }
+
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        self.stat_dir_handle(handle)
     }
 }
 
@@ -163,6 +169,10 @@ impl SourceBackend for NtfsSource {
 
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
         self.fs.stat_handle(handle)
+    }
+
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        self.fs.stat_dir_handle(handle)
     }
 }
 

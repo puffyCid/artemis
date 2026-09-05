@@ -37,7 +37,12 @@ pub(crate) trait SourceBackend {
     /// Create a `AccessorReader` for provided `FileHandle`. Allows `Read+Seek` for provided file
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader>;
 
+    /// Return metadata and timestamps for provided path
     fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat>;
 
+    /// Return metadata and timestamps for provided `FileHandle`
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
+
+    /// Return metadata and timestamps for provided `DirHandle`
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat>;
 }

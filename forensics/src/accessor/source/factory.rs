@@ -130,13 +130,22 @@ pub(crate) fn glob_on_source(
     source_from_cache(cache, source_id)?.globfs(directory, pattern)
 }
 
-/// Read a file using a handle, without reparsing a location string
+/// Read a file using a `FileHandle`, without reparsing a location string
 pub(crate) fn read_file_handle_on_source(
     cache: &SourceCache,
     source_id: &SourceId,
     handle: &FileHandle,
 ) -> AccessorResult<Vec<u8>> {
     source_from_cache(cache, source_id)?.read_file_handle(handle)
+}
+
+/// Read a directory using a handle, without reparsing a location string
+pub(crate) fn read_dir_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &DirHandle,
+) -> AccessorResult<Vec<DirEntry>> {
+    source_from_cache(cache, source_id)?.read_dir_handle(handle)
 }
 
 /// Open a seekable reader using a handle, without reparsing a location string
@@ -157,6 +166,7 @@ pub(crate) fn open_reader_on_source(
     source_from_cache(cache, source_id)?.open_reader(inner)
 }
 
+/// Stat a path relative to an already-open source using an inner path
 pub(crate) fn stat_on_source(
     cache: &SourceCache,
     source_id: &SourceId,
@@ -165,6 +175,23 @@ pub(crate) fn stat_on_source(
     source_from_cache(cache, source_id)?.stat(inner)
 }
 
+/// Stat a file using a `FileHandle`, without reparsing the location
+pub(crate) fn stat_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &FileHandle,
+) -> AccessorResult<EntryStat> {
+    source_from_cache(cache, source_id)?.stat_handle(handle)
+}
+
+/// Stat a file using a `DirHandle`, without reparsing the location
+pub(crate) fn stat_dir_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &DirHandle,
+) -> AccessorResult<EntryStat> {
+    source_from_cache(cache, source_id)?.stat_dir_handle(handle)
+}
 /// Parse a relative inner path
 ///
 /// Used after `open("host:")` or `open("zip:/path/archive.zip")`
@@ -217,15 +244,6 @@ pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult
         DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
     }
-}
-
-/// Read a directory using a handle, without reparsing a location string
-pub(crate) fn read_dir_handle_on_source(
-    cache: &SourceCache,
-    source_id: &SourceId,
-    handle: &DirHandle,
-) -> AccessorResult<Vec<DirEntry>> {
-    source_from_cache(cache, source_id)?.read_dir_handle(handle)
 }
 
 /// Ensure a handle's locator matches the currently open source

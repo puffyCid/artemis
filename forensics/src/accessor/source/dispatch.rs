@@ -92,11 +92,21 @@ impl Source {
         }
     }
 
+    /// Stat and return metadata and timestamps for provided `FileHandle`
     pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
         match self {
             Source::Host(source) => source.stat_handle(handle),
             Source::Zip(source) => source.stat_handle(handle),
             Source::Ntfs(source) => source.stat_handle(handle),
+        }
+    }
+
+    /// Stat and return metadata and timestamps for provided `DirHandle`
+    pub(crate) fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        match self {
+            Source::Host(source) => source.stat_dir_handle(handle),
+            Source::Zip(source) => source.stat_dir_handle(handle),
+            Source::Ntfs(source) => source.stat_dir_handle(handle),
         }
     }
 }
