@@ -407,6 +407,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_parse_shellbags() {
+        use crate::artifacts::os::windows::shellbags::parser::parse_shellbags;
+
         let drive = 'C';
         let _results = parse_shellbags(drive, false).unwrap();
     }
