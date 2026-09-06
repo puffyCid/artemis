@@ -2,7 +2,7 @@ use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::{DirLocator, FileLocator, SourceId},
     },
     error::{AccessorError, AccessorResult},
@@ -39,7 +39,7 @@ pub(crate) fn ensure_source(
 
     let source = match source_id {
         SourceId::Host => Source::Host(HostSource::new(config)),
-        SourceId::RawNtfs(drive) => Source::RawNtfs(NtfsSource::new(config, *drive)?),
+        SourceId::Ntfs(drive) => Source::Ntfs(NtfsSource::new(config, *drive)?),
         SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
     };
 
@@ -47,11 +47,11 @@ pub(crate) fn ensure_source(
     Ok(())
 }
 
-/// Derive the cache key from a parsed [`Location`] scheme and source fields
+/// Derive the cache key from a parsed `Location` scheme and source fields
 ///
-/// - `Host` → [`SourceId::Host`]
-/// - `Zip` → [`SourceId::Zip`]
-/// - `RawNtfs` → [`SourceId::RawNtfs`]
+/// - `Host` → `SourceId::Host`
+/// - `Zip` → `SourceId::Zip`
+/// - `Ntfs` → `SourceId::Ntfs`
 pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<SourceId> {
     match location.scheme {
         Scheme::Host => Ok(SourceId::Host),
@@ -64,7 +64,7 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                 source.display().chars().next().ok_or_else(|| {
                     AccessorError::location("", "ntfs source missing drive letter")
                 })?;
-            Ok(SourceId::RawNtfs(drive))
+            Ok(SourceId::Ntfs(drive))
         }
         Scheme::Zip => {
             let source = location
@@ -76,19 +76,19 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
     }
 }
 
-/// Derive [`SourceId`] from a handle produced by listing or glob
+/// Derive `SourceId` from a handle produced by listing or glob
 ///
 /// Allows `read_file_handle` or `read_dir_handle` to open the correct cached source
 /// without walking the filesystem again
 pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResult<SourceId> {
     match locator {
         FileLocator::Host { .. } => Ok(SourceId::Host),
-        FileLocator::Ntfs { drive, .. } => Ok(SourceId::RawNtfs(*drive)),
+        FileLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
     }
 }
 
-/// Look up an opened source or return [`AccessorError::SourceNotOpen`]
+/// Look up an opened source or return `AccessorError::SourceNotOpen`
 ///
 /// Two-step callers must call `open` first
 fn source_from_cache<'a>(
@@ -130,13 +130,22 @@ pub(crate) fn glob_on_source(
     source_from_cache(cache, source_id)?.globfs(directory, pattern)
 }
 
-/// Read a file using a handle, without reparsing a location string
+/// Read a file using a `FileHandle`, without reparsing a location string
 pub(crate) fn read_file_handle_on_source(
     cache: &SourceCache,
     source_id: &SourceId,
     handle: &FileHandle,
 ) -> AccessorResult<Vec<u8>> {
     source_from_cache(cache, source_id)?.read_file_handle(handle)
+}
+
+/// Read a directory using a handle, without reparsing a location string
+pub(crate) fn read_dir_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &DirHandle,
+) -> AccessorResult<Vec<DirEntry>> {
+    source_from_cache(cache, source_id)?.read_dir_handle(handle)
 }
 
 /// Open a seekable reader using a handle, without reparsing a location string
@@ -157,6 +166,32 @@ pub(crate) fn open_reader_on_source(
     source_from_cache(cache, source_id)?.open_reader(inner)
 }
 
+/// Stat a path relative to an already-open source using an inner path
+pub(crate) fn stat_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    inner: &InnerPath,
+) -> AccessorResult<EntryStat> {
+    source_from_cache(cache, source_id)?.stat(inner)
+}
+
+/// Stat a file using a `FileHandle`, without reparsing the location
+pub(crate) fn stat_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &FileHandle,
+) -> AccessorResult<EntryStat> {
+    source_from_cache(cache, source_id)?.stat_handle(handle)
+}
+
+/// Stat a directory using a `DirHandle`, without reparsing the location
+pub(crate) fn stat_dir_handle_on_source(
+    cache: &SourceCache,
+    source_id: &SourceId,
+    handle: &DirHandle,
+) -> AccessorResult<EntryStat> {
+    source_from_cache(cache, source_id)?.stat_dir_handle(handle)
+}
 /// Parse a relative inner path
 ///
 /// Used after `open("host:")` or `open("zip:/path/archive.zip")`
@@ -182,7 +217,7 @@ pub(crate) fn validate_file_handle_for_source(
     match (source_id, locator) {
         (SourceId::Host, FileLocator::Host { .. }) => Ok(()),
         (
-            SourceId::RawNtfs(drive),
+            SourceId::Ntfs(drive),
             FileLocator::Ntfs {
                 drive: handle_drive,
                 ..
@@ -206,18 +241,9 @@ pub(crate) fn validate_file_handle_for_source(
 pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult<SourceId> {
     match locator {
         DirLocator::Host { .. } => Ok(SourceId::Host),
-        DirLocator::Ntfs { drive, .. } => Ok(SourceId::RawNtfs(*drive)),
+        DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
     }
-}
-
-/// Read a directory using a handle, without reparsing a location string
-pub(crate) fn read_dir_handle_on_source(
-    cache: &SourceCache,
-    source_id: &SourceId,
-    handle: &DirHandle,
-) -> AccessorResult<Vec<DirEntry>> {
-    source_from_cache(cache, source_id)?.read_dir_handle(handle)
 }
 
 /// Ensure a handle's locator matches the currently open source
@@ -231,7 +257,7 @@ pub(crate) fn validate_dir_handle_for_source(
     match (source_id, locator) {
         (SourceId::Host, DirLocator::Host { .. }) => Ok(()),
         (
-            SourceId::RawNtfs(drive),
+            SourceId::Ntfs(drive),
             DirLocator::Ntfs {
                 drive: handle_drive,
                 ..

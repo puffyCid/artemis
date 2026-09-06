@@ -7,7 +7,7 @@ pub(crate) enum SourceId {
     /// Live OS
     Host,
     /// Raw NTFS filesystem
-    RawNtfs(char),
+    Ntfs(char),
     /// A zip file
     Zip(PathBuf),
 }
@@ -17,7 +17,7 @@ impl SourceId {
     pub(crate) fn display(&self) -> String {
         match self {
             SourceId::Host => String::from("host"),
-            SourceId::RawNtfs(drive) => format!("ntfs:{drive}:"),
+            SourceId::Ntfs(drive) => format!("ntfs:{drive}:"),
             SourceId::Zip(path) => format!("zip:{}", path.display()),
         }
     }

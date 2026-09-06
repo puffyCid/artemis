@@ -294,3 +294,21 @@ impl DirEntry {
         matches!(self.handle, ItemHandle::File(_))
     }
 }
+
+#[derive(Debug)]
+pub(crate) struct EntryStat {
+    pub(crate) meta: EntryMeta,
+    pub(crate) times: Vec<Timestamp>,
+}
+
+#[derive(Debug)]
+pub(crate) enum Timestamp {
+    Created(String),
+    Modified(String),
+    Accessed(String),
+    Changed(String),
+    FilenameCreated(String),
+    FilenameModified(String),
+    FilenameAccessed(String),
+    FilenameChanged(String),
+}

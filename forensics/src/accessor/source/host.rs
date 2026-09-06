@@ -1,7 +1,7 @@
 use crate::accessor::{
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::AccessorResult,
@@ -56,6 +56,18 @@ impl SourceBackend for HostSource {
 
     fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
         HostFs::read_dir_handle(handle)
+    }
+
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        HostFs::stat(inner)
+    }
+
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        HostFs::stat_handle(handle)
+    }
+
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        HostFs::stat_dir_handle(handle)
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::accessor::{
     config::AccessorConfig,
     entry::{
-        handle::{DirEntry, DirHandle, FileHandle, GlobMatch},
+        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::SourceId,
     },
     error::AccessorResult,
@@ -64,6 +64,18 @@ impl SourceBackend for ZipSource {
 
     fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         self.fs.reader_handle(handle, self.max_read_size)
+    }
+
+    fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
+        self.fs.stat(inner)
+    }
+
+    fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        self.fs.stat_handle(handle)
+    }
+
+    fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        self.fs.stat_dir_handle(handle)
     }
 }
 
@@ -205,5 +217,19 @@ mod tests {
             .read_file(&InnerPath::new(PathBuf::from("meta.xml")))
             .unwrap();
         assert_eq!(bytes.len(), 974);
+    }
+
+    #[test]
+    fn test_zip_stat() {
+        let dir = setup("test_zip_source_stat");
+        let archive = dir.join("archive.zip");
+        write_zip(&archive, &[("inner.txt", b"zip source payload")]);
+        let source = ZipSource::new(&AccessorConfig::default(), archive).unwrap();
+
+        let meta = source
+            .stat(&InnerPath::new(PathBuf::from("inner.txt")))
+            .unwrap();
+
+        assert!(!meta.times.is_empty());
     }
 }
