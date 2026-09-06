@@ -674,7 +674,7 @@ mod tests {
         let mut access = Accessor::with_defaults();
         let err = access.stat("host:/no/such/stat-file").unwrap_err();
 
-        assert!(matches!(err, AccessorError::NotFound { .. }));
+        assert!(matches!(err, AccessorError::Io { .. }));
     }
 
     #[test]
