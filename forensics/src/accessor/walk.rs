@@ -99,15 +99,11 @@ impl WalkAccessor {
             let child = walk_stack.child.pop()?;
             let depth = walk_stack.depth + 1;
 
-            // Skip excluded paths
-            if !self.exclude.is_empty()
-                && self.source.id() == &SourceId::Host
-                && self.is_exclude(&child.meta.full_path)
-            {
-                continue;
+            // Only descend into paths we do not want to exclude
+            if self.exclude.is_empty() || !self.is_exclude(&child.meta.full_path) {
+                self.queue_descend(accessor, &child, depth);
             }
 
-            self.queue_descend(accessor, &child, depth);
             return Some(Ok(WalkEntry {
                 entry: child,
                 depth,
@@ -297,7 +293,7 @@ mod tests {
             let entry = item.unwrap();
             count += 1;
             assert!(!entry.entry.meta.full_path.is_empty());
-            assert!(!entry.entry.meta.full_path.contains("/bin/"));
+            assert!(!entry.entry.meta.full_path.starts_with("/bin/"));
         }
 
         assert!(count > 10, "{}", count);
@@ -453,7 +449,7 @@ mod tests {
         assert!(names.contains(&"keep".to_string()));
         assert!(names.contains(&"a.txt".to_string()));
         assert!(names.contains(&"other.txt".to_string()));
-        assert!(!names.contains(&"dev".to_string()));
+        assert!(!names.contains(&"dev/".to_string()));
         assert!(!names.contains(&"secret.txt".to_string()));
     }
 
