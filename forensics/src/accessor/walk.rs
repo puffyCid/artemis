@@ -110,7 +110,9 @@ impl WalkAccessor {
             self.started = true;
             self.load_firmlinks(accessor);
 
-            return self.yield_root(accessor);
+            if let Err(err) = self.start_walk(accessor) {
+                return Some(Err(err));
+            }
         }
 
         loop {
@@ -135,24 +137,13 @@ impl WalkAccessor {
         }
     }
 
-    fn yield_root(&mut self, accessor: &Accessor) -> Option<AccessorResult<WalkEntry>> {
-        let stat = match accessor.source_stat(&self.source, &self.start.display()) {
-            Ok(stat) => stat,
-            Err(err) => {
-                error!(
-                    "Could not get start path '{}': {err:?}",
-                    &self.start.display()
-                );
-                return Some(Err(err));
-            }
-        };
+    fn start_walk(&mut self, accessor: &Accessor) -> AccessorResult<()> {
+        let mut child = accessor.source_read_dir(&self.source, &self.start.display())?;
+        child.reverse();
 
-        let handle = root_handle(&self.source, &self.start, &stat.meta.kind);
-        let entry = DirEntry::new(stat.meta.filename.clone(), handle, stat.meta);
+        self.stack.push(WalkStack { depth: 0, child });
 
-        self.queue_descend(accessor, &entry, 0);
-
-        Some(Ok(WalkEntry { entry, depth: 0 }))
+        Ok(())
     }
 
     fn queue_descend(&mut self, accessor: &Accessor, entry: &DirEntry, depth: u32) {
@@ -160,7 +151,15 @@ impl WalkAccessor {
             return;
         }
 
-        match self.list_children(accessor, entry, depth) {
+        let Some(handle) = entry.handle.as_directory() else {
+            error!("Cannot list files for '{}'", entry.meta.full_path);
+            self.pending_error = Some(AccessorError::NotADirectory {
+                path: entry.meta.full_path.clone(),
+            });
+            return;
+        };
+
+        match accessor.source_read_dir_handle(&self.source, handle) {
             Ok(mut child) => {
                 child.reverse();
                 self.stack.push(WalkStack { depth, child })
@@ -173,26 +172,6 @@ impl WalkAccessor {
                 self.pending_error = Some(err);
             }
         }
-    }
-
-    fn list_children(
-        &self,
-        accessor: &Accessor,
-        entry: &DirEntry,
-        depth: u32,
-    ) -> AccessorResult<Vec<DirEntry>> {
-        if depth == 0 {
-            return accessor.source_read_dir(&self.source, &self.start.display());
-        }
-
-        let Some(handle) = entry.handle.as_directory() else {
-            error!("Cannot list files for '{}'", entry.meta.full_path);
-            return Err(AccessorError::NotADirectory {
-                path: entry.meta.full_path.clone(),
-            });
-        };
-
-        accessor.source_read_dir_handle(&self.source, handle)
     }
 
     fn load_firmlinks(&mut self, accessor: &Accessor) {
@@ -223,46 +202,6 @@ impl WalkAccessor {
     }
 }
 
-fn root_handle(source: &SourceHandle, start: &InnerPath, kind: &EntryKind) -> ItemHandle {
-    let path = start.as_path().to_path_buf();
-
-    match (source.id(), kind) {
-        (SourceId::Host, EntryKind::Directory) => ItemHandle::Directory(DirHandle::host(path)),
-        (SourceId::Host, EntryKind::File) => ItemHandle::File(FileHandle::host(path)),
-        (SourceId::Host, EntryKind::Unsupported) => ItemHandle::Unsupported(FileHandle::host(path)),
-        (SourceId::Zip(archive), EntryKind::Directory) => {
-            ItemHandle::Directory(DirHandle::new(DirLocator::Zip {
-                archive: archive.clone(),
-                entry_index: 0,
-                prefix: start.display(),
-            }))
-        }
-        (SourceId::Zip(archive), _) => ItemHandle::File(FileHandle::new(FileLocator::Zip {
-            archive: archive.clone(),
-            entry_index: 0,
-            entry: start.display(),
-        })),
-        (SourceId::Ntfs(drive), EntryKind::Directory) => {
-            ItemHandle::Directory(DirHandle::new(DirLocator::Ntfs {
-                drive: *drive,
-                dir_ref: NtfsEntryRef {
-                    file_record_number: 0,
-                    sequence_number: 0,
-                },
-                display_path: start.display(),
-            }))
-        }
-        (SourceId::Ntfs(drive), _) => ItemHandle::File(FileHandle::new(FileLocator::Ntfs {
-            drive: *drive,
-            file_ref: NtfsEntryRef {
-                file_record_number: 0,
-                sequence_number: 0,
-            },
-            display_path: start.display(),
-        })),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::accessor::{access::Accessor, walk::WalkAccessor};
@@ -279,8 +218,10 @@ mod tests {
             .max_depth(5);
 
         let mut count = 0;
-        while let Some(Ok(entry)) = walk.next(&accessor) {
+        while let Some(item) = walk.next(&accessor) {
+            let entry = item.unwrap();
             count += 1;
+
             assert!(!entry.full_path().is_empty());
         }
 
@@ -297,11 +238,11 @@ mod tests {
             .open_source(&format!("zip:{}", test_location.display()))
             .unwrap();
 
-        let mut walk = WalkAccessor::new(&source, "/").unwrap().max_depth(5);
+        let mut walk = WalkAccessor::new(&source, "").unwrap().max_depth(5);
 
         let mut count = 0;
-        while let Some(Ok(entry)) = walk.next(&accessor) {
-            println!("{}", entry.full_path());
+        while let Some(item) = walk.next(&accessor) {
+            let entry = item.unwrap();
             count += 1;
             assert!(!entry.full_path().is_empty());
         }

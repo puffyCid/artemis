@@ -538,11 +538,6 @@ impl ZipFs {
         let prefix = Self::inner_to_prefix(inner);
         let children = self.list_children(&prefix)?;
 
-        if !prefix.is_empty() && !self.index.file_paths.contains_key(&prefix) && children.is_empty()
-        {
-            return Err(AccessorError::not_found(self.display_entry_path(&prefix)));
-        }
-
         let mut entries = Vec::with_capacity(children.len());
         for (name, child) in children {
             let (handle, kind, size, display_path) = match child {
@@ -593,6 +588,7 @@ impl ZipFs {
         };
 
         let mut children = BTreeMap::<String, ZipChild>::new();
+        let mut found = prefix.is_empty();
 
         // Go through our parsed zip index records
         for record in &self.index.entries {
@@ -606,9 +602,11 @@ impl ZipFs {
             } else if *entry_path == prefix {
                 // Ignore the prefix directory. Example, if the directory prefix is 'home/' we should skip the entry 'home/'
                 // If we do not have this then the `strip_prefix` function below would match and we would track it
+                found = true;
                 continue;
             } else if let Some(rest) = entry_path.strip_prefix(&prefix_with_slash) {
                 // If we found an zip entry that matches the prefix, we keep it
+                found = true;
                 rest
             } else {
                 continue;
@@ -637,6 +635,10 @@ impl ZipFs {
                     ZipChild::file(record.clone(), remainder.to_string()),
                 );
             }
+        }
+
+        if !found {
+            return Err(AccessorError::not_found(self.display_entry_path(&prefix)));
         }
 
         Ok(children)
