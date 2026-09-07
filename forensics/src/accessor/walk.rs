@@ -417,7 +417,7 @@ mod tests {
             .map(|(_, name)| name)
             .collect();
 
-        assert!(!paths.iter().any(|name| name == "Users"));
+        assert!(paths.iter().any(|name| name == "Users"));
         let mut walk = WalkAccessor::new(&source, "/Users").unwrap().max_depth(1);
         let users = collect(&mut walk, &accessor);
 
@@ -449,7 +449,7 @@ mod tests {
         assert!(names.contains(&"keep".to_string()));
         assert!(names.contains(&"a.txt".to_string()));
         assert!(names.contains(&"other.txt".to_string()));
-        assert!(!names.contains(&"dev/".to_string()));
+        assert!(names.contains(&"dev".to_string()));
         assert!(!names.contains(&"secret.txt".to_string()));
     }
 
