@@ -3,7 +3,7 @@ use tracing::error;
 use crate::accessor::{
     access::Accessor,
     entry::{
-        handle::{DirEntry, DirHandle, EntryKind, FileHandle, ItemHandle},
+        handle::{DirEntry, EntryKind, FileHandle, ItemHandle},
         locator::{DirLocator, FileLocator, NtfsEntryRef, SourceId},
     },
     error::{AccessorError, AccessorResult},
@@ -20,64 +20,30 @@ pub(crate) struct WalkAccessor {
     start: InnerPath,
     /// Max depth we should descend. Default is 1
     max_depth: u32,
+    /// Flag to determine if we need to start at provided start path
     started: bool,
+    /// Current iterator stack
     stack: Vec<WalkStack>,
+    /// Error we may encounter while iterating
     pending_error: Option<AccessorError>,
     /// Default firmlinks on macOS we ignore
     firmlinks: HashSet<String>,
 }
 
+/// Track files and directories we walk
 struct WalkStack {
+    /// Current depht
     depth: u32,
+    /// Array of children from current path in the iterator
     child: Vec<DirEntry>,
 }
 
 /// Entry returned by `WalkAccessor`
 pub(crate) struct WalkEntry {
-    entry: DirEntry,
-    depth: u32,
-}
-
-impl WalkEntry {
-    pub(crate) fn depth(&self) -> u32 {
-        self.depth
-    }
-
-    pub(crate) fn filename(&self) -> &str {
-        &self.entry.meta.filename
-    }
-
-    pub(crate) fn full_path(&self) -> &str {
-        &self.entry.meta.full_path
-    }
-
-    pub(crate) fn display_path(&self) -> &str {
-        &self.entry.meta.display_path
-    }
-
-    pub(crate) fn is_file(&self) -> bool {
-        self.entry.is_file()
-    }
-
-    pub(crate) fn is_directory(&self) -> bool {
-        self.entry.is_directory()
-    }
-
-    pub(crate) fn as_file(&self) -> Option<&FileHandle> {
-        self.entry.handle.as_file()
-    }
-
-    pub(crate) fn as_directory(&self) -> Option<&DirHandle> {
-        self.entry.handle.as_directory()
-    }
-
-    pub(crate) fn handle(&self) -> &ItemHandle {
-        &self.entry.handle
-    }
-
-    pub(crate) fn entry(&self) -> &DirEntry {
-        &self.entry
-    }
+    /// A File or Directory return by the iterator
+    pub(crate) entry: DirEntry,
+    /// Current depth
+    pub(crate) depth: u32,
 }
 
 impl WalkAccessor {
@@ -96,16 +62,19 @@ impl WalkAccessor {
         })
     }
 
+    /// Max depth we should descend to
     pub(crate) fn max_depth(mut self, depth: u32) -> Self {
         self.max_depth = depth;
         self
     }
 
+    /// Iterator to walk the filesytem
     pub(crate) fn next(&mut self, accessor: &Accessor) -> Option<AccessorResult<WalkEntry>> {
         if let Some(err) = self.pending_error.take() {
             return Some(Err(err));
         }
 
+        // Determine if we need to start the walk
         if !self.started {
             self.started = true;
             self.load_firmlinks(accessor);
@@ -125,6 +94,7 @@ impl WalkAccessor {
             let child = walk_stack.child.pop()?;
             let depth = walk_stack.depth + 1;
 
+            // On macOS systems we always ignore firmlink paths
             if self.is_firmlink(&child.meta.full_path) {
                 continue;
             }
@@ -137,6 +107,7 @@ impl WalkAccessor {
         }
     }
 
+    /// Start the iterator by reading the provided start path
     fn start_walk(&mut self, accessor: &Accessor) -> AccessorResult<()> {
         let mut child = accessor.source_read_dir(&self.source, &self.start.display())?;
         child.reverse();
@@ -146,6 +117,7 @@ impl WalkAccessor {
         Ok(())
     }
 
+    /// Track paths we need to descend
     fn queue_descend(&mut self, accessor: &Accessor, entry: &DirEntry, depth: u32) {
         if !entry.is_directory() || depth >= self.max_depth {
             return;
@@ -159,6 +131,7 @@ impl WalkAccessor {
             return;
         };
 
+        // We always read directories by `DirHandle`
         match accessor.source_read_dir_handle(&self.source, handle) {
             Ok(mut child) => {
                 child.reverse();
@@ -174,12 +147,15 @@ impl WalkAccessor {
         }
     }
 
+    /// On macOS read the default firmlink paths
     fn load_firmlinks(&mut self, accessor: &Accessor) {
         if !cfg!(target_os = "macos") || self.source.id() != &SourceId::Host {
             return;
         }
 
         let firmlinks = "/usr/share/firmlinks";
+        // Firmlinks appear as normal directories in Rust
+        // So we have to skip them otherwise our filelisting doubles in size
         let bytes = match accessor.source_read_file(&self.source, firmlinks) {
             Ok(results) => results,
             Err(err) => {
@@ -197,6 +173,7 @@ impl WalkAccessor {
         }
     }
 
+    /// Check if path is a firmlink
     fn is_firmlink(&self, full_path: &str) -> bool {
         self.firmlinks.contains(full_path)
     }
@@ -222,7 +199,7 @@ mod tests {
             let entry = item.unwrap();
             count += 1;
 
-            assert!(!entry.full_path().is_empty());
+            assert!(!entry.entry.meta.full_path.is_empty());
         }
 
         assert!(count > 10);
@@ -244,7 +221,24 @@ mod tests {
         while let Some(item) = walk.next(&accessor) {
             let entry = item.unwrap();
             count += 1;
-            assert!(!entry.full_path().is_empty());
+            assert!(!entry.entry.meta.full_path.is_empty());
+        }
+
+        assert!(count > 10, "{}", count);
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_walk_accessor_ntfs() {
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source(&"ntfs:C").unwrap();
+        let mut walk = WalkAccessor::new(&source, "").unwrap().max_depth(5);
+
+        let mut count = 0;
+        while let Some(item) = walk.next(&accessor) {
+            let entry = item.unwrap();
+            count += 1;
+            assert!(!entry.entry.meta.full_path.is_empty());
         }
 
         assert!(count > 10, "{}", count);

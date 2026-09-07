@@ -504,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_accessor_read_zip() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/archives/document.odt");
@@ -521,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_accessor_live() {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"ntfs:C").unwrap();
@@ -537,7 +537,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_accessor_live_read_dir_handle() {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"ntfs:C").unwrap();
@@ -566,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_accessor_mft_reader() {
         use std::io::Read;
 
@@ -582,7 +582,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_glob_recursive() {
         let mut access = Accessor::with_defaults();
         let source = access.open_source(&"ntfs:C").unwrap();
@@ -594,7 +594,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_windows_globfs() {
         let mut access = Accessor::with_defaults();
         let entries = access.globfs("C:\\Users\\*\\NTUSER*").unwrap();
@@ -780,7 +780,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_accessor_source_stat() {
         let mut access = Accessor::with_defaults();
         let source = access.open_source("ntfs:C").unwrap();

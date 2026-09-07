@@ -275,19 +275,7 @@ impl ZipFs {
         // Prefix is home/
         // If the prefix is empty then root directory is the default
         let prefix = Self::inner_to_prefix(directory);
-        if !prefix.is_empty()
-            && !self.index.file_paths.contains_key(&prefix)
-            && !self
-                .index
-                .entries
-                .iter()
-                .any(|entry| entry.is_dir && entry.path == prefix)
-            && self.list_children(&prefix)?.is_empty()
-        {
-            return Err(AccessorError::not_a_directory(
-                self.display_entry_path(&prefix),
-            ));
-        }
+
         // Normalize all pattern separators to forward slash '/'
         let normalized = normalize_glob_pattern(pattern);
 
