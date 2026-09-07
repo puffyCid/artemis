@@ -1,12 +1,22 @@
 use crate::{
-    artifacts::os::triage::error::TriageError,
+    accessor::{
+        access::Accessor, entry::handle::FileHandle, io::reader::AccessorReader,
+        source::handle::SourceHandle,
+    },
+    artifacts::os::{
+        systeminfo::info::{PlatformType, get_platform_enum},
+        triage::error::TriageError,
+    },
     filesystem::ntfs::{raw_files::read_attribute, sector_reader::SectorReader},
 };
 use base16ct::lower::encode_str;
 use digest_io::IoWrapper;
 use md5::{Digest, Md5};
 use ntfs::{NtfsError, NtfsFile, NtfsReadSeek};
-use std::io::{BufReader, Error, ErrorKind, Read, Write, copy};
+use std::{
+    fs::File,
+    io::{BufReader, Error, ErrorKind, Read, Write, copy},
+};
 use tracing::error;
 use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
@@ -15,6 +25,90 @@ pub(crate) struct TriageReader<T: std::io::Seek + std::io::Read, W: std::io::See
     pub(crate) fs: Option<BufReader<T>>,
     pub(crate) zip: ZipWriter<W>,
     pub(crate) path: String,
+}
+
+pub(crate) fn grab_file(
+    reader: &mut AccessorReader,
+    zip: &mut ZipWriter<File>,
+) -> Result<String, TriageError> {
+    // Read 64MB of data at a time
+    let bytes_limit = 1024 * 1024 * 64;
+    let mut buf = vec![0; bytes_limit];
+    let mut md5 = IoWrapper(Md5::new());
+    let method = CompressionMethod::DEFLATE;
+    let options = SimpleFileOptions::default().compression_method(method);
+
+    if let Err(err) = zip.start_file_from_path(reader.location.full_path(), options) {
+        error!("Failed to start file read into zip: {err:?}");
+        return Err(TriageError::StartZip);
+    }
+
+    loop {
+        let bytes = match reader.read(&mut buf) {
+            Ok(result) => result,
+            Err(err) => {
+                // On Windows we try the NTFS accessor if a file is locked
+                if get_platform_enum() == PlatformType::Windows
+                    && reader.location.display_path().starts_with("host:")
+                {
+                    return grab_file_locked(zip, reader.location.full_path());
+                }
+                error!("Failed to read all bytes from file: {err:?}");
+                return Err(TriageError::ReadFile);
+            }
+        };
+        if bytes == 0 {
+            break;
+        }
+
+        if bytes < bytes_limit {
+            buf = buf[0..bytes].to_vec();
+        }
+        let _ = copy(&mut buf.as_slice(), &mut md5);
+        let _ = copy(&mut buf.as_slice(), zip);
+        if bytes < bytes_limit {
+            break;
+        }
+    }
+    let hash = md5.0.finalize();
+    let mut buf = [0u8; 32];
+    let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+
+    Ok(md5_string)
+}
+
+fn grab_file_locked(zip: &mut ZipWriter<File>, path: &str) -> Result<String, TriageError> {
+    let ntfs = format!("ntfs:{path}");
+    let mut accessor = Accessor::with_defaults();
+    let mut reader = match accessor.open_reader(&ntfs) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Failed to ntfs reader for locked file '{path}': {err:?}");
+            return Err(TriageError::StartZip);
+        }
+    };
+
+    return grab_file(&mut reader, zip);
+}
+
+/// Write the triage JSON report to the triage zip file
+pub(crate) fn write_report(
+    zip: &mut ZipWriter<File>,
+    report: &mut [u8],
+) -> Result<(), TriageError> {
+    let method = CompressionMethod::Stored;
+    let options = SimpleFileOptions::default().compression_method(method);
+    let filename = "acquisition_report.json";
+    if let Err(err) = zip.start_file_from_path(filename, options) {
+        error!("Failed to start report into zip: {err:?}");
+        return Err(TriageError::StartZip);
+    }
+    if let Err(err) = zip.write_all(report) {
+        error!("Failed to write report into zip: {err:?}");
+        return Err(TriageError::WriteReport);
+    };
+
+    Ok(())
 }
 
 impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> TriageReader<T, W> {

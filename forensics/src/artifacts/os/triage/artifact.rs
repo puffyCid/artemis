@@ -1,7 +1,16 @@
 use crate::{
+    accessor::{
+        access::Accessor,
+        entry::handle::{EntryKind, FileHandle, Timestamp},
+        source::handle::SourceHandle,
+        walk::WalkAccessor,
+    },
     artifacts::os::{
         systeminfo::info::{PlatformType, get_platform_enum},
-        triage::{error::TriageError, reader::TriageReader},
+        triage::{
+            error::TriageError,
+            reader::{TriageReader, grab_file, write_report},
+        },
     },
     filesystem::{
         files::get_filename,
@@ -12,18 +21,75 @@ use crate::{
     structs::artifacts::triage::TriageOptions,
     utils::regex_options::{create_regex, regex_check},
 };
+use glob::Pattern;
 use regex::Regex;
 use serde::Serialize;
 use std::{
     fs::{File, create_dir_all},
     io::BufReader,
+    path::PathBuf,
 };
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 use walkdir::WalkDir;
 use zip::ZipWriter;
 
-/// Triage a system by acquiring files
 pub(crate) fn triage(
+    manager: &mut OutputManager,
+    options: &Vec<TriageOptions>,
+) -> Result<(), TriageError> {
+    let full_path = manager.config.directory.join(&manager.config.name);
+    let zip_output = full_path.to_str().unwrap_or_default();
+    if let Err(err) = create_dir_all(zip_output) {
+        error!("Could not create output directory: {err:?}");
+        return Err(TriageError::Output);
+    }
+    let zip_file = match File::create(format!("{zip_output}/files.zip")) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not create zip file: {err:?}");
+            return Err(TriageError::Output);
+        }
+    };
+    let mut zip = ZipWriter::new(zip_file);
+
+    let mut report = Vec::new();
+    let mut accessor = Accessor::with_defaults();
+    let source = match accessor.open_source("host:") {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not open host source: {err:?}");
+            return Err(TriageError::NoReader);
+        }
+    };
+    // Loop through all triage targets
+    for target in options {
+        acquire_files_v2(target, &mut report, &mut accessor, &source, &mut zip)?;
+    }
+    let mut bytes = serde_json::to_vec(&report).unwrap_or_default();
+    write_report(&mut zip, &mut bytes)?;
+
+    if let Err(err) = zip.finish() {
+        warn!("Failed to finish zipping file: {err:?}");
+    }
+
+    let mut records = match serialize_records_to_stream(report) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not serialize triage report: {err:?}");
+            return Err(TriageError::Output);
+        }
+    };
+    let artifact_name = "triage";
+    if let Err(err) = manager.write_artifact(artifact_name, options, &mut records) {
+        error!("Could not write triage report: {err:?}");
+        return Err(TriageError::Output);
+    }
+
+    Ok(())
+}
+
+/// Triage a system by acquiring files
+pub(crate) fn triage_old(
     manager: &mut OutputManager,
     options: &Vec<TriageOptions>,
 ) -> Result<(), TriageError> {
@@ -355,6 +421,187 @@ fn get_ntfs_ads_zip_path(path: &str, attribute: &str, create_paths: bool) -> Str
         get_filename(path)
     };
     format!("{base_path}_{attribute}")
+}
+
+fn acquire_files_v2(
+    target: &TriageOptions,
+    report: &mut Vec<TriageReport>,
+    accessor: &mut Accessor,
+    source: &SourceHandle,
+    zip: &mut ZipWriter<File>,
+) -> Result<(), TriageError> {
+    // Combine path with file mask. Most often file mask is a simple glob
+    let mut glob_string = format!("{}{}", target.path, target.file_mask);
+    // If we are traversing the file system. Then apply the file mask as we traverse
+    if target.recursive {
+        glob_string = target.path.clone();
+    }
+
+    let mut file_pattern = None;
+    // Check if file mask is using regex instead a glob
+    if target.file_mask.starts_with("regex:") {
+        glob_string = target.path.clone();
+        let pattern = match create_regex(&target.file_mask.replace("regex:", "")) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Could not create regex: {err:?}");
+                return Err(TriageError::Regex);
+            }
+        };
+        file_pattern = Some(pattern);
+    }
+
+    info!("Applying glob on '{glob_string}'");
+
+    let paths = match accessor.globfs(&glob_string) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Could not glob '{glob_string}': {err:?}");
+            return Err(TriageError::ReadFile);
+        }
+    };
+
+    for path in paths {
+        if let Some(handle) = path.handle.as_directory()
+            && target.recursive
+        {
+            info!("Walking the directory: '{}'", handle.full_path());
+            let walk = match WalkAccessor::new(source, &handle.full_path()) {
+                Ok(results) => results,
+                Err(err) => {
+                    warn!("Could not start walk for {}: {err:?}", handle.full_path());
+                    continue;
+                }
+            };
+
+            walking(
+                walk,
+                file_pattern.as_ref(),
+                report,
+                &target.file_mask,
+                zip,
+                accessor,
+                source,
+            )?;
+            continue;
+        }
+
+        let Some(handle) = path.handle.as_file() else {
+            continue;
+        };
+        // If regex is being used. Then check if our filename matches
+        if file_pattern
+            .as_ref()
+            .is_some_and(|pat| !regex_check(pat, &path.meta.filename))
+        {
+            continue;
+        }
+
+        if let Ok(file_report) = read_file_v2(handle, accessor, source, zip) {
+            report.push(file_report);
+        }
+    }
+
+    Ok(())
+}
+
+fn walking(
+    mut walk: WalkAccessor,
+    pattern: Option<&Regex>,
+    report: &mut Vec<TriageReport>,
+    file_mask: &str,
+    zip: &mut ZipWriter<File>,
+    accessor: &mut Accessor,
+    source: &SourceHandle,
+) -> Result<(), TriageError> {
+    while let Some(value) = walk.next(accessor) {
+        let entry = match value {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("Could not walk: {err:?}");
+                continue;
+            }
+        };
+
+        // No regex was provided. Using file mask to determine if a file should be read
+        if pattern.is_none()
+            && entry.entry.is_file()
+            && let Ok(glob_pattern) = Pattern::new(file_mask)
+        {
+            if !glob_pattern.matches(&entry.entry.meta.filename) {
+                continue;
+            }
+
+            let Some(handle) = entry.entry.handle.as_file() else {
+                continue;
+            };
+
+            if let Ok(file_report) = read_file_v2(handle, accessor, source, zip) {
+                report.push(file_report);
+            }
+
+            continue;
+        }
+
+        // If we are not using regex then only acquire files that match the file mask (the glob above)
+        if (pattern.is_none() && entry.entry.is_file()) || !entry.entry.is_file() {
+            continue;
+        }
+
+        // If regex is being used. Then check if our filename matches
+        if pattern.is_some_and(|pat| !regex_check(pat, &entry.entry.meta.filename)) {
+            continue;
+        }
+
+        let Some(handle) = entry.entry.handle.as_file() else {
+            continue;
+        };
+
+        if let Ok(file_report) = read_file_v2(handle, accessor, source, zip) {
+            report.push(file_report);
+        }
+    }
+
+    Ok(())
+}
+
+fn read_file_v2(
+    handle: &FileHandle,
+    accessor: &mut Accessor,
+    source: &SourceHandle,
+    zip: &mut ZipWriter<File>,
+) -> Result<TriageReport, TriageError> {
+    let mut reader = match accessor.open_reader_handle(handle) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could open reader for {}: {err:?}", handle.display_path());
+            return Err(TriageError::ReadFile);
+        }
+    };
+
+    let mut file_report = TriageReport {
+        filename: handle.filename(),
+        full_path: handle.full_path(),
+        ..Default::default()
+    };
+
+    if let Ok(meta) = accessor.source_stat_handle(source, handle) {
+        file_report.size = meta.meta.size;
+        for time in meta.times {
+            match time {
+                Timestamp::Created(value) => file_report.created = value,
+                Timestamp::Accessed(value) => file_report.accessed = value,
+                Timestamp::Modified(value) => file_report.modified = value,
+                Timestamp::Changed(value) => file_report.changed = value,
+                _ => continue,
+            }
+        }
+    }
+
+    let hash = grab_file(&mut reader, zip)?;
+    file_report.md5 = hash;
+
+    Ok(file_report)
 }
 
 #[cfg(test)]
