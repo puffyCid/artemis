@@ -286,7 +286,8 @@ mod tests {
             .max_depth(2)
             .exclude("/bin")
             .exclude("/lost+found")
-            .exclude("/root");
+            .exclude("/root")
+            .exclude("/proc");
 
         let mut count = 0;
         while let Some(item) = walk.next(&accessor) {
