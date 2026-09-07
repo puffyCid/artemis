@@ -7,3 +7,4 @@ mod filesystem;
 pub(crate) mod io;
 pub(crate) mod location;
 pub(crate) mod source;
+pub(crate) mod walk;
