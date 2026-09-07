@@ -52,7 +52,7 @@ pub(crate) fn get_filelist(
         let firmlink_paths_data = read_firmlinks();
         match firmlink_paths_data {
             Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
-            Err(err) => warn!("[files] Failed to read firmlinks file on macOS: {err:?}"),
+            Err(err) => warn!("Failed to read firmlinks file on macOS: {err:?}"),
         }
     }
 
@@ -71,7 +71,7 @@ pub(crate) fn get_filelist(
         rule = match extract_rule(options.yara.as_ref().unwrap()) {
             Ok(result) => result,
             Err(err) => {
-                error!("[files] Bad yara rule {err:?}");
+                error!("Bad yara rule {err:?}");
                 return Err(FileError::Filelisting);
             }
         };
@@ -84,7 +84,7 @@ pub(crate) fn get_filelist(
         let entry = match entries {
             Ok(result) => result,
             Err(err) => {
-                warn!("[files] Failed to get file info: {err:?}");
+                warn!("Failed to get file info: {err:?}");
                 continue;
             }
         };
@@ -111,7 +111,7 @@ pub(crate) fn get_filelist(
             scan = match scan_result {
                 Ok(result) => result,
                 Err(err) => {
-                    warn!("[files] Failed to scan with yara: {err:?}");
+                    warn!("Failed to scan with yara: {err:?}");
                     continue;
                 }
             };
@@ -125,10 +125,7 @@ pub(crate) fn get_filelist(
         let mut file_entry = match file_entry_result {
             Ok(result) => result,
             Err(err) => {
-                warn!(
-                    "[files] Failed to get file {:?} entry data: {err:?}",
-                    entry.path()
-                );
+                warn!("Failed to get file {:?} entry data: {err:?}", entry.path());
                 continue;
             }
         };
@@ -226,7 +223,7 @@ fn file_metadata(
         file_entry.directory = parent.display().to_string();
     } else {
         info!(
-            "[files] Did not get parent directory for filename at: {:?}",
+            "Did not get parent directory for filename at: {:?}",
             entry.path()
         );
     }
@@ -234,7 +231,7 @@ fn file_metadata(
     if let Some(filename) = entry.file_name().to_str() {
         file_entry.filename = filename.to_string();
     } else {
-        warn!("[files] Failed to get filename for: {:?}", entry.path());
+        warn!("Failed to get filename for: {:?}", entry.path());
     }
     Ok(file_entry)
 }
@@ -277,7 +274,7 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileErr
                 Ok(result) => result,
                 Err(err) => {
                     if !err.to_string().contains("Magic Bytes") {
-                        error!("[files] Could not parse ELF file {path} error: {err:?}");
+                        error!("Could not parse ELF file {path} error: {err:?}");
                     }
                     return Err(FileError::ParseFile);
                 }
@@ -289,7 +286,7 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileErr
                 Ok(results) => results,
                 Err(err) => {
                     if err != MachoError::Buffer && err != MachoError::Magic {
-                        error!("[files] Failed to parse executable binary {path}, error: {err:?}");
+                        error!("Failed to parse executable binary {path}, error: {err:?}");
                     }
                     return Err(FileError::ParseFile);
                 }
@@ -301,7 +298,7 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileErr
                 Ok(result) => result,
                 Err(err) => {
                     if err != pelite::Error::Invalid && err != pelite::Error::BadMagic {
-                        warn!("[files] Could not parse PE file {path}: {err:?}");
+                        warn!("Could not parse PE file {path}: {err:?}");
                     }
                     return Err(FileError::ParseFile);
                 }
@@ -320,7 +317,7 @@ fn user_regex(input: &str) -> Result<Regex, FileError> {
     match reg_result {
         Ok(result) => Ok(result),
         Err(err) => {
-            error!("[files] Bad regex: {input}, error: {err:?}");
+            error!("Bad regex: {input}, error: {err:?}");
             Err(FileError::Regex)
         }
     }

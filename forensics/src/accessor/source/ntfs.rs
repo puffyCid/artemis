@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     fn test_ntfs_read_root_dirs() {
         use crate::accessor::entry::handle::EntryKind;
 

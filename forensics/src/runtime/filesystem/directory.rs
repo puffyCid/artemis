@@ -61,7 +61,7 @@ pub(crate) fn js_read_dir(
         ),
         None,
         context,
-    );
+    )?;
 
     // Return a promise and let setup.rs handle the results
     Ok(promise.into())

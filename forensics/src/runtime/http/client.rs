@@ -115,7 +115,7 @@ pub(crate) fn js_request(
         ),
         None,
         context,
-    );
+    )?;
 
     Ok(promise.into())
 }
