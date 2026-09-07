@@ -2,10 +2,7 @@ use tracing::error;
 
 use crate::accessor::{
     access::Accessor,
-    entry::{
-        handle::{DirEntry, EntryKind, FileHandle, ItemHandle},
-        locator::{DirLocator, FileLocator, NtfsEntryRef, SourceId},
-    },
+    entry::{handle::DirEntry, locator::SourceId},
     error::{AccessorError, AccessorResult},
     location::path::InnerPath,
     source::{factory::parse_inner_path, handle::SourceHandle},
@@ -32,13 +29,14 @@ pub(crate) struct WalkAccessor {
 
 /// Track files and directories we walk
 struct WalkStack {
-    /// Current depht
+    /// Current depth
     depth: u32,
     /// Array of children from current path in the iterator
     child: Vec<DirEntry>,
 }
 
 /// Entry returned by `WalkAccessor`
+#[derive(Debug)]
 pub(crate) struct WalkEntry {
     /// A File or Directory return by the iterator
     pub(crate) entry: DirEntry,
@@ -68,7 +66,7 @@ impl WalkAccessor {
         self
     }
 
-    /// Iterator to walk the filesytem
+    /// Iterator to walk the filesystem
     pub(crate) fn next(&mut self, accessor: &Accessor) -> Option<AccessorResult<WalkEntry>> {
         if let Some(err) = self.pending_error.take() {
             return Some(Err(err));
@@ -135,7 +133,7 @@ impl WalkAccessor {
         match accessor.source_read_dir_handle(&self.source, handle) {
             Ok(mut child) => {
                 child.reverse();
-                self.stack.push(WalkStack { depth, child })
+                self.stack.push(WalkStack { depth, child });
             }
             Err(err) => {
                 error!(
@@ -165,10 +163,10 @@ impl WalkAccessor {
         };
 
         for line in String::from_utf8_lossy(&bytes).lines() {
-            if let Some(path) = line.split_whitespace().next() {
-                if !path.is_empty() {
-                    self.firmlinks.insert(path.to_string());
-                }
+            if let Some(path) = line.split_whitespace().next()
+                && !path.is_empty()
+            {
+                self.firmlinks.insert(path.to_string());
             }
         }
     }
@@ -181,8 +179,38 @@ impl WalkAccessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{access::Accessor, walk::WalkAccessor};
-    use std::path::PathBuf;
+    use crate::accessor::{access::Accessor, error::AccessorError, walk::WalkAccessor};
+    use std::{
+        fs::{self, File},
+        io::Write,
+        path::PathBuf,
+    };
+
+    fn setup(name: &str) -> PathBuf {
+        let dir = PathBuf::from("./tmp/walk").join(name);
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn write_file(dir: &PathBuf, name: &str, contents: &[u8]) {
+        let path = dir.join(name);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        File::create(path).unwrap().write_all(contents).unwrap();
+    }
+
+    fn collect(walk: &mut WalkAccessor, accessor: &Accessor) -> Vec<(u32, String)> {
+        let mut out = Vec::new();
+        while let Some(item) = walk.next(accessor) {
+            let Ok(entry) = item else {
+                continue;
+            };
+            out.push((entry.depth, entry.entry.meta.filename.clone()));
+        }
+        out
+    }
 
     #[test]
     fn test_walk_accessor() {
@@ -232,7 +260,7 @@ mod tests {
     fn test_walk_accessor_ntfs() {
         let mut accessor = Accessor::with_defaults();
         let source = accessor.open_source(&"ntfs:C").unwrap();
-        let mut walk = WalkAccessor::new(&source, "").unwrap().max_depth(5);
+        let mut walk = WalkAccessor::new(&source, "").unwrap().max_depth(2);
 
         let mut count = 0;
         while let Some(item) = walk.next(&accessor) {
@@ -242,5 +270,130 @@ mod tests {
         }
 
         assert!(count > 10, "{}", count);
+    }
+
+    #[test]
+    fn test_walk_max_depth() {
+        let dir = setup("max_depth");
+        write_file(&dir, "a.txt", b"a");
+        write_file(&dir, "nested/b.txt", b"b");
+        write_file(&dir, "nested/deep/c.txt", b"c");
+
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+        let start = dir.display().to_string();
+        let mut walk = WalkAccessor::new(&source, &start).unwrap().max_depth(1);
+        let names: Vec<String> = collect(&mut walk, &accessor)
+            .into_iter()
+            .map(|(_, name)| name)
+            .collect();
+
+        assert!(names.contains(&"a.txt".to_string()));
+        assert!(names.contains(&"nested".to_string()));
+        assert!(!names.contains(&"b.txt".to_string()));
+        assert!(!names.contains(&"c.txt".to_string()));
+
+        let mut walk = WalkAccessor::new(&source, &start).unwrap().max_depth(2);
+        let names: Vec<String> = collect(&mut walk, &accessor)
+            .into_iter()
+            .map(|(_, name)| name)
+            .collect();
+
+        assert!(names.contains(&"b.txt".to_string()));
+        assert!(!names.contains(&"c.txt".to_string()));
+    }
+
+    #[test]
+    fn test_walk_stat_during_iteration() {
+        let dir = setup("stat_during");
+        write_file(&dir, "file.txt", b"hello");
+
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+        let mut walk = WalkAccessor::new(&source, &dir.display().to_string())
+            .unwrap()
+            .max_depth(1);
+
+        let mut saw_file = false;
+
+        while let Some(item) = walk.next(&accessor) {
+            let entry = item.unwrap();
+            if let Some(file) = entry.entry.handle.as_file() {
+                let stat = accessor.source_stat_handle(&source, file).unwrap();
+                assert_eq!(stat.meta.filename, "file.txt");
+                assert_eq!(stat.meta.size, 5);
+                saw_file = true;
+            }
+
+            if let Some(dir_handle) = entry.entry.handle.as_directory() {
+                let stat = accessor
+                    .source_stat_dir_handle(&source, dir_handle)
+                    .unwrap();
+                assert_eq!(
+                    stat.meta.kind,
+                    crate::accessor::entry::handle::EntryKind::Directory
+                );
+            }
+        }
+
+        assert!(saw_file);
+    }
+
+    #[test]
+    fn test_walk_zip_nested_and_empty_dir() {
+        let mut archive = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        archive.push("tests/test_data/archives/document.odt");
+
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor
+            .open_source(&format!("zip:{}", archive.display()))
+            .unwrap();
+
+        let mut walk = WalkAccessor::new(&source, "").unwrap().max_depth(5);
+        let names: Vec<String> = collect(&mut walk, &accessor)
+            .into_iter()
+            .map(|(_, name)| name)
+            .collect();
+
+        assert!(names.contains(&"content.xml".to_string()));
+        assert!(names.contains(&"Configurations2".to_string()));
+        assert!(names.contains(&"thumbnail.png".to_string()));
+        assert!(names.contains(&"manifest.xml".to_string()));
+    }
+
+    #[test]
+    fn test_walk_zip_missing_prefix() {
+        let mut archive = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        archive.push("tests/test_data/archives/document.odt");
+
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor
+            .open_source(&format!("zip:{}", archive.display()))
+            .unwrap();
+
+        let mut walk = WalkAccessor::new(&source, "no/such/dir").unwrap();
+        let err = walk.next(&accessor).unwrap().unwrap_err();
+
+        assert!(matches!(err, AccessorError::NotFound { .. }));
+        assert!(walk.next(&accessor).is_none());
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn test_walk_skips_firmlinks_but_not_start() {
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+
+        let mut walk = WalkAccessor::new(&source, "/").unwrap().max_depth(2);
+        let paths: Vec<String> = collect(&mut walk, &accessor)
+            .into_iter()
+            .map(|(_, name)| name)
+            .collect();
+
+        assert!(!paths.iter().any(|name| name == "Users"));
+        let mut walk = WalkAccessor::new(&source, "/Users").unwrap().max_depth(1);
+        let users = collect(&mut walk, &accessor);
+
+        assert!(!users.is_empty());
     }
 }
