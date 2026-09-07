@@ -23,8 +23,10 @@ pub(crate) struct WalkAccessor {
     stack: Vec<WalkStack>,
     /// Error we may encounter while iterating
     pending_error: Option<AccessorError>,
-    /// Default firmlinks on macOS we ignore
-    firmlinks: HashSet<String>,
+    /// Directories we should skip
+    ///
+    /// On macOS we always skip firmlinks
+    exclude: HashSet<String>,
 }
 
 /// Track files and directories we walk
@@ -56,13 +58,18 @@ impl WalkAccessor {
             started: false,
             stack: Vec::new(),
             pending_error: None,
-            firmlinks: HashSet::new(),
+            exclude: HashSet::new(),
         })
     }
 
     /// Max depth we should descend to
     pub(crate) fn max_depth(mut self, depth: u32) -> Self {
         self.max_depth = depth;
+        self
+    }
+
+    pub(crate) fn exclude(mut self, path: impl Into<String>) -> Self {
+        self.exclude.insert(path.into());
         self
     }
 
@@ -92,8 +99,11 @@ impl WalkAccessor {
             let child = walk_stack.child.pop()?;
             let depth = walk_stack.depth + 1;
 
-            // On macOS systems we always ignore firmlink paths
-            if self.is_firmlink(&child.meta.full_path) {
+            // Skip excluded paths
+            if !self.exclude.is_empty()
+                && self.source.id() == &SourceId::Host
+                && self.is_exclude(&child.meta.full_path)
+            {
                 continue;
             }
 
@@ -166,14 +176,14 @@ impl WalkAccessor {
             if let Some(path) = line.split_whitespace().next()
                 && !path.is_empty()
             {
-                self.firmlinks.insert(path.to_string());
+                self.exclude.insert(path.to_string());
             }
         }
     }
 
-    /// Check if path is a firmlink
-    fn is_firmlink(&self, full_path: &str) -> bool {
-        self.firmlinks.contains(full_path)
+    /// Check if we should skip path
+    fn is_exclude(&self, full_path: &str) -> bool {
+        self.exclude.contains(full_path)
     }
 }
 
@@ -204,9 +214,7 @@ mod tests {
     fn collect(walk: &mut WalkAccessor, accessor: &Accessor) -> Vec<(u32, String)> {
         let mut out = Vec::new();
         while let Some(item) = walk.next(accessor) {
-            let Ok(entry) = item else {
-                continue;
-            };
+            let entry = item.unwrap();
             out.push((entry.depth, entry.entry.meta.filename.clone()));
         }
         out
@@ -267,6 +275,29 @@ mod tests {
             let entry = item.unwrap();
             count += 1;
             assert!(!entry.entry.meta.full_path.is_empty());
+        }
+
+        assert!(count > 10, "{}", count);
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_walk_accessor_skip_bin() {
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source(&"host:").unwrap();
+        let mut walk = WalkAccessor::new(&source, "/")
+            .unwrap()
+            .max_depth(2)
+            .exclude("/bin")
+            .exclude("/lost+found")
+            .exclude("/root");
+
+        let mut count = 0;
+        while let Some(item) = walk.next(&accessor) {
+            let entry = item.unwrap();
+            count += 1;
+            assert!(!entry.entry.meta.full_path.is_empty());
+            assert!(!entry.entry.meta.full_path.contains("/bin/"));
         }
 
         assert!(count > 10, "{}", count);
@@ -395,5 +426,55 @@ mod tests {
         let users = collect(&mut walk, &accessor);
 
         assert!(!users.is_empty());
+    }
+
+    #[test]
+    fn test_walk_exclude_directory() {
+        let dir = setup("exclude_dir");
+        write_file(&dir, "keep/a.txt", b"a");
+        write_file(&dir, "dev/secret.txt", b"secret");
+        write_file(&dir, "other.txt", b"o");
+
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+        let start = dir.display().to_string();
+        let skip = dir.join("dev").display().to_string();
+
+        let mut walk = WalkAccessor::new(&source, &start)
+            .unwrap()
+            .max_depth(3)
+            .exclude(skip);
+
+        let names: Vec<String> = collect(&mut walk, &accessor)
+            .into_iter()
+            .map(|(_, name)| name)
+            .collect();
+
+        assert!(names.contains(&"keep".to_string()));
+        assert!(names.contains(&"a.txt".to_string()));
+        assert!(names.contains(&"other.txt".to_string()));
+        assert!(!names.contains(&"dev".to_string()));
+        assert!(!names.contains(&"secret.txt".to_string()));
+    }
+
+    #[test]
+    fn test_walk_exclude_does_not_skip_start() {
+        let dir = setup("exclude_start");
+        write_file(&dir, "child.txt", b"c");
+
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+        let start = dir.display().to_string();
+
+        let mut walk = WalkAccessor::new(&source, &start)
+            .unwrap()
+            .max_depth(1)
+            .exclude(start.clone());
+
+        let names: Vec<String> = collect(&mut walk, &accessor)
+            .into_iter()
+            .map(|(_, name)| name)
+            .collect();
+        assert!(names.contains(&"child.txt".to_string()));
     }
 }
