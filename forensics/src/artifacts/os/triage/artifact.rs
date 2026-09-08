@@ -115,19 +115,22 @@ fn acquire_files(
     // Check if file mask is using regex instead a glob
     if target.file_mask.starts_with("regex:") {
         glob_string = target.path.clone();
-        let pattern = match create_regex(&target.file_mask.replace("regex:", "")) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Could not create regex: {err:?}");
-                return Err(TriageError::Regex);
-            }
-        };
+        let pattern =
+            match create_regex(target.file_mask.strip_suffix("regex:").unwrap_or_default()) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("Could not create regex: {err:?}");
+                    return Err(TriageError::Regex);
+                }
+            };
         file_pattern = Some(pattern);
     }
 
     info!("Applying glob on '{glob_string}'");
 
-    let paths = accessor.globfs(&glob_string).unwrap_or_default();
+    let paths = accessor
+        .source_globfs(source, &glob_string)
+        .unwrap_or_default();
     let file_mask = if !target.file_mask.starts_with("regex:")
         && let Ok(value) = Pattern::new(&target.file_mask)
     {
@@ -252,19 +255,19 @@ fn read_file(
     source: &SourceHandle,
     zip: &mut ZipWriter<File>,
 ) -> Result<TriageReport, TriageError> {
-    let mut reader = match accessor.open_reader_handle(handle) {
+    let mut reader = match accessor.source_open_reader_handle(source, handle) {
         Ok(result) => result,
         Err(err) => {
+            error!(
+                "Could not open host reader for {}: {err:?}",
+                handle.display_path()
+            );
             // On Windows we try the NTFS accessor if a file is locked
             if get_platform_enum() == PlatformType::Windows
                 && handle.display_path().starts_with("host:")
             {
                 read_file_locked(accessor, &handle.full_path())?
             } else {
-                error!(
-                    "Could not open reader for {}: {err:?}",
-                    handle.display_path()
-                );
                 return Err(TriageError::ReadFile);
             }
         }
