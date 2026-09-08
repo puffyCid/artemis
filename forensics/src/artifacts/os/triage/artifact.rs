@@ -653,6 +653,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_read_file_ntfs_zip_entry_name() {
+        use zip::ZipArchive;
+
         let (mut zip, zip_path) = setup_zip("read_file_ntfs_zip_name");
         let handle = FileHandle::host("C:\\Windows\\System32\\config\\SOFTWARE");
         let mut accessor = Accessor::with_defaults();
@@ -675,6 +677,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_read_file_ntfs_ads_zip_entry_name() {
+        use zip::ZipArchive;
+
         let (mut zip, zip_path) = setup_zip("read_file_ntfs_ads_zip_name");
         let handle = FileHandle::host("C:\\$Secure:$SDS");
         let mut accessor = Accessor::with_defaults();
