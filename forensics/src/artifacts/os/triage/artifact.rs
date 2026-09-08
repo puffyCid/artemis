@@ -97,15 +97,6 @@ struct TriageReport {
     size: u64,
 }
 
-fn get_ntfs_ads_zip_path(path: &str, attribute: &str, create_paths: bool) -> String {
-    let base_path = if create_paths {
-        path.to_string()
-    } else {
-        get_filename(path)
-    };
-    format!("{base_path}_{attribute}")
-}
-
 /// Copy the targeted files
 fn acquire_files(
     target: &TriageOptions,
@@ -125,7 +116,7 @@ fn acquire_files(
     // Check if file mask is using regex instead a glob
     if target.file_mask.starts_with("regex:") {
         glob_string = target.path.clone();
-        let pattern = match create_regex(&target.file_mask.replace("regex:", "")) {
+        let pattern = match create_regex(&target.file_mask.replace("regex:", "_")) {
             Ok(result) => result,
             Err(err) => {
                 error!("Could not create regex: {err:?}");
@@ -311,7 +302,7 @@ fn read_file_locked(accessor: &mut Accessor, path: &str) -> Result<AccessorReade
     let reader = match accessor.open_reader(&ntfs) {
         Ok(results) => results,
         Err(err) => {
-            error!("Failed to ntfs reader for locked file '{path}': {err:?}");
+            error!("Failed to open ntfs reader for locked file '{path}': {err:?}");
             return Err(TriageError::NoReader);
         }
     };
@@ -326,9 +317,7 @@ mod tests {
     use crate::accessor::walk::WalkAccessor;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
-        artifacts::os::triage::artifact::{
-            acquire_files, get_ntfs_ads_zip_path, read_file, triage, walking,
-        },
+        artifacts::os::triage::artifact::{acquire_files, read_file, triage, walking},
         output::manager::OutputManager,
         structs::artifacts::triage::TriageOptions,
         utils::regex_options::create_regex,
@@ -506,18 +495,6 @@ mod tests {
         let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
         assert_eq!(report.md5, "7bf0a4b133b9e4d8aa8d279474ab3367");
         assert_eq!(report.size, 611);
-    }
-
-    #[test]
-    fn test_get_ntfs_ads_zip_path() {
-        assert_eq!(
-            get_ntfs_ads_zip_path("C:\\Windows\\System32\\config\\SOFTWARE", "$SDS", true),
-            "C:\\Windows\\System32\\config\\SOFTWARE_$SDS"
-        );
-        assert_eq!(
-            get_ntfs_ads_zip_path("C:\\Windows\\System32\\config\\SOFTWARE", "$SDS", false),
-            "SOFTWARE_$SDS"
-        );
     }
 
     #[test]
