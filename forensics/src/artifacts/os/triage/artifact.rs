@@ -2,12 +2,16 @@ use crate::{
     accessor::{
         access::Accessor,
         entry::handle::{FileHandle, Timestamp},
+        io::reader::AccessorReader,
         source::handle::SourceHandle,
         walk::WalkAccessor,
     },
-    artifacts::os::triage::{
-        error::TriageError,
-        reader::{grab_file, write_report},
+    artifacts::os::{
+        systeminfo::info::{PlatformType, get_platform_enum},
+        triage::{
+            error::TriageError,
+            reader::{grab_file, write_report},
+        },
     },
     filesystem::files::get_filename,
     output::{manager::OutputManager, record::serialize_records_to_stream},
@@ -133,11 +137,12 @@ fn acquire_files(
 
     info!("Applying glob on '{glob_string}'");
 
-    let paths = match accessor.globfs(&glob_string) {
-        Ok(results) => results,
+    let paths = accessor.globfs(&glob_string).unwrap_or_default();
+    let file_mask = match Pattern::new(&target.file_mask) {
+        Ok(result) => result,
         Err(err) => {
-            error!("Could not glob '{glob_string}': {err:?}");
-            return Err(TriageError::ReadFile);
+            error!("Incorrect glob file mask: {err:?}");
+            return Err(TriageError::Regex);
         }
     };
 
@@ -146,7 +151,7 @@ fn acquire_files(
             && target.recursive
         {
             info!("Walking the directory: '{}'", handle.full_path());
-            let walk = match WalkAccessor::new(source, &handle.full_path()) {
+            let mut walk = match WalkAccessor::new(source, &handle.full_path()) {
                 Ok(results) => results,
                 Err(err) => {
                     warn!("Could not start walk for {}: {err:?}", handle.full_path());
@@ -154,11 +159,14 @@ fn acquire_files(
                 }
             };
 
+            let depth = 1000;
+            walk = walk.max_depth(depth);
+
             walking(
                 walk,
                 file_pattern.as_ref(),
                 report,
-                &target.file_mask,
+                &file_mask,
                 zip,
                 accessor,
                 source,
@@ -190,7 +198,7 @@ fn walking(
     mut walk: WalkAccessor,
     pattern: Option<&Regex>,
     report: &mut Vec<TriageReport>,
-    file_mask: &str,
+    file_mask: &Pattern,
     zip: &mut ZipWriter<File>,
     accessor: &mut Accessor,
     source: &SourceHandle,
@@ -207,12 +215,8 @@ fn walking(
         // No regex was provided. Using file mask to determine if a file should be read
         if pattern.is_none()
             && entry.entry.is_file()
-            && let Ok(glob_pattern) = Pattern::new(file_mask)
+            && file_mask.matches(&entry.entry.meta.filename)
         {
-            if !glob_pattern.matches(&entry.entry.meta.filename) {
-                continue;
-            }
-
             let Some(handle) = entry.entry.handle.as_file() else {
                 continue;
             };
@@ -256,8 +260,18 @@ fn read_file(
     let mut reader = match accessor.open_reader_handle(handle) {
         Ok(result) => result,
         Err(err) => {
-            error!("Could open reader for {}: {err:?}", handle.display_path());
-            return Err(TriageError::ReadFile);
+            // On Windows we try the NTFS accessor if a file is locked
+            if get_platform_enum() == PlatformType::Windows
+                && handle.display_path().starts_with("host:")
+            {
+                read_file_locked(&handle.full_path())?
+            } else {
+                error!(
+                    "Could not open reader for {}: {err:?}",
+                    handle.display_path()
+                );
+                return Err(TriageError::ReadFile);
+            }
         }
     };
 
@@ -286,6 +300,21 @@ fn read_file(
     Ok(file_report)
 }
 
+/// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
+fn read_file_locked(path: &str) -> Result<AccessorReader, TriageError> {
+    let ntfs = format!("ntfs:{path}");
+    let mut accessor = Accessor::with_defaults();
+    let reader = match accessor.open_reader(&ntfs) {
+        Ok(results) => results,
+        Err(err) => {
+            error!("Failed to ntfs reader for locked file '{path}': {err:?}");
+            return Err(TriageError::StartZip);
+        }
+    };
+
+    Ok(reader)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::accessor::access::Accessor;
@@ -300,6 +329,7 @@ mod tests {
         structs::artifacts::triage::TriageOptions,
         utils::regex_options::create_regex,
     };
+    use glob::Pattern;
     use std::{
         fs::{File, create_dir_all},
         path::PathBuf,
@@ -409,7 +439,7 @@ mod tests {
             walk,
             None,
             &mut report,
-            "bad.toml",
+            &Pattern::new("bad.toml").unwrap(),
             &mut zip,
             &mut accessor,
             &source,
@@ -442,7 +472,7 @@ mod tests {
             walk,
             Some(&patter),
             &mut report,
-            "",
+            &Pattern::new("").unwrap(),
             &mut zip,
             &mut accessor,
             &source,

@@ -1,10 +1,4 @@
-use crate::{
-    accessor::{access::Accessor, io::reader::AccessorReader},
-    artifacts::os::{
-        systeminfo::info::{PlatformType, get_platform_enum},
-        triage::error::TriageError,
-    },
-};
+use crate::{accessor::io::reader::AccessorReader, artifacts::os::triage::error::TriageError};
 use base16ct::lower::encode_str;
 use digest_io::IoWrapper;
 use md5::{Digest, Md5};
@@ -29,19 +23,13 @@ pub(crate) fn grab_file(
 
     if let Err(err) = zip.start_file_from_path(reader.location.full_path(), options) {
         error!("Failed to start file read into zip: {err:?}");
-        return Err(TriageError::StartZip);
+        return Err(TriageError::ReadFile);
     }
 
     loop {
         let bytes = match reader.read(&mut buf) {
             Ok(result) => result,
             Err(err) => {
-                // On Windows we try the NTFS accessor if a file is locked
-                if get_platform_enum() == PlatformType::Windows
-                    && reader.location.display_path().starts_with("host:")
-                {
-                    return grab_file_locked(zip, reader.location.full_path());
-                }
                 error!("Failed to read all bytes from file: {err:?}");
                 return Err(TriageError::ReadFile);
             }
@@ -64,21 +52,6 @@ pub(crate) fn grab_file(
     let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
 
     Ok(md5_string)
-}
-
-/// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
-fn grab_file_locked(zip: &mut ZipWriter<File>, path: &str) -> Result<String, TriageError> {
-    let ntfs = format!("ntfs:{path}");
-    let mut accessor = Accessor::with_defaults();
-    let mut reader = match accessor.open_reader(&ntfs) {
-        Ok(results) => results,
-        Err(err) => {
-            error!("Failed to ntfs reader for locked file '{path}': {err:?}");
-            return Err(TriageError::StartZip);
-        }
-    };
-
-    grab_file(&mut reader, zip)
 }
 
 /// Write the triage JSON report to the triage zip file
