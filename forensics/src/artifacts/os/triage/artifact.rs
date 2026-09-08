@@ -138,12 +138,12 @@ fn acquire_files(
     info!("Applying glob on '{glob_string}'");
 
     let paths = accessor.globfs(&glob_string).unwrap_or_default();
-    let file_mask = match Pattern::new(&target.file_mask) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Incorrect glob file mask: {err:?}");
-            return Err(TriageError::Regex);
-        }
+    let file_mask = if !target.file_mask.starts_with("regex:")
+        && let Ok(value) = Pattern::new(&target.file_mask)
+    {
+        value
+    } else {
+        Pattern::default()
     };
 
     for path in paths {
@@ -264,7 +264,7 @@ fn read_file(
             if get_platform_enum() == PlatformType::Windows
                 && handle.display_path().starts_with("host:")
             {
-                read_file_locked(&handle.full_path())?
+                read_file_locked(accessor, &handle.full_path())?
             } else {
                 error!(
                     "Could not open reader for {}: {err:?}",
@@ -301,14 +301,13 @@ fn read_file(
 }
 
 /// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
-fn read_file_locked(path: &str) -> Result<AccessorReader, TriageError> {
+fn read_file_locked(accessor: &mut Accessor, path: &str) -> Result<AccessorReader, TriageError> {
     let ntfs = format!("ntfs:{path}");
-    let mut accessor = Accessor::with_defaults();
     let reader = match accessor.open_reader(&ntfs) {
         Ok(results) => results,
         Err(err) => {
             error!("Failed to ntfs reader for locked file '{path}': {err:?}");
-            return Err(TriageError::StartZip);
+            return Err(TriageError::NoReader);
         }
     };
 
