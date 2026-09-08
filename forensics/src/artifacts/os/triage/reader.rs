@@ -1,32 +1,21 @@
 use crate::{
-    accessor::{
-        access::Accessor, entry::handle::FileHandle, io::reader::AccessorReader,
-        source::handle::SourceHandle,
-    },
+    accessor::{access::Accessor, io::reader::AccessorReader},
     artifacts::os::{
         systeminfo::info::{PlatformType, get_platform_enum},
         triage::error::TriageError,
     },
-    filesystem::ntfs::{raw_files::read_attribute, sector_reader::SectorReader},
 };
 use base16ct::lower::encode_str;
 use digest_io::IoWrapper;
 use md5::{Digest, Md5};
-use ntfs::{NtfsError, NtfsFile, NtfsReadSeek};
 use std::{
     fs::File,
-    io::{BufReader, Error, ErrorKind, Read, Write, copy},
+    io::{Read, Write, copy},
 };
 use tracing::error;
 use zip::{CompressionMethod, ZipWriter, write::SimpleFileOptions};
 
-pub(crate) struct TriageReader<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write>
-{
-    pub(crate) fs: Option<BufReader<T>>,
-    pub(crate) zip: ZipWriter<W>,
-    pub(crate) path: String,
-}
-
+/// Acquire a file and add to triage zip collection
 pub(crate) fn grab_file(
     reader: &mut AccessorReader,
     zip: &mut ZipWriter<File>,
@@ -77,6 +66,7 @@ pub(crate) fn grab_file(
     Ok(md5_string)
 }
 
+/// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
 fn grab_file_locked(zip: &mut ZipWriter<File>, path: &str) -> Result<String, TriageError> {
     let ntfs = format!("ntfs:{path}");
     let mut accessor = Accessor::with_defaults();
@@ -88,7 +78,7 @@ fn grab_file_locked(zip: &mut ZipWriter<File>, path: &str) -> Result<String, Tri
         }
     };
 
-    return grab_file(&mut reader, zip);
+    grab_file(&mut reader, zip)
 }
 
 /// Write the triage JSON report to the triage zip file
@@ -99,10 +89,12 @@ pub(crate) fn write_report(
     let method = CompressionMethod::Stored;
     let options = SimpleFileOptions::default().compression_method(method);
     let filename = "acquisition_report.json";
+
     if let Err(err) = zip.start_file_from_path(filename, options) {
         error!("Failed to start report into zip: {err:?}");
         return Err(TriageError::StartZip);
     }
+
     if let Err(err) = zip.write_all(report) {
         error!("Failed to write report into zip: {err:?}");
         return Err(TriageError::WriteReport);
@@ -111,171 +103,15 @@ pub(crate) fn write_report(
     Ok(())
 }
 
-impl<T: std::io::Seek + std::io::Read, W: std::io::Seek + std::io::Write> TriageReader<T, W> {
-    /// Acquire a file and add to triage zip collection
-    pub(crate) fn acquire_file(&mut self) -> Result<String, TriageError> {
-        if self.fs.is_none() {
-            return Err(TriageError::NoReader);
-        }
-        // Read 64MB of data at a time
-        let bytes_limit = 1024 * 1024 * 64;
-        let mut buf = vec![0; bytes_limit];
-        let mut md5 = IoWrapper(Md5::new());
-        let method = CompressionMethod::DEFLATE;
-        let options = SimpleFileOptions::default().compression_method(method);
-        if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
-            error!("Failed to start file read into zip: {err:?}");
-            return Err(TriageError::StartZip);
-        }
-
-        loop {
-            // Unwrap is safe since we check to make it is set above
-            let bytes = match self.fs.as_mut().unwrap().read(&mut buf) {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Failed to read all bytes from file: {err:?}");
-                    return Err(TriageError::ReadFile);
-                }
-            };
-            if bytes == 0 {
-                break;
-            }
-
-            if bytes < bytes_limit {
-                buf = buf[0..bytes].to_vec();
-            }
-            let _ = copy(&mut buf.as_slice(), &mut md5);
-            let _ = copy(&mut buf.as_slice(), &mut self.zip);
-            if bytes < bytes_limit {
-                break;
-            }
-        }
-        let hash = md5.0.finalize();
-        let mut buf = [0u8; 32];
-        let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
-
-        Ok(md5_string)
-    }
-
-    /// Acquire a file by parsing the NTFS filesystem. Will bypass locked files
-    pub(crate) fn acquire_file_ntfs(
-        &mut self,
-        ntfs: &NtfsFile<'_>,
-        fs: &mut BufReader<SectorReader<std::fs::File>>,
-    ) -> Result<String, NtfsError> {
-        let data_name = "";
-        let ntfs_data_option = ntfs.data(fs, data_name);
-        let ntfs_data_result = match ntfs_data_option {
-            Some(result) => result,
-            None => return Err(NtfsError::Io(Error::new(ErrorKind::InvalidData, "No data"))),
-        };
-
-        let ntfs_data = ntfs_data_result?;
-        let ntfs_attribute = ntfs_data.to_attribute()?;
-
-        let mut data_reader = ntfs_attribute.value(fs)?;
-        // Read 64MB of data at a time
-        let bytes_limit = 1024 * 1024 * 64;
-        let mut buf = vec![0; bytes_limit];
-        let mut md5 = IoWrapper(Md5::new());
-        let method = CompressionMethod::DEFLATE;
-        let options = SimpleFileOptions::default().compression_method(method);
-        if let Err(err) = self.zip.start_file_from_path(&self.path, options) {
-            error!("Failed to start file read into zip: {err:?}");
-            return Err(NtfsError::Io(Error::new(
-                ErrorKind::InvalidData,
-                "Failed to start zip writer",
-            )));
-        }
-
-        loop {
-            // Unwrap is safe since we check to make it is set above
-            let bytes = match data_reader.read(fs, &mut buf) {
-                Ok(result) => result,
-                Err(err) => {
-                    error!("Failed to read all bytes from file: {err:?}");
-                    return Err(NtfsError::Io(Error::new(
-                        ErrorKind::InvalidData,
-                        "Failed to read all data",
-                    )));
-                }
-            };
-            if bytes == 0 {
-                break;
-            }
-
-            if bytes < bytes_limit {
-                buf = buf[0..bytes].to_vec();
-            }
-            let _ = copy(&mut buf.as_slice(), &mut md5);
-            let _ = copy(&mut buf.as_slice(), &mut self.zip);
-        }
-        let hash = md5.0.finalize();
-        let mut buf = [0u8; 32];
-        let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
-
-        Ok(md5_string)
-    }
-
-    pub(crate) fn acquire_file_ntfs_ads(
-        &mut self,
-        entry_path: &str,
-        attribute: &str,
-    ) -> Result<String, TriageError> {
-        let mut md5 = IoWrapper(Md5::new());
-        let method = CompressionMethod::DEFLATE;
-        let options = SimpleFileOptions::default().compression_method(method);
-        if let Err(err) = self.zip.start_file_from_path(entry_path, options) {
-            error!("Failed to start ads read into zip: {err:?}");
-            return Err(TriageError::StartZip);
-        }
-
-        let bytes = match read_attribute(&self.path, attribute) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to read ads: {err:?}");
-                return Err(TriageError::ReadFile);
-            }
-        };
-
-        let _ = copy(&mut bytes.as_slice(), &mut md5);
-        let _ = copy(&mut bytes.as_slice(), &mut self.zip);
-
-        let hash = md5.0.finalize();
-        let mut buf = [0u8; 32];
-        let md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
-
-        Ok(md5_string)
-    }
-
-    /// Write the triage JSON report to the triage zip file
-    pub(crate) fn write_report(&mut self, report: &mut [u8]) -> Result<(), TriageError> {
-        let method = CompressionMethod::Stored;
-        let options = SimpleFileOptions::default().compression_method(method);
-        let filename = "acquisition_report.json";
-        if let Err(err) = self.zip.start_file_from_path(filename, options) {
-            error!("Failed to start report into zip: {err:?}");
-            return Err(TriageError::StartZip);
-        }
-        if let Err(err) = self.zip.write_all(report) {
-            error!("Failed to write report into zip: {err:?}");
-            return Err(TriageError::WriteReport);
-        };
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
-        artifacts::os::triage::{error::TriageError, reader::TriageReader},
-        filesystem::metadata::glob_paths,
+        accessor::{access::Accessor, entry::handle::EntryKind},
+        artifacts::os::triage::reader::grab_file,
         structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
     use std::{
         fs::{File, create_dir_all},
-        io::{BufReader, Cursor},
         path::PathBuf,
     };
     use zip::ZipWriter;
@@ -293,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn test_acquire_file_recreate_paths() {
+    fn test_grab_file() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/quick.toml");
 
@@ -305,26 +141,28 @@ mod tests {
             output.name
         ))
         .unwrap();
-        let zip = ZipWriter::new(file);
-        let reader = File::open(test_location.to_str().unwrap()).unwrap();
-        let buf = BufReader::new(reader);
-        let mut acq = TriageReader {
-            fs: Some(buf),
-            zip,
-            path: test_location.to_str().unwrap().to_string(),
-        };
-        let hash = acq.acquire_file().unwrap();
+
+        let mut zip = ZipWriter::new(file);
+
+        let mut reader = Accessor::with_defaults()
+            .open_reader(test_location.to_str().unwrap())
+            .unwrap();
+
+        let hash = grab_file(&mut reader, &mut zip).unwrap();
         assert_eq!(hash, "bee488add81fef5a1d751cabc0d707a2");
-        acq.zip.finish().unwrap();
+        zip.finish().unwrap();
     }
 
     #[test]
-    fn test_acquire_multiple_files_recreate_paths() {
+    fn test_grab_file_multiple_files_recreate_paths() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/*/*.toml");
         let output = output_options("triage_test_multiple_files", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
-        let paths = glob_paths(test_location.to_str().unwrap()).unwrap();
+
+        let paths = Accessor::with_defaults()
+            .globfs(test_location.to_str().unwrap())
+            .unwrap();
         let file = File::create(format!(
             "{}/{}.zip",
             output.directory.to_str().unwrap(),
@@ -332,75 +170,30 @@ mod tests {
         ))
         .unwrap();
 
-        let zip = ZipWriter::new(file);
-        let mut acq = TriageReader {
-            fs: None,
-            zip,
-            path: String::new(),
-        };
+        let mut zip = ZipWriter::new(file);
+
         for path in paths {
-            if !path.is_file {
+            if path.meta.kind != EntryKind::File {
                 continue;
             }
-            let reader = File::open(&path.full_path).unwrap();
-            let buf = BufReader::new(reader);
-            acq.fs = Some(buf);
-            acq.path = path.full_path;
-            let hash = acq.acquire_file().unwrap();
+
+            let mut reader = Accessor::with_defaults()
+                .open_reader_handle(path.handle.as_file().unwrap())
+                .unwrap();
+            let hash = grab_file(&mut reader, &mut zip).unwrap();
             assert!(!hash.is_empty());
         }
 
-        acq.zip.finish().unwrap();
-    }
-
-    #[test]
-    fn test_acquire_file_filename_only() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/macos/quick.toml");
-
-        let output = output_options("triage_test_filename_only", "./tmp", false);
-        create_dir_all(&output.directory).unwrap();
-        let file = File::create(format!(
-            "{}/{}.zip",
-            output.directory.to_str().unwrap(),
-            output.name
-        ))
-        .unwrap();
-        let zip = ZipWriter::new(file);
-        let reader = File::open(test_location.to_str().unwrap()).unwrap();
-        let buf = BufReader::new(reader);
-        let mut acq = TriageReader {
-            fs: Some(buf),
-            zip,
-            path: String::from("quick.toml"),
-        };
-        let hash = acq.acquire_file().unwrap();
-        assert_eq!(hash, "bee488add81fef5a1d751cabc0d707a2");
-        acq.zip.finish().unwrap();
-    }
-
-    #[test]
-    fn test_acquire_file_ntfs_ads_read_error() {
-        let zip = ZipWriter::new(Cursor::new(Vec::new()));
-        let mut acq: TriageReader<File, Cursor<Vec<u8>>> = TriageReader {
-            fs: None,
-            zip,
-            path: String::from("missing"),
-        };
-
-        let result = acq.acquire_file_ntfs_ads("missing_$SDS", "$SDS");
-
-        assert!(matches!(result, Err(TriageError::ReadFile)));
+        zip.finish().unwrap();
     }
 
     #[test]
     #[cfg(target_os = "windows")]
-    fn test_acquire_file_ntfs() {
-        use crate::filesystem::ntfs::{raw_files::raw_reader, setup::setup_ntfs_parser};
-
-        let path = "C:\\Windows\\System32\\config\\SOFTWARE";
+    fn test_grab_file_ntfs() {
+        let path = "ntfs:C:\\Windows\\System32\\config\\SOFTWARE";
         let output = output_options("triage_ntfs_acquire_file", "./tmp", false);
         create_dir_all(&output.directory).unwrap();
+
         let file = File::create(format!(
             "{}/{}.zip",
             output.directory.to_str().unwrap(),
@@ -408,17 +201,10 @@ mod tests {
         ))
         .unwrap();
 
-        let zip = ZipWriter::new(file);
-        let mut acq: TriageReader<File, File> = TriageReader {
-            fs: None,
-            zip,
-            path: path.to_string(),
-        };
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        let ntfs_file = raw_reader(path, &ntfs_parser.ntfs, &mut ntfs_parser.fs).unwrap();
-        let hash = acq
-            .acquire_file_ntfs(&ntfs_file, &mut ntfs_parser.fs)
-            .unwrap();
+        let mut zip = ZipWriter::new(file);
+        let mut reader = Accessor::with_defaults().open_reader(path).unwrap();
+
+        let hash = grab_file(&mut reader, &mut zip).unwrap();
         assert!(!hash.is_empty());
     }
 }
