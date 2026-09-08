@@ -116,7 +116,7 @@ fn acquire_files(
     if target.file_mask.starts_with("regex:") {
         glob_string = target.path.clone();
         let pattern =
-            match create_regex(target.file_mask.strip_suffix("regex:").unwrap_or_default()) {
+            match create_regex(target.file_mask.strip_prefix("regex:").unwrap_or_default()) {
                 Ok(result) => result,
                 Err(err) => {
                     error!("Could not create regex: {err:?}");
