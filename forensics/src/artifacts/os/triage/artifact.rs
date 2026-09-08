@@ -13,7 +13,6 @@ use crate::{
             reader::{grab_file, write_report},
         },
     },
-    filesystem::files::get_filename,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::triage::TriageOptions,
     utils::regex_options::{create_regex, regex_check},
@@ -116,7 +115,7 @@ fn acquire_files(
     // Check if file mask is using regex instead a glob
     if target.file_mask.starts_with("regex:") {
         glob_string = target.path.clone();
-        let pattern = match create_regex(&target.file_mask.replace("regex:", "_")) {
+        let pattern = match create_regex(&target.file_mask.replace("regex:", "")) {
             Ok(result) => result,
             Err(err) => {
                 error!("Could not create regex: {err:?}");

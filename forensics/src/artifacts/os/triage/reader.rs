@@ -22,7 +22,7 @@ pub(crate) fn grab_file(
     let options = SimpleFileOptions::default().compression_method(method);
 
     if let Err(err) =
-        zip.start_file_from_path(reader.location.full_path().replace(":", ""), options)
+        zip.start_file_from_path(reader.location.full_path().replace(":", "_"), options)
     {
         error!("Failed to start file read into zip: {err:?}");
         return Err(TriageError::ReadFile);
