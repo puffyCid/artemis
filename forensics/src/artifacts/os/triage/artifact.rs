@@ -177,6 +177,11 @@ fn acquire_files(
         let Some(handle) = path.handle.as_file() else {
             continue;
         };
+
+        if file_pattern.is_none() && !file_mask.matches(&path.meta.filename) {
+            continue;
+        }
+
         // If regex is being used. Then check if our filename matches
         if file_pattern
             .as_ref()
