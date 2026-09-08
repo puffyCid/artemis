@@ -258,7 +258,7 @@ fn read_file(
     let mut reader = match accessor.source_open_reader_handle(source, handle) {
         Ok(result) => result,
         Err(err) => {
-            error!(
+            warn!(
                 "Could not open host reader for {}: {err:?}",
                 handle.display_path()
             );
@@ -325,6 +325,7 @@ mod tests {
         utils::regex_options::create_regex,
     };
     use glob::Pattern;
+    use std::fs::{self, remove_dir_all};
     use std::{
         fs::{File, create_dir_all},
         path::PathBuf,
@@ -535,5 +536,155 @@ mod tests {
 
         let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
         assert!(!report.md5.is_empty());
+    }
+
+    fn setup_zip(name: &str) -> (ZipWriter<File>, PathBuf) {
+        let out = output_options(name, "./tmp", false);
+        let zip_output = out.config.directory.join(&out.config.name);
+        create_dir_all(&zip_output).unwrap();
+
+        let zip_path = zip_output.join("files.zip");
+        let zip = ZipWriter::new(File::create(&zip_path).unwrap());
+
+        (zip, zip_path)
+    }
+
+    fn setup_tree(name: &str) -> PathBuf {
+        let dir = PathBuf::from("./tmp").join(name);
+        let _ = remove_dir_all(&dir);
+        create_dir_all(dir.join("a/b")).unwrap();
+
+        fs::write(dir.join("keep.log"), b"a").unwrap();
+        fs::write(dir.join("skip.txt"), b"b").unwrap();
+        fs::write(dir.join("a/b/keep.log"), b"c").unwrap();
+        fs::write(dir.join("a/b/skip.txt"), b"d").unwrap();
+        dir
+    }
+
+    #[test]
+    fn test_acquire_files_recursive_mask_and_depth() {
+        let dir = setup_tree("triage_mask");
+        let target = TriageOptions {
+            name: String::from("mask"),
+            path: format!("{}/", dir.display()),
+            file_mask: String::from("*.log"),
+            recursive: true,
+            recreate_directories: true,
+        };
+
+        let (mut zip, _) = setup_zip("triage_mask");
+        let mut report = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+
+        acquire_files(&target, &mut report, &mut accessor, &source, &mut zip).unwrap();
+        let mut names: Vec<_> = report.iter().map(|r| r.filename.clone()).collect();
+        names.sort();
+
+        assert_eq!(names, vec!["keep.log", "keep.log"]);
+
+        assert!(report.iter().any(
+            |r| r.full_path.contains("a/b/keep.log") || r.full_path.contains("a\\b\\keep.log")
+        ));
+
+        assert!(!report.iter().any(|r| r.filename == "skip.txt"));
+    }
+
+    #[test]
+    fn test_acquire_files_regex_prefix() {
+        let dir = setup_tree("triage_regex");
+        let target = TriageOptions {
+            name: String::from("regex"),
+            path: format!("{}/", dir.display()),
+            file_mask: String::from(r"regex:keep\..*"),
+            recursive: true,
+            recreate_directories: true,
+        };
+
+        let (mut zip, _) = setup_zip("triage_regex");
+        let mut report = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+
+        acquire_files(&target, &mut report, &mut accessor, &source, &mut zip).unwrap();
+
+        let mut names: Vec<_> = report.iter().map(|r| r.filename.clone()).collect();
+        names.sort();
+
+        assert_eq!(names, vec!["keep.log", "keep.log"]);
+        assert!(!report.iter().any(|r| r.filename == "skip.txt"));
+    }
+
+    #[test]
+    fn test_acquire_files_missing_path_ok() {
+        let dir = setup_tree("triage_missing");
+        let missing = TriageOptions {
+            name: String::from("missing"),
+            path: String::from("/no/such/triage_dir/"),
+            file_mask: String::from("*.log"),
+            recursive: true,
+            recreate_directories: true,
+        };
+
+        let present = TriageOptions {
+            name: String::from("present"),
+            path: format!("{}/", dir.display()),
+            file_mask: String::from("*.log"),
+            recursive: true,
+            recreate_directories: true,
+        };
+
+        let (mut zip, _) = setup_zip("triage_missing");
+        let mut report = Vec::new();
+        let mut accessor = Accessor::with_defaults();
+
+        let source = accessor.open_source("host:").unwrap();
+
+        acquire_files(&missing, &mut report, &mut accessor, &source, &mut zip).unwrap();
+        assert!(report.is_empty());
+
+        acquire_files(&present, &mut report, &mut accessor, &source, &mut zip).unwrap();
+        assert!(!report.is_empty());
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_file_ntfs_zip_entry_name() {
+        let (mut zip, zip_path) = setup_zip("read_file_ntfs_zip_name");
+        let handle = FileHandle::host("C:\\Windows\\System32\\config\\SOFTWARE");
+        let mut accessor = Accessor::with_defaults();
+
+        let source = accessor.open_source("host:").unwrap();
+        let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
+        assert!(!report.md5.is_empty());
+
+        zip.finish().unwrap();
+        let archive = ZipArchive::new(File::open(zip_path).unwrap()).unwrap();
+        let name = archive.name_for_index(0).unwrap();
+        assert!(!name.contains(':'));
+
+        assert!(
+            name.contains("C_\\Windows\\System32\\config\\SOFTWARE")
+                || name.contains("C_/Windows/System32/config/SOFTWARE")
+        );
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_read_file_ntfs_ads_zip_entry_name() {
+        let (mut zip, zip_path) = setup_zip("read_file_ntfs_ads_zip_name");
+        let handle = FileHandle::host("C:\\$Secure:$SDS");
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+
+        let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
+        assert!(!report.md5.is_empty());
+        zip.finish().unwrap();
+
+        let archive = ZipArchive::new(File::open(zip_path).unwrap()).unwrap();
+        let name = archive.name_for_index(0).unwrap();
+
+        assert!(!name.contains(':'));
+        assert!(name.contains("$Secure_$SDS") || name.contains("$SDS"));
     }
 }
