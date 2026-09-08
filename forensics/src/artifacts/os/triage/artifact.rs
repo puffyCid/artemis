@@ -411,6 +411,9 @@ mod tests {
         let mut accessor = Accessor::with_defaults();
         let source = accessor.open_source("host:").unwrap();
         acquire_files(&target, &mut report, &mut accessor, &source, &mut zip).unwrap();
+
+        assert!(!report.is_empty());
+        assert!(report.iter().all(|r| r.filename.ends_with(".toml")));
     }
 
     #[test]
