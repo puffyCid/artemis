@@ -109,6 +109,29 @@ pub(crate) fn filename_from_display(display_path: &str) -> String {
     filename
 }
 
+pub(crate) fn directory_from_display(display_path: &str) -> String {
+    let scheme = location_scheme(display_path);
+    let value = if scheme.is_some_and(|scheme| scheme == Scheme::Zip) {
+        match display_path.split_once('!') {
+            Some((_, inner)) => inner,
+            None => strip_scheme(display_path),
+        }
+    } else {
+        strip_scheme(display_path)
+    };
+
+    let target = value.trim_start_matches("./").trim_end_matches(['/', '\\']);
+
+    let entry_opt = if target.contains('/') {
+        target.rsplit_once('/')
+    } else {
+        target.rsplit_once('\\')
+    };
+
+    let (directory, _) = entry_opt.unwrap_or_default();
+    directory.to_string()
+}
+
 /// Return the ADS stream name if available
 fn ads_filename(name: &str) -> String {
     let Some((base, ads)) = name.rsplit_once(':') else {

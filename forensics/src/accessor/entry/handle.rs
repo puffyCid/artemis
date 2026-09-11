@@ -1,7 +1,10 @@
-use crate::accessor::{
-    entry::locator::{DirLocator, FileLocator},
-    io::reader::{extension_from_filename, filename_from_display},
-    location::scheme::{Scheme, strip_scheme},
+use crate::{
+    accessor::{
+        entry::locator::{DirLocator, FileLocator},
+        io::reader::{directory_from_display, extension_from_filename, filename_from_display},
+        location::scheme::{Scheme, strip_scheme},
+    },
+    filesystem::directory::get_parent_directory,
 };
 use std::path::PathBuf;
 
@@ -29,6 +32,8 @@ pub(crate) struct EntryMeta {
     pub(crate) full_path: String,
     /// Filename of for the entry
     pub(crate) filename: String,
+    /// Directory for the entry
+    pub(crate) directory: String,
     /// Extension for the filename if any
     pub(crate) extension: String,
     /// Human readable path to the entry with `Scheme`
@@ -40,10 +45,12 @@ impl EntryMeta {
     pub(crate) fn new(kind: EntryKind, size: u64, display_path: impl Into<String>) -> Self {
         let path = display_path.into();
         let filename = filename_from_display(&path);
+        let full_path = strip_scheme(&path).to_string();
         Self {
             kind,
             size,
-            full_path: strip_scheme(&path).to_string(),
+            directory: directory_from_display(&path),
+            full_path,
             extension: extension_from_filename(&filename),
             filename,
             display_path: path,

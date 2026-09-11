@@ -326,7 +326,7 @@ fn file_metadatav2(
         filename: entry.entry.meta.filename,
         extension: entry.entry.meta.extension,
         size: entry.entry.meta.size,
-        directory: String::from("TODO"),
+        directory: entry.entry.meta.directory,
         ..Default::default()
     };
 
