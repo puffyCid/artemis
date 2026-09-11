@@ -152,6 +152,7 @@ fn acquire_files(
                 }
             };
 
+            // Should be plenty. Unlikely to hit 1000 nested folders
             let depth = 1000;
             walk = walk.max_depth(depth);
 

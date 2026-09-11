@@ -1,10 +1,12 @@
 use ntfs::NtfsFileReference;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Source of our data that we want to access
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum SourceId {
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub enum SourceId {
     /// Live OS
+    #[default]
     Host,
     /// Raw NTFS filesystem
     Ntfs(char),

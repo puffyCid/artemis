@@ -1,4 +1,5 @@
 use crate::accessor::access::Accessor;
+use crate::accessor::io::reader::AccessorReader;
 /**
  * Linux Executable and Linkable Format `ELF` is the native executable format of Linux programs  
  * We currently parse out basic amount of metadata
@@ -13,7 +14,7 @@ use crate::accessor::access::Accessor;
 use common::linux::ElfInfo;
 use elf::endian::AnyEndian;
 use elf::{ElfBytes, ParseError};
-use std::io::{Error, ErrorKind, Read};
+use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
 use tracing::error;
 
 /// Parse an `ELF` file at provided path
@@ -56,6 +57,45 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, ParseError> {
     };
 
     let elf_data = ElfBytes::<AnyEndian>::minimal_parse(&data)?;
+    let sections = elf_sections(&elf_data)?;
+    let machine_type = elf::to_str::e_machine_to_string(elf_data.ehdr.e_machine);
+    let symbols = elf_symbols(&elf_data)?;
+
+    let elf_info = ElfInfo {
+        symbols,
+        sections,
+        machine_type,
+    };
+    Ok(elf_info)
+}
+
+pub(crate) fn parse_elf_reader(reader: &mut AccessorReader) -> Result<ElfInfo, ParseError> {
+    // Read a few bytes to check for magic signature
+    let mut buff = [0; 4];
+    if reader.read(&mut buff).is_err() {
+        return Err(elf::ParseError::IOError(Error::new(
+            ErrorKind::InvalidInput,
+            "",
+        )));
+    }
+    let elf_magic = [127, 69, 76, 70];
+    if buff != elf_magic {
+        return Err(elf::ParseError::BadMagic(buff));
+    }
+
+    reader.seek(SeekFrom::Start(0));
+    let mut buf = Vec::new();
+    let bytes_read = match reader.read_to_end(&mut buf) {
+        Ok(result) => result,
+        Err(err) => {
+            return Err(elf::ParseError::IOError(Error::new(
+                ErrorKind::InvalidData,
+                err,
+            )));
+        }
+    };
+
+    let elf_data = ElfBytes::<AnyEndian>::minimal_parse(&buf)?;
     let sections = elf_sections(&elf_data)?;
     let machine_type = elf::to_str::e_machine_to_string(elf_data.ehdr.e_machine);
     let symbols = elf_symbols(&elf_data)?;

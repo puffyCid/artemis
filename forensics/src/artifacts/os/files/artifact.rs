@@ -48,14 +48,7 @@ mod tests {
         let file_config = FileOptions {
             start_path: String::from("/"),
             depth: Some(1),
-            metadata: Some(false),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            ..Default::default()
         };
         let status = filelisting(&mut output, &file_config).unwrap();
         assert_eq!(status, ());
@@ -69,14 +62,7 @@ mod tests {
         let file_config = FileOptions {
             start_path: String::from("C:\\"),
             depth: Some(1),
-            metadata: Some(false),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            ..Default::default()
         };
         let status = filelisting(&mut output, &file_config).unwrap();
         assert_eq!(status, ());

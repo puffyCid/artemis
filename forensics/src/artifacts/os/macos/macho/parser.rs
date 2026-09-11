@@ -10,7 +10,7 @@
  *   `https://lief-project.github.io/`
  */
 use super::{commands::command::Commands, error::MachoError, fat::FatHeader, header::MachoHeader};
-use crate::accessor::access::Accessor;
+use crate::accessor::{access::Accessor, io::reader::AccessorReader};
 use common::macos::MachoInfo;
 use std::io::{Read, Seek, SeekFrom};
 use tracing::error;
@@ -26,6 +26,13 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         }
     };
 
+    parse_macho_reader(&mut reader)
+}
+
+/// Parse a macho file with `AccessorReader`
+pub(crate) fn parse_macho_reader(
+    reader: &mut AccessorReader,
+) -> Result<Vec<MachoInfo>, MachoError> {
     let mut buff = [0; 4];
 
     if reader.read(&mut buff).is_err() {
@@ -42,22 +49,26 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         return Err(MachoError::Buffer);
     }
 
-    // The `Accessor` will auto reject files larger than 2GB
-    let data = match accessor.read_file(path) {
+    let mut buf = Vec::new();
+
+    let data = match reader.read_to_end(&mut buf) {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to read file {path}: {err:?}");
+            error!(
+                "Failed to read file {}: {err:?}",
+                reader.location.display_path()
+            );
             return Err(MachoError::Buffer);
         }
     };
 
     let min_header_len = 4;
     let min_size = 100;
-    if data.len() < min_header_len && data.len() < min_size {
+    if buf.len() < min_header_len && buf.len() < min_size {
         return Ok(Vec::new());
     }
 
-    let is_fat_results = FatHeader::is_fat(&data);
+    let is_fat_results = FatHeader::is_fat(&buf);
     let is_fat = match is_fat_results {
         Ok((_, result)) => result,
         Err(_err) => {
@@ -67,7 +78,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
 
     let mut macho_info: Vec<MachoInfo> = Vec::new();
     if is_fat {
-        let fat_header_results = parse_fat(&data);
+        let fat_header_results = parse_fat(&buf);
         let fat_header = match fat_header_results {
             Ok(result) => result,
             Err(_err) => {
@@ -76,7 +87,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         };
         // Parse in another function returning MachoInfo
         for arch in fat_header.archs {
-            let binary_data_results = MachoHeader::binary_start(&data, arch.offset, arch.size);
+            let binary_data_results = MachoHeader::binary_start(&buf, arch.offset, arch.size);
             let binary_data = match binary_data_results {
                 Ok((_, results)) => results,
                 Err(_err) => {
@@ -116,7 +127,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         }
         return Ok(macho_info);
     }
-    let is_macho_results = MachoHeader::is_macho(&data);
+    let is_macho_results = MachoHeader::is_macho(&buf);
 
     let is_macho = match is_macho_results {
         Ok((_, result)) => result,
@@ -129,7 +140,7 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         return Ok(macho_info);
     }
 
-    let header_results = MachoHeader::parse_header(&data);
+    let header_results = MachoHeader::parse_header(&buf);
     let (command_data, header_data) = match header_results {
         Ok((command, result)) => (command, result),
         Err(err) => {
@@ -138,13 +149,14 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         }
     };
 
-    let commands_results = parse_commands(command_data, &header_data, &data);
+    let commands_results = parse_commands(command_data, &header_data, &buf);
     let commands = match commands_results {
         Ok(results) => results,
         Err(err) => {
             return Err(err);
         }
     };
+
     let macho_data = MachoInfo {
         cpu_type: header_data.cpu_type,
         cpu_subtype: header_data.cpu_subtype,
@@ -158,7 +170,9 @@ pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
         minos: commands.build_system.minos,
         sdk: commands.build_system.sdk,
     };
+
     macho_info.push(macho_data);
+
     Ok(macho_info)
 }
 

@@ -142,6 +142,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             filename_regex,
             yara_rule,
             exclude_directories,
+            source,
         } => {
             let options = FileOptions {
                 md5: Some(*md5),
@@ -154,6 +155,7 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
                 filename_regex: filename_regex.clone(),
                 yara: yara_rule.clone(),
                 exclude_directories: exclude_directories.clone(),
+                source: source.clone(),
             };
             collect.files = Some(options);
             collect.artifact_name = String::from("files");
@@ -556,6 +558,7 @@ mod tests {
                 filename_regex: None,
                 yara_rule: None,
                 exclude_directories: None,
+                source: String::from("host"),
             }),
             format: String::from("json"),
             compress: false,

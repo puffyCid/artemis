@@ -36,9 +36,9 @@ pub(crate) enum CommandArgs {
         /// Start path for listing
         #[arg(long, default_value_t = String::from("/"))]
         start_path: String,
-        /// Depth for file listing. Max is 255
-        #[arg(long, default_value_t = 2)]
-        depth: u8,
+        /// Depth for file listing
+        #[arg(long, default_value_t = 1)]
+        depth: u32,
         /// Regex to only include entries that match a provided path
         #[arg(long, default_value = None)]
         path_regex: Option<String>,
@@ -51,6 +51,9 @@ pub(crate) enum CommandArgs {
         /// Base64 encoded Yara rule to only include entries that match
         #[arg(long, default_value = None)]
         yara_rule: Option<String>,
+        /// Source for filelisting
+        #[arg(long)]
+        source: String,
     },
     /// Get systeminfo
     Systeminfo {},
