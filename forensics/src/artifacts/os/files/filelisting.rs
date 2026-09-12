@@ -22,7 +22,6 @@ use crate::filesystem::files::hash_reader;
 use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::files::FileOptions;
-use crate::structs::toml::OutputFormat;
 use crate::utils::regex_options::{create_regex, regex_check};
 use common::files::FileInfo;
 use common::files::Hashes;
@@ -399,6 +398,7 @@ mod tests {
             metadata: Some(true),
             md5: Some(true),
             path_regex: Some(String::from(r".*/Downloads")),
+            source: String::from("host:"),
             ..Default::default()
         };
 
@@ -419,6 +419,7 @@ mod tests {
         let options = FileOptions {
             start_path: String::new(),
             depth: Some(1),
+            source: String::from("host:"),
             ..Default::default()
         };
         file_output(vec![info], &mut manager, &options);
@@ -441,6 +442,7 @@ mod tests {
             depth: Some(1),
             metadata: Some(true),
             md5: Some(true),
+            source: String::from("host:"),
             ..Default::default()
         };
 
@@ -456,6 +458,7 @@ mod tests {
         let options = FileOptions {
             start_path: String::from("/bin"),
             depth: Some(1),
+            source: String::from("host:"),
             ..Default::default()
         };
         let results = get_filelist(&options, &mut manager).unwrap();
@@ -474,6 +477,7 @@ mod tests {
         let options = FileOptions {
             depth: Some(1),
             metadata: Some(metadata),
+            source: String::from("host:"),
             ..Default::default()
         };
 
@@ -506,6 +510,7 @@ mod tests {
         let options = FileOptions {
             depth: Some(1),
             metadata: Some(metadata),
+            source: String::from("host:"),
             ..Default::default()
         };
 
