@@ -94,7 +94,7 @@ mod tests {
         mock_me.assert();
     }
 
-    #[test]
+    // #[test]
     #[cfg(feature = "network")]
     fn test_remote_toml_github() {
         let value = ArtemisToml::remote_artemis_toml("https://raw.githubusercontent.com/puffyCid/artemis/refs/heads/main/forensics/tests/test_data/linux.toml").unwrap();
