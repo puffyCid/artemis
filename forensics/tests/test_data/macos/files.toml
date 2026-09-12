@@ -21,3 +21,4 @@ sha256 = false                                                                  
 path_regex = ""                                                                                                                           # Regex for paths
 file_regex = ""                                                                                                                           # Regex for files
 yara = "cnVsZSBBcHBsZVJ1bGUgewogICAgc3RyaW5nczoKICAgICAgJHZhbHVlID0gIkFwcGxlIiBub2Nhc2UKCiAgICBjb25kaXRpb246CiAgICAgIGFsbCBvZiB0aGVtCn0="
+source = "host:"                                                                                                                          # Accessor source

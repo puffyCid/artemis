@@ -48,6 +48,7 @@ mod tests {
         let file_config = FileOptions {
             start_path: String::from("/"),
             depth: Some(1),
+            source: String::from("host:"),
             ..Default::default()
         };
         let status = filelisting(&mut output, &file_config).unwrap();
@@ -62,6 +63,7 @@ mod tests {
         let file_config = FileOptions {
             start_path: String::from("C:\\"),
             depth: Some(1),
+            source: String::from("host:"),
             ..Default::default()
         };
         let status = filelisting(&mut output, &file_config).unwrap();
