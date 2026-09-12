@@ -4,8 +4,8 @@ use crate::{
 };
 use common::windows::PeInfo;
 use pelite::PeFile;
-use std::io::{Read, Seek, SeekFrom};
-use tracing::error;
+use std::io::{Read, Seek};
+use tracing::{debug, error};
 
 /// Read a `PE` file at provided path
 pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
@@ -32,12 +32,12 @@ pub(crate) fn parse_pe_reader(reader: &mut AccessorReader) -> Result<PeInfo, pel
         return Err(pelite::Error::BadMagic);
     }
 
-    if reader.seek(SeekFrom::Start(0)).is_err() {
+    if reader.rewind().is_err() {
         return Err(pelite::Error::Invalid);
     }
 
     let mut buf = Vec::new();
-    let data = match reader.read_to_end(&mut buf) {
+    let bytes = match reader.read_to_end(&mut buf) {
         Ok(result) => result,
         Err(err) => {
             error!(
@@ -47,6 +47,7 @@ pub(crate) fn parse_pe_reader(reader: &mut AccessorReader) -> Result<PeInfo, pel
             return Err(pelite::Error::Overflow);
         }
     };
+    debug!("Read {bytes} bytes for {}", reader.location.display_path());
 
     let mut info = PeInfo::default();
 

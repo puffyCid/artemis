@@ -14,8 +14,8 @@ use crate::accessor::io::reader::AccessorReader;
 use common::linux::ElfInfo;
 use elf::endian::AnyEndian;
 use elf::{ElfBytes, ParseError};
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom};
-use tracing::error;
+use std::io::{Error, ErrorKind, Read, Seek};
+use tracing::{debug, error};
 
 /// Parse an `ELF` file at provided path
 pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, ParseError> {
@@ -83,9 +83,15 @@ pub(crate) fn parse_elf_reader(reader: &mut AccessorReader) -> Result<ElfInfo, P
         return Err(elf::ParseError::BadMagic(buff));
     }
 
-    reader.seek(SeekFrom::Start(0));
+    if reader.rewind().is_err() {
+        return Err(elf::ParseError::IOError(Error::new(
+            ErrorKind::InvalidData,
+            reader.rewind().unwrap_err(),
+        )));
+    }
+
     let mut buf = Vec::new();
-    let bytes_read = match reader.read_to_end(&mut buf) {
+    let bytes = match reader.read_to_end(&mut buf) {
         Ok(result) => result,
         Err(err) => {
             return Err(elf::ParseError::IOError(Error::new(
@@ -94,6 +100,8 @@ pub(crate) fn parse_elf_reader(reader: &mut AccessorReader) -> Result<ElfInfo, P
             )));
         }
     };
+
+    debug!("Read {bytes} bytes for {}", reader.location.display_path());
 
     let elf_data = ElfBytes::<AnyEndian>::minimal_parse(&buf)?;
     let sections = elf_sections(&elf_data)?;

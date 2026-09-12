@@ -1,10 +1,7 @@
-use crate::{
-    accessor::{
-        entry::locator::{DirLocator, FileLocator},
-        io::reader::{directory_from_display, extension_from_filename, filename_from_display},
-        location::scheme::{Scheme, strip_scheme},
-    },
-    filesystem::directory::get_parent_directory,
+use crate::accessor::{
+    entry::locator::{DirLocator, FileLocator},
+    io::reader::{directory_from_display, extension_from_filename, filename_from_display},
+    location::scheme::{Scheme, strip_scheme},
 };
 use std::path::PathBuf;
 

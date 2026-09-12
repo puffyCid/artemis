@@ -12,8 +12,8 @@
 use super::{commands::command::Commands, error::MachoError, fat::FatHeader, header::MachoHeader};
 use crate::accessor::{access::Accessor, io::reader::AccessorReader};
 use common::macos::MachoInfo;
-use std::io::{Read, Seek, SeekFrom};
-use tracing::error;
+use std::io::{Read, Seek};
+use tracing::{debug, error};
 
 /// Parse a macho file
 pub(crate) fn parse_macho(path: &str) -> Result<Vec<MachoInfo>, MachoError> {
@@ -45,13 +45,13 @@ pub(crate) fn parse_macho_reader(
         return Err(MachoError::Magic);
     }
 
-    if reader.seek(SeekFrom::Start(0)).is_err() {
+    if reader.rewind().is_err() {
         return Err(MachoError::Buffer);
     }
 
     let mut buf = Vec::new();
 
-    let data = match reader.read_to_end(&mut buf) {
+    let bytes = match reader.read_to_end(&mut buf) {
         Ok(result) => result,
         Err(err) => {
             error!(
@@ -61,6 +61,8 @@ pub(crate) fn parse_macho_reader(
             return Err(MachoError::Buffer);
         }
     };
+
+    debug!("Read {bytes} bytes for {}", reader.location.display_path());
 
     let min_header_len = 4;
     let min_size = 100;
