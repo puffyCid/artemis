@@ -229,6 +229,21 @@ fn file_metadata(
                 Timestamp::FilenameChanged(value) => todo!(),
             }
         }
+    } else if let Some(handle) = entry.entry.handle.as_directory()
+        && let Ok(stat) = accessor.source_stat_dir_handle(source, handle)
+    {
+        for entry in stat.times {
+            match entry {
+                Timestamp::Created(value) => file.created = value,
+                Timestamp::Modified(value) => file.modified = value,
+                Timestamp::Accessed(value) => file.accessed = value,
+                Timestamp::Changed(value) => file.changed = value,
+                Timestamp::FilenameCreated(value) => todo!(),
+                Timestamp::FilenameModified(value) => todo!(),
+                Timestamp::FilenameAccessed(value) => todo!(),
+                Timestamp::FilenameChanged(value) => todo!(),
+            }
+        }
     }
 
     let max_size = 100 * 1024 * 1024 * 1024;
