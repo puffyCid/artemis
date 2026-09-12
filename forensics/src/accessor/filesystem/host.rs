@@ -14,13 +14,15 @@ use crate::accessor::{
     io::reader::{AccessorReader, ReaderLocation},
     location::{path::InnerPath, scheme::Scheme},
 };
-use crate::utils::time::unixepoch_to_iso_with_nano;
 use glob::Pattern;
 use std::{
     fs::{self, File, Metadata, metadata, read, symlink_metadata},
     path::{Path, PathBuf},
 };
 use tracing::debug;
+
+#[cfg(target_family = "unix")]
+use crate::utils::time::unixepoch_to_iso_with_nano;
 
 /// Filesystem reader for a live OS
 ///
