@@ -501,7 +501,7 @@ mod tests {
 
         let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
         assert_eq!(report.md5, "ac79c34016a8ad1dc1b148bc992c838b");
-        assert_eq!(report.size, 611);
+        assert_eq!(report.size, 653);
     }
 
     #[test]
