@@ -180,14 +180,7 @@ fn walking(
         file.yara_hits = scan;
 
         filelist_vec.push(file);
-        // If we are not parsing binary data and not timelining our limit is 10k, otherwise set limit to 1k
-        let max_list = if !options.metadata.is_some_and(|b| b)
-            && manager.config.format != OutputFormat::Timeline
-        {
-            10000
-        } else {
-            1000
-        };
+        let max_list = 1000;
 
         if filelist_vec.len() >= max_list {
             file_output(filelist_vec, manager, options);
