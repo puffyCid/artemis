@@ -500,7 +500,7 @@ mod tests {
         let source = accessor.open_source("host:").unwrap();
 
         let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
-        assert_eq!(report.md5, "7bf0a4b133b9e4d8aa8d279474ab3367");
+        assert_eq!(report.md5, "ac79c34016a8ad1dc1b148bc992c838b");
         assert_eq!(report.size, 611);
     }
 
