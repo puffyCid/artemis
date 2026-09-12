@@ -210,6 +210,7 @@ fn file_metadata(
         extension: entry.entry.meta.extension,
         size: entry.entry.meta.size,
         directory: entry.entry.meta.directory,
+        display_path: entry.entry.meta.display_path,
         ..Default::default()
     };
 
@@ -218,14 +219,14 @@ fn file_metadata(
     {
         for entry in stat.times {
             match entry {
-                Timestamp::Created(value) => file.created = value,
+                Timestamp::Created(value) => file.created = Some(value),
                 Timestamp::Modified(value) => file.modified = value,
-                Timestamp::Accessed(value) => file.accessed = value,
-                Timestamp::Changed(value) => file.changed = value,
-                Timestamp::FilenameCreated(value) => todo!(),
-                Timestamp::FilenameModified(value) => todo!(),
-                Timestamp::FilenameAccessed(value) => todo!(),
-                Timestamp::FilenameChanged(value) => todo!(),
+                Timestamp::Accessed(value) => file.accessed = Some(value),
+                Timestamp::Changed(value) => file.changed = Some(value),
+                Timestamp::FilenameCreated(value) => file.filename_created = Some(value),
+                Timestamp::FilenameModified(value) => file.filename_modified = Some(value),
+                Timestamp::FilenameAccessed(value) => file.filename_accessed = Some(value),
+                Timestamp::FilenameChanged(value) => file.filename_changed = Some(value),
             }
         }
     } else if let Some(handle) = entry.entry.handle.as_directory()
@@ -233,14 +234,14 @@ fn file_metadata(
     {
         for entry in stat.times {
             match entry {
-                Timestamp::Created(value) => file.created = value,
+                Timestamp::Created(value) => file.created = Some(value),
                 Timestamp::Modified(value) => file.modified = value,
-                Timestamp::Accessed(value) => file.accessed = value,
-                Timestamp::Changed(value) => file.changed = value,
-                Timestamp::FilenameCreated(value) => todo!(),
-                Timestamp::FilenameModified(value) => todo!(),
-                Timestamp::FilenameAccessed(value) => todo!(),
-                Timestamp::FilenameChanged(value) => todo!(),
+                Timestamp::Accessed(value) => file.accessed = Some(value),
+                Timestamp::Changed(value) => file.changed = Some(value),
+                Timestamp::FilenameCreated(value) => file.filename_created = Some(value),
+                Timestamp::FilenameModified(value) => file.filename_modified = Some(value),
+                Timestamp::FilenameAccessed(value) => file.filename_accessed = Some(value),
+                Timestamp::FilenameChanged(value) => file.filename_changed = Some(value),
             }
         }
     }
