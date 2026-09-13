@@ -9,6 +9,8 @@
  */
 use super::error::FileError;
 use crate::accessor::access::Accessor;
+#[cfg(feature = "yarax")]
+use crate::accessor::entry::handle::EntryKind;
 use crate::accessor::entry::handle::Timestamp;
 use crate::accessor::io::reader::AccessorReader;
 use crate::accessor::source::handle::SourceHandle;
@@ -134,7 +136,7 @@ fn walking(
 
         let mut scan: Vec<String> = Vec::new();
         #[cfg(feature = "yarax")]
-        if !walk_options.yara_rule.is_empty() {
+        if !walk_options.yara_rule.is_empty() && entry.entry.handle.kind() == EntryKind::File {
             use crate::{accessor::entry::handle::EntryKind, utils::yara::scan_bytes};
 
             if entry.entry.meta.kind != EntryKind::File {
@@ -202,8 +204,6 @@ fn file_metadata(
     accessor: &mut Accessor,
 ) -> FileInfo {
     let mut file = FileInfo {
-        is_file: entry.entry.is_file(),
-        is_directory: entry.entry.is_directory(),
         full_path: entry.entry.meta.full_path,
         depth: entry.depth as usize,
         filename: entry.entry.meta.filename,
@@ -211,10 +211,12 @@ fn file_metadata(
         size: entry.entry.meta.size,
         directory: entry.entry.meta.directory,
         display_path: entry.entry.meta.display_path,
+        kind: entry.entry.handle.kind().to_string(),
         ..Default::default()
     };
 
-    if let Some(handle) = entry.entry.handle.as_file()
+    if entry.entry.handle.kind() == EntryKind::File
+        && let Some(handle) = entry.entry.handle.as_file()
         && let Ok(stat) = accessor.source_stat_handle(source, handle)
     {
         for entry in stat.times {

@@ -3,7 +3,10 @@ use crate::accessor::{
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
-use std::path::PathBuf;
+use std::{
+    fmt::{self, Display, Formatter},
+    path::PathBuf,
+};
 
 /// Support data entries we can access
 ///
@@ -26,6 +29,21 @@ pub(crate) enum EntryKind {
     CharDevice,
     /// Entry is unsupported
     Unsupported,
+}
+
+impl Display for EntryKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            EntryKind::File => write!(f, "File"),
+            EntryKind::Directory => write!(f, "Directory"),
+            EntryKind::Symlink => write!(f, "Symlink"),
+            EntryKind::Socket => write!(f, "Socket"),
+            EntryKind::BlockDevice => write!(f, "BlockDevice"),
+            EntryKind::Pipe => write!(f, "Pipe"),
+            EntryKind::CharDevice => write!(f, "CharDevice"),
+            EntryKind::Unsupported => write!(f, "Unsupported"),
+        }
+    }
 }
 
 /// Metadata returned from glob and directory listing.
@@ -236,6 +254,11 @@ pub(crate) enum ItemHandle {
     File(FileHandle),
     /// A directory handle to list additional files or directories
     Directory(DirHandle),
+    Socket(FileHandle),
+    BlockDevice(FileHandle),
+    Pipe(FileHandle),
+    CharDevice(FileHandle),
+    Symlink(FileHandle),
     /// Unsupported handle
     Unsupported(FileHandle),
 }
@@ -247,6 +270,11 @@ impl ItemHandle {
             Self::File(_) => EntryKind::File,
             Self::Directory(_) => EntryKind::Directory,
             Self::Unsupported(_) => EntryKind::Unsupported,
+            Self::CharDevice(_) => EntryKind::CharDevice,
+            Self::BlockDevice(_) => EntryKind::BlockDevice,
+            Self::Pipe(_) => EntryKind::Pipe,
+            Self::Socket(_) => EntryKind::Socket,
+            Self::Symlink(_) => EntryKind::Symlink,
         }
     }
 
@@ -255,7 +283,13 @@ impl ItemHandle {
     /// Includes the `Scheme` prefix
     pub(crate) fn display_path(&self) -> String {
         match self {
-            Self::File(handle) | Self::Unsupported(handle) => handle.display_path(),
+            Self::File(handle)
+            | Self::Unsupported(handle)
+            | Self::BlockDevice(handle)
+            | Self::CharDevice(handle)
+            | Self::Pipe(handle)
+            | Self::Socket(handle)
+            | Self::Symlink(handle) => handle.display_path(),
             Self::Directory(handle) => handle.display_path(),
         }
     }
@@ -264,7 +298,7 @@ impl ItemHandle {
     pub(crate) fn as_file(&self) -> Option<&FileHandle> {
         match self {
             Self::File(handle) => Some(handle),
-            Self::Directory(_) | Self::Unsupported(_) => None,
+            _ => None,
         }
     }
 
@@ -272,7 +306,7 @@ impl ItemHandle {
     pub(crate) fn as_directory(&self) -> Option<&DirHandle> {
         match self {
             Self::Directory(handle) => Some(handle),
-            Self::File(_) | Self::Unsupported(_) => None,
+            _ => None,
         }
     }
 }

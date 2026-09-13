@@ -437,15 +437,6 @@ impl HostFs {
             return EntryKind::File;
         }
 
-        #[cfg(target_os = "windows")]
-        {
-            use std::os::windows::fs::FileTypeExt;
-
-            if file_type.is_symlink_dir() || file_type.is_symlink_file() {
-                return EntryKind::Symlink;
-            }
-        }
-
         #[cfg(target_family = "unix")]
         {
             use std::os::unix::fs::FileTypeExt;
@@ -455,7 +446,7 @@ impl HostFs {
             }
 
             if file_type.is_fifo() {
-                return EntryKind::NamedPipe;
+                return EntryKind::Pipe;
             }
 
             if file_type.is_block_device() {
