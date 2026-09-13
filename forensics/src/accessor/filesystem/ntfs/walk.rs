@@ -77,6 +77,9 @@ fn process_child_entries<T: Read + Seek>(
     // Now get the size for files in the directory
     let mut entries = Vec::with_capacity(pending.len());
     for child in pending {
+        let file = open_by_ref(ntfs, reader, &child.file_ref)?;
+        let times = ntfs_times(reader, &file)?;
+
         let size = match child.kind {
             EntryKind::Directory
             | EntryKind::Unsupported
@@ -86,10 +89,8 @@ fn process_child_entries<T: Read + Seek>(
             | EntryKind::Symlink
             | EntryKind::CharDevice => 0,
             // Only files have sizes
-            EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
+            EntryKind::File => read_file_size(file, reader, child.file_ref.file_record_number)?,
         };
-        let file = open_by_ref(ntfs, reader, &child.file_ref)?;
-        let times = ntfs_times(reader, &file)?;
 
         let scheme_path = format!("ntfs:{}", child.display_path);
         let meta = EntryMeta::new(child.kind.clone(), size, scheme_path);
@@ -282,7 +283,14 @@ pub(crate) fn get_file_size<T: Read + Seek>(
 ) -> AccessorResult<u64> {
     // Get direct access to the file via file reference
     let file = ntfs.file(reader, record_number).map_err(ntfs_err)?;
+    read_file_size(file, reader, record_number)
+}
 
+fn read_file_size<T: Read + Seek>(
+    file: NtfsFile<'_>,
+    reader: &mut T,
+    record_number: u64,
+) -> AccessorResult<u64> {
     match file.data(reader, "") {
         Some(Ok(item)) => Ok(item.to_attribute().map_err(ntfs_err)?.value_length()),
         Some(Err(err)) => Err(ntfs_err(err)),
