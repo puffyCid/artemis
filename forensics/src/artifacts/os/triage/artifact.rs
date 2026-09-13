@@ -1,10 +1,7 @@
 use crate::{
     accessor::{
-        access::Accessor,
-        entry::handle::{FileHandle, Timestamp},
-        io::reader::AccessorReader,
-        source::handle::SourceHandle,
-        walk::WalkAccessor,
+        access::Accessor, entry::handle::FileHandle, io::reader::AccessorReader,
+        source::handle::SourceHandle, walk::WalkAccessor,
     },
     artifacts::os::{
         systeminfo::info::{PlatformType, get_platform_enum},
@@ -282,15 +279,10 @@ fn read_file(
 
     if let Ok(meta) = accessor.source_stat_handle(source, handle) {
         file_report.size = meta.meta.size;
-        for time in meta.times {
-            match time {
-                Timestamp::Created(value) => file_report.created = value,
-                Timestamp::Accessed(value) => file_report.accessed = value,
-                Timestamp::Modified(value) => file_report.modified = value,
-                Timestamp::Changed(value) => file_report.changed = value,
-                _ => {}
-            }
-        }
+        file_report.created = meta.times.created.unwrap_or_default();
+        file_report.modified = meta.times.modified.unwrap_or_default();
+        file_report.accessed = meta.times.accessed.unwrap_or_default();
+        file_report.changed = meta.times.changed.unwrap_or_default();
     }
 
     let hash = grab_file(&mut reader, zip)?;
@@ -500,8 +492,8 @@ mod tests {
         let source = accessor.open_source("host:").unwrap();
 
         let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
-        assert_eq!(report.md5, "ac79c34016a8ad1dc1b148bc992c838b");
-        assert_eq!(report.size, 653);
+        assert_eq!(report.md5, "1a5c4b6f53a5b884bd0e3cb7e694ee76");
+        assert_eq!(report.size, 657);
     }
 
     #[test]

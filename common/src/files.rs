@@ -15,7 +15,7 @@ pub struct FileInfo {
     pub filename: String,
     pub extension: String,
     pub created: Option<String>,
-    pub modified: String,
+    pub modified: Option<String>,
     pub changed: Option<String>,
     pub accessed: Option<String>,
     pub filename_created: Option<String>,

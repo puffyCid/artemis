@@ -255,15 +255,23 @@ pub(crate) struct DirEntry {
     pub(crate) handle: ItemHandle,
     /// Metadata associated with our entry
     pub(crate) meta: EntryMeta,
+    /// Timestamps associated with our entry
+    pub(crate) times: Timestamp,
 }
 
 impl DirEntry {
     /// Create a `DirEntry` value
-    pub(crate) fn new(name: impl Into<String>, handle: ItemHandle, meta: EntryMeta) -> Self {
+    pub(crate) fn new(
+        name: impl Into<String>,
+        handle: ItemHandle,
+        meta: EntryMeta,
+        times: Timestamp,
+    ) -> Self {
         Self {
             name: name.into(),
             handle,
             meta,
+            times,
         }
     }
 
@@ -281,17 +289,18 @@ impl DirEntry {
 #[derive(Debug)]
 pub(crate) struct EntryStat {
     pub(crate) meta: EntryMeta,
-    pub(crate) times: Vec<Timestamp>,
+    pub(crate) times: Timestamp,
 }
 
-#[derive(Debug)]
-pub(crate) enum Timestamp {
-    Created(String),
-    Modified(String),
-    Accessed(String),
-    Changed(String),
-    FilenameCreated(String),
-    FilenameModified(String),
-    FilenameAccessed(String),
-    FilenameChanged(String),
+/// Timestamps returned from the `Accessor`
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct Timestamp {
+    pub(crate) created: Option<String>,
+    pub(crate) modified: Option<String>,
+    pub(crate) accessed: Option<String>,
+    pub(crate) changed: Option<String>,
+    pub(crate) filename_created: Option<String>,
+    pub(crate) filename_modified: Option<String>,
+    pub(crate) filename_accessed: Option<String>,
+    pub(crate) filename_changed: Option<String>,
 }

@@ -9,7 +9,6 @@
  */
 use super::error::FileError;
 use crate::accessor::access::Accessor;
-use crate::accessor::entry::handle::Timestamp;
 use crate::accessor::io::reader::AccessorReader;
 use crate::accessor::source::handle::SourceHandle;
 use crate::accessor::walk::{WalkAccessor, WalkEntry};
@@ -209,42 +208,16 @@ fn file_metadata(
         directory: entry.entry.meta.directory,
         display_path: entry.entry.meta.display_path,
         kind: entry.entry.meta.kind,
+        created: entry.entry.times.created,
+        modified: entry.entry.times.modified,
+        accessed: entry.entry.times.accessed,
+        changed: entry.entry.times.changed,
+        filename_created: entry.entry.times.filename_created,
+        filename_modified: entry.entry.times.filename_modified,
+        filename_accessed: entry.entry.times.filename_accessed,
+        filename_changed: entry.entry.times.filename_changed,
         ..Default::default()
     };
-
-    if file.kind == EntryKind::File
-        && let Some(handle) = entry.entry.handle.as_file()
-        && let Ok(stat) = accessor.source_stat_handle(source, handle)
-    {
-        for entry in stat.times {
-            match entry {
-                Timestamp::Created(value) => file.created = Some(value),
-                Timestamp::Modified(value) => file.modified = value,
-                Timestamp::Accessed(value) => file.accessed = Some(value),
-                Timestamp::Changed(value) => file.changed = Some(value),
-                Timestamp::FilenameCreated(value) => file.filename_created = Some(value),
-                Timestamp::FilenameModified(value) => file.filename_modified = Some(value),
-                Timestamp::FilenameAccessed(value) => file.filename_accessed = Some(value),
-                Timestamp::FilenameChanged(value) => file.filename_changed = Some(value),
-            }
-        }
-    } else if file.kind == EntryKind::Directory
-        && let Some(handle) = entry.entry.handle.as_directory()
-        && let Ok(stat) = accessor.source_stat_dir_handle(source, handle)
-    {
-        for entry in stat.times {
-            match entry {
-                Timestamp::Created(value) => file.created = Some(value),
-                Timestamp::Modified(value) => file.modified = value,
-                Timestamp::Accessed(value) => file.accessed = Some(value),
-                Timestamp::Changed(value) => file.changed = Some(value),
-                Timestamp::FilenameCreated(value) => file.filename_created = Some(value),
-                Timestamp::FilenameModified(value) => file.filename_modified = Some(value),
-                Timestamp::FilenameAccessed(value) => file.filename_accessed = Some(value),
-                Timestamp::FilenameChanged(value) => file.filename_changed = Some(value),
-            }
-        }
-    }
 
     let max_size = 100 * 1024 * 1024;
     // Get executable metadata if enabled

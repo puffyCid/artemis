@@ -427,9 +427,9 @@ impl ZipFs {
             EntryKind::File
         };
 
-        let mut times = Vec::new();
+        let mut times = Timestamp::default();
         if let Some(modified) = &record.modified {
-            times.push(Timestamp::Modified(modified.clone()));
+            times.modified = Some(modified.clone());
         }
 
         EntryStat {
@@ -442,7 +442,7 @@ impl ZipFs {
     fn stat_virtual_dir(&self, prefix: &str) -> EntryStat {
         EntryStat {
             meta: EntryMeta::new(EntryKind::Directory, 0, self.display_entry_path(prefix)),
-            times: Vec::new(),
+            times: Timestamp::default(),
         }
     }
 
@@ -528,7 +528,7 @@ impl ZipFs {
 
         let mut entries = Vec::with_capacity(children.len());
         for (name, child) in children {
-            let (handle, kind, size, display_path) = match child {
+            let (handle, kind, size, display_path, times) = match child {
                 // Symbolic links are treated as a file
                 ZipChild::File { record, .. } => (
                     ItemHandle::File(FileHandle::new(FileLocator::Zip {
@@ -539,6 +539,10 @@ impl ZipFs {
                     EntryKind::File,
                     record.size,
                     self.display_entry_path(&record.path),
+                    Timestamp {
+                        modified: record.modified,
+                        ..Default::default()
+                    },
                 ),
                 ZipChild::Directory { prefix, .. } => (
                     ItemHandle::Directory(DirHandle::new(DirLocator::Zip {
@@ -549,6 +553,7 @@ impl ZipFs {
                     EntryKind::Directory,
                     0,
                     self.display_entry_path(&prefix),
+                    Timestamp::default(),
                 ),
             };
 
@@ -556,6 +561,7 @@ impl ZipFs {
                 name,
                 handle,
                 EntryMeta::new(kind, size, display_path),
+                times,
             ));
         }
 
@@ -733,10 +739,7 @@ impl ZipChild {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
-        entry::{
-            handle::{FileHandle, Timestamp},
-            locator::FileLocator,
-        },
+        entry::{handle::FileHandle, locator::FileLocator},
         error::AccessorError,
         filesystem::zip::ZipFs,
         location::path::InnerPath,
@@ -942,14 +945,9 @@ mod tests {
 
         assert_eq!(file.meta.filename, "test.txt");
         assert_eq!(file.meta.kind, EntryKind::File);
-        assert!(
-            file.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Modified(_)))
-        );
+        assert!(file.times.modified.is_some());
 
         let virt = zipfs.stat(&inner("home")).unwrap();
         assert_eq!(virt.meta.kind, EntryKind::Directory);
-        assert!(virt.times.is_empty());
     }
 }

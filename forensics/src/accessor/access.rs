@@ -360,7 +360,7 @@ impl Accessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{access::Accessor, entry::handle::Timestamp, error::AccessorError};
+    use crate::accessor::{access::Accessor, error::AccessorError};
     use common::files::EntryKind;
     use std::{
         fs::{self, File},
@@ -637,8 +637,7 @@ mod tests {
         test_location.push("tests/test_data/archives/document.odt");
 
         let meta = access.stat(test_location.to_str().unwrap()).unwrap();
-        assert!(!meta.times.is_empty());
-
+        assert!(meta.times.modified.is_some());
         assert_eq!(meta.meta.size, 10493);
     }
 
@@ -656,12 +655,12 @@ mod tests {
                 let meta = access
                     .stat_dir_handle(entry.handle.as_directory().unwrap())
                     .unwrap();
-                assert!(!meta.times.is_empty());
+                assert!(meta.times.modified.is_some());
 
                 continue;
             } else if entry.is_file() {
                 let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
-                assert!(!meta.times.is_empty());
+                assert!(meta.times.modified.is_some());
             }
         }
     }
@@ -692,7 +691,7 @@ mod tests {
         let stat = access.stat_handle(file).unwrap();
 
         assert_eq!(stat.meta.filename, "stat.txt");
-        assert!(stat.times.len() >= 3);
+        assert!(stat.times.modified.is_some());
     }
 
     #[test]
@@ -709,11 +708,7 @@ mod tests {
 
         assert_eq!(stat.meta.filename, "stat.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Modified(_)))
-        );
+        assert!(stat.times.accessed.is_some());
 
         let matches = access
             .source_globfs(&source, &format!("{}/*", dir.display()))
@@ -753,15 +748,10 @@ mod tests {
 
         let file = access.source_stat(&source, "content.xml").unwrap();
         assert_eq!(file.meta.filename, "content.xml");
-        assert!(
-            file.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Modified(_)))
-        );
+        assert!(file.times.modified.is_some());
 
         let virt = access.source_stat(&source, "META-INF").unwrap();
         assert_eq!(virt.meta.kind, EntryKind::Directory);
-        assert!(virt.times.is_empty());
 
         let matches = access.source_globfs(&source, "*").unwrap();
         let handle = matches
@@ -784,11 +774,7 @@ mod tests {
         let mft = access.source_stat(&source, "$MFT").unwrap();
 
         assert_eq!(mft.meta.filename, "$MFT");
-        assert!(
-            mft.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::FilenameModified(_)))
-        );
+        assert!(mft.times.filename_modified.is_some());
 
         let entries = access.source_globfs(&source, "*").unwrap();
         let file = entries
@@ -826,11 +812,7 @@ mod tests {
         assert_eq!(stat.meta.kind, EntryKind::Directory);
         assert_eq!(stat.meta.filename, "nested");
 
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Modified(_)))
-        );
+        assert!(stat.times.modified.is_some());
     }
 
     #[test]
@@ -845,18 +827,12 @@ mod tests {
 
         assert_eq!(file.meta.filename, "content.xml");
         assert_eq!(file.meta.kind, EntryKind::File);
-
-        assert!(
-            file.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Modified(_)))
-        );
+        assert!(file.times.modified.is_some());
 
         let virt = access
             .stat(&format!("zip:{}!META-INF", archive.display()))
             .unwrap();
         assert_eq!(virt.meta.kind, EntryKind::Directory);
-        assert!(virt.times.is_empty());
     }
 
     #[test]
@@ -881,7 +857,6 @@ mod tests {
         let stat = access.source_stat_dir_handle(&source, dir_handle).unwrap();
 
         assert_eq!(stat.meta.kind, EntryKind::Directory);
-        assert!(stat.times.is_empty());
     }
 
     #[test]

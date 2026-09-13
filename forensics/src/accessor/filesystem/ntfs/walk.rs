@@ -4,7 +4,7 @@ use crate::accessor::{
         locator::{DirLocator, FileLocator, NtfsEntryRef},
     },
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::volume::NtfsVolume,
+    filesystem::ntfs::{data::ntfs_times, volume::NtfsVolume},
 };
 use common::files::EntryKind;
 use ntfs::{
@@ -88,6 +88,8 @@ fn process_child_entries<T: Read + Seek>(
             // Only files have sizes
             EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
         };
+        let file = open_by_ref(ntfs, reader, &child.file_ref)?;
+        let times = ntfs_times(reader, &file)?;
 
         let scheme_path = format!("ntfs:{}", child.display_path);
         let meta = EntryMeta::new(child.kind.clone(), size, scheme_path);
@@ -109,7 +111,8 @@ fn process_child_entries<T: Read + Seek>(
             | EntryKind::Symlink
             | EntryKind::CharDevice => continue,
         };
-        entries.push(DirEntry::new(child.name, handle, meta));
+
+        entries.push(DirEntry::new(child.name, handle, meta, times));
     }
 
     Ok(entries)

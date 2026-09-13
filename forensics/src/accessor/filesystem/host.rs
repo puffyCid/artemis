@@ -107,8 +107,14 @@ impl HostFs {
                 .metadata()
                 .map_err(|err| AccessorError::io_path(&child_path, err))?;
 
+            let times = if kind == EntryKind::File || kind == EntryKind::Directory {
+                HostFs::host_times(&metadata)
+            } else {
+                Timestamp::default()
+            };
+
             let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
-            entries.push(DirEntry::new(name, handle, meta));
+            entries.push(DirEntry::new(name, handle, meta, times));
         }
 
         //entries.sort_by(|left, right| left.name.cmp(&right.name));
@@ -317,8 +323,8 @@ impl HostFs {
     }
 
     /// Return timestamps for a live host system
-    fn host_times(meta: &Metadata) -> Vec<Timestamp> {
-        let mut times = Vec::new();
+    fn host_times(meta: &Metadata) -> Timestamp {
+        let mut times = Timestamp::default();
 
         // Rust cannot get Windows Changed timestamps :(
         #[cfg(target_os = "windows")]
@@ -326,19 +332,9 @@ impl HostFs {
             use crate::utils::time::filetime_to_iso;
             use std::os::windows::fs::MetadataExt;
 
-            if meta.creation_time() != 0 {
-                times.push(Timestamp::Created(filetime_to_iso(meta.creation_time())));
-            }
-
-            if meta.last_write_time() != 0 {
-                times.push(Timestamp::Modified(filetime_to_iso(meta.last_write_time())));
-            }
-
-            if meta.last_access_time() != 0 {
-                times.push(Timestamp::Accessed(filetime_to_iso(
-                    meta.last_access_time(),
-                )));
-            }
+            times.created = Some(filetime_to_iso(meta.creation_time()));
+            times.modified = Some(filetime_to_iso(meta.last_write_time()));
+            times.accessed = Some(filetime_to_iso(meta.last_access_time()));
         }
 
         #[cfg(target_os = "linux")]
@@ -349,18 +345,9 @@ impl HostFs {
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
-            times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
-                meta.st_mtime(),
-                meta.st_mtime_nsec(),
-            )));
-            times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
-                meta.st_atime(),
-                meta.st_atime_nsec(),
-            )));
-            times.push(Timestamp::Changed(unixepoch_to_iso_with_nano(
-                meta.st_ctime(),
-                meta.st_ctime_nsec(),
-            )));
+            times.modified = unixepoch_to_iso_with_nano(meta.st_mtime(), meta.st_mtime_nsec());
+            times.accessed = unixepoch_to_iso_with_nano(meta.st_atime(), meta.st_atime_nsec());
+            times.changed = unixepoch_to_iso_with_nano(meta.st_ctime(), meta.st_ctime_nsec());
         }
 
         #[cfg(target_os = "linux")]
@@ -374,18 +361,14 @@ impl HostFs {
                     .unwrap_or_default()
                     .as_micros();
 
-                times.push(Timestamp::Created(unixepoch_microseconds_to_iso(
-                    micros as i64,
-                )));
+                times.created = unixepoch_microseconds_to_iso(micros as i64);
             }
         }
 
         #[cfg(target_os = "macos")]
         {
-            times.push(Timestamp::Created(unixepoch_to_iso_with_nano(
-                meta.st_birthtime(),
-                meta.st_birthtime_nsec(),
-            )));
+            times.created =
+                unixepoch_to_iso_with_nano(meta.st_birthtime(), meta.st_birthtime_nsec());
         }
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
@@ -393,20 +376,9 @@ impl HostFs {
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
         {
-            times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
-                meta.atime(),
-                meta.atime_nsec(),
-            )));
-
-            times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
-                meta.mtime(),
-                meta.mtime_nsec(),
-            )));
-
-            times.push(Timestamp::Changed(unixepoch_to_iso_with_nano(
-                meta.ctime(),
-                meta.ctime_nsec(),
-            )));
+            times.accessed = unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec());
+            times.modified = unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec());
+            times.changed = unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec());
         }
 
         times
@@ -590,7 +562,7 @@ mod tests {
         test_location.push("tests");
         let results = HostFs::stat(&inner(&test_location, "")).unwrap();
 
-        assert!(results.times.len() >= 3);
+        assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 
@@ -604,7 +576,7 @@ mod tests {
 
         let results = HostFs::stat_handle(&handle).unwrap();
 
-        assert!(results.times.len() >= 3);
+        assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::File);
     }
 
@@ -617,7 +589,7 @@ mod tests {
 
         let results = HostFs::stat_dir_handle(&handle).unwrap();
 
-        assert!(results.times.len() >= 3);
+        assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 }
