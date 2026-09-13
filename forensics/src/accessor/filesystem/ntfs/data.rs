@@ -1040,7 +1040,7 @@ mod tests {
             .read_file(&InnerPath::new(PathBuf::from("does/not/exist.txt")), None)
             .unwrap_err();
 
-        assert!(matches!(err, AccessorError::NotADirectory { .. }));
+        assert!(matches!(err, AccessorError::NotFound { .. }));
     }
 
     #[test]
