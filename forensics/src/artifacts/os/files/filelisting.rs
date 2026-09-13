@@ -9,7 +9,6 @@
  */
 use super::error::FileError;
 use crate::accessor::access::Accessor;
-#[cfg(feature = "yarax")]
 use crate::accessor::entry::handle::EntryKind;
 use crate::accessor::entry::handle::Timestamp;
 use crate::accessor::io::reader::AccessorReader;
@@ -211,11 +210,11 @@ fn file_metadata(
         size: entry.entry.meta.size,
         directory: entry.entry.meta.directory,
         display_path: entry.entry.meta.display_path,
-        kind: entry.entry.handle.kind().to_string(),
+        kind: entry.entry.meta.kind.to_string(),
         ..Default::default()
     };
 
-    if entry.entry.handle.kind() == EntryKind::File
+    if file.kind == EntryKind::File
         && let Some(handle) = entry.entry.handle.as_file()
         && let Ok(stat) = accessor.source_stat_handle(source, handle)
     {
@@ -231,7 +230,7 @@ fn file_metadata(
                 Timestamp::FilenameChanged(value) => file.filename_changed = Some(value),
             }
         }
-    } else if entry.entry.handle.kind() == EntryKind::Directory
+    } else if file.kind == EntryKind::Directory
         && let Some(handle) = entry.entry.handle.as_directory()
         && let Ok(stat) = accessor.source_stat_dir_handle(source, handle)
     {
@@ -251,7 +250,7 @@ fn file_metadata(
 
     let max_size = 100 * 1024 * 1024;
     // Get executable metadata if enabled
-    if entry.entry.handle.kind() == EntryKind::File
+    if file.kind == EntryKind::File
         && options.metadata.is_some_and(|b| b)
         && let Some(handle) = entry.entry.handle.as_file()
         && entry.entry.meta.size < max_size

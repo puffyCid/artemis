@@ -264,20 +264,6 @@ pub(crate) enum ItemHandle {
 }
 
 impl ItemHandle {
-    /// Return the `EntryKind` for the `ItemHandle`
-    pub(crate) fn kind(&self) -> EntryKind {
-        match self {
-            Self::File(_) => EntryKind::File,
-            Self::Directory(_) => EntryKind::Directory,
-            Self::Unsupported(_) => EntryKind::Unsupported,
-            Self::CharDevice(_) => EntryKind::CharDevice,
-            Self::BlockDevice(_) => EntryKind::BlockDevice,
-            Self::Pipe(_) => EntryKind::Pipe,
-            Self::Socket(_) => EntryKind::Socket,
-            Self::Symlink(_) => EntryKind::Symlink,
-        }
-    }
-
     /// Return the path for the `ItemHandle`
     ///
     /// Includes the `Scheme` prefix
