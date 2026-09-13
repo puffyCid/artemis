@@ -558,7 +558,7 @@ mod tests {
                 filename_regex: None,
                 yara_rule: None,
                 exclude_directories: None,
-                source: String::from("host"),
+                source: String::from("host:"),
             }),
             format: String::from("json"),
             compress: false,

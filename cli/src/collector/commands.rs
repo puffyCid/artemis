@@ -52,7 +52,7 @@ pub(crate) enum CommandArgs {
         #[arg(long, default_value = None)]
         yara_rule: Option<String>,
         /// Source for filelisting
-        #[arg(long)]
+        #[arg(long, default_value = "host:")]
         source: String,
     },
     /// Get systeminfo

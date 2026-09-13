@@ -130,7 +130,7 @@ impl HostFs {
     pub(crate) fn globfs(directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
         let dir_path = HostFs::resolve_host_path(directory);
 
-        if dir_path.is_symlink || !dir_path.is_dir() {
+        if dir_path.is_symlink() || !dir_path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(
                 &dir_path,
             )));
@@ -516,7 +516,7 @@ mod tests {
     fn test_read_file_not_found() {
         let dir = setup("test_read_file_not_found");
         let err = HostFs::read_file(&inner(&dir, "missing.txt"), None).unwrap_err();
-        assert!(matches!(err, AccessorError::NotFound { .. }));
+        assert!(matches!(err, AccessorError::NotAFile { .. }));
     }
 
     #[test]

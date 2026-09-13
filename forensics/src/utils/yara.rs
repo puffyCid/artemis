@@ -245,8 +245,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
         let bytes = read_file(test_location.to_str().unwrap()).unwrap();
+        let rule = extract_rule(rule).unwrap();
 
-        let result = scan_bytes(&bytes, rule).unwrap();
+        let result = scan_bytes(&bytes, &rule).unwrap();
         assert!(result.is_empty());
     }
 }
