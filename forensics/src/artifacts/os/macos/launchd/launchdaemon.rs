@@ -106,11 +106,12 @@ mod tests {
     use crate::{
         accessor::{
             access::Accessor,
-            entry::handle::{DirHandle, EntryKind, EntryMeta, GlobMatch, ItemHandle},
+            entry::handle::{DirHandle, EntryMeta, GlobMatch, ItemHandle},
         },
         artifacts::os::macos::launchd::launchdaemon::extract_launchd_data,
         structs::artifacts::os::macos::LaunchdOptions,
     };
+    use common::files::EntryKind;
     use std::path::PathBuf;
 
     #[test]

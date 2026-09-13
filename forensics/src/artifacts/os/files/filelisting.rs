@@ -30,6 +30,9 @@ use regex::Regex;
 use serde_json::Value;
 use tracing::{error, info, warn};
 
+#[cfg(feature = "yarax")]
+use crate::utils::yara::{extract_rule, scan_bytes};
+
 /// Grab filelisting based on `FileOptions` provided
 pub(crate) fn get_filelist(
     options: &FileOptions,
@@ -64,8 +67,6 @@ pub(crate) fn get_filelist(
     let mut rule = String::new();
     #[cfg(feature = "yarax")]
     if options.yara.as_ref().is_some_and(|s| !s.is_empty()) {
-        use crate::utils::yara::extract_rule;
-
         // Unwrap is safe since we validate above
         rule = match extract_rule(options.yara.as_ref().unwrap()) {
             Ok(result) => result,
@@ -136,11 +137,6 @@ fn walking(
         let mut scan: Vec<String> = Vec::new();
         #[cfg(feature = "yarax")]
         if !walk_options.yara_rule.is_empty() && entry.entry.meta.kind == EntryKind::File {
-            use crate::utils::yara::scan_bytes;
-
-            if entry.entry.meta.kind != EntryKind::File {
-                continue;
-            }
             let max_size = 100 * 1024 * 1024;
             if entry.entry.meta.size > max_size {
                 info!(

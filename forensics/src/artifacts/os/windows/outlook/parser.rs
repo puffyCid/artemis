@@ -30,7 +30,7 @@ use common::windows::{OutlookAttachment, OutlookMessage};
 use tracing::{error, warn};
 
 #[cfg(feature = "yarax")]
-use crate::utils::yara::{scan_base64_bytes, scan_bytes};
+use crate::utils::yara::{extract_rule, scan_base64_bytes, scan_bytes};
 
 /// Parse and grab Outlook messages based on options provided
 pub(crate) fn grab_outlook(
@@ -327,8 +327,9 @@ fn message_details(
 
     #[cfg(feature = "yarax")]
     // Check if message body matches Yara rule
-    if let Some(rule) = &options.yara_rule_message {
-        let result = scan_bytes(message_result.body.as_bytes(), rule).unwrap_or_default();
+    if let Some(encoded_rule) = &options.yara_rule_message {
+        let rule = extract_rule(encoded_rule).unwrap_or_default();
+        let result = scan_bytes(message_result.body.as_bytes(), &rule).unwrap_or_default();
         if result.is_empty() {
             return Ok(None);
         }

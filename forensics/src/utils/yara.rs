@@ -36,12 +36,7 @@ pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisEr
 }
 
 /// Scan bytes using Yara-X
-pub(crate) fn scan_bytes(data: &[u8], encoded_rule: &str) -> Result<Vec<String>, ArtemisError> {
-    let rule = if encoded_rule.starts_with("http") {
-        remote_yara(encoded_rule)?
-    } else {
-        rule_decode(encoded_rule)?
-    };
+pub(crate) fn scan_bytes(data: &[u8], rule: &str) -> Result<Vec<String>, ArtemisError> {
     let compile = compile_rule(&rule)?;
 
     let rules = compile.build();
