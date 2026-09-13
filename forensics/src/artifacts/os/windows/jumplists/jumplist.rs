@@ -1,8 +1,6 @@
 use super::{automatic::parse_automatic, custom::parse_custom, error::JumplistError};
-use crate::accessor::{
-    access::Accessor,
-    entry::handle::{EntryKind, FileHandle},
-};
+use crate::accessor::{access::Accessor, entry::handle::FileHandle};
+use common::files::EntryKind;
 use common::windows::JumplistEntry;
 use tracing::error;
 

@@ -1,11 +1,12 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, DirHandle, EntryKind, EntryMeta, FileHandle, ItemHandle},
+        handle::{DirEntry, DirHandle, EntryMeta, FileHandle, ItemHandle},
         locator::{DirLocator, FileLocator, NtfsEntryRef},
     },
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::volume::NtfsVolume,
 };
+use common::files::EntryKind;
 use ntfs::{
     Ntfs, NtfsFile, NtfsIndexEntryFlags, indexes::NtfsFileNameIndex,
     structured_values::NtfsFileNamespace,
@@ -311,10 +312,8 @@ pub(crate) fn ntfs_err(err: ntfs::NtfsError) -> AccessorError {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{
-        entry::handle::EntryKind,
-        filesystem::ntfs::{volume::NtfsVolume, walk::list_children},
-    };
+    use crate::accessor::filesystem::ntfs::{volume::NtfsVolume, walk::list_children};
+    use common::files::EntryKind;
     use std::path::PathBuf;
 
     #[test]

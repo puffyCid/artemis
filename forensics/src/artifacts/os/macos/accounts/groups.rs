@@ -2,10 +2,8 @@
  * Grab local macOS `Groups` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/groups`
  */
 use super::opendirectory::parse_groups_plist;
-use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
-    structs::artifacts::os::macos::MacosGroupsOptions,
-};
+use crate::{accessor::access::Accessor, structs::artifacts::os::macos::MacosGroupsOptions};
+use common::files::EntryKind;
 use common::macos::OpendirectoryGroups;
 use tracing::{error, warn};
 

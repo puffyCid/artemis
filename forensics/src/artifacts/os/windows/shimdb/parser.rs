@@ -15,11 +15,12 @@ use crate::{
     accessor::{
         access::Accessor,
         config::{AccessMode, AccessorConfig},
-        entry::handle::{EntryKind, FileHandle},
+        entry::handle::FileHandle,
     },
     structs::artifacts::os::windows::ShimdbOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::ShimData;
 use tracing::error;
 

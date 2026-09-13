@@ -9,7 +9,6 @@
  */
 use super::error::FileError;
 use crate::accessor::access::Accessor;
-use crate::accessor::entry::handle::EntryKind;
 use crate::accessor::entry::handle::Timestamp;
 use crate::accessor::io::reader::AccessorReader;
 use crate::accessor::source::handle::SourceHandle;
@@ -24,6 +23,7 @@ use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::files::FileOptions;
 use crate::utils::regex_options::{create_regex, regex_check};
+use common::files::EntryKind;
 use common::files::FileInfo;
 use common::files::Hashes;
 use regex::Regex;
@@ -135,8 +135,8 @@ fn walking(
 
         let mut scan: Vec<String> = Vec::new();
         #[cfg(feature = "yarax")]
-        if !walk_options.yara_rule.is_empty() && entry.entry.handle.kind() == EntryKind::File {
-            use crate::{accessor::entry::handle::EntryKind, utils::yara::scan_bytes};
+        if !walk_options.yara_rule.is_empty() && entry.entry.meta.kind == EntryKind::File {
+            use crate::utils::yara::scan_bytes;
 
             if entry.entry.meta.kind != EntryKind::File {
                 continue;
@@ -210,7 +210,7 @@ fn file_metadata(
         size: entry.entry.meta.size,
         directory: entry.entry.meta.directory,
         display_path: entry.entry.meta.display_path,
-        kind: entry.entry.meta.kind.to_string(),
+        kind: entry.entry.meta.kind,
         ..Default::default()
     };
 

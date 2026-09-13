@@ -210,7 +210,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_ntfs_read_root_dirs() {
-        use crate::accessor::entry::handle::EntryKind;
+        use common::files::EntryKind;
 
         let config = AccessorConfig::default();
         let source = NtfsSource::new(&config, 'C').unwrap();

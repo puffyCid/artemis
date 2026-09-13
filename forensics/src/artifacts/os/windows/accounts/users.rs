@@ -1,6 +1,6 @@
 use super::error::AccountError;
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
+    accessor::access::Accessor,
     artifacts::os::windows::{
         registry::helper::get_registry_keys_handle, securitydescriptor::sid::grab_sid,
     },
@@ -13,6 +13,7 @@ use crate::{
         time::filetime_to_iso,
     },
 };
+use common::files::EntryKind;
 use common::windows::{RegistryData, UacFlags, UserInfo};
 use nom::bytes::complete::{take, take_until};
 use std::collections::HashMap;

@@ -360,11 +360,8 @@ impl Accessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, Timestamp},
-        error::AccessorError,
-    };
+    use crate::accessor::{access::Accessor, entry::handle::Timestamp, error::AccessorError};
+    use common::files::EntryKind;
     use std::{
         fs::{self, File},
         io::{Read, Write},

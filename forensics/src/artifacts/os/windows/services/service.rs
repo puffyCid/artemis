@@ -3,11 +3,13 @@ use super::{
     options::name::{error_control, failure_actions, service_type, sid_type, start_mode},
     registry::get_services_data,
 };
-use crate::accessor::{access::Accessor, entry::handle::EntryKind};
-#[cfg(target_os = "windows")]
-use crate::artifacts::os::windows::services::state::service_state;
+use crate::accessor::access::Accessor;
+use common::files::EntryKind;
 use common::windows::{KeyValue, RegistryData, ServicesData};
 use tracing::error;
+
+#[cfg(target_os = "windows")]
+use crate::artifacts::os::windows::services::state::service_state;
 
 /// Parse Services data from provided Registry file
 pub(crate) fn parse_services(pattern: &str) -> Result<Vec<ServicesData>, ServicesError> {

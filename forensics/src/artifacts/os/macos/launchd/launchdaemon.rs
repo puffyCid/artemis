@@ -6,14 +6,12 @@
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::macos::plist::property_list::parse_plist_file_handle,
     filesystem::metadata::get_timestamps,
     structs::artifacts::os::macos::LaunchdOptions,
 };
+use common::files::EntryKind;
 use common::macos::LaunchdPlist;
 use tracing::warn;
 

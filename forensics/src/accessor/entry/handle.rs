@@ -3,48 +3,8 @@ use crate::accessor::{
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
-use std::{
-    fmt::{self, Display, Formatter},
-    path::PathBuf,
-};
-
-/// Support data entries we can access
-///
-/// Right now we only support reading files or directories
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum EntryKind {
-    /// Entry is a file
-    File,
-    /// Entry is a directory
-    Directory,
-    /// Entry is a symbolic link
-    Symlink,
-    /// Entry is a socket
-    Socket,
-    /// Entry is a block device
-    BlockDevice,
-    /// Entry is named pipe
-    Pipe,
-    /// Entry is character device
-    CharDevice,
-    /// Entry is unsupported
-    Unsupported,
-}
-
-impl Display for EntryKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            EntryKind::File => write!(f, "File"),
-            EntryKind::Directory => write!(f, "Directory"),
-            EntryKind::Symlink => write!(f, "Symlink"),
-            EntryKind::Socket => write!(f, "Socket"),
-            EntryKind::BlockDevice => write!(f, "BlockDevice"),
-            EntryKind::Pipe => write!(f, "Pipe"),
-            EntryKind::CharDevice => write!(f, "CharDevice"),
-            EntryKind::Unsupported => write!(f, "Unsupported"),
-        }
-    }
-}
+use common::files::EntryKind;
+use std::path::PathBuf;
 
 /// Metadata returned from glob and directory listing.
 #[derive(Debug, Clone, PartialEq)]
@@ -254,11 +214,6 @@ pub(crate) enum ItemHandle {
     File(FileHandle),
     /// A directory handle to list additional files or directories
     Directory(DirHandle),
-    Socket(FileHandle),
-    BlockDevice(FileHandle),
-    Pipe(FileHandle),
-    CharDevice(FileHandle),
-    Symlink(FileHandle),
     /// Unsupported handle
     Unsupported(FileHandle),
 }
@@ -269,13 +224,7 @@ impl ItemHandle {
     /// Includes the `Scheme` prefix
     pub(crate) fn display_path(&self) -> String {
         match self {
-            Self::File(handle)
-            | Self::Unsupported(handle)
-            | Self::BlockDevice(handle)
-            | Self::CharDevice(handle)
-            | Self::Pipe(handle)
-            | Self::Socket(handle)
-            | Self::Symlink(handle) => handle.display_path(),
+            Self::File(handle) | Self::Unsupported(handle) => handle.display_path(),
             Self::Directory(handle) => handle.display_path(),
         }
     }

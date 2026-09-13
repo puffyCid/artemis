@@ -4,11 +4,7 @@ use super::{
     header::MftHeader,
 };
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-        io::reader::AccessorReader,
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch, io::reader::AccessorReader},
     utils::time::filetime_to_iso,
 };
 use crate::{
@@ -17,6 +13,7 @@ use crate::{
     structs::artifacts::os::windows::MftOptions,
     utils::nom_helper::nom_data,
 };
+use common::files::EntryKind;
 use common::windows::{AttributeFlags, MftEntry, Namespace};
 use std::collections::{HashMap, HashSet};
 use tracing::{error, warn};

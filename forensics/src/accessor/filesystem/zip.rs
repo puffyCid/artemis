@@ -1,8 +1,7 @@
 use crate::accessor::{
     entry::{
         handle::{
-            DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, GlobMatch,
-            ItemHandle, Timestamp,
+            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
         },
         locator::{DirLocator, FileLocator},
     },
@@ -15,6 +14,7 @@ use crate::accessor::{
     location::path::InnerPath,
 };
 use chrono::{NaiveDate, NaiveTime, SecondsFormat, TimeZone, Utc};
+use common::files::EntryKind;
 use glob::Pattern;
 use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Mutex};
 use zip::{DateTime, ZipArchive};
@@ -734,13 +734,14 @@ impl ZipChild {
 mod tests {
     use crate::accessor::{
         entry::{
-            handle::{EntryKind, FileHandle, Timestamp},
+            handle::{FileHandle, Timestamp},
             locator::FileLocator,
         },
         error::AccessorError,
         filesystem::zip::ZipFs,
         location::path::InnerPath,
     };
+    use common::files::EntryKind;
     use std::{
         fs::{self, File},
         io::Write,

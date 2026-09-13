@@ -18,10 +18,10 @@ use super::{
     error::BitsError,
 };
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
-    structs::artifacts::os::windows::BitsOptions,
+    accessor::access::Accessor, structs::artifacts::os::windows::BitsOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::BitsInfo;
 use tracing::error;
 

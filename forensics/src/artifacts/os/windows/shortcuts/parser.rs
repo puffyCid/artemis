@@ -15,10 +15,8 @@
  * `https://github.com/Velocidex/velociraptor`
  */
 use super::{error::LnkError, header::LnkHeader, shortcut::get_shortcut_data};
-use crate::accessor::{
-    access::Accessor,
-    entry::handle::{EntryKind, FileHandle},
-};
+use crate::accessor::{access::Accessor, entry::handle::FileHandle};
+use common::files::EntryKind;
 use common::windows::ShortcutInfo;
 use tracing::error;
 
@@ -100,8 +98,9 @@ pub(crate) fn parse_lnk_data(data: &[u8]) -> Result<ShortcutInfo, LnkError> {
 mod tests {
     use super::{grab_lnk_directory, grab_lnk_file};
     use crate::accessor::access::Accessor;
-    use crate::accessor::entry::handle::{EntryKind, FileHandle};
+    use crate::accessor::entry::handle::FileHandle;
     use crate::artifacts::os::windows::shortcuts::parser::parse_lnk_data;
+    use common::files::EntryKind;
     use common::windows::ShellType::{Delegate, Directory, RootFolder};
     use common::windows::{AttributeFlags, DataFlags, DriveType, LocationFlag, ShellItem};
     use std::path::PathBuf;

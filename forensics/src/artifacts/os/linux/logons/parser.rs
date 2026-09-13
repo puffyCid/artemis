@@ -12,13 +12,11 @@
  *  `https://github.com/Velocidex/velociraptor`
  */
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, FileHandle},
-    },
+    accessor::{access::Accessor, entry::handle::FileHandle},
     artifacts::os::linux::logons::logon::logon_reader,
     structs::artifacts::os::linux::LogonOptions,
 };
+use common::files::EntryKind;
 use common::linux::{Logon, Status};
 use tracing::{error, warn};
 

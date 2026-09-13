@@ -12,12 +12,13 @@ use super::recycle::parse_recycle_bin;
  * `https://github.com/Velocidex/velociraptor`
  */
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
+    accessor::access::Accessor,
     artifacts::os::windows::recyclebin::error::RecycleBinError,
     filesystem::{directory::get_parent_directory, files::get_filename},
     structs::artifacts::os::windows::RecycleBinOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::RecycleBin;
 use tracing::error;
 

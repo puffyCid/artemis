@@ -20,11 +20,12 @@ use super::{
     items::message::MessageDetails,
 };
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind, io::reader::AccessorReader},
+    accessor::{access::Accessor, io::reader::AccessorReader},
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::OutlookOptions,
     utils::{environment::get_systemdrive, time::compare_timestamps},
 };
+use common::files::EntryKind;
 use common::windows::{OutlookAttachment, OutlookMessage};
 use tracing::{error, warn};
 

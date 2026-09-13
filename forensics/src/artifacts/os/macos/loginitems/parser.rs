@@ -9,13 +9,11 @@
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::macos::loginitems::plist::{bundle_plist, get_bookmarks},
     structs::artifacts::os::macos::LoginitemsOptions,
 };
+use common::files::EntryKind;
 use common::macos::LoginItemsData;
 use tracing::warn;
 

@@ -11,11 +11,12 @@
  */
 use super::error::FsEventsError;
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
+    accessor::access::Accessor,
     artifacts::os::macos::fsevents::fsevent::extract_fsevents,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::macos::FseventsOptions,
 };
+use common::files::EntryKind;
 use common::macos::FsEvents;
 use tracing::{error, warn};
 

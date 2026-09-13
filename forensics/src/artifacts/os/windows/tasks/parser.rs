@@ -17,16 +17,13 @@ use std::collections::HashMap;
  */
 use super::{error::TaskError, job::read_job, xml::parse_xml};
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-        location::scheme::Scheme,
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch, location::scheme::Scheme},
     artifacts::os::windows::tasks::registry::cache_info,
     filesystem::{files::get_filename, metadata::get_timestamps},
     structs::artifacts::os::windows::TasksOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::{Flags, TaskFormat, TaskInfo, TaskJob, TaskXml};
 use tracing::{error, warn};
 

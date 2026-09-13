@@ -1,6 +1,6 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, EntryKind, GlobMatch},
+        handle::{DirEntry, GlobMatch},
         locator::DirLocator,
     },
     error::{AccessorError, AccessorResult},
@@ -16,6 +16,7 @@ use crate::accessor::{
     },
     location::path::InnerPath,
 };
+use common::files::EntryKind;
 use glob::Pattern;
 use std::io::{Read, Seek};
 use tracing::warn;

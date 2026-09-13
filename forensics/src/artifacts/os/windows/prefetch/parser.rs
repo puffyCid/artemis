@@ -1,3 +1,4 @@
+use super::pf::parse_prefetch;
 /**
  * `Prefetch` data tracks execution of applications on Windows Workstations
  * `Prefetch` is disabled on Windows Servers and may be disabled on systems with SSDs
@@ -10,18 +11,14 @@
  *  `https://ericzimmerman.github.io/PECmd.zip`
  */
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, FileHandle},
-    },
+    accessor::{access::Accessor, entry::handle::FileHandle},
     artifacts::os::windows::prefetch::error::PrefetchError,
     structs::artifacts::os::windows::PrefetchOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::Prefetch;
 use tracing::error;
-
-use super::pf::parse_prefetch;
 
 /// Parse `Prefetch` based on `PrefetchOptions`
 pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, PrefetchError> {

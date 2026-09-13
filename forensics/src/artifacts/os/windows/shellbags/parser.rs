@@ -8,10 +8,7 @@
  */
 use super::error::ShellbagError;
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::windows::{
         registry::{helper::get_registry_keys_handle, parser::user_registry_files},
         shellitems::items::parse_encoded_shellitem,
@@ -22,6 +19,7 @@ use crate::{
         regex_options::create_regex,
     },
 };
+use common::files::EntryKind;
 use common::windows::{RegistryData, ShellItem, ShellType};
 use serde::Serialize;
 use serde_json::Value;

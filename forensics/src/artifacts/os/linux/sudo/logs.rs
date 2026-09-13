@@ -1,8 +1,9 @@
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
+    accessor::access::Accessor,
     artifacts::os::linux::journals::{error::JournalError, journal::parse_journal_file},
     structs::artifacts::os::linux::LinuxSudoOptions,
 };
+use common::files::EntryKind;
 use common::linux::Journal;
 use tracing::warn;
 

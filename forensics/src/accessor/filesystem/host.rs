@@ -1,8 +1,7 @@
 use crate::accessor::{
     entry::{
         handle::{
-            DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, GlobMatch,
-            ItemHandle, Timestamp,
+            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
         },
         locator::{DirLocator, FileLocator},
     },
@@ -14,6 +13,7 @@ use crate::accessor::{
     io::reader::{AccessorReader, ReaderLocation},
     location::{path::InnerPath, scheme::Scheme},
 };
+use common::files::EntryKind;
 use glob::Pattern;
 use std::{
     fs::{self, File, FileType, Metadata, metadata, read, symlink_metadata},
@@ -465,11 +465,12 @@ impl HostFs {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
-        entry::handle::{DirHandle, EntryKind, FileHandle},
+        entry::handle::{DirHandle, FileHandle},
         error::AccessorError,
         filesystem::host::HostFs,
         location::path::InnerPath,
     };
+    use common::files::EntryKind;
     use std::{
         fs::{self, File},
         io::Write,

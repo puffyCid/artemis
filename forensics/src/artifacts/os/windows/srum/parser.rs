@@ -18,14 +18,12 @@ use super::{
     resource::{get_srum, parse_srum},
 };
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, FileHandle},
-    },
+    accessor::{access::Accessor, entry::handle::FileHandle},
     output::manager::OutputManager,
     structs::artifacts::os::windows::SrumOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use serde_json::Value;
 use tracing::error;
 

@@ -1,7 +1,7 @@
 use crate::{
     accessor::{
         entry::{
-            handle::{DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, Timestamp},
+            handle::{DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, Timestamp},
             locator::{DirLocator, FileLocator},
         },
         error::{AccessorError, AccessorResult},
@@ -19,6 +19,7 @@ use crate::{
     },
     utils::time::filetime_to_iso,
 };
+use common::files::EntryKind;
 use ntfs::{
     NtfsAttributeType::FileName,
     NtfsFile, NtfsReadSeek,
@@ -785,7 +786,7 @@ pub(crate) fn display_ntfs_path(drive: char, inner_path: &str) -> String {
 mod tests {
     use crate::accessor::{
         entry::{
-            handle::{EntryKind, FileHandle, Timestamp},
+            handle::{FileHandle, Timestamp},
             locator::FileLocator,
         },
         error::AccessorError,
@@ -796,6 +797,7 @@ mod tests {
         },
         location::path::InnerPath,
     };
+    use common::files::EntryKind;
     use std::{
         io::{Read, Seek, SeekFrom},
         path::PathBuf,

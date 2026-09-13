@@ -187,6 +187,7 @@ impl WalkAccessor {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{access::Accessor, error::AccessorError, walk::WalkAccessor};
+    use common::files::EntryKind;
     use std::{
         fs::{self, File},
         io::Write,
@@ -358,10 +359,7 @@ mod tests {
                 let stat = accessor
                     .source_stat_dir_handle(&source, dir_handle)
                     .unwrap();
-                assert_eq!(
-                    stat.meta.kind,
-                    crate::accessor::entry::handle::EntryKind::Directory
-                );
+                assert_eq!(stat.meta.kind, EntryKind::Directory);
             }
         }
 
