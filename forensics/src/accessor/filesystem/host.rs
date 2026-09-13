@@ -36,11 +36,8 @@ impl HostFs {
         max_read_size: Option<u64>,
     ) -> AccessorResult<Vec<u8>> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&path)));
-        }
 
-        if !path.is_file() {
+        if path.is_symlink() || !path.is_file() {
             return Err(AccessorError::not_a_file(HostFs::display_path(&path)));
         }
         let metadata = metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
@@ -76,9 +73,6 @@ impl HostFs {
     /// Read the directory at `InnerPath` and return its contents
     pub(crate) fn read_dir(inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&path)));
-        }
 
         if path.is_symlink() || !path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(&path)));
@@ -135,11 +129,8 @@ impl HostFs {
     /// Apply a glob pattern and return matches
     pub(crate) fn globfs(directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
         let dir_path = HostFs::resolve_host_path(directory);
-        if !dir_path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&dir_path)));
-        }
 
-        if !dir_path.is_dir() {
+        if dir_path.is_symlink || !dir_path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(
                 &dir_path,
             )));
@@ -186,11 +177,8 @@ impl HostFs {
     /// Can be used to stream large files
     pub(crate) fn reader(inner: &InnerPath) -> AccessorResult<AccessorReader> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(path.display().to_string()));
-        }
 
-        if !path.is_file() {
+        if path.is_symlink() || !path.is_file() {
             return Err(AccessorError::not_a_file(path.display().to_string()));
         }
 

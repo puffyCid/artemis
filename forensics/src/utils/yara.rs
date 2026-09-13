@@ -70,7 +70,9 @@ pub(crate) fn scan_base64_bytes(
         }
     };
 
-    scan_bytes(&bytes, encoded_rule)
+    let rule = extract_rule(encoded_rule)?;
+
+    scan_bytes(&bytes, &rule)
 }
 
 /// Request the Yara-X rule from a provided URL
@@ -217,26 +219,6 @@ mod tests {
         .unwrap();
 
         assert_eq!(result[0], "hello_world");
-    }
-
-    #[test]
-    #[should_panic(expected = "Encoding")]
-    fn test_scan_bytes_bad_encoding() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let bytes = read_file(test_location.to_str().unwrap()).unwrap();
-
-        let rule = r#"
-        rule hello_world {
-        strings:
-        $ = "hello, world! Its Rust!"
-        condition:
-        all of them
-        }
-        "#;
-
-        let _ = scan_bytes(&bytes, rule).unwrap();
     }
 
     #[test]

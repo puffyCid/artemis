@@ -371,8 +371,9 @@ fn message_details(
 
             #[cfg(feature = "yarax")]
             // Check if attachment matches Yara rule
-            if let Some(rule) = &options.yara_rule_attachment {
-                let result = scan_base64_bytes(&message_attach.data, rule).unwrap_or_default();
+            if let Some(encoded_rule) = &options.yara_rule_attachment {
+                let rule = extract_rule(encoded_rule).unwrap_or_default();
+                let result = scan_base64_bytes(&message_attach.data, &rule).unwrap_or_default();
                 if result.is_empty() {
                     continue;
                 }
