@@ -79,7 +79,8 @@ impl HostFs {
         if !path.exists() {
             return Err(AccessorError::not_found(HostFs::display_path(&path)));
         }
-        if !path.is_dir() {
+
+        if path.is_symlink() || !path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(&path)));
         }
 
