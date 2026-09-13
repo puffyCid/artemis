@@ -231,7 +231,8 @@ fn file_metadata(
                 Timestamp::FilenameChanged(value) => file.filename_changed = Some(value),
             }
         }
-    } else if let Some(handle) = entry.entry.handle.as_directory()
+    } else if entry.entry.handle.kind() == EntryKind::Directory
+        && let Some(handle) = entry.entry.handle.as_directory()
         && let Ok(stat) = accessor.source_stat_dir_handle(source, handle)
     {
         for entry in stat.times {
@@ -250,7 +251,8 @@ fn file_metadata(
 
     let max_size = 100 * 1024 * 1024;
     // Get executable metadata if enabled
-    if options.metadata.is_some_and(|b| b)
+    if entry.entry.handle.kind() == EntryKind::File
+        && options.metadata.is_some_and(|b| b)
         && let Some(handle) = entry.entry.handle.as_file()
         && entry.entry.meta.size < max_size
         && let Ok(mut reader) = accessor.source_open_reader_handle(source, handle)
