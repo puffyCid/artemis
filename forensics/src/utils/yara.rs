@@ -37,7 +37,7 @@ pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisEr
 
 /// Scan bytes using Yara-X
 pub(crate) fn scan_bytes(data: &[u8], rule: &str) -> Result<Vec<String>, ArtemisError> {
-    let compile = compile_rule(&rule)?;
+    let compile = compile_rule(rule)?;
 
     let rules = compile.build();
     let mut scanner = Scanner::new(&rules);

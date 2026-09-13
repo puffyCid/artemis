@@ -109,6 +109,7 @@ pub(crate) fn filename_from_display(display_path: &str) -> String {
     filename
 }
 
+/// Return a parent directory from provided path
 pub(crate) fn directory_from_display(display_path: &str) -> String {
     let scheme = location_scheme(display_path);
     let value = if scheme.is_some_and(|scheme| scheme == Scheme::Zip) {
@@ -122,14 +123,39 @@ pub(crate) fn directory_from_display(display_path: &str) -> String {
 
     let target = value.trim_start_matches("./").trim_end_matches(['/', '\\']);
 
-    let entry_opt = if target.contains('/') {
-        target.rsplit_once('/')
+    let (sep, entry_opt) = if target.contains('/') {
+        ('/', target.rsplit_once('/'))
     } else {
-        target.rsplit_once('\\')
+        ('\\', target.rsplit_once('\\'))
     };
 
-    let (directory, _) = entry_opt.unwrap_or_default();
+    let Some((directory, _)) = entry_opt else {
+        return String::new();
+    };
+
+    // If we are only one sub-directory down
+    // Return root
+    if directory.is_empty() {
+        return sep.to_string();
+    }
+
+    // If we are only one sub-directory down
+    // Return drive root
+    if is_windows_drive(directory) {
+        return format!("{directory}{sep}");
+    }
+
     directory.to_string()
+}
+
+/// Check if we Windows drive letter
+fn is_windows_drive(directory: &str) -> bool {
+    let mut chars = directory.chars();
+
+    matches!(
+        (chars.next(), chars.next(), chars.next()),
+        (Some(letter), Some(':'), None) if letter.is_ascii_alphabetic()
+    )
 }
 
 /// Return the ADS stream name if available
@@ -260,7 +286,7 @@ impl AccessorReader {
 mod tests {
     use super::{ReaderLocation, filename_from_display};
     use crate::accessor::{
-        io::reader::extension_from_filename,
+        io::reader::{directory_from_display, extension_from_filename},
         location::scheme::{Scheme, strip_scheme},
     };
 
@@ -435,6 +461,25 @@ mod tests {
                 "host:/home/user/Downloads/sftp:192.168.1.1:24/users:file.txt"
             )),
             "txt"
+        );
+    }
+
+    #[test]
+    fn test_directory_from_display() {
+        assert_eq!(directory_from_display("host:/bin"), "/");
+        assert_eq!(directory_from_display("host:/usr/bin/ls"), "/usr/bin");
+        assert_eq!(directory_from_display("host:C:\\Windows"), "C:\\");
+
+        assert_eq!(
+            directory_from_display("host:C:\\Windows\\System32\\cmd.exe"),
+            "C:\\Windows\\System32"
+        );
+
+        assert_eq!(directory_from_display("ntfs:C:\\$MFT"), "C:\\");
+        assert_eq!(directory_from_display("zip:/tmp/a.zip!tex.txt"), "");
+        assert_eq!(
+            directory_from_display("zip:/tmp/a.zip!./path/to/tex.txt"),
+            "path/to"
         );
     }
 }

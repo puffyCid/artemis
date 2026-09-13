@@ -84,6 +84,7 @@ pub(crate) fn get_filelist(
         path_filter,
         file_filter,
         yara_rule: rule,
+        plat: get_platform_enum(),
     };
 
     walking(
@@ -100,6 +101,7 @@ struct WalkOptions {
     path_filter: Regex,
     file_filter: Regex,
     yara_rule: String,
+    plat: PlatformType,
 }
 
 /// Iterate through the filesystem
@@ -172,7 +174,7 @@ fn walking(
             }
         }
 
-        let mut file = file_metadata(entry, options, &get_platform_enum(), source, accessor);
+        let mut file = file_metadata(entry, options, &walk_options.plat, source, accessor);
         file.yara_hits = scan;
 
         filelist_vec.push(file);

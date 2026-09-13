@@ -19,6 +19,6 @@ md5 = true                                                                      
 sha1 = false                                                                                                                              # SHA1 all files
 sha256 = false                                                                                                                            # SHA256 all files
 path_regex = ""                                                                                                                           # Regex for paths
-file_regex = ""                                                                                                                           # Regex for files
+filename_regex = ""                                                                                                                           # Regex for files
 yara = "cnVsZSBBcHBsZVJ1bGUgewogICAgc3RyaW5nczoKICAgICAgJHZhbHVlID0gIkFwcGxlIiBub2Nhc2UKCiAgICBjb25kaXRpb246CiAgICAgIGFsbCBvZiB0aGVtCn0="
 source = "host:"                                                                                                                          # Accessor source
