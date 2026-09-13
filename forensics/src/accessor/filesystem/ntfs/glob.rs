@@ -83,7 +83,13 @@ fn glob_path_pattern<T: Read + Seek + Send>(
         let depth = path_component_count(&relative);
 
         match entry.meta.kind {
-            EntryKind::File | EntryKind::Unsupported => {
+            EntryKind::File
+            | EntryKind::Unsupported
+            | EntryKind::Symlink
+            | EntryKind::Socket
+            | EntryKind::BlockDevice
+            | EntryKind::Pipe
+            | EntryKind::CharDevice => {
                 if pattern.matches(&relative) {
                     matches.push(GlobMatch::new(entry.handle, entry.meta));
                 }

@@ -140,7 +140,7 @@ fn walking(
             if entry.entry.meta.kind != EntryKind::File {
                 continue;
             }
-            let max_size = 100 * 1024 * 1024 * 1024;
+            let max_size = 100 * 1024 * 1024;
             if entry.entry.meta.size > max_size {
                 info!(
                     "Skipping file {}. File size is {} vs 100MB max scans size",
@@ -246,7 +246,7 @@ fn file_metadata(
         }
     }
 
-    let max_size = 100 * 1024 * 1024 * 1024;
+    let max_size = 100 * 1024 * 1024;
     // Get executable metadata if enabled
     if options.metadata.is_some_and(|b| b)
         && let Some(handle) = entry.entry.handle.as_file()
@@ -471,7 +471,7 @@ mod tests {
     fn test_file_metadata() {
         let mut accessor = Accessor::with_defaults();
         let source = accessor.open_source("host:").unwrap();
-        let mut walk = WalkAccessor::new(&source, "/bin").unwrap();
+        let mut walk = WalkAccessor::new(&source, "C:\\Windows\\").unwrap();
         walk = walk.max_depth(1);
 
         let metadata = true;
@@ -482,7 +482,7 @@ mod tests {
             ..Default::default()
         };
 
-        let mut results: Vec<FileInfo> = Vec::new();
+        let mut results = Vec::new();
         while let Some(entries) = walk.next(&accessor) {
             let entry_data = entries.unwrap();
             let data = file_metadata(
@@ -507,7 +507,7 @@ mod tests {
         walk = walk.max_depth(1);
 
         let metadata = true;
-        let mut results: Vec<FileInfo> = Vec::new();
+        let mut results = Vec::new();
         let options = FileOptions {
             depth: Some(1),
             metadata: Some(metadata),

@@ -14,6 +14,16 @@ pub(crate) enum EntryKind {
     File,
     /// Entry is a directory
     Directory,
+    /// Entry is a symbolic link
+    Symlink,
+    /// Entry is a socket
+    Socket,
+    /// Entry is a block device
+    BlockDevice,
+    /// Entry is named pipe
+    Pipe,
+    /// Entry is character device
+    CharDevice,
     /// Entry is unsupported
     Unsupported,
 }

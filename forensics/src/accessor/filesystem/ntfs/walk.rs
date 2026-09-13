@@ -77,7 +77,13 @@ fn process_child_entries<T: Read + Seek>(
     let mut entries = Vec::with_capacity(pending.len());
     for child in pending {
         let size = match child.kind {
-            EntryKind::Directory | EntryKind::Unsupported => 0,
+            EntryKind::Directory
+            | EntryKind::Unsupported
+            | EntryKind::BlockDevice
+            | EntryKind::Pipe
+            | EntryKind::Socket
+            | EntryKind::Symlink
+            | EntryKind::CharDevice => 0,
             // Only files have sizes
             EntryKind::File => get_file_size(ntfs, reader, child.file_ref.file_record_number)?,
         };
@@ -95,7 +101,12 @@ fn process_child_entries<T: Read + Seek>(
                 file_ref: child.file_ref,
                 display_path: child.display_path,
             })),
-            EntryKind::Unsupported => continue,
+            EntryKind::Unsupported
+            | EntryKind::BlockDevice
+            | EntryKind::Pipe
+            | EntryKind::Socket
+            | EntryKind::Symlink
+            | EntryKind::CharDevice => continue,
         };
         entries.push(DirEntry::new(child.name, handle, meta));
     }

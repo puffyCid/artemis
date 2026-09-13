@@ -16,7 +16,7 @@ use crate::accessor::{
 };
 use glob::Pattern;
 use std::{
-    fs::{self, File, Metadata, metadata, read, symlink_metadata},
+    fs::{self, File, FileType, Metadata, metadata, read, symlink_metadata},
     path::{Path, PathBuf},
 };
 use tracing::debug;
@@ -92,28 +92,26 @@ impl HostFs {
             let file_type = entry
                 .file_type()
                 .map_err(|err| AccessorError::io_path(entry.path(), err))?;
+
             let child_path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
+            let kind = HostFs::entry_kind(file_type);
 
-            let (handle, kind) = if file_type.is_dir() {
-                (
-                    ItemHandle::Directory(DirHandle::host(&child_path)),
-                    EntryKind::Directory,
-                )
-            } else if file_type.is_file() {
-                (
-                    ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::File,
-                )
-            } else {
-                (
-                    ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::Unsupported,
-                )
+            let handle = match kind {
+                EntryKind::File => ItemHandle::File(FileHandle::host(&child_path)),
+                EntryKind::Directory => ItemHandle::Directory(DirHandle::host(&child_path)),
+                EntryKind::Symlink
+                | EntryKind::Socket
+                | EntryKind::BlockDevice
+                | EntryKind::Pipe
+                | EntryKind::CharDevice
+                | EntryKind::Unsupported => ItemHandle::Unsupported(FileHandle::host(&child_path)),
             };
+
             let metadata = entry
                 .metadata()
                 .map_err(|err| AccessorError::io_path(&child_path, err))?;
+
             let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
             entries.push(DirEntry::new(name, handle, meta));
         }
@@ -222,14 +220,7 @@ impl HostFs {
 
         // We will not follow symbolic links
         let meta = symlink_metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
-
-        let kind = if meta.is_dir() {
-            EntryKind::Directory
-        } else if meta.is_file() {
-            EntryKind::File
-        } else {
-            EntryKind::Unsupported
-        };
+        let kind = HostFs::entry_kind(meta.file_type());
 
         Ok(EntryStat {
             meta: EntryMeta::new(kind, meta.len(), HostFs::display_path(&path)),
@@ -298,7 +289,13 @@ impl HostFs {
             let depth = path_component_count(&relative);
 
             match entry.meta.kind {
-                EntryKind::File | EntryKind::Unsupported => {
+                EntryKind::File
+                | EntryKind::Unsupported
+                | EntryKind::Symlink
+                | EntryKind::Socket
+                | EntryKind::BlockDevice
+                | EntryKind::Pipe
+                | EntryKind::CharDevice => {
                     if pattern.matches(&relative) {
                         matches.push(GlobMatch::new(entry.handle, entry.meta));
                     }
@@ -424,6 +421,53 @@ impl HostFs {
         }
 
         times
+    }
+
+    /// Determine `EntryKind` based on `FileType`
+    fn entry_kind(file_type: FileType) -> EntryKind {
+        if file_type.is_symlink() {
+            return EntryKind::Symlink;
+        }
+
+        if file_type.is_dir() {
+            return EntryKind::Directory;
+        }
+
+        if file_type.is_file() {
+            return EntryKind::File;
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::fs::FileTypeExt;
+
+            if file_type.is_symlink_dir() || file_type.is_symlink_file() {
+                return EntryKind::Symlink;
+            }
+        }
+
+        #[cfg(target_family = "unix")]
+        {
+            use std::os::unix::fs::FileTypeExt;
+
+            if file_type.is_socket() {
+                return EntryKind::Socket;
+            }
+
+            if file_type.is_fifo() {
+                return EntryKind::NamedPipe;
+            }
+
+            if file_type.is_block_device() {
+                return EntryKind::BlockDevice;
+            }
+
+            if file_type.is_char_device() {
+                return EntryKind::CharDevice;
+            }
+        }
+
+        EntryKind::Unsupported
     }
 }
 
