@@ -1158,6 +1158,5 @@ mod tests {
         assert!(stat.times.filename_accessed.is_some());
         assert!(stat.times.filename_changed.is_some());
         assert!(stat.times.filename_created.is_some());
-        assert!(stat.times.filename_created.is_some());
     }
 }
