@@ -21,6 +21,7 @@ use crate::filesystem::files::hash_reader;
 use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::files::FileOptions;
+use crate::structs::toml::OutputFormat;
 use crate::utils::regex_options::{create_regex, regex_check};
 use common::files::EntryKind;
 use common::files::FileInfo;
@@ -177,7 +178,16 @@ fn walking(
         file.yara_hits = scan;
 
         filelist_vec.push(file);
-        let max_list = 1000;
+
+        // Max filelisting size is 1k if we are timelining or parsing executable metadata
+        // Otherwise the filelisting is 10k
+        let max_list = if options.metadata.is_some_and(|b| b)
+            || manager.config.format == OutputFormat::Timeline
+        {
+            1000
+        } else {
+            10000
+        };
 
         if filelist_vec.len() >= max_list {
             file_output(filelist_vec, manager, options);
