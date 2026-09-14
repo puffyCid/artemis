@@ -112,7 +112,7 @@ struct WalkOptions {
     file_filter: Regex,
     yara_rule: String,
     plat: PlatformType,
-    max_list: u16,
+    max_list: usize,
 }
 
 /// Iterate through the filesystem
@@ -190,7 +190,7 @@ fn walking(
 
         filelist_vec.push(file);
 
-        if filelist_vec.len() >= walk_options.max_list as usize {
+        if filelist_vec.len() >= walk_options.max_list {
             file_output(filelist_vec, manager, options);
             filelist_vec = Vec::new();
         }
