@@ -4,7 +4,10 @@ use crate::accessor::{
         locator::{DirLocator, FileLocator, NtfsEntryRef},
     },
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{data::ntfs_times, volume::NtfsVolume},
+    filesystem::ntfs::{
+        data::{merge_ntfs_times, ntfs_filename_times, ntfs_standard_times},
+        volume::NtfsVolume,
+    },
 };
 use common::files::EntryKind;
 use ntfs::{
@@ -13,19 +16,6 @@ use ntfs::{
 };
 use std::io::{Read, Seek};
 use tracing::error;
-
-/// Files and directories associated with directory we are reading
-#[derive(Debug)]
-struct PendingChild {
-    /// Name of child
-    name: String,
-    /// NTFS file reference on the disk
-    file_ref: NtfsEntryRef,
-    /// Type of child. File, Directory, or Unsupported
-    kind: EntryKind,
-    /// Full path to the child
-    display_path: String,
-}
 
 /// List files and directories from provided path
 ///
@@ -41,9 +31,7 @@ pub(crate) fn list_children<T: Read + Seek + Send>(
         let parent_display = normalize_display_path(display);
         let dir_file = resolve_directory(ntfs, reader, inner_path)?;
 
-        // Children walk only. Gets all files and directories in provided directory
-        let pending = collect_index_children(reader, drive, &dir_file, &parent_display)?;
-        process_child_entries(ntfs, reader, pending, drive)
+        list_index_children(ntfs, reader, &dir_file, drive, &parent_display)
     })
 }
 
@@ -61,59 +49,87 @@ pub(crate) fn list_children_handle<T: Read + Seek + Send>(
         let parent_display = normalize_display_path(display);
         let dir_file = open_by_ref(ntfs, reader, file_ref)?;
 
-        // Children walk only. Gets all files and directories in provided directory
-        let pending = collect_index_children(reader, drive, &dir_file, &parent_display)?;
-        process_child_entries(ntfs, reader, pending, drive)
+        list_index_children(ntfs, reader, &dir_file, drive, &parent_display)
     })
 }
 
-/// Process children of the directory we just read
-fn process_child_entries<T: Read + Seek>(
+/// Extract entries from INDX attribute
+fn list_index_children<R: Read + Seek>(
     ntfs: &Ntfs,
-    reader: &mut T,
-    pending: Vec<PendingChild>,
+    reader: &mut R,
+    dir_file: &NtfsFile<'_>,
     drive: char,
+    parent_display: &str,
 ) -> AccessorResult<Vec<DirEntry>> {
-    // Now get the size for files in the directory
-    let mut entries = Vec::with_capacity(pending.len());
-    for child in pending {
-        let file = open_by_ref(ntfs, reader, &child.file_ref)?;
-        let times = ntfs_times(reader, &file)?;
+    let index = dir_file.directory_index(reader).map_err(ntfs_err)?;
+    let mut iter = index.entries();
+    let mut entries = Vec::new();
 
-        let size = match child.kind {
-            EntryKind::Directory
-            | EntryKind::Unsupported
-            | EntryKind::BlockDevice
-            | EntryKind::Pipe
-            | EntryKind::Socket
-            | EntryKind::Symlink
-            | EntryKind::CharDevice => 0,
-            // Only files have sizes
-            EntryKind::File => read_file_size(file, reader)?,
+    while let Some(Ok(entry)) = iter.next(reader) {
+        if entry.flags().contains(NtfsIndexEntryFlags::LAST_ENTRY) {
+            continue;
+        }
+
+        let key = match entry.key() {
+            Some(Ok(key)) => key,
+            Some(Err(err)) => return Err(ntfs_err(err)),
+            None => continue,
         };
 
-        let scheme_path = format!("ntfs:{}", child.display_path);
-        let meta = EntryMeta::new(child.kind.clone(), size, scheme_path);
-        let handle = match child.kind {
+        if key.namespace() == NtfsFileNamespace::Dos {
+            continue;
+        }
+
+        let name = key.name().to_string_lossy();
+        if name == "." || name == ".." {
+            continue;
+        }
+
+        let kind = if key.is_directory() {
+            EntryKind::Directory
+        } else {
+            EntryKind::File
+        };
+
+        let filename_times = ntfs_filename_times(&key);
+        let file_ref = NtfsEntryRef::from_reference(entry.file_reference());
+
+        let display_path = if parent_display.is_empty() {
+            format!("{drive}:\\{name}")
+        } else {
+            format!("{parent_display}\\{name}")
+        };
+
+        let file = entry
+            .file_reference()
+            .to_file(ntfs, reader)
+            .map_err(ntfs_err)?;
+        let times = merge_ntfs_times(ntfs_standard_times(&file)?, filename_times);
+
+        let size = if kind == EntryKind::File {
+            read_file_size(file, reader)?
+        } else {
+            0
+        };
+
+        let scheme_path = format!("ntfs:{display_path}");
+        let handle = match &kind {
             EntryKind::Directory => ItemHandle::Directory(DirHandle::new(DirLocator::Ntfs {
                 drive,
-                dir_ref: child.file_ref,
-                display_path: child.display_path,
+                dir_ref: file_ref,
+                display_path,
             })),
             EntryKind::File => ItemHandle::File(FileHandle::new(FileLocator::Ntfs {
                 drive,
-                file_ref: child.file_ref,
-                display_path: child.display_path,
+                file_ref,
+                display_path,
             })),
-            EntryKind::Unsupported
-            | EntryKind::BlockDevice
-            | EntryKind::Pipe
-            | EntryKind::Socket
-            | EntryKind::Symlink
-            | EntryKind::CharDevice => continue,
+            _ => continue,
         };
 
-        entries.push(DirEntry::new(child.name, handle, meta, times));
+        let meta = EntryMeta::new(kind, size, scheme_path);
+
+        entries.push(DirEntry::new(name, handle, meta, times));
     }
 
     Ok(entries)
@@ -173,69 +189,6 @@ pub(crate) fn open_by_ref<'a, R: Read + Seek>(
 ) -> AccessorResult<NtfsFile<'a>> {
     ntfs.file(reader, file_ref.file_record_number)
         .map_err(ntfs_err)
-}
-
-/// Walk the directory index and return children
-///
-/// Required before any `$DATA` size lookup
-fn collect_index_children<'a, R: Read + Seek>(
-    reader: &mut R,
-    drive: char,
-    dir_file: &NtfsFile<'a>,
-    parent_display: &str,
-) -> AccessorResult<Vec<PendingChild>> {
-    let index = dir_file.directory_index(reader).map_err(ntfs_err)?;
-    let mut iter = index.entries();
-    let mut pending = Vec::new();
-
-    while let Some(Ok(entry)) = iter.next(reader) {
-        let child = {
-            if entry.flags().contains(NtfsIndexEntryFlags::LAST_ENTRY) {
-                None
-            } else {
-                let key = match entry.key() {
-                    Some(Ok(key)) => key,
-                    Some(Err(err)) => return Err(ntfs_err(err)),
-                    None => continue,
-                };
-                // Skip DOS names
-                if key.namespace() == NtfsFileNamespace::Dos {
-                    None
-                } else {
-                    let name = key.name().to_string_lossy();
-                    // Special directories
-                    if name == "." || name == ".." {
-                        None
-                    } else {
-                        let file_ref = NtfsEntryRef::from_reference(entry.file_reference());
-                        let kind = if key.is_directory() {
-                            EntryKind::Directory
-                        } else {
-                            EntryKind::File
-                        };
-                        let display_path = if parent_display.is_empty() {
-                            format!("{drive}:\\{name}")
-                        } else {
-                            format!("{parent_display}\\{name}")
-                        };
-                        Some(PendingChild {
-                            name,
-                            file_ref,
-                            kind,
-                            display_path,
-                        })
-                    }
-                }
-            }
-        };
-
-        // Track files and directories found
-        if let Some(child) = child {
-            pending.push(child);
-        }
-    }
-
-    Ok(pending)
 }
 
 /// Return the `NtfsFile` object associated with a target directory we want to read

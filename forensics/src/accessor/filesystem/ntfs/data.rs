@@ -31,6 +31,7 @@ use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
 };
+use tracing::warn;
 
 /// A filesystem like accessor that can be used to read files from the raw NTFS
 pub(crate) struct NtfsFs<T: Read + Seek + Send> {
@@ -280,14 +281,11 @@ fn stat_from_file<R: Read + Seek>(
     })
 }
 
-/// Extract all 8 timestamps for a NTFS entry
-pub(crate) fn ntfs_times<R: Read + Seek>(
-    reader: &mut R,
-    file: &NtfsFile<'_>,
-) -> AccessorResult<Timestamp> {
+/// Return the 4 Standard Info timestamps
+pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timestamp> {
     let info = file.info().map_err(ntfs_err)?;
 
-    let mut times = Timestamp {
+    Ok(Timestamp {
         created: Some(filetime_to_iso(info.creation_time().nt_timestamp())),
         modified: Some(filetime_to_iso(info.modification_time().nt_timestamp())),
         accessed: Some(filetime_to_iso(info.access_time().nt_timestamp())),
@@ -295,18 +293,50 @@ pub(crate) fn ntfs_times<R: Read + Seek>(
             info.mft_record_modification_time().nt_timestamp(),
         )),
         ..Default::default()
-    };
+    })
+}
+
+/// Return the 4 FILENAME timestamps
+pub(crate) fn ntfs_filename_times(name: &NtfsFileName) -> Timestamp {
+    Timestamp {
+        filename_created: Some(filetime_to_iso(name.creation_time().nt_timestamp())),
+        filename_modified: Some(filetime_to_iso(name.modification_time().nt_timestamp())),
+        filename_accessed: Some(filetime_to_iso(name.access_time().nt_timestamp())),
+        filename_changed: Some(filetime_to_iso(
+            name.mft_record_modification_time().nt_timestamp(),
+        )),
+        ..Default::default()
+    }
+}
+
+/// Return all 8 timestamps
+pub(crate) fn merge_ntfs_times(standard: Timestamp, filename: Timestamp) -> Timestamp {
+    Timestamp {
+        created: standard.created,
+        modified: standard.modified,
+        accessed: standard.accessed,
+        changed: standard.changed,
+        filename_created: filename.filename_created,
+        filename_modified: filename.filename_modified,
+        filename_accessed: filename.filename_accessed,
+        filename_changed: filename.filename_changed,
+    }
+}
+
+/// Extract all 8 timestamps for a NTFS entry
+pub(crate) fn ntfs_times<R: Read + Seek>(
+    reader: &mut R,
+    file: &NtfsFile<'_>,
+) -> AccessorResult<Timestamp> {
+    let standard = ntfs_standard_times(file)?;
 
     if let Some(name) = first_non_dos_filename(reader, file)? {
-        times.filename_created = Some(filetime_to_iso(name.creation_time().nt_timestamp()));
-        times.filename_modified = Some(filetime_to_iso(name.modification_time().nt_timestamp()));
-        times.filename_accessed = Some(filetime_to_iso(name.access_time().nt_timestamp()));
-        times.filename_changed = Some(filetime_to_iso(
-            name.mft_record_modification_time().nt_timestamp(),
-        ));
+        return Ok(merge_ntfs_times(standard, ntfs_filename_times(&name)));
     }
 
-    Ok(times)
+    warn!("Could not get FILENAME times offset: {}", file.position());
+
+    Ok(standard)
 }
 
 /// Extract the FILENAME timestamp for the NTFS entry
