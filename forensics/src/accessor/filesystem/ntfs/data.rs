@@ -334,7 +334,10 @@ pub(crate) fn ntfs_times<R: Read + Seek>(
         return Ok(merge_ntfs_times(standard, ntfs_filename_times(&name)));
     }
 
-    warn!("Could not get FILENAME times offset: {}", file.position());
+    warn!(
+        "Could not get FILENAME times for record: {}",
+        file.file_record_number()
+    );
 
     Ok(standard)
 }

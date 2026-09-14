@@ -15,7 +15,7 @@ use ntfs::{
     structured_values::NtfsFileNamespace,
 };
 use std::io::{Read, Seek};
-use tracing::error;
+use tracing::{error, warn};
 
 /// List files and directories from provided path
 ///
@@ -36,8 +36,6 @@ pub(crate) fn list_children<T: Read + Seek + Send>(
 }
 
 /// List files and directories from provided directory file reference
-///
-/// `display` is the parent path to the directory
 pub(crate) fn list_children_handle<T: Read + Seek + Send>(
     volume: &NtfsVolume<T>,
     file_ref: &NtfsEntryRef,
@@ -65,7 +63,14 @@ fn list_index_children<R: Read + Seek>(
     let mut iter = index.entries();
     let mut entries = Vec::new();
 
-    while let Some(Ok(entry)) = iter.next(reader) {
+    while let Some(value) = iter.next(reader) {
+        let entry = match value {
+            Ok(result) => result,
+            Err(err) => {
+                warn!("Could not iterate index children: {err:?}");
+                continue;
+            }
+        };
         if entry.flags().contains(NtfsIndexEntryFlags::LAST_ENTRY) {
             continue;
         }

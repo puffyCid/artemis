@@ -80,11 +80,21 @@ pub(crate) fn get_filelist(
     let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
     let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
 
+    // Max filelisting size is 1k if we are timelining or parsing executable metadata
+    // Otherwise the filelisting is 10k
+    let max_list =
+        if options.metadata.is_some_and(|b| b) || manager.config.format == OutputFormat::Timeline {
+            1000
+        } else {
+            10000
+        };
+
     let walk_options = WalkOptions {
         path_filter,
         file_filter,
         yara_rule: rule,
         plat: get_platform_enum(),
+        max_list,
     };
 
     walking(
@@ -102,6 +112,7 @@ struct WalkOptions {
     file_filter: Regex,
     yara_rule: String,
     plat: PlatformType,
+    max_list: u16,
 }
 
 /// Iterate through the filesystem
@@ -179,17 +190,7 @@ fn walking(
 
         filelist_vec.push(file);
 
-        // Max filelisting size is 1k if we are timelining or parsing executable metadata
-        // Otherwise the filelisting is 10k
-        let max_list = if options.metadata.is_some_and(|b| b)
-            || manager.config.format == OutputFormat::Timeline
-        {
-            1000
-        } else {
-            10000
-        };
-
-        if filelist_vec.len() >= max_list {
+        if filelist_vec.len() >= walk_options.max_list as usize {
             file_output(filelist_vec, manager, options);
             filelist_vec = Vec::new();
         }
