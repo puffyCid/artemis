@@ -285,19 +285,40 @@ mod tests {
     fn test_ntfs_volume() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/filesystems/ntfs/test.raw");
-
         let volume = NtfsVolume::open_image(test_location).unwrap();
         let result = list_children(&volume, 'C', &"", &"").unwrap();
-
         assert_eq!(result.len(), 15);
+        let main = result
+            .iter()
+            .find(|entry| entry.name == "main.ts")
+            .expect("main.ts");
 
-        for entry in result {
-            if entry.name == "main.ts" {
-                assert_eq!(entry.meta.kind, EntryKind::File);
-            }
-        }
+        assert_eq!(main.meta.kind, EntryKind::File);
+        assert_eq!(main.meta.size, 514);
+
+        assert!(main.times.created.is_some());
+        assert!(main.times.modified.is_some());
+        assert!(main.times.accessed.is_some());
+        assert!(main.times.changed.is_some());
+        assert!(main.times.filename_created.is_some());
+        assert!(main.times.filename_modified.is_some());
+        assert!(main.times.filename_accessed.is_some());
+        assert!(main.times.filename_changed.is_some());
+
+        let hello_dir = result
+            .iter()
+            .find(|entry| entry.name == "hello")
+            .expect("hello");
+
+        assert_eq!(hello_dir.meta.kind, EntryKind::Directory);
+        assert_eq!(hello_dir.meta.size, 0);
 
         let result = list_children(&volume, 'c', &"C:\\hello", &"hello").unwrap();
-        assert_eq!(result[0].name, "hello world.txt");
+        let hello = result
+            .iter()
+            .find(|entry| entry.name == "hello world.txt")
+            .expect("hello world.txt");
+
+        assert_eq!(hello.meta.size, 12);
     }
 }
