@@ -1,7 +1,13 @@
 use crate::runtime::{error::RuntimeError, helper::string_arg};
 use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 use macos_unifiedlogs::{
-    cache::MemoryStringCache, filesystem::{LiveSystemProvider, LogarchiveProvider}, iterator::UnifiedLogIterator, parser::{build_log, collect_timesync}, timesync::TimesyncBoot, traits::FileProvider, unified_log::LogData,
+    cache::MemoryStringCache,
+    filesystem::{LiveSystemProvider, LogarchiveProvider},
+    iterator::UnifiedLogIterator,
+    parser::{build_log, collect_timesync},
+    timesync::TimesyncBoot,
+    traits::{FileProvider, SourceFile},
+    unified_log::LogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
 use tracing::{error, warn};
