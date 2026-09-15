@@ -149,7 +149,11 @@ fn walking(
 
         let mut scan: Vec<String> = Vec::new();
         #[cfg(feature = "yarax")]
-        if !walk_options.yara_rule.is_empty() && entry.entry.meta.kind == EntryKind::File {
+        if !walk_options.yara_rule.is_empty() {
+            if entry.entry.meta.kind != EntryKind::File {
+                continue;
+            }
+
             let max_size = 100 * 1024 * 1024;
             if entry.entry.meta.size > max_size {
                 info!(
@@ -437,7 +441,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
+    #[cfg(target_os = "linux")]
     fn test_get_filelist() {
         let mut manager = output_options("files_temp", "./tmp", false);
 

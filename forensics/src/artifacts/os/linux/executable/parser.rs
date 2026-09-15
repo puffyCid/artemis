@@ -83,10 +83,10 @@ pub(crate) fn parse_elf_reader(reader: &mut AccessorReader) -> Result<ElfInfo, P
         return Err(elf::ParseError::BadMagic(buff));
     }
 
-    if reader.rewind().is_err() {
+    if let Err(err) = reader.rewind() {
         return Err(elf::ParseError::IOError(Error::new(
             ErrorKind::InvalidData,
-            reader.rewind().unwrap_err(),
+            err,
         )));
     }
 
