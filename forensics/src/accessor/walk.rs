@@ -10,6 +10,7 @@ use crate::accessor::{
 use std::collections::HashSet;
 
 /// A special accessor that be used to recursively iterator through an `Accessor` `Source`
+#[derive(Debug)]
 pub(crate) struct WalkAccessor {
     /// `Source` we should iterate through
     source: SourceHandle,
@@ -30,6 +31,7 @@ pub(crate) struct WalkAccessor {
 }
 
 /// Track files and directories we walk
+#[derive(Debug)]
 struct WalkStack {
     /// Current depth
     depth: u32,

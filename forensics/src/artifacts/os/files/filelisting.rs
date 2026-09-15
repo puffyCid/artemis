@@ -352,6 +352,7 @@ fn file_output(entries: Vec<FileInfo>, manager: &mut OutputManager, options: &Fi
 #[cfg(test)]
 mod tests {
     use crate::accessor::access::Accessor;
+    use crate::accessor::error::AccessorError;
     use crate::accessor::walk::WalkAccessor;
     use crate::artifacts::os::files::filelisting::{
         executable_metadata, file_metadata, file_output, get_filelist, user_regex,
@@ -392,8 +393,7 @@ mod tests {
             ..Default::default()
         };
 
-        let results = get_filelist(&options, &mut manager).unwrap();
-        assert_eq!(results, ());
+        get_filelist(&options, &mut manager).unwrap();
     }
 
     #[test]
@@ -436,8 +436,7 @@ mod tests {
             ..Default::default()
         };
 
-        let results = get_filelist(&options, &mut manager).unwrap();
-        assert_eq!(results, ());
+        get_filelist(&options, &mut manager).unwrap();
     }
 
     #[test]
@@ -446,13 +445,23 @@ mod tests {
         let mut manager = output_options("files_temp", "./tmp", false);
 
         let options = FileOptions {
-            start_path: String::from("/bin"),
+            start_path: String::from("/usr/bin"),
             depth: Some(1),
             source: String::from("host:"),
             ..Default::default()
         };
-        let results = get_filelist(&options, &mut manager).unwrap();
-        assert_eq!(results, ());
+        get_filelist(&options, &mut manager).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_get_filelist_bad_start() {
+        let mut accessor = Accessor::with_defaults();
+
+        let source = accessor.open_source("host:").unwrap();
+
+        let err = WalkAccessor::new(&source, "/bin").unwrap_err();
+        assert!(matches!(err, AccessorError::NotADirectory { .. }));
     }
 
     #[test]
@@ -488,11 +497,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
+    #[cfg(target_os = "linux")]
     fn test_file_metadata() {
         let mut accessor = Accessor::with_defaults();
         let source = accessor.open_source("host:").unwrap();
-        let mut walk = WalkAccessor::new(&source, "/bin").unwrap();
+        let mut walk = WalkAccessor::new(&source, "/usr/bin").unwrap();
         walk = walk.max_depth(1);
 
         let metadata = true;
