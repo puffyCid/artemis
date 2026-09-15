@@ -15,11 +15,7 @@ use super::{
     strings::{StringResource, get_resources},
 };
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-        io::reader::AccessorReader,
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch, io::reader::AccessorReader},
     output::{
         manager::OutputManager,
         record::{
@@ -29,6 +25,7 @@ use crate::{
     structs::artifacts::os::windows::EventLogsOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
+use common::files::EntryKind;
 use common::windows::{EventLogRecord, EventMessage};
 use evtx::EvtxParser;
 use tracing::{error, warn};

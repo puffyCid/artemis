@@ -223,6 +223,7 @@ mod tests {
                     path_regex: None,
                     exclude_directories: None,
                     yara_rule: None,
+                    source: String::from("host:"),
                 }),
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),

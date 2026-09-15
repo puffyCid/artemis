@@ -19,15 +19,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Cookies XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Cookies*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Current Session XP"
@@ -37,15 +33,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Current Tabs XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Current Tabs"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Favicons XP"
@@ -55,15 +47,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome History XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "History*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Last Session XP"
@@ -73,15 +61,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Last Tabs XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Last Tabs"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Login Data XP"
@@ -91,15 +75,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Preferences XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Preferences"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Shortcuts XP"
@@ -109,15 +89,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Top Sites XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Top Sites*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Visited Links XP"
@@ -127,15 +103,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Web Data XP"
 path = "C:\\Documents and Settings\\*\\Local Settings\\Application Data\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Web Data*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Bookmarks"
@@ -145,15 +117,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Cookies"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 recursive = true
 file_mask = "Cookies*"
 recreate_directories = true
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Current Session"
@@ -163,15 +131,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Current Tabs"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Current Tabs"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Download Metadata"
@@ -181,15 +145,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Extension Cookies"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Extension Cookies*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Favicons"
@@ -199,15 +159,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome History"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "History*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Last Session"
@@ -217,15 +173,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Last Tabs"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Last Tabs"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Sessions Folder"
@@ -235,15 +187,11 @@ file_mask = "*"
 recreate_directories = true
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Login Data"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Login Data*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Media History"
@@ -253,8 +201,6 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Network Action Predictor"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Network Action Predictor*"
@@ -262,8 +208,6 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Network Persistent State"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Network Persistent State"
@@ -271,15 +215,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Network Persistent State"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Network\\"
 file_mask = "Network Persistent State"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Preferences"
@@ -289,15 +229,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Quota Manager"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "QuotaManager*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Quota Manager"
@@ -307,8 +243,6 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Reporting and NEL"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Reporting and NEL*"
@@ -316,15 +250,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Reporting and NEL"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Network\\"
 file_mask = "Reporting and NEL*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Shortcuts"
@@ -334,8 +264,6 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Top Sites"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Top Sites*"
@@ -343,15 +271,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Trust Tokens"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Trust Tokens*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Trust Tokens"
@@ -361,15 +285,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome SyncData Database"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Sync Data\\"
 file_mask = "SyncData.sqlite3"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome Visited Links"
@@ -379,15 +299,11 @@ recreate_directories = true
 recursive = false
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Web Data"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\"
 file_mask = "Web Data*"
 recreate_directories = true
 recursive = false
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Chrome IndexedDB"
@@ -397,15 +313,11 @@ file_mask = "*"
 recreate_directories = true
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Local Storage"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\*\\Local Storage\\leveldb\\"
 recursive = true
 file_mask = "*"
 recreate_directories = true
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "Windows Protect Folder"
@@ -415,15 +327,11 @@ file_mask = "*"
 recreate_directories = true
 
 [[artifacts.triage]]
-
-[[artifacts.triage]]
 name = "Chrome Snapshots Folder"
 path = "C:\\Users\\*\\AppData\\Local\\Google\\Chrome\\User Data\\Snapshots\\*\\"
 recursive = true
 file_mask = "*"
 recreate_directories = true
-
-[[artifacts.triage]]
 
 [[artifacts.triage]]
 name = "SYSTEM Chrome History"

@@ -1,6 +1,6 @@
 use crate::accessor::{
     entry::{
-        handle::{DirEntry, EntryKind, GlobMatch},
+        handle::{DirEntry, GlobMatch},
         locator::DirLocator,
     },
     error::{AccessorError, AccessorResult},
@@ -16,6 +16,7 @@ use crate::accessor::{
     },
     location::path::InnerPath,
 };
+use common::files::EntryKind;
 use glob::Pattern;
 use std::io::{Read, Seek};
 use tracing::warn;
@@ -83,7 +84,13 @@ fn glob_path_pattern<T: Read + Seek + Send>(
         let depth = path_component_count(&relative);
 
         match entry.meta.kind {
-            EntryKind::File | EntryKind::Unsupported => {
+            EntryKind::File
+            | EntryKind::Unsupported
+            | EntryKind::Symlink
+            | EntryKind::Socket
+            | EntryKind::BlockDevice
+            | EntryKind::Pipe
+            | EntryKind::CharDevice => {
                 if pattern.matches(&relative) {
                     matches.push(GlobMatch::new(entry.handle, entry.meta));
                 }

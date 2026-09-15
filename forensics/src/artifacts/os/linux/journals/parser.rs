@@ -21,14 +21,12 @@ use super::{
 use crate::{
     accessor::{
         access::Accessor,
-        entry::{
-            handle::{EntryKind, FileHandle},
-            locator::FileLocator,
-        },
+        entry::{handle::FileHandle, locator::FileLocator},
     },
     output::manager::OutputManager,
     structs::artifacts::os::linux::JournalOptions,
 };
+use common::files::EntryKind;
 use common::linux::Journal;
 use tracing::{error, warn};
 

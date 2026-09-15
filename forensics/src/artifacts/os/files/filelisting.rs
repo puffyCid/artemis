@@ -8,61 +8,61 @@
  * On macOS the filelisting will read the firmlinks file at `/usr/share/firmlinks` and skip firmlink paths
  */
 use super::error::FileError;
-use crate::artifacts::os::linux::executable::parser::parse_elf_file;
+use crate::accessor::access::Accessor;
+use crate::accessor::io::reader::AccessorReader;
+use crate::accessor::source::handle::SourceHandle;
+use crate::accessor::walk::{WalkAccessor, WalkEntry};
+use crate::artifacts::os::linux::executable::parser::parse_elf_reader;
 use crate::artifacts::os::macos::macho::error::MachoError;
-use crate::artifacts::os::macos::macho::parser::parse_macho;
+use crate::artifacts::os::macos::macho::parser::parse_macho_reader;
 use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform_enum};
-use crate::artifacts::os::windows::pe::parser::parse_pe_file;
-use crate::filesystem::files::hash_file;
-use crate::filesystem::metadata::get_metadata;
-use crate::filesystem::metadata::get_timestamps;
+use crate::artifacts::os::windows::pe::parser::parse_pe_reader;
+use crate::filesystem::files::hash_reader;
 use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::files::FileOptions;
 use crate::structs::toml::OutputFormat;
 use crate::utils::regex_options::{create_regex, regex_check};
+use common::files::EntryKind;
 use common::files::FileInfo;
 use common::files::Hashes;
 use regex::Regex;
 use serde_json::Value;
-use std::fs::File;
-use std::io::{BufRead, BufReader, Error as ioError};
 use tracing::{error, info, warn};
-use walkdir::{DirEntry, WalkDir};
 
 #[cfg(feature = "yarax")]
-use crate::utils::yara::{extract_rule, scan_file};
+use crate::utils::yara::{extract_rule, scan_bytes};
 
-/// Get file listing
+/// Grab filelisting based on `FileOptions` provided
 pub(crate) fn get_filelist(
     options: &FileOptions,
     manager: &mut OutputManager,
 ) -> Result<(), FileError> {
-    let start_walk = WalkDir::new(&options.start_path).same_file_system(false);
-    let depth = options.depth.unwrap_or(1);
-    let begin_walk = start_walk.max_depth(depth as usize);
-    let mut filelist_vec: Vec<FileInfo> = Vec::new();
+    let mut accessor = Accessor::with_defaults();
 
-    let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
-    let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
-    let mut firmlink_paths: Vec<String> = Vec::new();
-
-    let platform = get_platform_enum();
-    if platform == PlatformType::Macos {
-        let firmlink_paths_data = read_firmlinks();
-        match firmlink_paths_data {
-            Ok(mut firmlinks) => firmlink_paths.append(&mut firmlinks),
-            Err(err) => warn!("Failed to read firmlinks file on macOS: {err:?}"),
+    let source = match accessor.open_source(&options.source) {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not open source: {err:?}");
+            return Err(FileError::Filelisting);
         }
-    }
+    };
 
-    let mut exclude_directories = options
-        .exclude_directories
-        .as_ref()
-        .unwrap_or(&Vec::new())
-        .clone();
-    // On macOS we always skip firmlinks
-    exclude_directories.append(&mut firmlink_paths);
+    let mut walk = match WalkAccessor::new(&source, &options.start_path) {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "Could not start filelisting at {}: {err:?}",
+                options.start_path
+            );
+            return Err(FileError::Filelisting);
+        }
+    };
+    let depth = options.depth.unwrap_or(1);
+    walk = walk.max_depth(depth);
+    for exclude in options.exclude_directories.as_ref().unwrap_or(&Vec::new()) {
+        walk = walk.exclude(exclude);
+    }
 
     let mut rule = String::new();
     #[cfg(feature = "yarax")]
@@ -77,37 +77,105 @@ pub(crate) fn get_filelist(
         };
     }
 
-    for entries in begin_walk
-        .into_iter()
-        .filter_entry(|f| !skip_directory(f, &exclude_directories))
-    {
-        let entry = match entries {
+    let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
+    let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
+
+    // Max filelisting size is 1k if we are timelining or parsing executable metadata
+    // Otherwise the filelisting is 10k
+    let max_list =
+        if options.metadata.is_some_and(|b| b) || manager.config.format == OutputFormat::Timeline {
+            1000
+        } else {
+            10000
+        };
+
+    let walk_options = WalkOptions {
+        path_filter,
+        file_filter,
+        yara_rule: rule,
+        plat: get_platform_enum(),
+        max_list,
+    };
+
+    walking(
+        &mut walk,
+        &mut accessor,
+        &source,
+        options,
+        manager,
+        &walk_options,
+    )
+}
+
+struct WalkOptions {
+    path_filter: Regex,
+    file_filter: Regex,
+    yara_rule: String,
+    plat: PlatformType,
+    max_list: usize,
+}
+
+/// Iterate through the filesystem
+fn walking(
+    walk: &mut WalkAccessor,
+    accessor: &mut Accessor,
+    source: &SourceHandle,
+    options: &FileOptions,
+    manager: &mut OutputManager,
+    walk_options: &WalkOptions,
+) -> Result<(), FileError> {
+    let mut filelist_vec = Vec::new();
+
+    while let Some(value) = walk.next(accessor) {
+        let entry = match value {
             Ok(result) => result,
             Err(err) => {
-                warn!("Failed to get file info: {err:?}");
+                warn!("Could not walk: {err:?}");
                 continue;
             }
         };
 
         // If Regex does not match then skip file info
         if options.path_regex.is_some()
-            && !regex_check(&path_filter, &entry.path().display().to_string())
+            && !regex_check(&walk_options.path_filter, &entry.entry.meta.full_path)
         {
             continue;
         }
         if options.filename_regex.is_some()
-            && !regex_check(&file_filter, &entry.file_name().display().to_string())
+            && !regex_check(&walk_options.file_filter, &entry.entry.meta.filename)
         {
             continue;
         }
 
-        let mut scan = Vec::new();
+        let mut scan: Vec<String> = Vec::new();
         #[cfg(feature = "yarax")]
-        if !rule.is_empty() {
-            if !entry.file_type().is_file() {
+        if !walk_options.yara_rule.is_empty() {
+            if entry.entry.meta.kind != EntryKind::File {
                 continue;
             }
-            let scan_result = scan_file(&entry.path().display().to_string(), &rule);
+
+            let max_size = 100 * 1024 * 1024;
+            if entry.entry.meta.size > max_size {
+                info!(
+                    "Skipping file {}. File size is {} vs 100MB max scans size",
+                    entry.entry.meta.display_path, entry.entry.meta.size
+                );
+                continue;
+            }
+
+            let Some(handle) = entry.entry.handle.as_file() else {
+                continue;
+            };
+
+            let bytes = match accessor.source_read_file_handle(source, handle) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("Could not read file {}: {err:?}", handle.display_path());
+                    continue;
+                }
+            };
+
+            let scan_result = scan_bytes(&bytes, &walk_options.yara_rule);
             scan = match scan_result {
                 Ok(result) => result,
                 Err(err) => {
@@ -121,87 +189,60 @@ pub(crate) fn get_filelist(
             }
         }
 
-        let file_entry_result = file_metadata(&entry, options, &platform);
-        let mut file_entry = match file_entry_result {
-            Ok(result) => result,
-            Err(err) => {
-                warn!("Failed to get file {:?} entry data: {err:?}", entry.path());
-                continue;
-            }
-        };
-        file_entry.yara_hits = scan;
+        let mut file = file_metadata(entry, options, &walk_options.plat, source, accessor);
+        file.yara_hits = scan;
 
-        filelist_vec.push(file_entry);
-        // If we are not parsing binary data and not timelining our limit is 10k, otherwise set limit to 1k
-        let max_list = if !options.metadata.is_some_and(|b| b)
-            && manager.config.format != OutputFormat::Timeline
-        {
-            10000
-        } else {
-            1000
-        };
-        if filelist_vec.len() >= max_list {
+        filelist_vec.push(file);
+
+        if filelist_vec.len() >= walk_options.max_list {
             file_output(filelist_vec, manager, options);
             filelist_vec = Vec::new();
         }
     }
-    file_output(filelist_vec, manager, options);
+
+    if !filelist_vec.is_empty() {
+        file_output(filelist_vec, manager, options);
+    }
+
     Ok(())
 }
 
-/// Get info on file (or directory)
 fn file_metadata(
-    entry: &DirEntry,
+    entry: WalkEntry,
     options: &FileOptions,
     plat: &PlatformType,
-) -> Result<FileInfo, ioError> {
-    let mut file_entry = FileInfo {
-        full_path: entry.path().display().to_string(),
-        depth: entry.depth(),
+    source: &SourceHandle,
+    accessor: &mut Accessor,
+) -> FileInfo {
+    let mut file = FileInfo {
+        full_path: entry.entry.meta.full_path,
+        depth: entry.depth as usize,
+        filename: entry.entry.meta.filename,
+        extension: entry.entry.meta.extension,
+        size: entry.entry.meta.size,
+        directory: entry.entry.meta.directory,
+        display_path: entry.entry.meta.display_path,
+        kind: entry.entry.meta.kind,
+        created: entry.entry.times.created,
+        modified: entry.entry.times.modified,
+        accessed: entry.entry.times.accessed,
+        changed: entry.entry.times.changed,
+        filename_created: entry.entry.times.filename_created,
+        filename_modified: entry.entry.times.filename_modified,
+        filename_accessed: entry.entry.times.filename_accessed,
+        filename_changed: entry.entry.times.filename_changed,
         ..Default::default()
     };
 
-    file_entry.extension = entry
-        .path()
-        .extension()
-        .unwrap_or_default()
-        .display()
-        .to_string();
-    let metadata = get_metadata(&file_entry.full_path)?;
-
-    let timestamps = get_timestamps(&file_entry.full_path)?;
-    file_entry.is_file = metadata.is_file();
-    file_entry.is_directory = metadata.is_dir();
-    file_entry.is_symlink = metadata.is_symlink();
-    file_entry.created = timestamps.created;
-    file_entry.modified = timestamps.modified;
-    file_entry.accessed = timestamps.accessed;
-    file_entry.changed = timestamps.changed;
-
-    file_entry.size = if metadata.is_file() {
-        metadata.len()
-    } else {
-        0
-    };
-
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    {
-        use std::os::unix::prelude::MetadataExt;
-
-        file_entry.inode = metadata.ino();
-        file_entry.mode = metadata.mode();
-        file_entry.uid = metadata.uid();
-        file_entry.gid = metadata.gid();
-    }
-
+    let max_size = 100 * 1024 * 1024;
     // Get executable metadata if enabled
-    if options.metadata.is_some_and(|b| b) && file_entry.is_file {
-        // Filelisting can only run on host platforms.
-        // Always make sure we tell the `Accessor` to use the `Host Accessor`
-        // Should prevent confusion when paths contain `zip:/file.zip/ntfs:files.txt`
-        file_entry.binary_info =
-            executable_metadata(&format!("host:{}", entry.path().display()), plat)
-                .unwrap_or_default();
+    if file.kind == EntryKind::File
+        && options.metadata.is_some_and(|b| b)
+        && let Some(handle) = entry.entry.handle.as_file()
+        && entry.entry.meta.size < max_size
+        && let Ok(mut reader) = accessor.source_open_reader_handle(source, handle)
+    {
+        file.binary_info = executable_metadata(&mut reader, plat).unwrap_or_default();
     }
 
     let hashes = Hashes {
@@ -210,71 +251,34 @@ fn file_metadata(
         sha256: options.sha256.unwrap_or_default(),
     };
 
-    if (hashes.md5 || hashes.sha1 || hashes.sha256) && file_entry.is_file && !file_entry.is_symlink
+    if (hashes.md5 || hashes.sha1 || hashes.sha256)
+        && let Some(handle) = entry.entry.handle.as_file()
+        && let Ok(mut reader) = accessor.source_open_reader_handle(source, handle)
     {
-        let (md5, sha1, sha256) = hash_file(&hashes, &file_entry.full_path);
-        file_entry.md5 = md5;
-        file_entry.sha1 = sha1;
-        file_entry.sha256 = sha256;
+        let (md5, sha1, sha256) = hash_reader(&hashes, &mut reader);
+        file.md5 = md5;
+        file.sha1 = sha1;
+        file.sha256 = sha256;
     }
 
-    let base_path = entry.path();
-    if let Some(parent) = base_path.parent() {
-        file_entry.directory = parent.display().to_string();
-    } else {
-        info!(
-            "Did not get parent directory for filename at: {:?}",
-            entry.path()
-        );
-    }
-
-    if let Some(filename) = entry.file_name().to_str() {
-        file_entry.filename = filename.to_string();
-    } else {
-        warn!("Failed to get filename for: {:?}", entry.path());
-    }
-    Ok(file_entry)
-}
-
-/// Skip directory if in our exclusion array
-fn skip_directory(entry: &DirEntry, directories: &[String]) -> bool {
-    if directories.is_empty() {
-        return false;
-    }
-    for exclude_dir in directories {
-        let skip = entry.path().to_str().is_some_and(|s| s == exclude_dir);
-        if skip {
-            return skip;
-        }
-    }
-
-    false
-}
-
-/// Read the firmlinks file on disk (holds all default firmlink paths)
-fn read_firmlinks() -> Result<Vec<String>, std::io::Error> {
-    let default_firmlinks = "/usr/share/firmlinks";
-    let file = File::open(default_firmlinks)?;
-    let reader = BufReader::new(file);
-    let mut firmlink_paths: Vec<String> = Vec::new();
-
-    for entry in reader.lines() {
-        let line_entry = entry?;
-        let firmlink: Vec<&str> = line_entry.split_whitespace().collect();
-        firmlink_paths.push(firmlink[0].to_string());
-    }
-    Ok(firmlink_paths)
+    file
 }
 
 /// Get executable metadata
-fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileError> {
+fn executable_metadata(
+    reader: &mut AccessorReader,
+    plat: &PlatformType,
+) -> Result<Value, FileError> {
     let binary_info = match plat {
         PlatformType::Linux => {
-            let binary_result = match parse_elf_file(path) {
+            let binary_result = match parse_elf_reader(reader) {
                 Ok(result) => result,
                 Err(err) => {
                     if !err.to_string().contains("Magic Bytes") {
-                        error!("Could not parse ELF file {path} error: {err:?}");
+                        error!(
+                            "Could not parse ELF file {} error: {err:?}",
+                            reader.location.display_path()
+                        );
                     }
                     return Err(FileError::ParseFile);
                 }
@@ -282,11 +286,14 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileErr
             serde_json::to_value(&binary_result).unwrap_or_default()
         }
         PlatformType::Macos => {
-            let binary_result = match parse_macho(path) {
+            let binary_result = match parse_macho_reader(reader) {
                 Ok(results) => results,
                 Err(err) => {
                     if err != MachoError::Buffer && err != MachoError::Magic {
-                        error!("Failed to parse executable binary {path}, error: {err:?}");
+                        error!(
+                            "Failed to parse executable binary {}, error: {err:?}",
+                            reader.location.display_path()
+                        );
                     }
                     return Err(FileError::ParseFile);
                 }
@@ -294,11 +301,14 @@ fn executable_metadata(path: &str, plat: &PlatformType) -> Result<Value, FileErr
             serde_json::to_value(&binary_result).unwrap_or_default()
         }
         PlatformType::Windows => {
-            let binary_result = match parse_pe_file(path) {
+            let binary_result = match parse_pe_reader(reader) {
                 Ok(result) => result,
                 Err(err) => {
                     if err != pelite::Error::Invalid && err != pelite::Error::BadMagic {
-                        warn!("Could not parse PE file {path}: {err:?}");
+                        warn!(
+                            "Could not parse PE file {}: {err:?}",
+                            reader.location.display_path()
+                        );
                     }
                     return Err(FileError::ParseFile);
                 }
@@ -341,6 +351,9 @@ fn file_output(entries: Vec<FileInfo>, manager: &mut OutputManager, options: &Fi
 
 #[cfg(test)]
 mod tests {
+    use crate::accessor::access::Accessor;
+    use crate::accessor::error::AccessorError;
+    use crate::accessor::walk::WalkAccessor;
     use crate::artifacts::os::files::filelisting::{
         executable_metadata, file_metadata, file_output, get_filelist, user_regex,
     };
@@ -350,7 +363,6 @@ mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use common::files::FileInfo;
     use std::path::PathBuf;
-    use walkdir::WalkDir;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
         let config = OutputConfig {
@@ -376,16 +388,12 @@ mod tests {
             depth: Some(4),
             metadata: Some(true),
             md5: Some(true),
-            sha1: Some(false),
-            sha256: Some(false),
             path_regex: Some(String::from(r".*/Downloads")),
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            source: String::from("host:"),
+            ..Default::default()
         };
 
-        let results = get_filelist(&options, &mut manager).unwrap();
-        assert_eq!(results, ());
+        get_filelist(&options, &mut manager).unwrap();
     }
 
     #[test]
@@ -401,14 +409,8 @@ mod tests {
         let options = FileOptions {
             start_path: String::new(),
             depth: Some(1),
-            metadata: Some(false),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            source: String::from("host:"),
+            ..Default::default()
         };
         file_output(vec![info], &mut manager, &options);
     }
@@ -430,16 +432,11 @@ mod tests {
             depth: Some(1),
             metadata: Some(true),
             md5: Some(true),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            source: String::from("host:"),
+            ..Default::default()
         };
 
-        let results = get_filelist(&options, &mut manager).unwrap();
-        assert_eq!(results, ());
+        get_filelist(&options, &mut manager).unwrap();
     }
 
     #[test]
@@ -448,134 +445,84 @@ mod tests {
         let mut manager = output_options("files_temp", "./tmp", false);
 
         let options = FileOptions {
-            start_path: String::from("/bin"),
+            start_path: String::from("/usr/bin"),
             depth: Some(1),
-            metadata: Some(false),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            source: String::from("host:"),
+            ..Default::default()
         };
-        let results = get_filelist(&options, &mut manager).unwrap();
-        assert_eq!(results, ());
+        get_filelist(&options, &mut manager).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_get_filelist_bad_start() {
+        let mut accessor = Accessor::with_defaults();
+
+        let source = accessor.open_source("host:").unwrap();
+
+        let mut walk = WalkAccessor::new(&source, "/bin").unwrap();
+        let err = walk.next(&accessor).unwrap().unwrap_err();
+        assert!(matches!(err, AccessorError::NotADirectory { .. }));
     }
 
     #[test]
     #[cfg(target_os = "windows")]
     fn test_file_metadata() {
-        let start_path = WalkDir::new("C:\\Windows\\System32").max_depth(1);
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+        let mut walk = WalkAccessor::new(&source, "C:\\Windows\\").unwrap();
+        walk = walk.max_depth(1);
+
         let metadata = true;
         let options = FileOptions {
-            start_path: String::new(),
             depth: Some(1),
             metadata: Some(metadata),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            source: String::from("host:"),
+            ..Default::default()
         };
-        let mut results: Vec<FileInfo> = Vec::new();
-        for entries in start_path {
+
+        let mut results = Vec::new();
+        while let Some(entries) = walk.next(&accessor) {
             let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, &options, &PlatformType::Windows).unwrap();
+            let data = file_metadata(
+                entry_data,
+                &options,
+                &PlatformType::Linux,
+                &source,
+                &mut accessor,
+            );
             results.push(data);
         }
+
         assert!(results.len() > 3);
     }
 
     #[test]
     #[cfg(target_os = "linux")]
     fn test_file_metadata() {
-        let start_path = WalkDir::new("/bin").max_depth(1);
+        let mut accessor = Accessor::with_defaults();
+        let source = accessor.open_source("host:").unwrap();
+        let mut walk = WalkAccessor::new(&source, "/usr/bin").unwrap();
+        walk = walk.max_depth(1);
+
         let metadata = true;
-        let mut results: Vec<FileInfo> = Vec::new();
+        let mut results = Vec::new();
         let options = FileOptions {
-            start_path: String::new(),
             depth: Some(1),
             metadata: Some(metadata),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
+            source: String::from("host:"),
+            ..Default::default()
         };
-        for entries in start_path {
+
+        while let Some(entries) = walk.next(&accessor) {
             let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, &options, &PlatformType::Linux).unwrap();
-            results.push(data);
-        }
-        assert!(results.len() > 3);
-    }
-
-    #[test]
-    #[cfg(target_os = "macos")]
-    fn test_read_firmlinks() {
-        use crate::artifacts::os::files::filelisting::read_firmlinks;
-        let results = read_firmlinks().unwrap();
-        assert!(results.len() > 3);
-    }
-
-    #[test]
-    #[cfg(target_os = "macos")]
-    fn test_skip_directory() {
-        use crate::artifacts::os::files::filelisting::{read_firmlinks, skip_directory};
-        let skip_path = WalkDir::new("/").max_depth(1);
-        let results = read_firmlinks().unwrap();
-        assert!(results.len() > 3);
-
-        for entries in skip_path {
-            let entry_data = entries.unwrap();
-            let is_firmlink = skip_directory(&entry_data, &results);
-            if entry_data.file_name() == "Users" {
-                assert!(is_firmlink);
-            }
-
-            if entry_data.file_name() == "Applications" || entry_data.file_name() == "Library" {
-                assert!(is_firmlink);
-            }
-
-            if entry_data.file_name() == "bin" {
-                assert!(!is_firmlink);
-            }
-        }
-
-        let start_path = WalkDir::new("/sbin").max_depth(1);
-        for entries in start_path {
-            let entry_data = entries.unwrap();
-            let is_firmlink = skip_directory(&entry_data, &results);
-            assert_eq!(is_firmlink, false);
-        }
-    }
-
-    #[test]
-    #[cfg(target_os = "macos")]
-    fn test_file_metadata() {
-        let start_path = WalkDir::new("/sbin").max_depth(1);
-        let metadata = true;
-        let options = FileOptions {
-            start_path: String::new(),
-            depth: Some(1),
-            metadata: Some(metadata),
-            md5: Some(false),
-            sha1: Some(false),
-            sha256: Some(false),
-            path_regex: None,
-            filename_regex: None,
-            yara: None,
-            exclude_directories: None,
-        };
-        let mut results: Vec<FileInfo> = Vec::new();
-        for entries in start_path {
-            let entry_data = entries.unwrap();
-            let data = file_metadata(&entry_data, &options, &PlatformType::Macos).unwrap();
+            let data = file_metadata(
+                entry_data,
+                &options,
+                &PlatformType::Linux,
+                &source,
+                &mut accessor,
+            );
             results.push(data);
         }
         assert!(results.len() > 3);
@@ -584,8 +531,8 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_binary_metadata() {
-        let test_path = "/bin/ls";
-        let results = executable_metadata(test_path, &PlatformType::Macos).unwrap();
+        let mut reader = Accessor::with_defaults().open_reader("/bin/ls").unwrap();
+        let results = executable_metadata(&mut reader, &PlatformType::Macos).unwrap();
 
         assert_eq!(results.as_array().unwrap().len(), 2);
     }
@@ -593,8 +540,10 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_binary_metadata() {
-        let test_path = "/bin/ls";
-        let results = executable_metadata(test_path, &PlatformType::Linux).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader("/usr/bin/ls")
+            .unwrap();
+        let results = executable_metadata(&mut reader, &PlatformType::Linux).unwrap();
 
         assert!(!results.is_null());
     }
@@ -602,8 +551,10 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_binary_metadata() {
-        let test_path = "C:\\Windows\\explorer.exe";
-        let results = executable_metadata(test_path, &PlatformType::Windows).unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader("C:\\Windows\\explorer.exe")
+            .unwrap();
+        let results = executable_metadata(&mut reader, &PlatformType::Windows).unwrap();
 
         assert!(!results.is_null());
     }

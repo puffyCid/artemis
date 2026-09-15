@@ -4,11 +4,10 @@ use super::{
     store::db::{parse_store, parse_store_blocks},
 };
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
-    artifacts::os::macos::spotlight::store::db::get_blocks,
-    output::manager::OutputManager,
-    structs::artifacts::os::macos::SpotlightOptions,
+    accessor::access::Accessor, artifacts::os::macos::spotlight::store::db::get_blocks,
+    output::manager::OutputManager, structs::artifacts::os::macos::SpotlightOptions,
 };
+use common::files::EntryKind;
 use common::macos::SpotlightEntries;
 use serde::{Deserialize, Serialize};
 use tracing::error;

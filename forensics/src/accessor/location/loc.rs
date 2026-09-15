@@ -6,6 +6,7 @@ use crate::accessor::{
     },
 };
 use std::path::PathBuf;
+use tracing::info;
 
 /// Parsed accessor location string
 #[derive(Debug, Clone, PartialEq)]
@@ -147,6 +148,7 @@ impl Location {
             None => (String::new(), input.to_string()),
         };
 
+        info!("Parsed glob pattern is '{pattern}'. Path start is: {location_part}");
         // If the user provide a directory path but no pattern. Treat as a single glob
         if input.ends_with(['/', '\\']) && pattern.is_empty() {
             return Ok((location_part, String::from("*")));

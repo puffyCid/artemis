@@ -1,8 +1,7 @@
 use crate::accessor::{
     entry::{
         handle::{
-            DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, GlobMatch,
-            ItemHandle, Timestamp,
+            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
         },
         locator::{DirLocator, FileLocator},
     },
@@ -14,13 +13,16 @@ use crate::accessor::{
     io::reader::{AccessorReader, ReaderLocation},
     location::{path::InnerPath, scheme::Scheme},
 };
-use crate::utils::time::unixepoch_to_iso_with_nano;
+use common::files::EntryKind;
 use glob::Pattern;
 use std::{
-    fs::{self, File, Metadata, metadata, read, symlink_metadata},
+    fs::{self, File, FileType, Metadata, metadata, read, symlink_metadata},
     path::{Path, PathBuf},
 };
 use tracing::debug;
+
+#[cfg(target_family = "unix")]
+use crate::utils::time::unixepoch_to_iso_with_nano;
 
 /// Filesystem reader for a live OS
 ///
@@ -34,11 +36,8 @@ impl HostFs {
         max_read_size: Option<u64>,
     ) -> AccessorResult<Vec<u8>> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&path)));
-        }
 
-        if !path.is_file() {
+        if path.is_symlink() || !path.is_file() {
             return Err(AccessorError::not_a_file(HostFs::display_path(&path)));
         }
         let metadata = metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
@@ -74,10 +73,8 @@ impl HostFs {
     /// Read the directory at `InnerPath` and return its contents
     pub(crate) fn read_dir(inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&path)));
-        }
-        if !path.is_dir() {
+
+        if path.is_symlink() || !path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(&path)));
         }
 
@@ -90,30 +87,34 @@ impl HostFs {
             let file_type = entry
                 .file_type()
                 .map_err(|err| AccessorError::io_path(entry.path(), err))?;
+
             let child_path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
+            let kind = HostFs::entry_kind(file_type);
 
-            let (handle, kind) = if file_type.is_dir() {
-                (
-                    ItemHandle::Directory(DirHandle::host(&child_path)),
-                    EntryKind::Directory,
-                )
-            } else if file_type.is_file() {
-                (
-                    ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::File,
-                )
-            } else {
-                (
-                    ItemHandle::File(FileHandle::host(&child_path)),
-                    EntryKind::Unsupported,
-                )
+            let handle = match kind {
+                EntryKind::File => ItemHandle::File(FileHandle::host(&child_path)),
+                EntryKind::Directory => ItemHandle::Directory(DirHandle::host(&child_path)),
+                EntryKind::Symlink
+                | EntryKind::Socket
+                | EntryKind::BlockDevice
+                | EntryKind::Pipe
+                | EntryKind::CharDevice
+                | EntryKind::Unsupported => ItemHandle::Unsupported(FileHandle::host(&child_path)),
             };
+
             let metadata = entry
                 .metadata()
                 .map_err(|err| AccessorError::io_path(&child_path, err))?;
+
+            let times = if kind == EntryKind::File || kind == EntryKind::Directory {
+                HostFs::host_times(&metadata)
+            } else {
+                Timestamp::default()
+            };
+
             let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
-            entries.push(DirEntry::new(name, handle, meta));
+            entries.push(DirEntry::new(name, handle, meta, times));
         }
 
         //entries.sort_by(|left, right| left.name.cmp(&right.name));
@@ -134,11 +135,8 @@ impl HostFs {
     /// Apply a glob pattern and return matches
     pub(crate) fn globfs(directory: &InnerPath, pattern: &str) -> AccessorResult<Vec<GlobMatch>> {
         let dir_path = HostFs::resolve_host_path(directory);
-        if !dir_path.exists() {
-            return Err(AccessorError::not_found(HostFs::display_path(&dir_path)));
-        }
 
-        if !dir_path.is_dir() {
+        if dir_path.is_symlink() || !dir_path.is_dir() {
             return Err(AccessorError::not_a_directory(HostFs::display_path(
                 &dir_path,
             )));
@@ -185,11 +183,8 @@ impl HostFs {
     /// Can be used to stream large files
     pub(crate) fn reader(inner: &InnerPath) -> AccessorResult<AccessorReader> {
         let path = HostFs::resolve_host_path(inner);
-        if !path.exists() {
-            return Err(AccessorError::not_found(path.display().to_string()));
-        }
 
-        if !path.is_file() {
+        if path.is_symlink() || !path.is_file() {
             return Err(AccessorError::not_a_file(path.display().to_string()));
         }
 
@@ -220,14 +215,7 @@ impl HostFs {
 
         // We will not follow symbolic links
         let meta = symlink_metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
-
-        let kind = if meta.is_dir() {
-            EntryKind::Directory
-        } else if meta.is_file() {
-            EntryKind::File
-        } else {
-            EntryKind::Unsupported
-        };
+        let kind = HostFs::entry_kind(meta.file_type());
 
         Ok(EntryStat {
             meta: EntryMeta::new(kind, meta.len(), HostFs::display_path(&path)),
@@ -296,7 +284,13 @@ impl HostFs {
             let depth = path_component_count(&relative);
 
             match entry.meta.kind {
-                EntryKind::File | EntryKind::Unsupported => {
+                EntryKind::File
+                | EntryKind::Unsupported
+                | EntryKind::Symlink
+                | EntryKind::Socket
+                | EntryKind::BlockDevice
+                | EntryKind::Pipe
+                | EntryKind::CharDevice => {
                     if pattern.matches(&relative) {
                         matches.push(GlobMatch::new(entry.handle, entry.meta));
                     }
@@ -329,8 +323,8 @@ impl HostFs {
     }
 
     /// Return timestamps for a live host system
-    fn host_times(meta: &Metadata) -> Vec<Timestamp> {
-        let mut times = Vec::new();
+    fn host_times(meta: &Metadata) -> Timestamp {
+        let mut times = Timestamp::default();
 
         // Rust cannot get Windows Changed timestamps :(
         #[cfg(target_os = "windows")]
@@ -338,19 +332,9 @@ impl HostFs {
             use crate::utils::time::filetime_to_iso;
             use std::os::windows::fs::MetadataExt;
 
-            if meta.creation_time() != 0 {
-                times.push(Timestamp::Created(filetime_to_iso(meta.creation_time())));
-            }
-
-            if meta.last_write_time() != 0 {
-                times.push(Timestamp::Modified(filetime_to_iso(meta.last_write_time())));
-            }
-
-            if meta.last_access_time() != 0 {
-                times.push(Timestamp::Accessed(filetime_to_iso(
-                    meta.last_access_time(),
-                )));
-            }
+            times.created = Some(filetime_to_iso(meta.creation_time()));
+            times.modified = Some(filetime_to_iso(meta.last_write_time()));
+            times.accessed = Some(filetime_to_iso(meta.last_access_time()));
         }
 
         #[cfg(target_os = "linux")]
@@ -361,18 +345,18 @@ impl HostFs {
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
-            times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
+            times.modified = Some(unixepoch_to_iso_with_nano(
                 meta.st_mtime(),
                 meta.st_mtime_nsec(),
-            )));
-            times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
+            ));
+            times.accessed = Some(unixepoch_to_iso_with_nano(
                 meta.st_atime(),
                 meta.st_atime_nsec(),
-            )));
-            times.push(Timestamp::Changed(unixepoch_to_iso_with_nano(
+            ));
+            times.changed = Some(unixepoch_to_iso_with_nano(
                 meta.st_ctime(),
                 meta.st_ctime_nsec(),
-            )));
+            ));
         }
 
         #[cfg(target_os = "linux")]
@@ -386,18 +370,16 @@ impl HostFs {
                     .unwrap_or_default()
                     .as_micros();
 
-                times.push(Timestamp::Created(unixepoch_microseconds_to_iso(
-                    micros as i64,
-                )));
+                times.created = Some(unixepoch_microseconds_to_iso(micros as i64));
             }
         }
 
         #[cfg(target_os = "macos")]
         {
-            times.push(Timestamp::Created(unixepoch_to_iso_with_nano(
+            times.created = Some(unixepoch_to_iso_with_nano(
                 meta.st_birthtime(),
                 meta.st_birthtime_nsec(),
-            )));
+            ));
         }
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
@@ -405,34 +387,62 @@ impl HostFs {
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
         {
-            times.push(Timestamp::Accessed(unixepoch_to_iso_with_nano(
-                meta.atime(),
-                meta.atime_nsec(),
-            )));
-
-            times.push(Timestamp::Modified(unixepoch_to_iso_with_nano(
-                meta.mtime(),
-                meta.mtime_nsec(),
-            )));
-
-            times.push(Timestamp::Changed(unixepoch_to_iso_with_nano(
-                meta.ctime(),
-                meta.ctime_nsec(),
-            )));
+            times.accessed = Some(unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec()));
+            times.modified = Some(unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec()));
+            times.changed = Some(unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec()));
         }
 
         times
+    }
+
+    /// Determine `EntryKind` based on `FileType`
+    fn entry_kind(file_type: FileType) -> EntryKind {
+        if file_type.is_symlink() {
+            return EntryKind::Symlink;
+        }
+
+        if file_type.is_dir() {
+            return EntryKind::Directory;
+        }
+
+        if file_type.is_file() {
+            return EntryKind::File;
+        }
+
+        #[cfg(target_family = "unix")]
+        {
+            use std::os::unix::fs::FileTypeExt;
+
+            if file_type.is_socket() {
+                return EntryKind::Socket;
+            }
+
+            if file_type.is_fifo() {
+                return EntryKind::Pipe;
+            }
+
+            if file_type.is_block_device() {
+                return EntryKind::BlockDevice;
+            }
+
+            if file_type.is_char_device() {
+                return EntryKind::CharDevice;
+            }
+        }
+
+        EntryKind::Unsupported
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
-        entry::handle::{DirHandle, EntryKind, FileHandle},
+        entry::handle::{DirHandle, FileHandle},
         error::AccessorError,
         filesystem::host::HostFs,
         location::path::InnerPath,
     };
+    use common::files::EntryKind;
     use std::{
         fs::{self, File},
         io::Write,
@@ -489,7 +499,7 @@ mod tests {
     fn test_read_file_not_found() {
         let dir = setup("test_read_file_not_found");
         let err = HostFs::read_file(&inner(&dir, "missing.txt"), None).unwrap_err();
-        assert!(matches!(err, AccessorError::NotFound { .. }));
+        assert!(matches!(err, AccessorError::NotAFile { .. }));
     }
 
     #[test]
@@ -563,7 +573,7 @@ mod tests {
         test_location.push("tests");
         let results = HostFs::stat(&inner(&test_location, "")).unwrap();
 
-        assert!(results.times.len() >= 3);
+        assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 
@@ -577,7 +587,7 @@ mod tests {
 
         let results = HostFs::stat_handle(&handle).unwrap();
 
-        assert!(results.times.len() >= 3);
+        assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::File);
     }
 
@@ -590,7 +600,7 @@ mod tests {
 
         let results = HostFs::stat_dir_handle(&handle).unwrap();
 
-        assert!(results.times.len() >= 3);
+        assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 }

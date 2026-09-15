@@ -1,7 +1,7 @@
 use crate::{
     accessor::{
         entry::{
-            handle::{DirEntry, DirHandle, EntryKind, EntryMeta, EntryStat, FileHandle, Timestamp},
+            handle::{DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, Timestamp},
             locator::{DirLocator, FileLocator},
         },
         error::{AccessorError, AccessorResult},
@@ -19,6 +19,7 @@ use crate::{
     },
     utils::time::filetime_to_iso,
 };
+use common::files::EntryKind;
 use ntfs::{
     NtfsAttributeType::FileName,
     NtfsFile, NtfsReadSeek,
@@ -30,6 +31,7 @@ use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
 };
+use tracing::warn;
 
 /// A filesystem like accessor that can be used to read files from the raw NTFS
 pub(crate) struct NtfsFs<T: Read + Seek + Send> {
@@ -279,65 +281,65 @@ fn stat_from_file<R: Read + Seek>(
     })
 }
 
+/// Return the 4 Standard Info timestamps
+pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timestamp> {
+    let info = file.info().map_err(ntfs_err)?;
+
+    Ok(Timestamp {
+        created: Some(filetime_to_iso(info.creation_time().nt_timestamp())),
+        modified: Some(filetime_to_iso(info.modification_time().nt_timestamp())),
+        accessed: Some(filetime_to_iso(info.access_time().nt_timestamp())),
+        changed: Some(filetime_to_iso(
+            info.mft_record_modification_time().nt_timestamp(),
+        )),
+        ..Default::default()
+    })
+}
+
+/// Return the 4 FILENAME timestamps
+pub(crate) fn ntfs_filename_times(name: &NtfsFileName) -> Timestamp {
+    Timestamp {
+        filename_created: Some(filetime_to_iso(name.creation_time().nt_timestamp())),
+        filename_modified: Some(filetime_to_iso(name.modification_time().nt_timestamp())),
+        filename_accessed: Some(filetime_to_iso(name.access_time().nt_timestamp())),
+        filename_changed: Some(filetime_to_iso(
+            name.mft_record_modification_time().nt_timestamp(),
+        )),
+        ..Default::default()
+    }
+}
+
+/// Return all 8 timestamps
+pub(crate) fn merge_ntfs_times(standard: Timestamp, filename: Timestamp) -> Timestamp {
+    Timestamp {
+        created: standard.created,
+        modified: standard.modified,
+        accessed: standard.accessed,
+        changed: standard.changed,
+        filename_created: filename.filename_created,
+        filename_modified: filename.filename_modified,
+        filename_accessed: filename.filename_accessed,
+        filename_changed: filename.filename_changed,
+    }
+}
+
 /// Extract all 8 timestamps for a NTFS entry
-fn ntfs_times<R: Read + Seek>(
+pub(crate) fn ntfs_times<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
-) -> AccessorResult<Vec<Timestamp>> {
-    let info = file.info().map_err(ntfs_err)?;
-    let mut times = Vec::new();
-
-    push_filetime(
-        &mut times,
-        Timestamp::Created,
-        info.creation_time().nt_timestamp(),
-    );
-
-    push_filetime(
-        &mut times,
-        Timestamp::Modified,
-        info.modification_time().nt_timestamp(),
-    );
-
-    push_filetime(
-        &mut times,
-        Timestamp::Accessed,
-        info.access_time().nt_timestamp(),
-    );
-
-    push_filetime(
-        &mut times,
-        Timestamp::Changed,
-        info.mft_record_modification_time().nt_timestamp(),
-    );
+) -> AccessorResult<Timestamp> {
+    let standard = ntfs_standard_times(file)?;
 
     if let Some(name) = first_non_dos_filename(reader, file)? {
-        push_filetime(
-            &mut times,
-            Timestamp::FilenameCreated,
-            name.creation_time().nt_timestamp(),
-        );
-
-        push_filetime(
-            &mut times,
-            Timestamp::FilenameModified,
-            name.modification_time().nt_timestamp(),
-        );
-
-        push_filetime(
-            &mut times,
-            Timestamp::FilenameAccessed,
-            name.access_time().nt_timestamp(),
-        );
-
-        push_filetime(
-            &mut times,
-            Timestamp::FilenameChanged,
-            name.mft_record_modification_time().nt_timestamp(),
-        );
+        return Ok(merge_ntfs_times(standard, ntfs_filename_times(&name)));
     }
 
-    Ok(times)
+    warn!(
+        "Could not get FILENAME times for record: {}",
+        file.file_record_number()
+    );
+
+    Ok(standard)
 }
 
 /// Extract the FILENAME timestamp for the NTFS entry
@@ -366,13 +368,6 @@ fn first_non_dos_filename<R: Read + Seek>(
     }
 
     Ok(None)
-}
-
-/// Convert Windows Filetime to RFC 3339
-///
-/// `kind` a function constructor that returns enum `Timestamp`
-fn push_filetime(times: &mut Vec<Timestamp>, kind: fn(String) -> Timestamp, filetime: u64) {
-    times.push(kind(filetime_to_iso(filetime)));
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem
@@ -784,10 +779,7 @@ pub(crate) fn display_ntfs_path(drive: char, inner_path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{
-        entry::{
-            handle::{EntryKind, FileHandle, Timestamp},
-            locator::FileLocator,
-        },
+        entry::{handle::FileHandle, locator::FileLocator},
         error::AccessorError,
         filesystem::ntfs::{
             data::{NtfsFs, strip_drive_prefix_and_ads},
@@ -796,6 +788,7 @@ mod tests {
         },
         location::path::InnerPath,
     };
+    use common::files::EntryKind;
     use std::{
         io::{Read, Seek, SeekFrom},
         path::PathBuf,
@@ -1157,52 +1150,13 @@ mod tests {
 
         assert_eq!(stat.meta.filename, "hello world.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Accessed(_)))
-        );
+        assert!(stat.times.accessed.is_some());
+        assert!(stat.times.created.is_some());
+        assert!(stat.times.changed.is_some());
+        assert!(stat.times.modified.is_some());
 
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Modified(_)))
-        );
-
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Created(_)))
-        );
-
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::Changed(_)))
-        );
-
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::FilenameAccessed(_)))
-        );
-
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::FilenameCreated(_)))
-        );
-
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::FilenameChanged(_)))
-        );
-
-        assert!(
-            stat.times
-                .iter()
-                .any(|time| matches!(time, Timestamp::FilenameModified(_)))
-        );
+        assert!(stat.times.filename_accessed.is_some());
+        assert!(stat.times.filename_changed.is_some());
+        assert!(stat.times.filename_created.is_some());
     }
 }

@@ -12,10 +12,10 @@
  */
 use super::{error::ShimcacheError, os::shim::parse_shimdata, registry::get_shimcache_data};
 use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
-    structs::artifacts::os::windows::ShimcacheOptions,
+    accessor::access::Accessor, structs::artifacts::os::windows::ShimcacheOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::ShimcacheEntry;
 use tracing::{debug, error};
 

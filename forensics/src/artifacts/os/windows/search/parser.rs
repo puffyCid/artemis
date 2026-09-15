@@ -21,14 +21,12 @@ use super::{
     sqlite::{parse_search_sqlite, parse_search_sqlite_path},
 };
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, FileHandle},
-    },
+    accessor::{access::Accessor, entry::handle::FileHandle},
     output::manager::OutputManager,
     structs::artifacts::os::windows::SearchOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use tracing::error;
 
 /// Grab the Windows `Search` data

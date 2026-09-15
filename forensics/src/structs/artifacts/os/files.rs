@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct FileOptions {
     pub start_path: String,
-    pub depth: Option<u8>,
+    pub depth: Option<u32>,
     pub metadata: Option<bool>,
     pub md5: Option<bool>,
     pub sha1: Option<bool>,
@@ -12,4 +12,5 @@ pub struct FileOptions {
     pub filename_regex: Option<String>,
     pub yara: Option<String>,
     pub exclude_directories: Option<Vec<String>>,
+    pub source: String,
 }

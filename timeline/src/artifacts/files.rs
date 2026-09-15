@@ -16,9 +16,18 @@ pub(crate) fn files(data: &mut Value, start: &Option<String>, end: &Option<Strin
         "modified": data["modified"].as_str().unwrap_or_default(),
         "accessed": data["accessed"].as_str().unwrap_or_default(),
         "changed": data["changed"].as_str().unwrap_or_default(),
+        "filename_created": data["filename_created"].as_str().unwrap_or_default(),
+        "filename_modified": data["filename_modified"].as_str().unwrap_or_default(),
+        "filename_accessed": data["filename_accessed"].as_str().unwrap_or_default(),
+        "filename_changed": data["filename_changed"].as_str().unwrap_or_default(),
     }];
-    let times = extract_times(&temp).unwrap_or_default();
+    let mut times = extract_times(&temp).unwrap_or_default();
+    extract_filename_times(&temp, &mut times);
+
     for (key, value) in times {
+        if key.is_empty() {
+            continue;
+        }
         if filter_data(key, start, end) {
             continue;
         }
@@ -129,12 +138,46 @@ mod tests {
             "modified": "2024-01-01T03:00:00.000Z",
             "changed": "2024-01-01T02:00:00.000Z",
             "accessed": "2024-01-01T01:00:00.000Z",
-
         });
 
         assert!(files(&mut test, &None, &None));
         assert_eq!(test.as_array().unwrap().len(), 4);
         assert_eq!(test[0]["created"], "2024-01-01T00:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Files");
+        assert_eq!(test[0]["message"], "/usr/bin/ls");
+    }
+
+    #[test]
+    fn test_files_zip() {
+        let mut test = json!({
+            "full_path": "/usr/bin/ls",
+            "modified": "2024-01-01T03:00:00.000Z",
+        });
+
+        assert!(files(&mut test, &None, &None));
+        assert_eq!(test.as_array().unwrap().len(), 1);
+        assert_eq!(test[0]["modified"], "2024-01-01T03:00:00.000Z");
+        assert_eq!(test[0]["artifact"], "Files");
+        assert_eq!(test[0]["message"], "/usr/bin/ls");
+    }
+
+    #[test]
+    fn test_raw_files() {
+        let mut test = json!({
+            "created": "2024-01-01T00:00:00.000Z",
+            "full_path": "/usr/bin/ls",
+            "modified": "2024-01-01T03:00:00.000Z",
+            "changed": "2024-01-01T02:00:00.000Z",
+            "accessed": "2024-01-01T01:00:00.000Z",
+            "filename_changed": "2024-01-01T04:00:00.000Z",
+            "filename_created": "2024-01-01T05:00:00.000Z",
+            "filename_modified": "2024-01-01T06:00:00.000Z",
+            "filename_accessed": "2024-01-01T07:00:00.000Z",
+        });
+
+        assert!(files(&mut test, &None, &None));
+        assert_eq!(test.as_array().unwrap().len(), 8);
+        assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Files");
         assert_eq!(test[0]["message"], "/usr/bin/ls");
     }

@@ -22,15 +22,13 @@ use super::{
     helper::{parse_raw_registry, read_registry},
 };
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::windows::registry::helper::read_registry_handle,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::RegistryOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
+use common::files::EntryKind;
 use common::windows::RegistryData;
 use regex::Regex;
 use std::collections::HashMap;

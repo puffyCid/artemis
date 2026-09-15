@@ -6,14 +6,12 @@
  *   `https://www.sentinelone.com/blog/how-malware-persists-on-macos/`
  */
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::macos::plist::property_list::parse_plist_file_handle,
     filesystem::metadata::get_timestamps,
     structs::artifacts::os::macos::LaunchdOptions,
 };
+use common::files::EntryKind;
 use common::macos::LaunchdPlist;
 use tracing::warn;
 
@@ -108,11 +106,12 @@ mod tests {
     use crate::{
         accessor::{
             access::Accessor,
-            entry::handle::{DirHandle, EntryKind, EntryMeta, GlobMatch, ItemHandle},
+            entry::handle::{DirHandle, EntryMeta, GlobMatch, ItemHandle},
         },
         artifacts::os::macos::launchd::launchdaemon::extract_launchd_data,
         structs::artifacts::os::macos::LaunchdOptions,
     };
+    use common::files::EntryKind;
     use std::path::PathBuf;
 
     #[test]
@@ -132,6 +131,7 @@ mod tests {
                 display_path: String::new(),
                 filename: String::new(),
                 extension: String::new(),
+                directory: String::new(),
             },
         }];
 

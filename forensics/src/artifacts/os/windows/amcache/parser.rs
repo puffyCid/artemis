@@ -12,14 +12,12 @@
  */
 use super::error::AmcacheError;
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, FileHandle},
-    },
+    accessor::{access::Accessor, entry::handle::FileHandle},
     artifacts::os::windows::registry::helper::get_registry_keys_handle,
     structs::artifacts::os::windows::AmcacheOptions,
     utils::{environment::get_systemdrive, regex_options::create_regex},
 };
+use common::files::EntryKind;
 use common::windows::{Amcache, RegistryData};
 use tracing::error;
 

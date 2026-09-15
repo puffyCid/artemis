@@ -36,13 +36,8 @@ pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisEr
 }
 
 /// Scan bytes using Yara-X
-pub(crate) fn scan_bytes(data: &[u8], encoded_rule: &str) -> Result<Vec<String>, ArtemisError> {
-    let rule = if encoded_rule.starts_with("http") {
-        remote_yara(encoded_rule)?
-    } else {
-        rule_decode(encoded_rule)?
-    };
-    let compile = compile_rule(&rule)?;
+pub(crate) fn scan_bytes(data: &[u8], rule: &str) -> Result<Vec<String>, ArtemisError> {
+    let compile = compile_rule(rule)?;
 
     let rules = compile.build();
     let mut scanner = Scanner::new(&rules);
@@ -75,7 +70,9 @@ pub(crate) fn scan_base64_bytes(
         }
     };
 
-    scan_bytes(&bytes, encoded_rule)
+    let rule = extract_rule(encoded_rule)?;
+
+    scan_bytes(&bytes, &rule)
 }
 
 /// Request the Yara-X rule from a provided URL
@@ -225,26 +222,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Encoding")]
-    fn test_scan_bytes_bad_encoding() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let bytes = read_file(test_location.to_str().unwrap()).unwrap();
-
-        let rule = r#"
-        rule hello_world {
-        strings:
-        $ = "hello, world! Its Rust!"
-        condition:
-        all of them
-        }
-        "#;
-
-        let _ = scan_bytes(&bytes, rule).unwrap();
-    }
-
-    #[test]
     fn test_remote_yara() {
         let url = "https://raw.githubusercontent.com/Yara-Rules/rules/refs/heads/master/malware/APT_APT1.yar";
         let result = remote_yara(url).unwrap();
@@ -268,8 +245,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/system/files/test.txt");
         let bytes = read_file(test_location.to_str().unwrap()).unwrap();
+        let rule = extract_rule(rule).unwrap();
 
-        let result = scan_bytes(&bytes, rule).unwrap();
+        let result = scan_bytes(&bytes, &rule).unwrap();
         assert!(result.is_empty());
     }
 }

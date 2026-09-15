@@ -2,10 +2,8 @@
  * Grab local macOS `Users` information by parsing the PLIST files at `/var/db/dslocal/nodes/Default/users`
  */
 use super::opendirectory::parse_users_plist;
-use crate::{
-    accessor::{access::Accessor, entry::handle::EntryKind},
-    structs::artifacts::os::macos::MacosUsersOptions,
-};
+use crate::{accessor::access::Accessor, structs::artifacts::os::macos::MacosUsersOptions};
+use common::files::EntryKind;
 use common::macos::OpendirectoryUsers;
 use tracing::{error, warn};
 

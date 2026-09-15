@@ -1,14 +1,12 @@
 use super::error::UserAssistError;
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::windows::registry::{
         helper::get_registry_keys_handle, parser::user_registry_files,
     },
     utils::regex_options::create_regex,
 };
+use common::files::EntryKind;
 use common::windows::RegistryData;
 use tracing::{error, info};
 

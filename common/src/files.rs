@@ -14,22 +14,48 @@ pub struct FileInfo {
     pub directory: String,
     pub filename: String,
     pub extension: String,
-    pub created: String,
-    pub modified: String,
-    pub changed: String,
-    pub accessed: String,
+    pub created: Option<String>,
+    pub modified: Option<String>,
+    pub changed: Option<String>,
+    pub accessed: Option<String>,
+    pub filename_created: Option<String>,
+    pub filename_modified: Option<String>,
+    pub filename_changed: Option<String>,
+    pub filename_accessed: Option<String>,
+    pub uid: Option<String>,
+    pub gid: Option<String>,
+    pub inode: Option<i64>,
     pub size: u64,
-    pub inode: u64,
-    pub mode: u32,
-    pub uid: u32,
-    pub gid: u32,
     pub md5: String,
     pub sha1: String,
     pub sha256: String,
-    pub is_file: bool,
-    pub is_directory: bool,
-    pub is_symlink: bool,
+    pub kind: EntryKind,
     pub depth: usize,
     pub yara_hits: Vec<String>,
     pub binary_info: Value,
+    pub display_path: String,
+}
+
+/// Support data entries we can access
+///
+/// Right now we only support reading files or directories
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
+pub enum EntryKind {
+    /// Entry is a file
+    File,
+    /// Entry is a directory
+    Directory,
+    /// Entry is a symbolic link
+    Symlink,
+    /// Entry is a socket
+    Socket,
+    /// Entry is a block device
+    BlockDevice,
+    /// Entry is named pipe
+    Pipe,
+    /// Entry is character device
+    CharDevice,
+    /// Entry is unsupported
+    #[default]
+    Unsupported,
 }

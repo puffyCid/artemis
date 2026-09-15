@@ -10,6 +10,7 @@ use crate::accessor::{
 use std::collections::HashSet;
 
 /// A special accessor that be used to recursively iterator through an `Accessor` `Source`
+#[derive(Debug)]
 pub(crate) struct WalkAccessor {
     /// `Source` we should iterate through
     source: SourceHandle,
@@ -30,6 +31,7 @@ pub(crate) struct WalkAccessor {
 }
 
 /// Track files and directories we walk
+#[derive(Debug)]
 struct WalkStack {
     /// Current depth
     depth: u32,
@@ -68,6 +70,7 @@ impl WalkAccessor {
         self
     }
 
+    /// Paths we should ignore when walk the file system
     pub(crate) fn exclude(mut self, path: impl Into<String>) -> Self {
         self.exclude.insert(path.into());
         self
@@ -186,6 +189,7 @@ impl WalkAccessor {
 #[cfg(test)]
 mod tests {
     use crate::accessor::{access::Accessor, error::AccessorError, walk::WalkAccessor};
+    use common::files::EntryKind;
     use std::{
         fs::{self, File},
         io::Write,
@@ -357,10 +361,7 @@ mod tests {
                 let stat = accessor
                     .source_stat_dir_handle(&source, dir_handle)
                     .unwrap();
-                assert_eq!(
-                    stat.meta.kind,
-                    crate::accessor::entry::handle::EntryKind::Directory
-                );
+                assert_eq!(stat.meta.kind, EntryKind::Directory);
             }
         }
 

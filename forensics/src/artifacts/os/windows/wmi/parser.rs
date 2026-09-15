@@ -14,14 +14,12 @@
  */
 use super::{error::WmiError, windows_management::get_wmi_persist};
 use crate::{
-    accessor::{
-        access::Accessor,
-        entry::handle::{EntryKind, GlobMatch},
-    },
+    accessor::{access::Accessor, entry::handle::GlobMatch},
     artifacts::os::windows::wmi::windows_management::extract_wmi,
     structs::artifacts::os::windows::WmiPersistOptions,
     utils::environment::get_systemdrive,
 };
+use common::files::EntryKind;
 use common::windows::WmiPersist;
 use tracing::{error, warn};
 

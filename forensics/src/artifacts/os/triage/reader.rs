@@ -81,10 +81,11 @@ pub(crate) fn write_report(
 #[cfg(test)]
 mod tests {
     use crate::{
-        accessor::{access::Accessor, entry::handle::EntryKind},
+        accessor::access::Accessor,
         artifacts::os::triage::reader::grab_file,
         structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
+    use common::files::EntryKind;
     use std::{
         fs::{File, create_dir_all},
         path::PathBuf,

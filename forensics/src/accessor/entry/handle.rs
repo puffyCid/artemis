@@ -1,22 +1,10 @@
 use crate::accessor::{
     entry::locator::{DirLocator, FileLocator},
-    io::reader::{extension_from_filename, filename_from_display},
+    io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
+use common::files::EntryKind;
 use std::path::PathBuf;
-
-/// Support data entries we can access
-///
-/// Right now we only support reading files or directories
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum EntryKind {
-    /// Entry is a file
-    File,
-    /// Entry is a directory
-    Directory,
-    /// Entry is unsupported
-    Unsupported,
-}
 
 /// Metadata returned from glob and directory listing.
 #[derive(Debug, Clone, PartialEq)]
@@ -29,6 +17,8 @@ pub(crate) struct EntryMeta {
     pub(crate) full_path: String,
     /// Filename of for the entry
     pub(crate) filename: String,
+    /// Directory for the entry
+    pub(crate) directory: String,
     /// Extension for the filename if any
     pub(crate) extension: String,
     /// Human readable path to the entry with `Scheme`
@@ -40,10 +30,12 @@ impl EntryMeta {
     pub(crate) fn new(kind: EntryKind, size: u64, display_path: impl Into<String>) -> Self {
         let path = display_path.into();
         let filename = filename_from_display(&path);
+        let full_path = strip_scheme(&path).to_string();
         Self {
             kind,
             size,
-            full_path: strip_scheme(&path).to_string(),
+            directory: directory_from_display(&path),
+            full_path,
             extension: extension_from_filename(&filename),
             filename,
             display_path: path,
@@ -227,15 +219,6 @@ pub(crate) enum ItemHandle {
 }
 
 impl ItemHandle {
-    /// Return the `EntryKind` for the `ItemHandle`
-    pub(crate) fn kind(&self) -> EntryKind {
-        match self {
-            Self::File(_) => EntryKind::File,
-            Self::Directory(_) => EntryKind::Directory,
-            Self::Unsupported(_) => EntryKind::Unsupported,
-        }
-    }
-
     /// Return the path for the `ItemHandle`
     ///
     /// Includes the `Scheme` prefix
@@ -250,7 +233,7 @@ impl ItemHandle {
     pub(crate) fn as_file(&self) -> Option<&FileHandle> {
         match self {
             Self::File(handle) => Some(handle),
-            Self::Directory(_) | Self::Unsupported(_) => None,
+            _ => None,
         }
     }
 
@@ -258,7 +241,7 @@ impl ItemHandle {
     pub(crate) fn as_directory(&self) -> Option<&DirHandle> {
         match self {
             Self::Directory(handle) => Some(handle),
-            Self::File(_) | Self::Unsupported(_) => None,
+            _ => None,
         }
     }
 }
@@ -272,15 +255,23 @@ pub(crate) struct DirEntry {
     pub(crate) handle: ItemHandle,
     /// Metadata associated with our entry
     pub(crate) meta: EntryMeta,
+    /// Timestamps associated with our entry
+    pub(crate) times: Timestamp,
 }
 
 impl DirEntry {
     /// Create a `DirEntry` value
-    pub(crate) fn new(name: impl Into<String>, handle: ItemHandle, meta: EntryMeta) -> Self {
+    pub(crate) fn new(
+        name: impl Into<String>,
+        handle: ItemHandle,
+        meta: EntryMeta,
+        times: Timestamp,
+    ) -> Self {
         Self {
             name: name.into(),
             handle,
             meta,
+            times,
         }
     }
 
@@ -298,17 +289,18 @@ impl DirEntry {
 #[derive(Debug)]
 pub(crate) struct EntryStat {
     pub(crate) meta: EntryMeta,
-    pub(crate) times: Vec<Timestamp>,
+    pub(crate) times: Timestamp,
 }
 
-#[derive(Debug)]
-pub(crate) enum Timestamp {
-    Created(String),
-    Modified(String),
-    Accessed(String),
-    Changed(String),
-    FilenameCreated(String),
-    FilenameModified(String),
-    FilenameAccessed(String),
-    FilenameChanged(String),
+/// Timestamps returned from the `Accessor`
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct Timestamp {
+    pub(crate) created: Option<String>,
+    pub(crate) modified: Option<String>,
+    pub(crate) accessed: Option<String>,
+    pub(crate) changed: Option<String>,
+    pub(crate) filename_created: Option<String>,
+    pub(crate) filename_modified: Option<String>,
+    pub(crate) filename_accessed: Option<String>,
+    pub(crate) filename_changed: Option<String>,
 }

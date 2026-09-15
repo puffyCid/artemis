@@ -1,8 +1,11 @@
-use crate::{accessor::access::Accessor, utils::encoding::base64_encode_standard};
+use crate::{
+    accessor::{access::Accessor, io::reader::AccessorReader},
+    utils::encoding::base64_encode_standard,
+};
 use common::windows::PeInfo;
 use pelite::PeFile;
-use std::io::{Read, Seek, SeekFrom};
-use tracing::error;
+use std::io::{Read, Seek};
+use tracing::{debug, error};
 
 /// Read a `PE` file at provided path
 pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
@@ -15,6 +18,10 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
         }
     };
 
+    parse_pe_reader(&mut reader)
+}
+
+pub(crate) fn parse_pe_reader(reader: &mut AccessorReader) -> Result<PeInfo, pelite::Error> {
     let mut buff = [0; 2];
     if reader.read(&mut buff).is_err() {
         return Err(pelite::Error::Invalid);
@@ -25,22 +32,26 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
         return Err(pelite::Error::BadMagic);
     }
 
-    if reader.seek(SeekFrom::Start(0)).is_err() {
+    if reader.rewind().is_err() {
         return Err(pelite::Error::Invalid);
     }
 
-    // The `Accessor` will auto reject files larger than 2GB
-    let data = match accessor.read_file(path) {
+    let mut buf = Vec::new();
+    let bytes = match reader.read_to_end(&mut buf) {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to read file {path}: {err:?}");
+            error!(
+                "Failed to read file {}: {err:?}",
+                reader.location.display_path()
+            );
             return Err(pelite::Error::Overflow);
         }
     };
+    debug!("Read {bytes} bytes for {}", reader.location.display_path());
 
     let mut info = PeInfo::default();
 
-    let file_result = PeFile::from_bytes(&data);
+    let file_result = PeFile::from_bytes(&buf);
     let file = match file_result {
         Ok(result) => result,
         Err(_) => return Err(pelite::Error::Invalid),

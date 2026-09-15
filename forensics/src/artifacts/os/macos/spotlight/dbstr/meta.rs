@@ -6,10 +6,11 @@ use super::{
 use crate::{
     accessor::{
         access::Accessor,
-        entry::handle::{EntryKind, FileHandle, GlobMatch},
+        entry::handle::{FileHandle, GlobMatch},
     },
     artifacts::os::macos::spotlight::error::SpotlightError,
 };
+use common::files::EntryKind;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::error;

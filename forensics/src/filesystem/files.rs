@@ -1,3 +1,5 @@
+use crate::accessor::io::reader::AccessorReader;
+
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
 use base16ct::lower::encode_str;
 use common::files::Hashes;
@@ -179,6 +181,70 @@ pub(crate) fn hash_file_data(hashes: &Hashes, data: &[u8]) -> (String, String, S
     if hashes.sha256 {
         sha256.update(data);
         let hash = sha256.finalize();
+        let mut buf = [0u8; 64];
+        sha256_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+    }
+
+    (md5_string, sha1_string, sha256_string)
+}
+
+pub(crate) fn hash_reader(
+    hashes: &Hashes,
+    reader: &mut AccessorReader,
+) -> (String, String, String) {
+    let mut md5_string = String::new();
+    let mut sha1_string = String::new();
+    let mut sha256_string = String::new();
+
+    let mut md5 = IoWrapper(Md5::new());
+    let mut sha1 = IoWrapper(Sha1::new());
+    let mut sha256 = IoWrapper(Sha256::new());
+
+    // Read file in chunks so we do not read large files all into memory
+    loop {
+        let temp_buff_size = 65536;
+        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
+        let bytes_result = reader.read(&mut temp_buff);
+        let bytes = match bytes_result {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Failed to read file: {err:?}");
+                return (md5_string, sha1_string, sha256_string);
+            }
+        };
+        let finished = 0;
+        if bytes == finished {
+            break;
+        }
+
+        // Make sure our temp buff does not have any extra zeros from the initialization
+        if bytes < temp_buff_size {
+            temp_buff = temp_buff[0..bytes].to_vec();
+        }
+
+        if hashes.md5 {
+            let _ = copy(&mut temp_buff.as_slice(), &mut md5);
+        }
+        if hashes.sha1 {
+            let _ = copy(&mut temp_buff.as_slice(), &mut sha1);
+        }
+        if hashes.sha256 {
+            let _ = copy(&mut temp_buff.as_slice(), &mut sha256);
+        }
+    }
+
+    if hashes.md5 {
+        let hash = md5.0.finalize();
+        let mut buf = [0u8; 32];
+        md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+    }
+    if hashes.sha1 {
+        let hash = sha1.0.finalize();
+        let mut buf = [0u8; 40];
+        sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
+    }
+    if hashes.sha256 {
+        let hash = sha256.0.finalize();
         let mut buf = [0u8; 64];
         sha256_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
