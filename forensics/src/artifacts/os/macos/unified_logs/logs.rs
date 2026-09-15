@@ -4,11 +4,12 @@ use crate::{
     structs::artifacts::os::macos::UnifiedLogsOptions,
 };
 use macos_unifiedlogs::{
+    cache::MemoryStringCache,
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
     parser::{build_log, collect_timesync},
     timesync::TimesyncBoot,
-    traits::FileProvider,
+    traits::{FileProvider, SourceFile},
     unified_log::UnifiedLogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
@@ -64,7 +65,7 @@ struct ParseOptions {
 
 fn parse_trace_file(
     timesync_data: &HashMap<String, TimesyncBoot>,
-    provider: &mut dyn FileProvider,
+    provider: &impl FileProvider,
     options: &mut ParseOptions,
     manager: &mut OutputManager,
     params: &UnifiedLogsOptions,
@@ -109,7 +110,13 @@ fn parse_trace_file(
 
         // If we fail to find any missing data its probably due to the logs rolling
         // Ex: tracev3A rolls, tracev3B references Oversize entry in tracev3A will trigger missing data since tracev3A is gone
-        let (entries, _) = build_log(leftover_data, provider, timesync_data, include_missing);
+        let (entries, _) = build_log(
+            leftover_data,
+            provider,
+            &MemoryStringCache::default(),
+            timesync_data,
+            include_missing,
+        );
         if entries.is_empty() {
             continue;
         }
@@ -140,7 +147,7 @@ fn iterate_logs(
     options: &mut ParseOptions,
     manager: &mut OutputManager,
     params: &UnifiedLogsOptions,
-    provider: &mut dyn FileProvider,
+    provider: &impl FileProvider,
     evidence: &str,
 ) -> Result<(), MacArtifactError> {
     let mut buf = Vec::new();
@@ -164,7 +171,13 @@ fn iterate_logs(
         chunk
             .oversize
             .append(&mut options.oversize_strings.oversize);
-        let (entries, missing_logs) = build_log(&chunk, provider, timesync_data, exclude_missing);
+        let (entries, missing_logs) = build_log(
+            &chunk,
+            provider,
+            &MemoryStringCache::default(),
+            timesync_data,
+            exclude_missing,
+        );
         options.oversize_strings.oversize = chunk.oversize;
         if !missing_logs.catalog_data.is_empty()
             || !missing_logs.header.is_empty()

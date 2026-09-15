@@ -2,11 +2,12 @@ use crate::{
     artifacts::os::macos::error::MacArtifactError, structs::artifacts::os::macos::MacosSudoOptions,
 };
 use macos_unifiedlogs::{
+    cache::MemoryStringCache,
     filesystem::{LiveSystemProvider, LogarchiveProvider},
     iterator::UnifiedLogIterator,
     parser::{build_log, collect_timesync},
     timesync::TimesyncBoot,
-    traits::FileProvider,
+    traits::{FileProvider, SourceFile},
     unified_log::LogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
@@ -27,7 +28,7 @@ pub(crate) fn grab_sudo_logs(options: &MacosSudoOptions) -> Result<Vec<LogData>,
 
 fn parse_trace_file(
     timesync_data: &HashMap<String, TimesyncBoot>,
-    provider: &mut dyn FileProvider,
+    provider: &impl FileProvider,
 ) -> Result<Vec<LogData>, MacArtifactError> {
     let mut sudo_logs = Vec::new();
 
@@ -52,7 +53,7 @@ fn iterate_logs(
     mut reader: impl Read,
     timesync_data: &HashMap<String, TimesyncBoot>,
     sudo_logs: &mut Vec<LogData>,
-    provider: &mut dyn FileProvider,
+    provider: &impl FileProvider,
     evidence: &str,
 ) -> Result<(), MacArtifactError> {
     let mut buf = Vec::new();
@@ -71,7 +72,13 @@ fn iterate_logs(
     let exclude_missing = false;
 
     for chunk in log_iterator {
-        let (results, _) = build_log(&chunk, provider, timesync_data, exclude_missing);
+        let (results, _) = build_log(
+            &chunk,
+            provider,
+            &MemoryStringCache::default(),
+            timesync_data,
+            exclude_missing,
+        );
 
         filter_logs(results, sudo_logs);
     }
