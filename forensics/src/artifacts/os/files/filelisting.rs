@@ -454,13 +454,14 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
+    //#[cfg(target_os = "linux")]
     fn test_get_filelist_bad_start() {
         let mut accessor = Accessor::with_defaults();
 
         let source = accessor.open_source("host:").unwrap();
 
-        let err = WalkAccessor::new(&source, "/bin").unwrap_err();
+        let mut walk = WalkAccessor::new(&source, "/bin").unwrap();
+        let err = walk.next(&accessor).unwrap().unwrap_err();
         assert!(matches!(err, AccessorError::NotADirectory { .. }));
     }
 
