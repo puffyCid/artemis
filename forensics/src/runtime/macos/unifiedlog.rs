@@ -1,12 +1,7 @@
 use crate::runtime::{error::RuntimeError, helper::string_arg};
 use boa_engine::{Context, JsArgs, JsError, JsResult, JsValue, js_string};
 use macos_unifiedlogs::{
-    filesystem::{LiveSystemProvider, LogarchiveProvider},
-    iterator::UnifiedLogIterator,
-    parser::{build_log, collect_timesync},
-    timesync::TimesyncBoot,
-    traits::FileProvider,
-    unified_log::LogData,
+    cache::MemoryStringCache, filesystem::{LiveSystemProvider, LogarchiveProvider}, iterator::UnifiedLogIterator, parser::{build_log, collect_timesync}, timesync::TimesyncBoot, traits::FileProvider, unified_log::LogData,
 };
 use std::{collections::HashMap, io::Read, path::Path};
 use tracing::{error, warn};
@@ -58,7 +53,7 @@ pub(crate) fn js_unified_log(
 /// Parse the provided log (trace) file
 fn parse_trace_file(
     timesync_data: &HashMap<String, TimesyncBoot>,
-    provider: &mut dyn FileProvider,
+    provider: &impl FileProvider,
     path: &str,
 ) -> Result<Vec<LogData>, RuntimeError> {
     for mut source in provider.tracev3_files() {
@@ -77,7 +72,7 @@ fn parse_trace_file(
 fn iterate_logs(
     mut reader: impl Read,
     timesync_data: &HashMap<String, TimesyncBoot>,
-    provider: &mut dyn FileProvider,
+    provider: &impl FileProvider,
     evidence: &str,
 ) -> Result<Vec<LogData>, RuntimeError> {
     let mut buf = Vec::new();
@@ -97,7 +92,13 @@ fn iterate_logs(
     let exclude_missing = false;
     let mut logs = Vec::new();
     for chunk in log_iterator {
-        let (mut results, _) = build_log(&chunk, provider, timesync_data, exclude_missing);
+        let (mut results, _) = build_log(
+            &chunk,
+            provider,
+            &MemoryStringCache::default(),
+            timesync_data,
+            exclude_missing,
+        );
 
         logs.append(&mut results);
     }
