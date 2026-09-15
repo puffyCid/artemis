@@ -454,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    //#[cfg(target_os = "linux")]
+    #[cfg(target_os = "linux")]
     fn test_get_filelist_bad_start() {
         let mut accessor = Accessor::with_defaults();
 
@@ -540,7 +540,9 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_binary_metadata() {
-        let mut reader = Accessor::with_defaults().open_reader("/bin/ls").unwrap();
+        let mut reader = Accessor::with_defaults()
+            .open_reader("/usr/bin/ls")
+            .unwrap();
         let results = executable_metadata(&mut reader, &PlatformType::Linux).unwrap();
 
         assert!(!results.is_null());
