@@ -757,4 +757,11 @@ mod tests {
         assert!(results.times.modified.is_some());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
+
+    #[test]
+    fn test_attributes() {
+        let test = 6225919;
+        let results = HostFs::attributes(test);
+        assert!(!results.is_empty());
+    }
 }
