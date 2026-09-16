@@ -6,12 +6,9 @@ use crate::accessor::{
         locator::{DirLocator, FileLocator},
     },
     error::{AccessorError, AccessorResult},
-    filesystem::helper::{
-        attributes::{unix_attributes, windows_attributes},
-        glob::{
-            DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
-            normalize_glob_pattern, path_component_count,
-        },
+    filesystem::helper::glob::{
+        DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
+        normalize_glob_pattern, path_component_count,
     },
     io::reader::{AccessorReader, ReaderLocation},
     location::{path::InnerPath, scheme::Scheme},
@@ -439,11 +436,15 @@ impl HostFs {
     fn attributes(value: u32) -> Vec<Attributes> {
         #[cfg(target_os = "windows")]
         {
+            use crate::accessor::filesystem::helper::attributes::windows_attributes;
+
             return windows_attributes(value);
         }
 
         #[cfg(target_family = "unix")]
         {
+            use crate::accessor::filesystem::helper::attributes::unix_attributes;
+
             return unix_attributes(value);
         }
 
