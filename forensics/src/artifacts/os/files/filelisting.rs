@@ -231,6 +231,10 @@ fn file_metadata(
         filename_modified: entry.entry.times.filename_modified,
         filename_accessed: entry.entry.times.filename_accessed,
         filename_changed: entry.entry.times.filename_changed,
+        uid: entry.entry.meta.uid,
+        gid: entry.entry.meta.gid,
+        inode: entry.entry.meta.inode,
+        attributes: entry.entry.meta.attributes,
         ..Default::default()
     };
 
@@ -352,7 +356,6 @@ fn file_output(entries: Vec<FileInfo>, manager: &mut OutputManager, options: &Fi
 #[cfg(test)]
 mod tests {
     use crate::accessor::access::Accessor;
-    use crate::accessor::error::AccessorError;
     use crate::accessor::walk::WalkAccessor;
     use crate::artifacts::os::files::filelisting::{
         executable_metadata, file_metadata, file_output, get_filelist, user_regex,

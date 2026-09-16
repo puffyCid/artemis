@@ -3,7 +3,7 @@ use crate::accessor::{
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
-use common::files::EntryKind;
+use common::files::{Attributes, EntryKind};
 use std::path::PathBuf;
 
 /// Metadata returned from glob and directory listing.
@@ -21,6 +21,14 @@ pub(crate) struct EntryMeta {
     pub(crate) directory: String,
     /// Extension for the filename if any
     pub(crate) extension: String,
+    /// Unique reference for the entry
+    pub(crate) inode: Option<u64>,
+    /// User ID for the entry
+    pub(crate) uid: Option<String>,
+    /// Group ID for the entry
+    pub(crate) gid: Option<u32>,
+    /// Attributes for the entry
+    pub(crate) attributes: Option<Vec<Attributes>>,
     /// Human readable path to the entry with `Scheme`
     pub(crate) display_path: String,
 }
@@ -39,6 +47,10 @@ impl EntryMeta {
             extension: extension_from_filename(&filename),
             filename,
             display_path: path,
+            uid: None,
+            gid: None,
+            inode: None,
+            attributes: None,
         }
     }
 }

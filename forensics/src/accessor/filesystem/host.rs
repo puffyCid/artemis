@@ -13,7 +13,7 @@ use crate::accessor::{
     io::reader::{AccessorReader, ReaderLocation},
     location::{path::InnerPath, scheme::Scheme},
 };
-use common::files::EntryKind;
+use common::files::{Attributes, EntryKind};
 use glob::Pattern;
 use std::{
     fs::{self, File, FileType, Metadata, metadata, read, symlink_metadata},
@@ -113,7 +113,7 @@ impl HostFs {
                 Timestamp::default()
             };
 
-            let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
+            let meta = HostFs::entry_meta(kind, &metadata, HostFs::display_path(&child_path));
             entries.push(DirEntry::new(name, handle, meta, times));
         }
 
@@ -218,7 +218,7 @@ impl HostFs {
         let kind = HostFs::entry_kind(meta.file_type());
 
         Ok(EntryStat {
-            meta: EntryMeta::new(kind, meta.len(), HostFs::display_path(&path)),
+            meta: HostFs::entry_meta(kind, &meta, HostFs::display_path(&path)),
             times: HostFs::host_times(&meta),
         })
     }
@@ -393,6 +393,160 @@ impl HostFs {
         }
 
         times
+    }
+
+    /// Return additional metadata based on the OS
+    fn host_ids(
+        meta: &Metadata,
+    ) -> (
+        Option<String>,
+        Option<u32>,
+        Option<u64>,
+        Option<Vec<Attributes>>,
+    ) {
+        #[cfg(target_family = "unix")]
+        {
+            use std::os::unix::fs::MetadataExt;
+            (
+                Some(meta.uid().to_string()),
+                Some(meta.gid()),
+                Some(meta.ino()),
+                Some(meta.mode()),
+            )
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::fs::MetadataExt;
+            (
+                None,
+                None,
+                None,
+                Some(HostFs::attributes(meta.file_attributes())),
+            )
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            (None, None, None, None)
+        }
+    }
+
+    /// Return attributes for a entry
+    fn attributes(value: u32) -> Vec<Attributes> {
+        let mut attributes = Vec::new();
+        #[cfg(target_os = "windows")]
+        {
+            if (value & 0x1) != 0 {
+                attributes.push(Attributes::ReadOnly);
+            }
+            if (value & 0x2) != 0 {
+                attributes.push(Attributes::Hidden);
+            }
+            if (value & 0x4) != 0 {
+                attributes.push(Attributes::System);
+            }
+            if (value & 0x10) != 0 {
+                attributes.push(Attributes::Directory);
+            }
+            if (value & 0x20) != 0 {
+                attributes.push(Attributes::Archive);
+            }
+            if (value & 0x40) != 0 {
+                attributes.push(Attributes::Device);
+            }
+            if (value & 0x80) != 0 {
+                attributes.push(Attributes::Normal);
+            }
+            if (value & 0x100) != 0 {
+                attributes.push(Attributes::Temporary);
+            }
+            if (value & 0x200) != 0 {
+                attributes.push(Attributes::Sparse);
+            }
+            if (value & 0x400) != 0 {
+                attributes.push(Attributes::ReparsePoint);
+            }
+            if (value & 0x800) != 0 {
+                attributes.push(Attributes::Compressed);
+            }
+            if (value & 0x1000) != 0 {
+                attributes.push(Attributes::Offline);
+            }
+            if (value & 0x2000) != 0 {
+                attributes.push(Attributes::NotContentIndexed);
+            }
+            if (value & 0x4000) != 0 {
+                attributes.push(Attributes::Encrypted);
+            }
+            if (value & 0x8000) != 0 {
+                attributes.push(Attributes::IntegritySystem);
+            }
+            if (value & 0x10000) != 0 {
+                attributes.push(Attributes::Virtual);
+            }
+            if (value & 0x20000) != 0 {
+                attributes.push(Attributes::NoScrubData);
+            }
+            if (value & 0x40000) != 0 {
+                attributes.push(Attributes::ExtendedAttributes);
+                attributes.push(Attributes::RecallOnOpen);
+            }
+            if (value & 0x80000) != 0 {
+                attributes.push(Attributes::Pinned);
+            }
+            if (value & 0x100000) != 0 {
+                attributes.push(Attributes::Unpinned);
+            }
+            if (value & 0x400000) != 0 {
+                attributes.push(Attributes::RecallOnDataAccess);
+            }
+        }
+
+        #[cfg(target_family = "unix")]
+        {
+            if (value & 0o400) != 0 {
+                attributes.push(Attributes::UserRead);
+            }
+            if (value & 0o200) != 0 {
+                attributes.push(Attributes::UserWrite);
+            }
+            if (value & 0o100) != 0 {
+                attributes.push(Attributes::UserExecute);
+            }
+            if (value & 0o40) != 0 {
+                attributes.push(Attributes::GroupRead);
+            }
+            if (value & 0o20) != 0 {
+                attributes.push(Attributes::GroupWrite);
+            }
+            if (value & 0o10) != 0 {
+                attributes.push(Attributes::GroupExecute);
+            }
+            if (value & 0o4) != 0 {
+                attributes.push(Attributes::OtherRead);
+            }
+            if (value & 0o2) != 0 {
+                attributes.push(Attributes::OtherWrite);
+            }
+            if (value & 0o1) != 0 {
+                attributes.push(Attributes::OtherExecute);
+            }
+        }
+
+        attributes
+    }
+
+    /// Return metadata about the file entry
+    fn entry_meta(kind: EntryKind, meta: &Metadata, display_path: String) -> EntryMeta {
+        let (uid, gid, inode, attributes) = HostFs::host_ids(meta);
+        let mut entry = EntryMeta::new(kind, meta.len(), display_path);
+        entry.uid = uid;
+        entry.gid = gid;
+        entry.inode = inode;
+        entry.attributes = attributes;
+
+        entry
     }
 
     /// Determine `EntryKind` based on `FileType`
