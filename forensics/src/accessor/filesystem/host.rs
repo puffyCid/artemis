@@ -409,9 +409,9 @@ impl HostFs {
             use std::os::unix::fs::MetadataExt;
             (
                 Some(meta.uid().to_string()),
-                Some(meta.gid()),
+                Some(meta.gid().to_string()),
                 Some(meta.ino()),
-                Some(meta.mode()),
+                Some(HostFs::attributes(meta.mode())),
             )
         }
 

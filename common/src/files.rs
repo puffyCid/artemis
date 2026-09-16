@@ -24,7 +24,7 @@ pub struct FileInfo {
     pub filename_changed: Option<String>,
     pub filename_accessed: Option<String>,
     pub uid: Option<String>,
-    pub gid: Option<u32>,
+    pub gid: Option<String>,
     pub inode: Option<u64>,
     pub attributes: Option<Vec<Attributes>>,
     pub size: u64,
