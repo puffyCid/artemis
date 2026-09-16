@@ -26,7 +26,7 @@ pub(crate) struct EntryMeta {
     /// User ID for the entry
     pub(crate) uid: Option<String>,
     /// Group ID for the entry
-    pub(crate) gid: Option<u32>,
+    pub(crate) gid: Option<String>,
     /// Attributes for the entry
     pub(crate) attributes: Option<Vec<Attributes>>,
     /// Human readable path to the entry with `Scheme`

@@ -130,4 +130,10 @@ pub enum Attributes {
     GroupExecute,
     /// Unix
     OtherExecute,
+    /// Unix
+    SetUid,
+    /// Unix
+    SetGid,
+    /// Unix
+    Sticky,
 }

@@ -400,7 +400,7 @@ impl HostFs {
         meta: &Metadata,
     ) -> (
         Option<String>,
-        Option<u32>,
+        Option<String>,
         Option<u64>,
         Option<Vec<Attributes>>,
     ) {
@@ -531,6 +531,15 @@ impl HostFs {
             }
             if (value & 0o1) != 0 {
                 attributes.push(Attributes::OtherExecute);
+            }
+            if (value & 0o4000) != 0 {
+                attributes.push(Attributes::SetUid);
+            }
+            if (value & 0o2000) != 0 {
+                attributes.push(Attributes::SetGid);
+            }
+            if (value & 0o1000) != 0 {
+                attributes.push(Attributes::Sticky);
             }
         }
 
