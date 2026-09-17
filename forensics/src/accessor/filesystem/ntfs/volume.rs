@@ -1,8 +1,12 @@
 // Full credit to: https://github.com/ColinFinck/ntfs/blob/master/examples/ntfs-shell/sector_reader.rs - MIT/Apache License - 2022-11-07
 
-use crate::accessor::error::{AccessorError, AccessorResult};
+use crate::accessor::{
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::security::read_secure,
+};
 use ntfs::Ntfs;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{self, BufReader, Read, Seek, SeekFrom},
     path::PathBuf,
@@ -144,6 +148,8 @@ pub(crate) struct NtfsVolume<R: Read + Seek + Send> {
     target_path: String,
     /// `Ntfs` structure we are parsing
     ntfs: Ntfs,
+    /// User and Group SIDs for lookups
+    sids: HashMap<u32, (String, String)>,
     /// Reader being used to access the volume
     reader: Mutex<R>,
 }
@@ -163,10 +169,13 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
                 reason: err.to_string(),
             })?;
 
+        let sids = read_secure(&ntfs, &mut reader)?;
+
         Ok(Self {
             target_path,
             ntfs,
             reader: Mutex::new(reader),
+            sids,
         })
     }
 
