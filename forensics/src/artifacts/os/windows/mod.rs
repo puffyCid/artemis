@@ -16,7 +16,7 @@ mod propertystore;
 pub(crate) mod recyclebin;
 pub(crate) mod registry;
 pub(crate) mod search;
-mod securitydescriptor;
+pub(crate) mod securitydescriptor;
 pub(crate) mod services;
 pub(crate) mod shellbags;
 pub(crate) mod shellitems;

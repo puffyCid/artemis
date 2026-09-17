@@ -217,7 +217,7 @@ impl NtfsVolume<BufReader<SectorReader<File>>> {
         }
 
         let drive_upper = drive.to_ascii_uppercase();
-        let device_path = format!(r"\\.\{drive_upper}:");
+        let device_path = format!("\\\\.\\{drive_upper}:");
         let file =
             File::open(&device_path).map_err(|err| AccessorError::io_path(&device_path, err))?;
         let sector_reader =
