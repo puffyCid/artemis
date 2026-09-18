@@ -66,7 +66,7 @@ pub(crate) fn get_filelist(
     let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
     let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
 
-    match source.id() {
+    return match source.id() {
         SourceId::Ntfs(_) => filelisting_ntfs(
             &mut accessor,
             &source,
@@ -79,8 +79,6 @@ pub(crate) fn get_filelist(
         SourceId::Host => todo!(),
         SourceId::Zip(_) => todo!(),
     };
-
-    return Ok(());
 
     let mut walk = match WalkAccessor::new(&source, &options.start_path) {
         Ok(result) => result,
