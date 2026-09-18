@@ -246,7 +246,6 @@ pub(super) fn list_ads_names<T: Read + Seek>(
         if ty != NtfsAttributeType::Data {
             continue;
         }
-
         let name = item.name().map_err(ntfs_err)?.to_string_lossy();
         if name.is_empty() {
             continue;

@@ -52,6 +52,7 @@ trait NtfsFsBackend: Send {
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
     /// Return metadata and timestamps for provided `DirHandle`
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat>;
+    /// Generate a NTFS filelisting
     fn walk(
         &self,
         inner: &InnerPath,
@@ -147,6 +148,7 @@ impl NtfsSource {
         })
     }
 
+    /// Start walking the NTFS filesystem
     pub(crate) fn walk(
         &self,
         inner: &InnerPath,

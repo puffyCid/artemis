@@ -176,6 +176,7 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                 visit,
                 ntfs_walk_dir,
             )?;
+            ntfs_walk_dir.depth -= 1;
         }
     }
 
