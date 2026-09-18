@@ -168,7 +168,7 @@ pub struct FileNtfsInfo {
     pub compression_type: CompressionType,
     pub inode: u64,
     pub sequence_number: u16,
-    pub parent_mft_reference: u64,
+    pub parent_mft_reference: u32,
     pub owner: u32,
     pub namespace: Namespace,
     pub ads_info: Vec<ADSInfo>,
@@ -177,4 +177,5 @@ pub struct FileNtfsInfo {
     pub user_sid: String,
     pub group_sid: String,
     pub drive: String,
+    pub evidence: String,
 }

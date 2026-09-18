@@ -2,8 +2,9 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::walk::ntfs_err,
 };
+use common::windows::ADSInfo;
 use ntfs::{
-    NtfsAttributeType, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
+    Ntfs, NtfsAttributeType, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
     structured_values::NtfsAttributeList,
 };
 use std::io::{Read, Seek};
@@ -199,6 +200,65 @@ pub(crate) fn read_value_bytes<T: Read + Seek>(
     }
 
     Ok(out)
+}
+
+/// List all ADS attributes for provided file
+pub(super) fn list_ads_names<T: Read + Seek>(
+    ntfs: &Ntfs,
+    reader: &mut T,
+    file: &NtfsFile<'_>,
+) -> AccessorResult<Vec<ADSInfo>> {
+    let mut ads = Vec::new();
+
+    for item in file.attributes_raw() {
+        let item = item.map_err(ntfs_err)?;
+        let ty = item.ty().map_err(ntfs_err)?;
+
+        // Walk the AttributeList if we have lots of attributes for a file
+        if ty == NtfsAttributeType::AttributeList {
+            let list = item
+                .structured_value::<_, NtfsAttributeList<'_, '_>>(reader)
+                .map_err(ntfs_err)?;
+            let mut list_iter = list.entries();
+
+            while let Some(entry) = list_iter.next(reader) {
+                let entry = entry.map_err(ntfs_err)?;
+                let temp_file = entry.to_file(ntfs, reader).map_err(ntfs_err)?;
+                let attr = entry.to_attribute(&temp_file).map_err(ntfs_err)?;
+
+                if attr.ty().map_err(ntfs_err)? != NtfsAttributeType::Data {
+                    continue;
+                }
+
+                let name = attr.name().map_err(ntfs_err)?.to_string_lossy();
+                if name.is_empty() {
+                    continue;
+                }
+
+                ads.push(ADSInfo {
+                    name,
+                    size: attr.value_length(),
+                });
+            }
+            continue;
+        }
+
+        if ty != NtfsAttributeType::Data {
+            continue;
+        }
+
+        let name = item.name().map_err(ntfs_err)?.to_string_lossy();
+        if name.is_empty() {
+            continue;
+        }
+
+        ads.push(ADSInfo {
+            name,
+            size: item.value_length(),
+        });
+    }
+
+    Ok(ads)
 }
 
 #[cfg(test)]

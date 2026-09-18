@@ -1,6 +1,9 @@
+use std::collections::HashSet;
+
 use crate::accessor::{
     entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-    error::AccessorResult,
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::walk::NtfsWalkEntry,
     io::reader::AccessorReader,
     location::path::InnerPath,
     source::{backend::SourceBackend, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
@@ -107,6 +110,23 @@ impl Source {
             Source::Host(source) => source.stat_dir_handle(handle),
             Source::Zip(source) => source.stat_dir_handle(handle),
             Source::Ntfs(source) => source.stat_dir_handle(handle),
+        }
+    }
+
+    /// Expose generating a NTFS filelisting to the `Accessor`
+    pub(crate) fn walk_ntfs(
+        &self,
+        inner: &InnerPath,
+        max_depth: u32,
+        exclude: &HashSet<String>,
+        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Ntfs(source) => source.walk(inner, max_depth, exclude, visit),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_ntfs requires a ntfs source",
+            )),
         }
     }
 }

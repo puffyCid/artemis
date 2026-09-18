@@ -5,12 +5,13 @@ use crate::accessor::{
         locator::SourceId,
     },
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
+    filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume, walk::NtfsWalkEntry},
     io::reader::AccessorReader,
     location::path::InnerPath,
     source::backend::SourceBackend,
 };
 use std::{
+    collections::HashSet,
     io::{Read, Seek},
     path::PathBuf,
 };
@@ -51,6 +52,13 @@ trait NtfsFsBackend: Send {
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
     /// Return metadata and timestamps for provided `DirHandle`
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat>;
+    fn walk(
+        &self,
+        inner: &InnerPath,
+        max_depth: u32,
+        exclude: &HashSet<String>,
+        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+    ) -> AccessorResult<()>;
 }
 
 impl<T> NtfsFsBackend for NtfsFs<T>
@@ -100,6 +108,16 @@ where
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
         self.stat_dir_handle(handle)
     }
+
+    fn walk(
+        &self,
+        inner: &InnerPath,
+        max_depth: u32,
+        exclude: &HashSet<String>,
+        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+    ) -> AccessorResult<()> {
+        self.walk(inner, max_depth, exclude, visit)
+    }
 }
 
 impl NtfsSource {
@@ -127,6 +145,16 @@ impl NtfsSource {
             max_read_size: config.max_read_size,
             fs: Box::new(NtfsFs::new(volume, 'X')),
         })
+    }
+
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        max_depth: u32,
+        exclude: &HashSet<String>,
+        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+    ) -> AccessorResult<()> {
+        self.fs.walk(inner, max_depth, exclude, visit)
     }
 }
 

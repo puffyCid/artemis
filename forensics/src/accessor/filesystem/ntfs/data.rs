@@ -9,8 +9,8 @@ use crate::{
             attributes::read_named_data,
             volume::NtfsVolume,
             walk::{
-                get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref,
-                resolve_entry, resolve_file,
+                NtfsWalkEntry, get_file_size, list_children, list_children_handle, ntfs_err,
+                open_by_ref, resolve_entry, resolve_file, walk_ntfs,
             },
             wof::{decompress_wof, is_wof_file},
         },
@@ -22,12 +22,9 @@ use crate::{
 };
 use common::{files::EntryKind, windows::Namespace};
 use ntfs::{
-    NtfsAttributeType::FileName,
-    NtfsFile, NtfsReadSeek,
-    attribute_value::NtfsAttributeValue,
-    structured_values::{NtfsFileName, NtfsFileNamespace},
+    NtfsAttributeType::FileName, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
 };
-use std::{cmp::Ordering, fmt, mem};
+use std::{cmp::Ordering, collections::HashSet, fmt, mem};
 use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
@@ -255,6 +252,17 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
             ))),
         }
     }
+
+    /// Walk the NTFS filesystem and return data through a callback function
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        max_depth: u32,
+        exclude: &HashSet<String>,
+        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+    ) -> AccessorResult<()> {
+        walk_ntfs(&self.volume, self.drive, inner, max_depth, exclude, visit)
+    }
 }
 
 /// Return metadata and timetamps for a NTFS entry
@@ -282,18 +290,6 @@ fn stat_from_file<R: Read + Seek>(
     })
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub(crate) struct StandardInfo {
-    create: String,
-    modified: String,
-    accessed: String,
-    changed: String,
-    usn: u64,
-    sid: u32,
-    owner: u32,
-    attributes: u32,
-}
-
 /// Return the 4 Standard Info timestamps
 pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timestamp> {
     let info = file.info().map_err(ntfs_err)?;
@@ -309,18 +305,18 @@ pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timesta
     })
 }
 
-pub(crate) struct FilenameInfo {
-    created: String,
-    modified: String,
-    accessed: String,
-    changed: String,
-    namespace: Namespace,
-    parent_file_record: u32,
-    parent_sequence: u16,
+pub(super) struct FilenameInfo {
+    pub(super) created: String,
+    pub(super) modified: String,
+    pub(super) accessed: String,
+    pub(super) changed: String,
+    pub(super) namespace: Namespace,
+    pub(super) parent_file_record: u32,
+    pub(super) parent_sequence: u16,
 }
 
 /// Return the FILENAME attribute
-pub(crate) fn ntfs_filename_times<R: Read + Seek>(
+pub(super) fn ntfs_filename_times<R: Read + Seek>(
     file: &NtfsFile<'_>,
     reader: &mut R,
 ) -> AccessorResult<FilenameInfo> {
@@ -371,7 +367,7 @@ pub(crate) fn ntfs_filename_times<R: Read + Seek>(
 }
 
 /// Return all 8 timestamps
-pub(crate) fn merge_ntfs_times(standard: Timestamp, filename: FilenameInfo) -> Timestamp {
+pub(super) fn merge_ntfs_times(standard: Timestamp, filename: FilenameInfo) -> Timestamp {
     Timestamp {
         created: standard.created,
         modified: standard.modified,

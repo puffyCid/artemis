@@ -9,9 +9,11 @@
  */
 use super::error::FileError;
 use crate::accessor::access::Accessor;
+use crate::accessor::entry::locator::SourceId;
 use crate::accessor::io::reader::AccessorReader;
 use crate::accessor::source::handle::SourceHandle;
 use crate::accessor::walk::{WalkAccessor, WalkEntry};
+use crate::artifacts::os::files::walking::ntfs::filelisting_ntfs;
 use crate::artifacts::os::linux::executable::parser::parse_elf_reader;
 use crate::artifacts::os::macos::macho::error::MachoError;
 use crate::artifacts::os::macos::macho::parser::parse_macho_reader;
@@ -47,6 +49,38 @@ pub(crate) fn get_filelist(
             return Err(FileError::Filelisting);
         }
     };
+
+    let mut rule = String::new();
+    #[cfg(feature = "yarax")]
+    if options.yara.as_ref().is_some_and(|s| !s.is_empty()) {
+        // Unwrap is safe since we validate above
+        rule = match extract_rule(options.yara.as_ref().unwrap()) {
+            Ok(result) => result,
+            Err(err) => {
+                error!("Bad yara rule {err:?}");
+                return Err(FileError::Filelisting);
+            }
+        };
+    }
+
+    let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
+    let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
+
+    match source.id() {
+        SourceId::Ntfs(_) => filelisting_ntfs(
+            &mut accessor,
+            &source,
+            options,
+            manager,
+            path_filter,
+            file_filter,
+            rule,
+        ),
+        SourceId::Host => todo!(),
+        SourceId::Zip(_) => todo!(),
+    };
+
+    return Ok(());
 
     let mut walk = match WalkAccessor::new(&source, &options.start_path) {
         Ok(result) => result,

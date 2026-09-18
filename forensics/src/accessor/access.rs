@@ -1,8 +1,11 @@
+use std::collections::HashSet;
+
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
     entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-    error::AccessorResult,
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::walk::NtfsWalkEntry,
     io::reader::AccessorReader,
     location::loc::Location,
     source::{
@@ -355,6 +358,24 @@ impl Accessor {
 
         validate_dir_handle_for_source(source.id(), &handle.locator)?;
         stat_dir_handle_on_source(&self.cache, source.id(), handle)
+    }
+
+    /// Generate a NTFS filelisting from an opened source
+    pub(crate) fn source_walk_ntfs(
+        &self,
+        source: &SourceHandle,
+        inner: &str,
+        max_depth: u32,
+        exclude: &HashSet<String>,
+        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+    ) -> AccessorResult<()> {
+        info!("Walk NTFS {inner} with source {}", source.display());
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(inner, "NTFS source is not open"));
+        };
+
+        backend.walk_ntfs(&parse_inner_path(inner)?, max_depth, exclude, visit)
     }
 }
 
