@@ -17,9 +17,10 @@ use crate::{
         io::reader::{AccessorReader, ReaderLocation},
         location::{path::InnerPath, scheme::Scheme},
     },
+    artifacts::os::windows::mft::attributes::filename::Filename,
     utils::time::filetime_to_iso,
 };
-use common::files::EntryKind;
+use common::{files::EntryKind, windows::Namespace};
 use ntfs::{
     NtfsAttributeType::FileName,
     NtfsFile, NtfsReadSeek,
@@ -31,7 +32,7 @@ use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
 };
-use tracing::warn;
+use tracing::{error, warn};
 
 /// A filesystem like accessor that can be used to read files from the raw NTFS
 pub(crate) struct NtfsFs<T: Read + Seek + Send> {
@@ -281,6 +282,18 @@ fn stat_from_file<R: Read + Seek>(
     })
 }
 
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct StandardInfo {
+    create: String,
+    modified: String,
+    accessed: String,
+    changed: String,
+    usn: u64,
+    sid: u32,
+    owner: u32,
+    attributes: u32,
+}
+
 /// Return the 4 Standard Info timestamps
 pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timestamp> {
     let info = file.info().map_err(ntfs_err)?;
@@ -296,30 +309,78 @@ pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timesta
     })
 }
 
-/// Return the 4 FILENAME timestamps
-pub(crate) fn ntfs_filename_times(name: &NtfsFileName) -> Timestamp {
-    Timestamp {
-        filename_created: Some(filetime_to_iso(name.creation_time().nt_timestamp())),
-        filename_modified: Some(filetime_to_iso(name.modification_time().nt_timestamp())),
-        filename_accessed: Some(filetime_to_iso(name.access_time().nt_timestamp())),
-        filename_changed: Some(filetime_to_iso(
-            name.mft_record_modification_time().nt_timestamp(),
-        )),
-        ..Default::default()
+pub(crate) struct FilenameInfo {
+    created: String,
+    modified: String,
+    accessed: String,
+    changed: String,
+    namespace: Namespace,
+    parent_file_record: u32,
+    parent_sequence: u16,
+}
+
+/// Return the FILENAME attribute
+pub(crate) fn ntfs_filename_times<R: Read + Seek>(
+    file: &NtfsFile<'_>,
+    reader: &mut R,
+) -> AccessorResult<FilenameInfo> {
+    let mut attr = file.attributes();
+    while let Some(Ok(value)) = attr.next(reader) {
+        let attr_data = value.to_attribute().map_err(ntfs_err)?;
+        let name = attr_data.ty().map_err(ntfs_err)?;
+
+        if name != FileName {
+            continue;
+        }
+
+        let mut data = attr_data.value(reader).map_err(ntfs_err)?;
+        let attr_size = data.len();
+        let mut buf = vec![0; attr_size as usize];
+        let bytes = data.read(reader, &mut buf).map_err(ntfs_err)?;
+        if bytes != attr_size as usize {
+            warn!("Read incomplete FILENAME attributes, wanted '{attr_size}' got '{bytes}'")
+        }
+
+        let filename = match Filename::parse_filename(&buf) {
+            Ok((_, result)) => result,
+            Err(err) => {
+                error!("Failed to parse FILENAME attribute: {err:?}");
+                continue;
+            }
+        };
+
+        if filename.namespace == Namespace::Dos {
+            continue;
+        }
+
+        return Ok(FilenameInfo {
+            created: filetime_to_iso(filename.created),
+            modified: filetime_to_iso(filename.modified),
+            accessed: filetime_to_iso(filename.accessed),
+            changed: filetime_to_iso(filename.changed),
+            namespace: filename.namespace,
+            parent_file_record: filename.parent_mft,
+            parent_sequence: filename.parent_sequence,
+        });
     }
+
+    Err(AccessorError::Ntfs {
+        path: None,
+        reason: String::from("Failed to find FILENAME attribute"),
+    })
 }
 
 /// Return all 8 timestamps
-pub(crate) fn merge_ntfs_times(standard: Timestamp, filename: Timestamp) -> Timestamp {
+pub(crate) fn merge_ntfs_times(standard: Timestamp, filename: FilenameInfo) -> Timestamp {
     Timestamp {
         created: standard.created,
         modified: standard.modified,
         accessed: standard.accessed,
         changed: standard.changed,
-        filename_created: filename.filename_created,
-        filename_modified: filename.filename_modified,
-        filename_accessed: filename.filename_accessed,
-        filename_changed: filename.filename_changed,
+        filename_created: Some(filename.created),
+        filename_modified: Some(filename.modified),
+        filename_accessed: Some(filename.accessed),
+        filename_changed: Some(filename.changed),
     }
 }
 
@@ -329,45 +390,9 @@ pub(crate) fn ntfs_times<R: Read + Seek>(
     file: &NtfsFile<'_>,
 ) -> AccessorResult<Timestamp> {
     let standard = ntfs_standard_times(file)?;
+    let filename = ntfs_filename_times(file, reader)?;
 
-    if let Some(name) = first_non_dos_filename(reader, file)? {
-        return Ok(merge_ntfs_times(standard, ntfs_filename_times(&name)));
-    }
-
-    warn!(
-        "Could not get FILENAME times for record: {}",
-        file.file_record_number()
-    );
-
-    Ok(standard)
-}
-
-/// Extract the FILENAME timestamp for the NTFS entry
-fn first_non_dos_filename<R: Read + Seek>(
-    reader: &mut R,
-    file: &NtfsFile<'_>,
-) -> AccessorResult<Option<NtfsFileName>> {
-    let mut attrs = file.attributes();
-    while let Some(attr_value) = attrs.next(reader) {
-        let item = attr_value.map_err(ntfs_err)?;
-        let attr = item.to_attribute().map_err(ntfs_err)?;
-
-        if attr.ty().map_err(ntfs_err)? != FileName {
-            continue;
-        }
-
-        let name = attr
-            .structured_value::<_, NtfsFileName>(reader)
-            .map_err(ntfs_err)?;
-
-        if name.namespace() == NtfsFileNamespace::Dos {
-            continue;
-        }
-
-        return Ok(Some(name));
-    }
-
-    Ok(None)
+    Ok(merge_ntfs_times(standard, filename))
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem

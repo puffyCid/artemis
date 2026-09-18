@@ -142,7 +142,7 @@ where
 /// Parsed NTFS volume backed by any `Read` + `Seek` source
 ///
 /// Used for live raw drives (Windows), disk images (any OS), and future image formats
-/// All reads that touch the underlying byte source go through [`Self::with_reader`]
+/// All reads that touch the underlying byte source go through `Self::with_reader`
 pub(crate) struct NtfsVolume<R: Read + Seek + Send> {
     /// Target NTFS volume we are reading
     target_path: String,
@@ -180,22 +180,26 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
     }
 
     /// Return active `target_path`
-    pub(crate) fn target_path(&self) -> &str {
+    pub(super) fn target_path(&self) -> &str {
         &self.target_path
     }
 
     /// Return information about the `NTFS` volume
-    pub(crate) fn ntfs(&self) -> &Ntfs {
+    pub(super) fn ntfs(&self) -> &Ntfs {
         &self.ntfs
     }
 
     /// Access the `NTFS` reader
-    pub(crate) fn with_reader<F, T>(&self, operation: F) -> AccessorResult<T>
+    pub(super) fn with_reader<F, T>(&self, operation: F) -> AccessorResult<T>
     where
         F: FnOnce(&Ntfs, &mut R) -> AccessorResult<T>,
     {
         let mut reader = self.lock_reader()?;
         operation(&self.ntfs, &mut reader)
+    }
+
+    pub(super) fn sids(&self) -> &HashMap<u32, (String, String)> {
+        &self.sids
     }
 
     /// Ensure our `NTFS` reader is properly locked. Should always be safe since artemis will always be single-threaded

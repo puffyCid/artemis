@@ -14,7 +14,10 @@ use ntfs::{
     Ntfs, NtfsFile, NtfsIndexEntryFlags, indexes::NtfsFileNameIndex,
     structured_values::NtfsFileNamespace,
 };
-use std::io::{Read, Seek};
+use std::{
+    collections::HashMap,
+    io::{Read, Seek},
+};
 use tracing::{error, warn};
 
 /// List files and directories from provided path
@@ -31,7 +34,14 @@ pub(crate) fn list_children<T: Read + Seek + Send>(
         let parent_display = normalize_display_path(display);
         let dir_file = resolve_directory(ntfs, reader, inner_path)?;
 
-        list_index_children(ntfs, reader, &dir_file, drive, &parent_display)
+        list_index_children(
+            ntfs,
+            reader,
+            &dir_file,
+            drive,
+            &parent_display,
+            volume.sids(),
+        )
     })
 }
 
@@ -47,7 +57,14 @@ pub(crate) fn list_children_handle<T: Read + Seek + Send>(
         let parent_display = normalize_display_path(display);
         let dir_file = open_by_ref(ntfs, reader, file_ref)?;
 
-        list_index_children(ntfs, reader, &dir_file, drive, &parent_display)
+        list_index_children(
+            ntfs,
+            reader,
+            &dir_file,
+            drive,
+            &parent_display,
+            volume.sids(),
+        )
     })
 }
 
@@ -58,6 +75,7 @@ fn list_index_children<R: Read + Seek>(
     dir_file: &NtfsFile<'_>,
     drive: char,
     parent_display: &str,
+    sids: &HashMap<u32, (String, String)>,
 ) -> AccessorResult<Vec<DirEntry>> {
     let index = dir_file.directory_index(reader).map_err(ntfs_err)?;
     let mut iter = index.entries();
@@ -96,9 +114,7 @@ fn list_index_children<R: Read + Seek>(
             EntryKind::File
         };
 
-        let filename_times = ntfs_filename_times(&key);
         let file_ref = NtfsEntryRef::from_reference(entry.file_reference());
-
         let display_path = if parent_display.is_empty() {
             format!("{drive}:\\{name}")
         } else {
@@ -109,7 +125,11 @@ fn list_index_children<R: Read + Seek>(
             .file_reference()
             .to_file(ntfs, reader)
             .map_err(ntfs_err)?;
-        let times = merge_ntfs_times(ntfs_standard_times(&file)?, filename_times);
+
+        let times = merge_ntfs_times(
+            ntfs_standard_times(&file)?,
+            ntfs_filename_times(&file, reader)?,
+        );
 
         let size = if kind == EntryKind::File {
             read_file_size(file, reader)?
@@ -132,7 +152,7 @@ fn list_index_children<R: Read + Seek>(
             _ => continue,
         };
 
-        let meta = EntryMeta::new(kind, size, scheme_path);
+        let mut meta = EntryMeta::new(kind, size, scheme_path);
 
         entries.push(DirEntry::new(name, handle, meta, times));
     }
