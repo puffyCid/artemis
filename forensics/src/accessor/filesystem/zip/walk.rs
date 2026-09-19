@@ -118,7 +118,7 @@ pub(super) fn walk_zip(
             Ok(keep) => keep,
             Err(err) => {
                 warn!("Failed to read {}: {err:?}", info.display_path);
-                listing.yara_rule.is_empty()
+                true
             }
         };
 

@@ -253,7 +253,7 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                     Ok(keep) => keep,
                     Err(err) => {
                         warn!("Failed to read {display_path}: {err:?}");
-                        listing.yara_rule.is_empty()
+                        true
                     }
                 }
             } else {

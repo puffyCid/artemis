@@ -68,7 +68,9 @@ pub(super) fn walk_host(
         batch: Vec::new(),
     };
 
-    walk_host_dir(inner, &mut listing)?;
+    if let Err(err) = walk_host_dir(inner, &mut listing) {
+        error!("Failed to complete full host filelisting: {err:?}");
+    }
 
     if !listing.batch.is_empty() {
         host_output(take(&mut listing.batch), listing.manager, listing.options);
@@ -108,7 +110,7 @@ fn walk_host_dir(inner: &InnerPath, listing: &mut HostListing<'_>) -> AccessorRe
                     Ok(keep) => keep,
                     Err(err) => {
                         warn!("Failed to read {}: {err:?}", info.display_path);
-                        listing.yara_rule.is_empty()
+                        true
                     }
                 }
             } else {
@@ -176,6 +178,7 @@ fn enrich_host_file(
 
     #[cfg(not(feature = "yarax"))]
     let want_yara = false;
+
     if !want_hash && !want_bin && !want_yara {
         return Ok(true);
     }
