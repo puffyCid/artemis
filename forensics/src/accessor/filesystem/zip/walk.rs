@@ -168,8 +168,6 @@ struct ZipListing<'a> {
 
 /// Check if our start path is at root of the ZIP source
 fn relative_to_start<'a>(path: &'a str, start: &str) -> Option<&'a str> {
-    info!("ZIP listing start '{start}' vs current path {path}");
-
     if start.is_empty() {
         return Some(path);
     }
@@ -194,11 +192,8 @@ fn path_excluded(path: &str, exclude: &HashSet<String>) -> bool {
             return false;
         }
 
-        let ex = ZipFs::normalize_zip_path(raw);
-        path == ex
-            || path.starts_with(&format!("{ex}/"))
-            || raw == path
-            || ZipFs::normalize_zip_path(raw).is_empty() && false
+        let exclude_path = ZipFs::normalize_zip_path(raw);
+        path == exclude_path || path.starts_with(&format!("{exclude_path}/")) || raw == path
     })
 }
 
@@ -327,13 +322,9 @@ fn filename_from_inner(path: &str) -> String {
 ///
 /// Read each ZIP file entry
 ///
-/// Binary parsing and Yara scanning
-/// only read files that are smaller
+/// File reading only occurs for
+/// files that are smaller
 /// than `YARA_MAX_SIZE`
-///
-/// Hashing will always stream large files
-///
-/// If the files are encrypted we do not decrypt them
 fn enrich_zip_file(
     fs: &ZipFs,
     record: &ZipEntryRecord,
@@ -442,6 +433,11 @@ fn parse_zip_binary(bytes: Vec<u8>, display_path: &str) -> Value {
 /// Track the `FilesZipInfo` batch entries
 /// Once we hit the max limit we output our results
 fn push_row(listing: &mut ZipListing<'_>, info: FilesZipInfo) {
+    info!(
+        "ZIP listing start '{}'. Current Directory: '{}'",
+        listing.start, info.directory
+    );
+
     listing.batch.push(info);
 
     if listing.batch.len() >= listing.max_list {
