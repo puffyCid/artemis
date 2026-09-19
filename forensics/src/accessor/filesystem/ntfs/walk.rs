@@ -856,17 +856,88 @@ pub(crate) fn ntfs_err(err: ntfs::NtfsError) -> AccessorError {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::filesystem::ntfs::{volume::NtfsVolume, walk::list_children};
-    use common::files::EntryKind;
-    use std::path::PathBuf;
+    use super::walk_ntfs;
+    use crate::{
+        accessor::{
+            filesystem::ntfs::{volume::NtfsVolume, walk::list_children},
+            location::path::InnerPath,
+        },
+        filesystem::files::hash_file_data,
+        output::manager::OutputManager,
+        structs::{
+            artifacts::os::files::FileOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
+        },
+    };
+    use common::files::{EntryKind, Hashes};
+    use serde_json::Value;
+    use std::{
+        fs::{read_dir, read_to_string},
+        path::PathBuf,
+    };
+
+    fn test_image() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        path
+    }
+
+    fn output_manager(name: &str) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            endpoint_id: String::from("test"),
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
+            compress: false,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
+    }
+
+    fn listing_options(depth: u32) -> FileOptions {
+        FileOptions {
+            start_path: String::new(),
+            depth: Some(depth),
+            source: String::from("ntfs:C:"),
+            ..Default::default()
+        }
+    }
+
+    fn walk_test_image(name: &str, options: &FileOptions) -> (OutputManager, Vec<Value>) {
+        let volume = NtfsVolume::open_image(test_image()).unwrap();
+        let inner = InnerPath::empty();
+        let mut manager = output_manager(name);
+        walk_ntfs(&volume, 'C', &inner, options, &mut manager, "", "ntfs:C:").unwrap();
+
+        let output_dir = PathBuf::from("./tmp").join(name);
+        let mut rows = Vec::new();
+
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let filename = path.file_name().unwrap().to_string_lossy();
+            if !filename.starts_with("files_ntfs_") || !filename.ends_with(".jsonl") {
+                continue;
+            }
+
+            if filename.starts_with("artemis_") {
+                continue;
+            }
+
+            let data = read_to_string(&path).unwrap();
+            for line in data.lines() {
+                rows.push(serde_json::from_str(line).unwrap());
+            }
+        }
+        (manager, rows)
+    }
 
     #[test]
     fn test_ntfs_volume() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/filesystems/ntfs/test.raw");
-        let volume = NtfsVolume::open_image(test_location).unwrap();
+        let volume = NtfsVolume::open_image(test_image()).unwrap();
         let result = list_children(&volume, 'C', &"", &"").unwrap();
         assert_eq!(result.len(), 15);
+
         let main = result
             .iter()
             .find(|entry| entry.name == "main.ts")
@@ -874,11 +945,11 @@ mod tests {
 
         assert_eq!(main.meta.kind, EntryKind::File);
         assert_eq!(main.meta.size, 514);
-
         assert!(main.times.created.is_some());
         assert!(main.times.modified.is_some());
         assert!(main.times.accessed.is_some());
         assert!(main.times.changed.is_some());
+
         assert!(main.times.filename_created.is_some());
         assert!(main.times.filename_modified.is_some());
         assert!(main.times.filename_accessed.is_some());
@@ -897,7 +968,113 @@ mod tests {
             .iter()
             .find(|entry| entry.name == "hello world.txt")
             .expect("hello world.txt");
-
         assert_eq!(hello.meta.size, 12);
+    }
+
+    #[test]
+    fn test_walk_ntfs_root() {
+        let options = listing_options(1);
+        let (manager, rows) = walk_test_image("ntfs_walk_root", &options);
+        assert!(!rows.is_empty());
+
+        assert_eq!(manager.artifact_runs[0].name, "files_ntfs");
+        assert_eq!(manager.artifact_runs[0].status, "completed");
+        assert_eq!(manager.artifact_runs[0].record_count, rows.len());
+
+        let main = rows
+            .iter()
+            .find(|row| row["filename"] == "main.ts")
+            .expect("main.ts");
+
+        assert_eq!(main["kind"], "File");
+        assert_eq!(main["size"], 514);
+        assert_eq!(main["full_path"], "C:\\main.ts");
+
+        assert_eq!(main["evidence"], "ntfs:C:");
+        assert_eq!(main["collection_metadata"]["artifact_name"], "files_ntfs");
+        assert_ne!(main["sequence_number"], Value::from(0));
+        assert!(main["sequence_number"] != main["parent_sequence_number"]);
+
+        let hello = rows
+            .iter()
+            .find(|row| row["filename"] == "hello")
+            .expect("hello");
+        assert_eq!(hello["kind"], "Directory");
+        assert!(rows.iter().all(|row| row["filename"] != "hello world.txt"));
+    }
+
+    #[test]
+    fn test_walk_ntfs_depth_includes_child() {
+        let options = listing_options(2);
+        let (_, rows) = walk_test_image("ntfs_walk_depth", &options);
+        let hello = rows
+            .iter()
+            .find(|row| row["filename"] == "hello world.txt")
+            .expect("hello world.txt");
+
+        assert_eq!(hello["size"], 12);
+        assert_eq!(hello["full_path"], "C:\\hello\\hello world.txt");
+        assert_eq!(hello["depth"], 2);
+    }
+
+    #[test]
+    fn test_walk_ntfs_filename_regex() {
+        let mut options = listing_options(2);
+        options.filename_regex = Some(String::from(r"^main\.ts$"));
+        let (_, rows) = walk_test_image("ntfs_walk_regex", &options);
+
+        assert!(rows.iter().any(|row| row["filename"] == "main.ts"));
+        assert!(rows.iter().all(|row| row["filename"] != "hello world.txt"));
+    }
+
+    #[test]
+    fn test_walk_ntfs_exclude_directory() {
+        let mut options = listing_options(2);
+        options.exclude_directories = Some(vec![String::from("C:\\hello")]);
+        let (_, rows) = walk_test_image("ntfs_walk_exclude", &options);
+
+        assert!(rows.iter().any(|row| row["filename"] == "main.ts"));
+        assert!(rows.iter().all(|row| row["filename"] != "hello"));
+        assert!(rows.iter().all(|row| row["filename"] != "hello world.txt"));
+    }
+
+    #[test]
+    fn test_walk_ntfs_hashes_match_file_bytes() {
+        let mut options = listing_options(2);
+        options.md5 = Some(true);
+        options.sha1 = Some(true);
+        options.sha256 = Some(true);
+
+        let (_, rows) = walk_test_image("ntfs_walk_hash", &options);
+        let hello = rows
+            .iter()
+            .find(|row| row["filename"] == "hello world.txt")
+            .expect("hello world.txt");
+
+        let hashes = Hashes {
+            md5: true,
+            sha1: true,
+            sha256: true,
+        };
+
+        let (md5, sha1, sha256) = hash_file_data(&hashes, b"hello world\n");
+
+        assert_eq!(hello["md5"], md5);
+        assert_eq!(hello["sha1"], sha1);
+        assert_eq!(hello["sha256"], sha256);
+        assert_ne!(hello["sha1"], hello["md5"]);
+        assert_ne!(hello["sha256"], hello["md5"]);
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_walk_live_ntfs() {
+        let options = listing_options(1);
+        let drive = 'C';
+        let inner = InnerPath::empty();
+        let mut manager = output_manager("live_ntfs");
+
+        let volume = NtfsVolume::open_live_drive(drive).unwrap();
+        walk_ntfs(&volume, drive, &inner, &options, &mut manager, "", "ntfs:c").unwrap();
     }
 }

@@ -200,36 +200,28 @@ pub(crate) fn hash_reader(
     let mut sha1 = IoWrapper(Sha1::new());
     let mut sha256 = IoWrapper(Sha256::new());
 
+    let temp_buff_size = 65536;
+    let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
     // Read file in chunks so we do not read large files all into memory
     loop {
-        let temp_buff_size = 65536;
-        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
         let bytes_result = reader.read(&mut temp_buff);
         let bytes = match bytes_result {
+            Ok(0) => break,
             Ok(result) => result,
             Err(err) => {
                 error!("Failed to read file: {err:?}");
                 return (md5_string, sha1_string, sha256_string);
             }
         };
-        let finished = 0;
-        if bytes == finished {
-            break;
-        }
-
-        // Make sure our temp buff does not have any extra zeros from the initialization
-        if bytes < temp_buff_size {
-            temp_buff = temp_buff[0..bytes].to_vec();
-        }
 
         if hashes.md5 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut md5);
+            let _ = copy(&mut &temp_buff[..bytes], &mut md5);
         }
         if hashes.sha1 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha1);
+            let _ = copy(&mut &temp_buff[..bytes], &mut sha1);
         }
         if hashes.sha256 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha256);
+            let _ = copy(&mut &temp_buff[..bytes], &mut sha256);
         }
     }
 
@@ -238,11 +230,13 @@ pub(crate) fn hash_reader(
         let mut buf = [0u8; 32];
         md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
+
     if hashes.sha1 {
         let hash = sha1.0.finalize();
         let mut buf = [0u8; 40];
         sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
+
     if hashes.sha256 {
         let hash = sha256.0.finalize();
         let mut buf = [0u8; 64];
@@ -274,37 +268,28 @@ pub(crate) fn hash_file(hashes: &Hashes, path: &str) -> (String, String, String)
             return (md5_string, sha1_string, sha256_string);
         }
     };
-
+    let temp_buff_size = 65536;
+    let mut temp_buff = vec![0u8; temp_buff_size];
     // Read file in chunks so we do not read large files all into memory
     loop {
-        let temp_buff_size = 65536;
-        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
         let bytes_result = file.read(&mut temp_buff);
         let bytes = match bytes_result {
+            Ok(0) => break,
             Ok(result) => result,
             Err(err) => {
                 error!("Failed to read file: {err:?}");
                 return (md5_string, sha1_string, sha256_string);
             }
         };
-        let finished = 0;
-        if bytes == finished {
-            break;
-        }
-
-        // Make sure our temp buff does not have any extra zeros from the initialization
-        if bytes < temp_buff_size {
-            temp_buff = temp_buff[0..bytes].to_vec();
-        }
 
         if hashes.md5 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut md5);
+            let _ = copy(&mut &temp_buff[..bytes], &mut md5);
         }
         if hashes.sha1 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha1);
+            let _ = copy(&mut &temp_buff[..bytes], &mut sha1);
         }
         if hashes.sha256 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha256);
+            let _ = copy(&mut &temp_buff[..bytes], &mut sha256);
         }
     }
 
@@ -313,11 +298,13 @@ pub(crate) fn hash_file(hashes: &Hashes, path: &str) -> (String, String, String)
         let mut buf = [0u8; 32];
         md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
+
     if hashes.sha1 {
         let hash = sha1.0.finalize();
         let mut buf = [0u8; 40];
         sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
     }
+
     if hashes.sha256 {
         let hash = sha256.0.finalize();
         let mut buf = [0u8; 64];
