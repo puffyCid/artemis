@@ -160,7 +160,7 @@ struct ZipListing<'a> {
     max_depth: u32,
     /// Start path
     start: String,
-    /// Directories we have descended
+    /// Directories we have outputted
     seen_dirs: HashSet<String>,
     /// Filelisting batches we stream
     batch: Vec<FilesZipInfo>,
@@ -332,6 +332,11 @@ fn enrich_zip_file(
     zip_info: &mut FilesZipInfo,
     listing: &ZipListing<'_>,
 ) -> AccessorResult<bool> {
+    // We cannot read encrypted entries
+    if record.encrypted {
+        return Ok(true);
+    }
+
     let want_hash = listing.hashes.md5 || listing.hashes.sha1 || listing.hashes.sha256;
     let want_bin = listing.options.metadata.is_some_and(|b| b);
 
@@ -401,7 +406,7 @@ fn parse_zip_binary(bytes: Vec<u8>, display_path: &str) -> Value {
         return Value::Null;
     }
 
-    let magic_sig = bytes[..4].to_vec();
+    let magic_sig = [bytes[0], bytes[1], bytes[2], bytes[3]];
     let mut reader = AccessorReader::memory(bytes, ReaderLocation::from_display(display_path));
 
     let mz = [0x4d, 0x5a];
@@ -466,7 +471,10 @@ fn zip_output(entries: Vec<FilesZipInfo>, manager: &mut OutputManager, options: 
 mod tests {
     use super::walk_zip;
     use crate::{
-        accessor::{filesystem::zip::zip_archive::ZipFs, location::path::InnerPath},
+        accessor::{
+            access::Accessor, filesystem::zip::zip_archive::ZipFs,
+            source::factory::parse_inner_path,
+        },
         filesystem::files::hash_file_data,
         output::manager::OutputManager,
         structs::{
@@ -532,11 +540,16 @@ mod tests {
         archive: &PathBuf,
         options: &FileOptions,
     ) -> (OutputManager, Vec<Value>) {
+        let output_dir = PathBuf::from("./tmp").join(name);
+        let _ = fs::remove_dir_all(&output_dir);
         let fs = ZipFs::new(archive.clone()).unwrap();
+
         let mut manager = output_manager(name);
+        let inner = parse_inner_path(&options.start_path).unwrap();
+
         walk_zip(
             &fs,
-            &InnerPath::empty(),
+            &inner,
             options,
             &mut manager,
             "",
@@ -544,16 +557,14 @@ mod tests {
         )
         .unwrap();
 
-        let output_dir = PathBuf::from("./tmp").join(name);
         let mut rows = Vec::new();
-
         for entry in read_dir(&output_dir).unwrap() {
             let path = entry.unwrap().path();
+
             let filename = path.file_name().unwrap().to_string_lossy();
             if !filename.starts_with("files_zip_") || !filename.ends_with(".jsonl") {
                 continue;
             }
-
             if filename.starts_with("artemis_") {
                 continue;
             }
@@ -563,6 +574,7 @@ mod tests {
                 rows.push(serde_json::from_str(line).unwrap());
             }
         }
+
         (manager, rows)
     }
 
@@ -684,5 +696,69 @@ mod tests {
         assert_eq!(hello["sha256"], sha256);
         assert_eq!(hello["compression"], "Stored");
         assert_eq!(hello["kind"], "File");
+    }
+
+    #[test]
+    fn test_walk_zip_nested_start() {
+        let dir = setup("test_walk_zip_nested_start");
+        let archive = dir.join("archive.zip");
+
+        write_zip(
+            &archive,
+            &[
+                ("home/test.txt", b"zip payload"),
+                ("home/nested/other.txt", b"other"),
+                ("readme.txt", b"root"),
+            ],
+        );
+
+        let mut options = listing_options(&archive, 1);
+        options.start_path = String::from("home");
+        let (_, rows) = walk_rows("zip_walk_nested_start", &archive, &options);
+
+        assert!(rows.iter().any(|row| row["filename"] == "test.txt"));
+        assert!(rows.iter().any(|row| row["filename"] == "nested"));
+        assert!(rows.iter().all(|row| row["filename"] != "readme.txt"));
+        assert!(rows.iter().all(|row| row["filename"] != "other.txt"));
+        assert!(rows.iter().all(|row| row["depth"] == 1));
+    }
+
+    #[test]
+    fn test_walk_zip_missing_start_is_empty() {
+        let dir = setup("test_walk_zip_missing_start_is_empty");
+        let archive = dir.join("archive.zip");
+        write_zip(&archive, &[("readme.txt", b"root")]);
+
+        let mut options = listing_options(&archive, 1);
+        options.start_path = String::from("no/such/dir");
+        let (_, rows) = walk_rows("zip_walk_missing_start", &archive, &options);
+
+        assert!(rows.is_empty());
+    }
+
+    #[test]
+    fn test_source_walk_zip() {
+        let dir = setup("test_source_walk_zip");
+        let archive = dir.join("archive.zip");
+        write_zip(&archive, &[("readme.txt", b"root")]);
+
+        let mut accessor = Accessor::with_defaults();
+        let source = format!("zip:{}", archive.display());
+        let handle = accessor.open_source(&source).unwrap();
+
+        let mut manager = output_manager("zip_source_walk");
+        let options = FileOptions {
+            start_path: String::new(),
+            depth: Some(1),
+            source,
+            ..Default::default()
+        };
+
+        accessor
+            .source_walk_zip(&handle, &options, &mut manager, "")
+            .unwrap();
+
+        assert_eq!(manager.artifact_runs[0].name, "files_zip");
+        assert!(manager.artifact_runs[0].record_count >= 1);
     }
 }
