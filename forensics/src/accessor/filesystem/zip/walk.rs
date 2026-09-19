@@ -233,7 +233,8 @@ fn emit_parent(listing: &mut ZipListing<'_>, relative: &str) {
             format!("{}/{value}", listing.start)
         };
 
-        maybe_emit_dir(listing, &inner, depth, None);
+        let record = listing.fs.index.record_for_path(&inner);
+        maybe_emit_dir(listing, &inner, depth, record);
     }
 }
 
