@@ -22,7 +22,7 @@ use crate::{
         },
         location::path::InnerPath,
     },
-    artifacts::os::windows::pe::parser::parse_pe_reader,
+    artifacts::os::{files::artifact::files_output_name, windows::pe::parser::parse_pe_reader},
     filesystem::files::hash_file_data,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::{artifacts::os::files::FileOptions, toml::OutputFormat},
@@ -534,18 +534,16 @@ fn hash_attribute_value<R: Read + Seek>(
             }
         };
 
-        let mut chunk = &temp_buff[..bytes];
-
         if hashes.md5 {
-            let _ = copy(&mut chunk, &mut md5);
+            let _ = copy(&mut &temp_buff[..bytes], &mut md5);
         }
 
         if hashes.sha1 {
-            let _ = copy(&mut chunk, &mut sha1);
+            let _ = copy(&mut &temp_buff[..bytes], &mut sha1);
         }
 
         if hashes.sha256 {
-            let _ = copy(&mut chunk, &mut sha256);
+            let _ = copy(&mut &temp_buff[..bytes], &mut sha256);
         }
     }
 
@@ -583,7 +581,9 @@ fn ntfs_output(entries: Vec<FileNtfsInfo>, manager: &mut OutputManager, options:
             return;
         }
     };
-    if let Err(err) = manager.write_artifact("files_ntfs", options, &mut records) {
+    if let Err(err) =
+        manager.write_artifact(files_output_name(&options.source), options, &mut records)
+    {
         error!("Failed to output NTFS filelisting: {err:?}");
     }
 }

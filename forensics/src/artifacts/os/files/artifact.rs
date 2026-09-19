@@ -18,12 +18,12 @@ pub(crate) fn filelisting(
 }
 
 /// If a specific filelisting fails, return a more accurate artifact name besides "files"
-pub(crate) fn files_output_name(source: &str) -> String {
+pub(crate) fn files_output_name(source: &str) -> &'static str {
     match Location::parse_source(source).map(|loc| loc.scheme) {
-        Ok(Scheme::Ntfs) => String::from("files_ntfs"),
-        Ok(Scheme::Zip) => String::from("files_zip"),
-        Ok(Scheme::Host) => String::from("files_host"),
-        Err(err) => format!("Bad source: {err:?}"),
+        Ok(Scheme::Ntfs) => "files_ntfs",
+        Ok(Scheme::Zip) => "files_zip",
+        Ok(Scheme::Host) => "files_host",
+        Err(_) => "files",
     }
 }
 

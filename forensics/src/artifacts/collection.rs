@@ -101,7 +101,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
                         error!("Failed to parse filelisting: {err:?}");
-                        manager.write_failed_artifact(&files_output_name(&options.source), options);
+                        manager.write_failed_artifact(files_output_name(&options.source), options);
                     }
                 }
             }
