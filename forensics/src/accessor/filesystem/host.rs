@@ -345,18 +345,9 @@ impl HostFs {
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
-            times.modified = Some(unixepoch_to_iso_with_nano(
-                meta.st_mtime(),
-                meta.st_mtime_nsec(),
-            ));
-            times.accessed = Some(unixepoch_to_iso_with_nano(
-                meta.st_atime(),
-                meta.st_atime_nsec(),
-            ));
-            times.changed = Some(unixepoch_to_iso_with_nano(
-                meta.st_ctime(),
-                meta.st_ctime_nsec(),
-            ));
+            times.modified = unixepoch_to_iso_with_nano(meta.st_mtime(), meta.st_mtime_nsec());
+            times.accessed = unixepoch_to_iso_with_nano(meta.st_atime(), meta.st_atime_nsec());
+            times.changed = unixepoch_to_iso_with_nano(meta.st_ctime(), meta.st_ctime_nsec());
         }
 
         #[cfg(target_os = "linux")]
@@ -370,16 +361,14 @@ impl HostFs {
                     .unwrap_or_default()
                     .as_micros();
 
-                times.created = Some(unixepoch_microseconds_to_iso(micros as i64));
+                times.created = unixepoch_microseconds_to_iso(micros as i64);
             }
         }
 
         #[cfg(target_os = "macos")]
         {
-            times.created = Some(unixepoch_to_iso_with_nano(
-                meta.st_birthtime(),
-                meta.st_birthtime_nsec(),
-            ));
+            times.created =
+                unixepoch_to_iso_with_nano(meta.st_birthtime(), meta.st_birthtime_nsec());
         }
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
@@ -387,9 +376,9 @@ impl HostFs {
 
         #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
         {
-            times.accessed = Some(unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec()));
-            times.modified = Some(unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec()));
-            times.changed = Some(unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec()));
+            times.accessed = unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec());
+            times.modified = unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec());
+            times.changed = unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec());
         }
 
         times
@@ -402,7 +391,7 @@ impl HostFs {
             use std::os::unix::fs::MetadataExt;
             (
                 meta.uid(),
-                meta.gid().to_string(),
+                meta.gid(),
                 meta.ino(),
                 HostFs::attributes(meta.mode()),
             )
