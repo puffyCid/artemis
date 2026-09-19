@@ -13,7 +13,6 @@ use crate::accessor::entry::locator::SourceId;
 use crate::accessor::io::reader::AccessorReader;
 use crate::accessor::source::handle::SourceHandle;
 use crate::accessor::walk::{WalkAccessor, WalkEntry};
-use crate::artifacts::os::files::walking::ntfs::filelisting_ntfs;
 use crate::artifacts::os::linux::executable::parser::parse_elf_reader;
 use crate::artifacts::os::macos::macho::error::MachoError;
 use crate::artifacts::os::macos::macho::parser::parse_macho_reader;
@@ -63,19 +62,13 @@ pub(crate) fn get_filelist(
         };
     }
 
-    let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
-    let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
-
     return match source.id() {
-        SourceId::Ntfs(_) => filelisting_ntfs(
-            &mut accessor,
-            &source,
-            options,
-            manager,
-            path_filter,
-            file_filter,
-            rule,
-        ),
+        SourceId::Ntfs(_) => accessor
+            .source_walk_ntfs(&source, options, manager, &rule)
+            .map_err(|err| {
+                error!("NTFS filelisting failed: {err:?}");
+                FileError::Filelisting
+            }),
         SourceId::Host => todo!(),
         SourceId::Zip(_) => todo!(),
     };

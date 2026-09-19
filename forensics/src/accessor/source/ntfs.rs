@@ -1,17 +1,20 @@
-use crate::accessor::{
-    config::AccessorConfig,
-    entry::{
-        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-        locator::SourceId,
+use crate::{
+    accessor::{
+        config::AccessorConfig,
+        entry::{
+            handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+            locator::SourceId,
+        },
+        error::{AccessorError, AccessorResult},
+        filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::backend::SourceBackend,
     },
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume, walk::NtfsWalkEntry},
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::backend::SourceBackend,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use std::{
-    collections::HashSet,
     io::{Read, Seek},
     path::PathBuf,
 };
@@ -56,9 +59,10 @@ trait NtfsFsBackend: Send {
     fn walk(
         &self,
         inner: &InnerPath,
-        max_depth: u32,
-        exclude: &HashSet<String>,
-        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
     ) -> AccessorResult<()>;
 }
 
@@ -113,11 +117,12 @@ where
     fn walk(
         &self,
         inner: &InnerPath,
-        max_depth: u32,
-        exclude: &HashSet<String>,
-        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
     ) -> AccessorResult<()> {
-        self.walk(inner, max_depth, exclude, visit)
+        self.walk(inner, options, manager, rule, evidence)
     }
 }
 
@@ -152,11 +157,12 @@ impl NtfsSource {
     pub(crate) fn walk(
         &self,
         inner: &InnerPath,
-        max_depth: u32,
-        exclude: &HashSet<String>,
-        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
     ) -> AccessorResult<()> {
-        self.fs.walk(inner, max_depth, exclude, visit)
+        self.fs.walk(inner, options, manager, rule, evidence)
     }
 }
 

@@ -167,7 +167,7 @@ pub struct FileNtfsInfo {
     pub compressed_size: u64,
     pub compression_type: CompressionType,
     pub inode: u64,
-    pub sequence_number: u16,
+    pub parent_sequence_number: u16,
     pub parent_mft_reference: u32,
     pub owner: u32,
     pub namespace: Namespace,

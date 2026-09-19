@@ -1,12 +1,13 @@
-use std::collections::HashSet;
-
-use crate::accessor::{
-    entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::walk::NtfsWalkEntry,
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::{backend::SourceBackend, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+use crate::{
+    accessor::{
+        entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+        error::{AccessorError, AccessorResult},
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::{backend::SourceBackend, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+    },
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 
 /// Supported sources that we support reading data from
@@ -117,12 +118,13 @@ impl Source {
     pub(crate) fn walk_ntfs(
         &self,
         inner: &InnerPath,
-        max_depth: u32,
-        exclude: &HashSet<String>,
-        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
     ) -> AccessorResult<()> {
         match self {
-            Source::Ntfs(source) => source.walk(inner, max_depth, exclude, visit),
+            Source::Ntfs(source) => source.walk(inner, options, manager, rule, evidence),
             _ => Err(AccessorError::location(
                 inner.display(),
                 "walk_ntfs requires a ntfs source",

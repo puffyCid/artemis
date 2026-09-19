@@ -9,8 +9,8 @@ use crate::{
             attributes::read_named_data,
             volume::NtfsVolume,
             walk::{
-                NtfsWalkEntry, get_file_size, list_children, list_children_handle, ntfs_err,
-                open_by_ref, resolve_entry, resolve_file, walk_ntfs,
+                get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref,
+                resolve_entry, resolve_file, walk_ntfs,
             },
             wof::{decompress_wof, is_wof_file},
         },
@@ -18,13 +18,15 @@ use crate::{
         location::{path::InnerPath, scheme::Scheme},
     },
     artifacts::os::windows::mft::attributes::filename::Filename,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
     utils::time::filetime_to_iso,
 };
 use common::{files::EntryKind, windows::Namespace};
 use ntfs::{
     NtfsAttributeType::FileName, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
 };
-use std::{cmp::Ordering, collections::HashSet, fmt, mem};
+use std::{cmp::Ordering, fmt, mem};
 use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
@@ -257,11 +259,20 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
     pub(crate) fn walk(
         &self,
         inner: &InnerPath,
-        max_depth: u32,
-        exclude: &HashSet<String>,
-        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
     ) -> AccessorResult<()> {
-        walk_ntfs(&self.volume, self.drive, inner, max_depth, exclude, visit)
+        walk_ntfs(
+            &self.volume,
+            self.drive,
+            inner,
+            options,
+            manager,
+            rule,
+            evidence,
+        )
     }
 }
 

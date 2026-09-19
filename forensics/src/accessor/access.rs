@@ -1,23 +1,25 @@
-use std::collections::HashSet;
-
-use crate::accessor::{
-    cache::SourceCache,
-    config::AccessorConfig,
-    entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::walk::NtfsWalkEntry,
-    io::reader::AccessorReader,
-    location::loc::Location,
-    source::{
-        factory::{
-            build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
-            open_reader_on_source, parse_inner_path, read_dir_handle_on_source, read_dir_on_source,
-            read_file_handle_on_source, read_file_on_source, source_id_from_dir_locator,
-            source_id_from_file_locator, stat_dir_handle_on_source, stat_handle_on_source,
-            stat_on_source, validate_dir_handle_for_source, validate_file_handle_for_source,
+use crate::{
+    accessor::{
+        cache::SourceCache,
+        config::AccessorConfig,
+        entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+        error::{AccessorError, AccessorResult},
+        io::reader::AccessorReader,
+        location::loc::Location,
+        source::{
+            factory::{
+                build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
+                open_reader_on_source, parse_inner_path, read_dir_handle_on_source,
+                read_dir_on_source, read_file_handle_on_source, read_file_on_source,
+                source_id_from_dir_locator, source_id_from_file_locator, stat_dir_handle_on_source,
+                stat_handle_on_source, stat_on_source, validate_dir_handle_for_source,
+                validate_file_handle_for_source,
+            },
+            handle::SourceHandle,
         },
-        handle::SourceHandle,
     },
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use tracing::info;
 
@@ -364,18 +366,30 @@ impl Accessor {
     pub(crate) fn source_walk_ntfs(
         &self,
         source: &SourceHandle,
-        inner: &str,
-        max_depth: u32,
-        exclude: &HashSet<String>,
-        visit: &mut dyn FnMut(NtfsWalkEntry) -> AccessorResult<()>,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
     ) -> AccessorResult<()> {
-        info!("Walk NTFS {inner} with source {}", source.display());
+        info!(
+            "Walk NTFS {} with source {}",
+            options.start_path,
+            source.display()
+        );
 
         let Some(backend) = self.cache.get(source.id()) else {
-            return Err(AccessorError::location(inner, "NTFS source is not open"));
+            return Err(AccessorError::location(
+                &options.start_path,
+                "NTFS source is not open",
+            ));
         };
 
-        backend.walk_ntfs(&parse_inner_path(inner)?, max_depth, exclude, visit)
+        backend.walk_ntfs(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
     }
 }
 
