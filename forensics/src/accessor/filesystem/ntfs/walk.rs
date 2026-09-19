@@ -10,8 +10,7 @@ use crate::{
             ntfs::{
                 attributes::{list_ads_names, read_named_data},
                 data::{
-                    display_ntfs_path, inner_to_ntfs_path, merge_ntfs_times, ntfs_filename_times,
-                    ntfs_standard_times,
+                    display_ntfs_path, inner_to_ntfs_path, ntfs_filename_times, ntfs_standard_times,
                 },
                 volume::NtfsVolume,
                 wof::{decompress_wof, is_wof_file},
@@ -372,6 +371,13 @@ fn wof_compressed_size<R: Read + Seek>(reader: &mut R, file: &NtfsFile<'_>) -> A
         .value_length())
 }
 
+/// If PE parsing or Yara scanning enabled
+/// Try to parse the file
+///
+/// We only parse files smaller than `YARA_MAX_SIZE`
+///
+/// For hashing if the file is smaller than `YARA_MAX_SIZE` we read the entire file
+/// Otherwise we always stream large files when hashing
 fn enrich_ntfs_file<R: Read + Seek>(
     reader: &mut R,
     file: &NtfsFile<'_>,
@@ -685,11 +691,6 @@ fn list_index_children<R: Read + Seek>(
             .to_file(ntfs, reader)
             .map_err(ntfs_err)?;
 
-        let times = merge_ntfs_times(
-            ntfs_standard_times(&file)?,
-            ntfs_filename_times(&file, reader)?,
-        );
-
         let size = if kind == EntryKind::File {
             read_file_size(&file, reader)?
         } else {
@@ -712,6 +713,7 @@ fn list_index_children<R: Read + Seek>(
         };
 
         let meta = EntryMeta::new(kind, size, scheme_path);
+        let times = ntfs_standard_times(&file)?;
 
         entries.push(DirEntry::new(name, handle, meta, times));
     }
@@ -945,15 +947,10 @@ mod tests {
 
         assert_eq!(main.meta.kind, EntryKind::File);
         assert_eq!(main.meta.size, 514);
-        assert!(main.times.created.is_some());
-        assert!(main.times.modified.is_some());
-        assert!(main.times.accessed.is_some());
-        assert!(main.times.changed.is_some());
-
-        assert!(main.times.filename_created.is_some());
-        assert!(main.times.filename_modified.is_some());
-        assert!(main.times.filename_accessed.is_some());
-        assert!(main.times.filename_changed.is_some());
+        assert!(!main.times.created.is_empty());
+        assert!(!main.times.modified.is_empty());
+        assert!(!main.times.accessed.is_empty());
+        assert!(!main.times.changed.is_empty());
 
         let hello_dir = result
             .iter()

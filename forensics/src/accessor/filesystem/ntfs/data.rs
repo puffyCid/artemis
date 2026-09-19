@@ -297,7 +297,7 @@ fn stat_from_file<R: Read + Seek>(
 
     Ok(EntryStat {
         meta: EntryMeta::new(kind, size, format!("ntfs:{display_path}")),
-        times: ntfs_times(reader, file)?,
+        times: ntfs_standard_times(file)?,
     })
 }
 
@@ -306,12 +306,10 @@ pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timesta
     let info = file.info().map_err(ntfs_err)?;
 
     Ok(Timestamp {
-        created: Some(filetime_to_iso(info.creation_time().nt_timestamp())),
-        modified: Some(filetime_to_iso(info.modification_time().nt_timestamp())),
-        accessed: Some(filetime_to_iso(info.access_time().nt_timestamp())),
-        changed: Some(filetime_to_iso(
-            info.mft_record_modification_time().nt_timestamp(),
-        )),
+        created: filetime_to_iso(info.creation_time().nt_timestamp()),
+        modified: filetime_to_iso(info.modification_time().nt_timestamp()),
+        accessed: filetime_to_iso(info.access_time().nt_timestamp()),
+        changed: filetime_to_iso(info.mft_record_modification_time().nt_timestamp()),
         ..Default::default()
     })
 }
@@ -375,31 +373,6 @@ pub(super) fn ntfs_filename_times<R: Read + Seek>(
         path: None,
         reason: String::from("Failed to find FILENAME attribute"),
     })
-}
-
-/// Return all 8 timestamps
-pub(super) fn merge_ntfs_times(standard: Timestamp, filename: FilenameInfo) -> Timestamp {
-    Timestamp {
-        created: standard.created,
-        modified: standard.modified,
-        accessed: standard.accessed,
-        changed: standard.changed,
-        filename_created: Some(filename.created),
-        filename_modified: Some(filename.modified),
-        filename_accessed: Some(filename.accessed),
-        filename_changed: Some(filename.changed),
-    }
-}
-
-/// Extract all 8 timestamps for a NTFS entry
-pub(crate) fn ntfs_times<R: Read + Seek>(
-    reader: &mut R,
-    file: &NtfsFile<'_>,
-) -> AccessorResult<Timestamp> {
-    let standard = ntfs_standard_times(file)?;
-    let filename = ntfs_filename_times(file, reader)?;
-
-    Ok(merge_ntfs_times(standard, filename))
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem
@@ -1182,13 +1155,9 @@ mod tests {
 
         assert_eq!(stat.meta.filename, "hello world.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);
-        assert!(stat.times.accessed.is_some());
-        assert!(stat.times.created.is_some());
-        assert!(stat.times.changed.is_some());
-        assert!(stat.times.modified.is_some());
-
-        assert!(stat.times.filename_accessed.is_some());
-        assert!(stat.times.filename_changed.is_some());
-        assert!(stat.times.filename_created.is_some());
+        assert!(!stat.times.accessed.is_empty());
+        assert!(!stat.times.created.is_empty());
+        assert!(!stat.times.changed.is_empty());
+        assert!(!stat.times.modified.is_empty());
     }
 }

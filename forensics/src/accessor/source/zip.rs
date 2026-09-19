@@ -248,6 +248,6 @@ mod tests {
             .stat(&InnerPath::new(PathBuf::from("inner.txt")))
             .unwrap();
 
-        assert!(meta.times.modified.is_some());
+        assert!(!meta.times.modified.is_empty());
     }
 }

@@ -702,7 +702,7 @@ mod tests {
         test_location.push("tests/test_data/archives/document.odt");
 
         let meta = access.stat(test_location.to_str().unwrap()).unwrap();
-        assert!(meta.times.modified.is_some());
+        assert!(!meta.times.modified.is_empty());
         assert_eq!(meta.meta.size, 10493);
     }
 
@@ -720,12 +720,12 @@ mod tests {
                 let meta = access
                     .stat_dir_handle(entry.handle.as_directory().unwrap())
                     .unwrap();
-                assert!(meta.times.modified.is_some());
+                assert!(!meta.times.modified.is_empty());
 
                 continue;
             } else if entry.is_file() {
                 let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
-                assert!(meta.times.modified.is_some());
+                assert!(!meta.times.modified.is_empty());
             }
         }
     }
@@ -756,7 +756,7 @@ mod tests {
         let stat = access.stat_handle(file).unwrap();
 
         assert_eq!(stat.meta.filename, "stat.txt");
-        assert!(stat.times.modified.is_some());
+        assert!(!stat.times.modified.is_empty());
     }
 
     #[test]
@@ -773,7 +773,7 @@ mod tests {
 
         assert_eq!(stat.meta.filename, "stat.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);
-        assert!(stat.times.accessed.is_some());
+        assert!(!stat.times.modified.is_empty());
 
         let matches = access
             .source_globfs(&source, &format!("{}/*", dir.display()))
@@ -813,7 +813,7 @@ mod tests {
 
         let file = access.source_stat(&source, "content.xml").unwrap();
         assert_eq!(file.meta.filename, "content.xml");
-        assert!(file.times.modified.is_some());
+        assert!(!file.times.modified.is_empty());
 
         let virt = access.source_stat(&source, "META-INF").unwrap();
         assert_eq!(virt.meta.kind, EntryKind::Directory);
@@ -839,7 +839,7 @@ mod tests {
         let mft = access.source_stat(&source, "$MFT").unwrap();
 
         assert_eq!(mft.meta.filename, "$MFT");
-        assert!(mft.times.filename_modified.is_some());
+        assert!(!mft.times.changed.is_empty());
 
         let entries = access.source_globfs(&source, "*").unwrap();
         let file = entries
@@ -877,7 +877,7 @@ mod tests {
         assert_eq!(stat.meta.kind, EntryKind::Directory);
         assert_eq!(stat.meta.filename, "nested");
 
-        assert!(stat.times.modified.is_some());
+        assert!(!stat.times.modified.is_empty());
     }
 
     #[test]
@@ -892,7 +892,7 @@ mod tests {
 
         assert_eq!(file.meta.filename, "content.xml");
         assert_eq!(file.meta.kind, EntryKind::File);
-        assert!(file.times.modified.is_some());
+        assert!(!file.times.modified.is_empty());
 
         let virt = access
             .stat(&format!("zip:{}!META-INF", archive.display()))

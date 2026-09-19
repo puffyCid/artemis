@@ -458,9 +458,13 @@ impl ZipFs {
             EntryKind::File
         };
 
-        let mut times = Timestamp::default();
+        let mut times = Timestamp {
+            modified: String::from("1970-01-01T00:00:00.000Z"),
+            ..Default::default()
+        };
+
         if let Some(modified) = &record.modified {
-            times.modified = Some(modified.clone());
+            times.modified = modified.clone();
         }
 
         EntryStat {
@@ -571,7 +575,9 @@ impl ZipFs {
                     record.size,
                     self.display_entry_path(&record.path),
                     Timestamp {
-                        modified: record.modified,
+                        modified: record
+                            .modified
+                            .unwrap_or(String::from("1970-01-01T00:00:00.000Z")),
                         ..Default::default()
                     },
                 ),
@@ -976,7 +982,7 @@ mod tests {
 
         assert_eq!(file.meta.filename, "test.txt");
         assert_eq!(file.meta.kind, EntryKind::File);
-        assert!(file.times.modified.is_some());
+        assert!(!file.times.modified.is_empty());
 
         let virt = zipfs.stat(&inner("home")).unwrap();
         assert_eq!(virt.meta.kind, EntryKind::Directory);

@@ -22,13 +22,13 @@ pub(crate) struct EntryMeta {
     /// Extension for the filename if any
     pub(crate) extension: String,
     /// Unique reference for the entry
-    pub(crate) inode: Option<u64>,
+    pub(crate) inode: u64,
     /// User ID for the entry
-    pub(crate) uid: Option<String>,
+    pub(crate) uid: u32,
     /// Group ID for the entry
-    pub(crate) gid: Option<String>,
+    pub(crate) gid: u32,
     /// Attributes for the entry
-    pub(crate) attributes: Option<Vec<Attributes>>,
+    pub(crate) attributes: Vec<Attributes>,
     /// Human readable path to the entry with `Scheme`
     pub(crate) display_path: String,
 }
@@ -47,10 +47,10 @@ impl EntryMeta {
             extension: extension_from_filename(&filename),
             filename,
             display_path: path,
-            uid: None,
-            gid: None,
-            inode: None,
-            attributes: None,
+            uid: 0,
+            gid: 0,
+            inode: 0,
+            attributes: Vec::new(),
         }
     }
 }
@@ -307,12 +307,8 @@ pub(crate) struct EntryStat {
 /// Timestamps returned from the `Accessor`
 #[derive(Debug, Clone, Default, PartialEq)]
 pub(crate) struct Timestamp {
-    pub(crate) created: Option<String>,
-    pub(crate) modified: Option<String>,
-    pub(crate) accessed: Option<String>,
-    pub(crate) changed: Option<String>,
-    pub(crate) filename_created: Option<String>,
-    pub(crate) filename_modified: Option<String>,
-    pub(crate) filename_accessed: Option<String>,
-    pub(crate) filename_changed: Option<String>,
+    pub(crate) created: String,
+    pub(crate) modified: String,
+    pub(crate) accessed: String,
+    pub(crate) changed: String,
 }

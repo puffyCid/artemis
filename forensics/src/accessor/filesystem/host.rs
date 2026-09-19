@@ -332,9 +332,9 @@ impl HostFs {
             use crate::utils::time::filetime_to_iso;
             use std::os::windows::fs::MetadataExt;
 
-            times.created = Some(filetime_to_iso(meta.creation_time()));
-            times.modified = Some(filetime_to_iso(meta.last_write_time()));
-            times.accessed = Some(filetime_to_iso(meta.last_access_time()));
+            times.created = filetime_to_iso(meta.creation_time());
+            times.modified = filetime_to_iso(meta.last_write_time());
+            times.accessed = filetime_to_iso(meta.last_access_time());
         }
 
         #[cfg(target_os = "linux")]
@@ -396,39 +396,27 @@ impl HostFs {
     }
 
     /// Return additional metadata based on the OS
-    fn host_ids(
-        meta: &Metadata,
-    ) -> (
-        Option<String>,
-        Option<String>,
-        Option<u64>,
-        Option<Vec<Attributes>>,
-    ) {
+    fn host_ids(meta: &Metadata) -> (u32, u32, u64, Vec<Attributes>) {
         #[cfg(target_family = "unix")]
         {
             use std::os::unix::fs::MetadataExt;
             (
-                Some(meta.uid().to_string()),
-                Some(meta.gid().to_string()),
-                Some(meta.ino()),
-                Some(HostFs::attributes(meta.mode())),
+                meta.uid(),
+                meta.gid().to_string(),
+                meta.ino(),
+                HostFs::attributes(meta.mode()),
             )
         }
 
         #[cfg(target_os = "windows")]
         {
             use std::os::windows::fs::MetadataExt;
-            (
-                None,
-                None,
-                None,
-                Some(HostFs::attributes(meta.file_attributes())),
-            )
+            (0, 0, 0, HostFs::attributes(meta.file_attributes()))
         }
 
         #[cfg(not(any(unix, windows)))]
         {
-            (None, None, None, None)
+            (0, 0, 0, Vec::new())
         }
     }
 
@@ -644,7 +632,7 @@ mod tests {
         test_location.push("tests");
         let results = HostFs::stat(&inner(&test_location, "")).unwrap();
 
-        assert!(results.times.modified.is_some());
+        assert!(!results.times.modified.is_empty());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 
@@ -658,7 +646,7 @@ mod tests {
 
         let results = HostFs::stat_handle(&handle).unwrap();
 
-        assert!(results.times.modified.is_some());
+        assert!(!results.times.modified.is_empty());
         assert_eq!(results.meta.kind, EntryKind::File);
     }
 
@@ -671,7 +659,7 @@ mod tests {
 
         let results = HostFs::stat_dir_handle(&handle).unwrap();
 
-        assert!(results.times.modified.is_some());
+        assert!(!results.times.modified.is_empty());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 

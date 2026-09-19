@@ -25,6 +25,7 @@ use tracing::{error, info, warn};
 /// Max size of file we read into memory if we need to parse PE or scan with Yara
 const YARA_MAX_SIZE: u64 = 50 * 1024 * 1024;
 
+/// Walk the ZIP file and output results
 pub(super) fn walk_zip(
     fs: &ZipFs,
     inner: &InnerPath,
@@ -34,18 +35,6 @@ pub(super) fn walk_zip(
     evidence: &str,
 ) -> AccessorResult<()> {
     let start = ZipFs::inner_to_prefix(inner);
-    if !start_exists(fs, &start) {
-        return Err(AccessorError::not_found(fs.display_entry_path(&start)));
-    }
-
-    if let Some(record) = fs.index.record_for_path(&start)
-        && !record.is_dir
-        && !has_children(fs, &start)
-    {
-        return Err(AccessorError::not_a_directory(
-            fs.display_entry_path(&start),
-        ));
-    }
 
     let exclude: HashSet<String> = options
         .exclude_directories
@@ -113,7 +102,14 @@ pub(super) fn walk_zip(
             continue;
         }
 
-        let mut info = fill_zip_file(listing.fs, record, depth, listing.evidence);
+        let mut info = fill_zip(
+            listing.fs,
+            &record.path,
+            depth,
+            listing.evidence,
+            Some(&record),
+            EntryKind::File,
+        );
         if !row_matches(&listing, &info) {
             continue;
         }
@@ -170,39 +166,34 @@ struct ZipListing<'a> {
     batch: Vec<FilesZipInfo>,
 }
 
-fn start_exists(fs: &ZipFs, start: &str) -> bool {
-    start.is_empty() || has_children(fs, start) || fs.index.record_for_path(start).is_some()
-}
-
-fn has_children(fs: &ZipFs, start: &str) -> bool {
-    let prefix = format!("{start}/");
-
-    fs.index
-        .entries
-        .iter()
-        .any(|entry| entry.path == start || entry.path.starts_with(&prefix))
-}
-
+/// Check if our start path is at root of the ZIP source
 fn relative_to_start<'a>(path: &'a str, start: &str) -> Option<&'a str> {
+    info!("ZIP listing start '{start}' vs current path {path}");
+
     if start.is_empty() {
         return Some(path);
     }
+
     if path == start {
         return None;
     }
+
     path.strip_prefix(start)
         .and_then(|rest| rest.strip_prefix('/'))
 }
 
+/// Determine current ZIP depth
 fn path_depth(relative: &str) -> u32 {
     relative.split('/').filter(|part| !part.is_empty()).count() as u32
 }
 
+/// Ignore directories if user wants to exclude any
 fn path_excluded(path: &str, exclude: &HashSet<String>) -> bool {
     exclude.iter().any(|raw| {
         if raw.is_empty() {
             return false;
         }
+
         let ex = ZipFs::normalize_zip_path(raw);
         path == ex
             || path.starts_with(&format!("{ex}/"))
@@ -211,16 +202,20 @@ fn path_excluded(path: &str, exclude: &HashSet<String>) -> bool {
     })
 }
 
+/// Track parent directories
 fn emit_parent(listing: &mut ZipListing<'_>, relative: &str) {
     let parts: Vec<&str> = relative
         .split('/')
         .filter(|part| !part.is_empty())
         .collect();
+
     if parts.len() < 2 {
         return;
     }
 
     let mut value = String::new();
+
+    // Loop through parents
     for (index, part) in parts.iter().enumerate() {
         if index + 1 == parts.len() {
             break;
@@ -247,6 +242,7 @@ fn emit_parent(listing: &mut ZipListing<'_>, relative: &str) {
     }
 }
 
+/// Try to output directory ZIP entries
 fn maybe_emit_dir(
     listing: &mut ZipListing<'_>,
     path: &str,
@@ -257,11 +253,19 @@ fn maybe_emit_dir(
         return;
     }
 
+    // Check first if we should exclude
     if path_excluded(path, listing.exclude) {
         return;
     }
 
-    let info = fill_zip_dir(listing.fs, path, depth, listing.evidence, record);
+    let info = fill_zip(
+        listing.fs,
+        path,
+        depth,
+        listing.evidence,
+        record,
+        EntryKind::Directory,
+    );
     if !row_matches(listing, &info) {
         return;
     }
@@ -269,53 +273,38 @@ fn maybe_emit_dir(
     push_row(listing, info);
 }
 
+/// Check if we should filter ZIP files by regex
 fn row_matches(listing: &ZipListing<'_>, info: &FilesZipInfo) -> bool {
     (listing.options.path_regex.is_none() || regex_check(&listing.path_filter, &info.full_path))
         && (listing.options.filename_regex.is_none()
             || regex_check(&listing.file_filter, &info.filename))
 }
 
-fn fill_zip_file(fs: &ZipFs, record: &ZipEntryRecord, depth: u32, evidence: &str) -> FilesZipInfo {
-    let display_path = fs.display_entry_path(&record.path);
-    let filename = filename_from_inner(&record.path);
-
-    FilesZipInfo {
-        full_path: strip_zip_scheme(&display_path),
-        directory: directory_from_display(&display_path),
-        filename: filename.clone(),
-        extension: extension_from_filename(&filename),
-        modified: record.modified.clone().unwrap_or_default(),
-        size: record.size,
-        compressed_size: record.compressed_size,
-        compression: record.compression.clone(),
-        crc32: record.crc32,
-        encrypted: record.encrypted,
-        kind: EntryKind::File,
-        depth: depth as usize,
-        display_path,
-        evidence: evidence.to_string(),
-        ..Default::default()
-    }
-}
-
-fn fill_zip_dir(
+/// Create a `FilesZipInfo` value
+fn fill_zip(
     fs: &ZipFs,
     path: &str,
     depth: u32,
     evidence: &str,
     record: Option<&ZipEntryRecord>,
+    kind: EntryKind,
 ) -> FilesZipInfo {
     let display_path = fs.display_entry_path(path);
     let filename = filename_from_inner(path);
+    let full_path = display_path
+        .strip_prefix("zip:")
+        .unwrap_or(&display_path)
+        .to_string();
 
     FilesZipInfo {
-        full_path: strip_zip_scheme(&display_path),
+        full_path,
         directory: directory_from_display(&display_path),
+        extension: extension_from_filename(&filename),
         filename,
         modified: record
             .and_then(|entry| entry.modified.clone())
-            .unwrap_or_default(),
-        size: 0,
+            .unwrap_or(String::from("1970-01-01T00:00:00.000Z")),
+        size: record.map(|entry| entry.size).unwrap_or(0),
         compressed_size: record
             .map(|entry| entry.compressed_size)
             .unwrap_or_default(),
@@ -324,7 +313,7 @@ fn fill_zip_dir(
             .unwrap_or_default(),
         crc32: record.map(|entry| entry.crc32).unwrap_or_default(),
         encrypted: record.map(|entry| entry.encrypted).unwrap_or_default(),
-        kind: EntryKind::Directory,
+        kind,
         depth: depth as usize,
         display_path,
         evidence: evidence.to_string(),
@@ -332,17 +321,23 @@ fn fill_zip_dir(
     }
 }
 
+/// Return filename from a ZIP entry path
 fn filename_from_inner(path: &str) -> String {
     path.rsplit('/').next().unwrap_or(path).to_string()
 }
 
-fn strip_zip_scheme(display_path: &str) -> String {
-    display_path
-        .strip_prefix("zip:")
-        .unwrap_or(display_path)
-        .to_string()
-}
-
+/// If binary parsing, Yara scanning
+/// or hashing is enabled
+///
+/// Read each ZIP file entry
+///
+/// Binary parsing and Yara scanning
+/// only read files that are smaller
+/// than `YARA_MAX_SIZE`
+///
+/// Hashing will always stream large files
+///
+/// If the files are encrypted we do not decrypt them
 fn enrich_zip_file(
     fs: &ZipFs,
     record: &ZipEntryRecord,
@@ -411,6 +406,8 @@ fn enrich_zip_file(
     Ok(true)
 }
 
+/// The ZIP accessor is unique
+/// It supports all 3 binary types regardless of platform
 fn parse_zip_binary(bytes: Vec<u8>, display_path: &str) -> Value {
     if bytes.len() < 4 {
         return Value::Null;
@@ -446,6 +443,8 @@ fn parse_zip_binary(bytes: Vec<u8>, display_path: &str) -> Value {
     Value::Null
 }
 
+/// Track the `FilesZipInfo` batch entries
+/// Once we hit the max limit we output our results
 fn push_row(listing: &mut ZipListing<'_>, info: FilesZipInfo) {
     listing.batch.push(info);
 
@@ -454,6 +453,7 @@ fn push_row(listing: &mut ZipListing<'_>, info: FilesZipInfo) {
     }
 }
 
+/// Write `FilesZipInfo` output based on te `OutputManager`
 fn zip_output(entries: Vec<FilesZipInfo>, manager: &mut OutputManager, options: &FileOptions) {
     let mut records = match serialize_records_to_stream(entries) {
         Ok(result) => result,
