@@ -35,6 +35,18 @@ impl ZipSource {
             max_read_size: config.max_read_size,
         })
     }
+
+    /// Generate a filelisting for a ZIP file
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        self.fs.walk(inner, options, manager, rule, evidence)
+    }
 }
 
 impl SourceBackend for ZipSource {
@@ -80,20 +92,6 @@ impl SourceBackend for ZipSource {
 
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
         self.fs.stat_dir_handle(handle)
-    }
-}
-
-impl ZipSource {
-    /// Generate a filelisting for a ZIP file
-    pub(crate) fn walk(
-        &self,
-        inner: &InnerPath,
-        options: &FileOptions,
-        manager: &mut OutputManager,
-        rule: &str,
-        evidence: &str,
-    ) -> AccessorResult<()> {
-        self.fs.walk(inner, options, manager, rule, evidence)
     }
 }
 

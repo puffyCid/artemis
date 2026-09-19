@@ -421,6 +421,36 @@ impl Accessor {
             &source.display(),
         )
     }
+
+    /// Generate a live system filelisting from an opened source
+    pub(crate) fn source_walk_host(
+        &self,
+        source: &SourceHandle,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+    ) -> AccessorResult<()> {
+        info!(
+            "Walk Host {} with source {}",
+            options.start_path,
+            source.display()
+        );
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(
+                &options.start_path,
+                "Host source is not open",
+            ));
+        };
+
+        backend.walk_host(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
+    }
 }
 
 #[cfg(test)]

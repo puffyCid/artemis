@@ -1,17 +1,25 @@
-use crate::accessor::{
-    entry::{
-        handle::{
-            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
+use crate::{
+    accessor::{
+        entry::{
+            handle::{
+                DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle,
+                Timestamp,
+            },
+            locator::{DirLocator, FileLocator},
         },
-        locator::{DirLocator, FileLocator},
+        error::{AccessorError, AccessorResult},
+        filesystem::{
+            helper::glob::{
+                DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
+                normalize_glob_pattern, path_component_count,
+            },
+            host::walk::walk_host,
+        },
+        io::reader::{AccessorReader, ReaderLocation},
+        location::{path::InnerPath, scheme::Scheme},
     },
-    error::{AccessorError, AccessorResult},
-    filesystem::helper::glob::{
-        DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
-        normalize_glob_pattern, path_component_count,
-    },
-    io::reader::{AccessorReader, ReaderLocation},
-    location::{path::InnerPath, scheme::Scheme},
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use common::files::{Attributes, EntryKind};
 use glob::Pattern;
@@ -243,6 +251,17 @@ impl HostFs {
                 handle.display_path()
             ))),
         }
+    }
+
+    /// Output a filelisting from a live system
+    pub(crate) fn walk(
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        walk_host(inner, options, manager, rule, evidence)
     }
 
     /// Return `PathBuf` from `InnerPath`
@@ -487,7 +506,7 @@ mod tests {
     use crate::accessor::{
         entry::handle::{DirHandle, FileHandle},
         error::AccessorError,
-        filesystem::host::HostFs,
+        filesystem::host::api::HostFs,
         location::path::InnerPath,
     };
     use common::files::EntryKind;

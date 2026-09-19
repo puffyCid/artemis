@@ -52,7 +52,12 @@ pub(crate) fn get_filelist(
                 error!("NTFS filelisting failed: {err:?}");
                 FileError::Filelisting
             }),
-        SourceId::Host => todo!(),
+        SourceId::Host => accessor
+            .source_walk_host(&source, options, manager, &rule)
+            .map_err(|err| {
+                error!("Host filelisting failed: {err:?}");
+                FileError::Filelisting
+            }),
         SourceId::Zip(_) => accessor
             .source_walk_zip(&source, options, manager, &rule)
             .map_err(|err| {

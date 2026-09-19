@@ -240,20 +240,21 @@ fn parse_sid(offset: u32, data: &[u8]) -> nom::IResult<&[u8], String> {
 #[cfg(test)]
 
 mod tests {
-    use crate::accessor::filesystem::ntfs::{
-        security::{SecurityIDs, parse_sds, parse_sid, parse_sii, read_secure, search_data},
-        volume::SectorReader,
+    use crate::accessor::filesystem::ntfs::security::{
+        SecurityIDs, parse_sds, parse_sid, parse_sii, search_data,
     };
-    use ntfs::Ntfs;
     use std::{
-        fs::{self, File},
-        io::BufReader,
+        fs::{self},
         path::PathBuf,
     };
 
     #[test]
     #[cfg(target_os = "windows")]
     fn test_read_secure() {
+        use crate::accessor::filesystem::ntfs::{security::read_secure, volume::SectorReader};
+        use ntfs::Ntfs;
+        use std::{fs::File, io::BufReader};
+
         let device_path = format!("\\\\.\\C:");
         let file = File::open(&device_path).unwrap();
         let sector_reader = SectorReader::new(file, 4096).unwrap();

@@ -149,4 +149,22 @@ impl Source {
             )),
         }
     }
+
+    /// Expose generating a live system filelisting to the `Accessor`
+    pub(crate) fn walk_host(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Host(_) => HostSource::walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_host requires a host source",
+            )),
+        }
+    }
 }

@@ -1,14 +1,18 @@
-use crate::accessor::{
-    config::AccessorConfig,
-    entry::{
-        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-        locator::SourceId,
+use crate::{
+    accessor::{
+        config::AccessorConfig,
+        entry::{
+            handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+            locator::SourceId,
+        },
+        error::AccessorResult,
+        filesystem::host::api::HostFs,
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::backend::SourceBackend,
     },
-    error::AccessorResult,
-    filesystem::host::HostFs,
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::backend::SourceBackend,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 
 /// Source struct for a live OS
@@ -22,6 +26,17 @@ impl HostSource {
         Self {
             max_read_size: config.max_read_size,
         }
+    }
+
+    /// Generate a filelisting for a live system
+    pub(crate) fn walk(
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        HostFs::walk(inner, options, manager, rule, evidence)
     }
 }
 

@@ -12,7 +12,7 @@ pub struct Hashes {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct FileInfo {
+pub struct FileHostInfo {
     pub full_path: String,
     pub directory: String,
     pub filename: String,
