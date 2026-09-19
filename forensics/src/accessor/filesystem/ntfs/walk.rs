@@ -231,7 +231,11 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                     // We can still try to descend
                     if key.is_directory() && listing.depth < listing.max_depth {
                         listing.depth += 1;
-                        walk_ntfs_dir(ntfs, reader, &file, &display_path, sids, listing)?;
+                        if let Err(err) =
+                            walk_ntfs_dir(ntfs, reader, &file, &display_path, sids, listing)
+                        {
+                            warn!("Could not descend into {display_path}: {err:?}");
+                        }
                         listing.depth -= 1;
                     }
                     continue;
@@ -267,7 +271,9 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
 
         if key.is_directory() && listing.depth < listing.max_depth {
             listing.depth += 1;
-            walk_ntfs_dir(ntfs, reader, &file, &display_path, sids, listing)?;
+            if let Err(err) = walk_ntfs_dir(ntfs, reader, &file, &display_path, sids, listing) {
+                warn!("Could not descend into {display_path}: {err:?}");
+            }
             listing.depth -= 1;
         }
     }

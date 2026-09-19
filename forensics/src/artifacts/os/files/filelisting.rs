@@ -189,18 +189,6 @@ fn file_metadata(
         directory: entry.entry.meta.directory,
         display_path: entry.entry.meta.display_path,
         kind: entry.entry.meta.kind,
-        created: entry.entry.times.created,
-        modified: entry.entry.times.modified,
-        accessed: entry.entry.times.accessed,
-        changed: entry.entry.times.changed,
-        filename_created: entry.entry.times.filename_created,
-        filename_modified: entry.entry.times.filename_modified,
-        filename_accessed: entry.entry.times.filename_accessed,
-        filename_changed: entry.entry.times.filename_changed,
-        uid: entry.entry.meta.uid,
-        gid: entry.entry.meta.gid,
-        inode: entry.entry.meta.inode,
-        attributes: entry.entry.meta.attributes,
         ..Default::default()
     };
 
