@@ -979,7 +979,7 @@ mod tests {
 
         assert_eq!(manager.artifact_runs[0].name, "files_ntfs");
         assert_eq!(manager.artifact_runs[0].status, "completed");
-        assert_eq!(manager.artifact_runs[0].record_count, rows.len());
+        assert_eq!(manager.artifact_runs[0].record_count, 15);
 
         let main = rows
             .iter()

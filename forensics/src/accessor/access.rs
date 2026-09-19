@@ -391,6 +391,36 @@ impl Accessor {
             &source.display(),
         )
     }
+
+    /// Generate a ZIP filelisting from an opened source
+    pub(crate) fn source_walk_zip(
+        &self,
+        source: &SourceHandle,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+    ) -> AccessorResult<()> {
+        info!(
+            "Walk ZIP {} with source {}",
+            options.start_path,
+            source.display()
+        );
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(
+                &options.start_path,
+                "ZIP source is not open",
+            ));
+        };
+
+        backend.walk_zip(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
+    }
 }
 
 #[cfg(test)]

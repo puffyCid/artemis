@@ -178,6 +178,7 @@ pub struct FileNtfsInfo {
     pub evidence: String,
 }
 
+#[derive(Debug, Serialize, Default)]
 pub struct FilesZipInfo {
     pub full_path: String,
     pub directory: String,
@@ -185,6 +186,10 @@ pub struct FilesZipInfo {
     pub extension: String,
     pub modified: String,
     pub size: u64,
+    pub compressed_size: u64,
+    pub compression: String,
+    pub crc32: u32,
+    pub encrypted: bool,
     pub md5: String,
     pub sha1: String,
     pub sha256: String,

@@ -23,7 +23,7 @@ pub(crate) fn files_output_name(source: &str) -> &'static str {
         Ok(Scheme::Ntfs) => "files_ntfs",
         Ok(Scheme::Zip) => "files_zip",
         Ok(Scheme::Host) => "files_host",
-        Err(_) => "files",
+        Err(_err) => "files",
     }
 }
 

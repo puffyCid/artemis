@@ -131,4 +131,22 @@ impl Source {
             )),
         }
     }
+
+    /// Expose generating a ZIP filelisting to the `Accessor`
+    pub(crate) fn walk_zip(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Zip(source) => source.walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_zip requires a zip source",
+            )),
+        }
+    }
 }

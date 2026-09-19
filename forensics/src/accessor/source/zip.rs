@@ -1,14 +1,18 @@
-use crate::accessor::{
-    config::AccessorConfig,
-    entry::{
-        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-        locator::SourceId,
+use crate::{
+    accessor::{
+        config::AccessorConfig,
+        entry::{
+            handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+            locator::SourceId,
+        },
+        error::AccessorResult,
+        filesystem::zip::zip_archive::ZipFs,
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::backend::SourceBackend,
     },
-    error::AccessorResult,
-    filesystem::zip::ZipFs,
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::backend::SourceBackend,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use std::path::PathBuf;
 
@@ -76,6 +80,20 @@ impl SourceBackend for ZipSource {
 
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
         self.fs.stat_dir_handle(handle)
+    }
+}
+
+impl ZipSource {
+    /// Generate a filelisting for a ZIP file
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        self.fs.walk(inner, options, manager, rule, evidence)
     }
 }
 

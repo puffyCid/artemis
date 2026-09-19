@@ -1,17 +1,25 @@
-use crate::accessor::{
-    entry::{
-        handle::{
-            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
+use crate::{
+    accessor::{
+        entry::{
+            handle::{
+                DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle,
+                Timestamp,
+            },
+            locator::{DirLocator, FileLocator},
         },
-        locator::{DirLocator, FileLocator},
+        error::{AccessorError, AccessorResult},
+        filesystem::{
+            helper::glob::{
+                DescendGuard, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
+                path_component_count,
+            },
+            zip::walk::walk_zip,
+        },
+        io::reader::{AccessorReader, ReaderLocation},
+        location::path::InnerPath,
     },
-    error::{AccessorError, AccessorResult},
-    filesystem::helper::glob::{
-        DescendGuard, glob_max_depth, is_recursive, join_relative, normalize_glob_pattern,
-        path_component_count,
-    },
-    io::reader::{AccessorReader, ReaderLocation},
-    location::path::InnerPath,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use chrono::{NaiveDate, NaiveTime, SecondsFormat, TimeZone, Utc};
 use common::files::EntryKind;
@@ -21,28 +29,36 @@ use zip::{DateTime, ZipArchive};
 
 /// A record representing a zip content entry
 #[derive(Debug, Clone)]
-struct ZipEntryRecord {
+pub(super) struct ZipEntryRecord {
     /// Index in central index table
-    index: usize,
+    pub(super) index: usize,
     /// Path of the file in the zip
-    path: String,
+    pub(super) path: String,
     /// If the path is a directory
-    is_dir: bool,
+    pub(super) is_dir: bool,
     /// Decompressed size
-    size: u64,
+    pub(super) size: u64,
     /// Last modified timestamp of zip entry (DOS timestamp)
-    modified: Option<String>,
+    pub(super) modified: Option<String>,
+    /// Compressed size
+    pub(super) compressed_size: u64,
+    /// Compression type
+    pub(super) compression: String,
+    /// CRC32 checksum
+    pub(super) crc32: u32,
+    /// If the file is encrypted
+    pub(super) encrypted: bool,
 }
 
 /// Represents our zip archive file
 #[derive(Debug, Clone)]
-pub(crate) struct ZipIndex {
+pub(super) struct ZipIndex {
     /// Path the zip file
-    archive_path: PathBuf,
+    pub(super) archive_path: PathBuf,
     /// Number of entries in the zip
-    entries: Vec<ZipEntryRecord>,
+    pub(super) entries: Vec<ZipEntryRecord>,
     /// File paths in the zip file used for navigating the zip filesystem
-    file_paths: BTreeMap<String, usize>,
+    pub(super) file_paths: BTreeMap<String, usize>,
 }
 
 impl ZipIndex {
@@ -99,6 +115,10 @@ impl ZipIndex {
                 is_dir,
                 size,
                 modified,
+                compressed_size: entry.compressed_size(),
+                compression: entry.compression().to_string(),
+                crc32: entry.crc32(),
+                encrypted: entry.encrypted(),
             });
         }
 
@@ -117,7 +137,7 @@ impl ZipIndex {
     }
 
     /// Return the `ZipEntryRecord` associated with file or directory in the zip file
-    fn record_for_path(&self, path: &str) -> Option<&ZipEntryRecord> {
+    pub(super) fn record_for_path(&self, path: &str) -> Option<&ZipEntryRecord> {
         self.record_at(path)
             .or_else(|| self.entries.iter().find(|entry| entry.path == path))
     }
@@ -134,7 +154,7 @@ impl ZipIndex {
 /// A filesystem like accessor that can be used to read files from a zip file
 pub(crate) struct ZipFs {
     /// Index of the file we want to access
-    index: ZipIndex,
+    pub(crate) index: ZipIndex,
     archive: Mutex<ZipArchive<File>>,
 }
 
@@ -419,6 +439,17 @@ impl ZipFs {
         }
     }
 
+    /// Output a filelisting from a zip file
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        walk_zip(self, inner, options, manager, rule, evidence)
+    }
     /// Return metadata and timestamp for zip record
     fn stat_from_record(&self, record: &ZipEntryRecord) -> EntryStat {
         let kind = if record.is_dir {
@@ -475,7 +506,7 @@ impl ZipFs {
     }
 
     /// Helper to convert `InnerPath` to String for zip content file access
-    fn inner_to_prefix(inner: &InnerPath) -> String {
+    pub(super) fn inner_to_prefix(inner: &InnerPath) -> String {
         if inner.is_empty() {
             String::new()
         } else {
@@ -484,7 +515,7 @@ impl ZipFs {
     }
 
     /// Normalize paths to represent zip content file paths
-    fn normalize_zip_path(path: &str) -> String {
+    pub(super) fn normalize_zip_path(path: &str) -> String {
         path.replace('\\', "/")
             .trim_start_matches('/')
             .trim_end_matches('/')
@@ -492,7 +523,7 @@ impl ZipFs {
     }
 
     /// Return target path as a String
-    fn display_entry_path(&self, entry_path: &str) -> String {
+    pub(super) fn display_entry_path(&self, entry_path: &str) -> String {
         if entry_path.is_empty() {
             format!("zip:{}", self.index.archive_path.display())
         } else {
@@ -501,7 +532,7 @@ impl ZipFs {
     }
 
     /// Read the zip content file. Currently whole file is decompressed into memory
-    fn read_entry_bytes(&self, index: usize) -> AccessorResult<Vec<u8>> {
+    pub(super) fn read_entry_bytes(&self, index: usize) -> AccessorResult<Vec<u8>> {
         // Access the `ZipArchive` file reader
         let mut archive = self.archive.lock().map_err(|err| {
             AccessorError::zip(
@@ -741,7 +772,7 @@ mod tests {
     use crate::accessor::{
         entry::{handle::FileHandle, locator::FileLocator},
         error::AccessorError,
-        filesystem::zip::ZipFs,
+        filesystem::zip::zip_archive::ZipFs,
         location::path::InnerPath,
     };
     use common::files::EntryKind;
