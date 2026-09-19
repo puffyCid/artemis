@@ -438,14 +438,14 @@ impl HostFs {
         {
             use crate::accessor::filesystem::helper::attributes::windows_attributes;
 
-            return windows_attributes(value);
+            windows_attributes(value)
         }
 
         #[cfg(target_family = "unix")]
         {
             use crate::accessor::filesystem::helper::attributes::unix_attributes;
 
-            return unix_attributes(value);
+            unix_attributes(value)
         }
 
         #[cfg(not(any(unix, windows)))]

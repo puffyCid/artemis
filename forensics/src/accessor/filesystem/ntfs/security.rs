@@ -136,12 +136,8 @@ fn parse_sii(data: &[u8], record_size: u32) -> nom::IResult<&[u8], Vec<SecurityI
         let indx_headers: usize = 24;
         let (mut record_data, _header) = take(indx_headers)(sid_record_data)?;
 
-        loop {
-            // Search for the default $SII values. Note this will include values in slack space
-            let Ok((sid_data, _)) = search_data(record_data) else {
-                break;
-            };
-
+        // Search for the default $SII values. Note this will include values in slack space
+        while let Ok((sid_data, _)) = search_data(record_data) {
             let (sid_data, offset) = le_u16(sid_data)?;
             let (sid_data, size) = le_u16(sid_data)?;
 

@@ -16,13 +16,13 @@ use tracing::error;
 /// Grab sudo log entries in the Unified Log files
 pub(crate) fn grab_sudo_logs(options: &MacosSudoOptions) -> Result<Vec<LogData>, MacArtifactError> {
     if let Some(path) = &options.logarchive_path {
-        let mut provider = LogarchiveProvider::new(Path::new(path));
+        let provider = LogarchiveProvider::new(Path::new(path));
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(&timesync_data, &mut provider)
+        parse_trace_file(&timesync_data, &provider)
     } else {
-        let mut provider = LiveSystemProvider::default();
+        let provider = LiveSystemProvider;
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(&timesync_data, &mut provider)
+        parse_trace_file(&timesync_data, &provider)
     }
 }
 

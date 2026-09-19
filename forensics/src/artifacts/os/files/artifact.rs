@@ -1,4 +1,6 @@
 use super::{error::FileError, filelisting::get_filelist};
+use crate::accessor::location::loc::Location;
+use crate::accessor::location::scheme::Scheme;
 use crate::{output::manager::OutputManager, structs::artifacts::os::files::FileOptions};
 use tracing::error;
 
@@ -13,6 +15,16 @@ pub(crate) fn filelisting(
     }
 
     Ok(())
+}
+
+/// If a specific filelisting fails, return a more accurate artifact name besides "files"
+pub(crate) fn files_output_name(source: &str) -> String {
+    match Location::parse_source(source).map(|loc| loc.scheme) {
+        Ok(Scheme::Ntfs) => String::from("files_ntfs"),
+        Ok(Scheme::Zip) => String::from("files_zip"),
+        Ok(Scheme::Host) => String::from("files_host"),
+        Err(err) => format!("Bad source: {err:?}"),
+    }
 }
 
 #[cfg(test)]

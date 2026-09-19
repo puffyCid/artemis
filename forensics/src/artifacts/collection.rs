@@ -19,6 +19,7 @@ use super::{
     },
 };
 use crate::{
+    artifacts::os::files::artifact::files_output_name,
     output::{manager::OutputManager, marker::MarkerTracker},
     structs::toml::ArtemisToml,
 };
@@ -100,7 +101,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Ok(_) => info!("Collected file listing"),
                     Err(err) => {
                         error!("Failed to parse filelisting: {err:?}");
-                        manager.write_failed_artifact(artifact, options);
+                        manager.write_failed_artifact(&files_output_name(&options.source), options);
                     }
                 }
             }

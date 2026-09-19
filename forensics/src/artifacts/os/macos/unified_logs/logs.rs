@@ -33,22 +33,22 @@ pub(crate) fn grab_logs(
         sources: options.sources.clone(),
     };
     if let Some(path) = &options.logarchive_path {
-        let mut provider = LogarchiveProvider::new(Path::new(path));
+        let provider = LogarchiveProvider::new(Path::new(path));
         // Parse all timesync files
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
         let _ = parse_trace_file(
             &timesync_data,
-            &mut provider,
+            &provider,
             &mut parse_options,
             manager,
             options,
         );
     } else {
-        let mut provider = LiveSystemProvider::default();
+        let provider = LiveSystemProvider;
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
         let _ = parse_trace_file(
             &timesync_data,
-            &mut provider,
+            &provider,
             &mut parse_options,
             manager,
             options,

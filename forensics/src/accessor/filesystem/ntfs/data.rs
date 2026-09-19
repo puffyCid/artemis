@@ -345,7 +345,7 @@ pub(super) fn ntfs_filename_times<R: Read + Seek>(
         let mut buf = vec![0; attr_size as usize];
         let bytes = data.read(reader, &mut buf).map_err(ntfs_err)?;
         if bytes != attr_size as usize {
-            warn!("Read incomplete FILENAME attributes, wanted '{attr_size}' got '{bytes}'")
+            warn!("Read incomplete FILENAME attributes, wanted '{attr_size}' got '{bytes}'");
         }
 
         let filename = match Filename::parse_filename(&buf) {

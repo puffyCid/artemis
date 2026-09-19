@@ -33,13 +33,13 @@ pub(crate) fn js_unified_log(
         input_path
     };
     let logs_result = if archive_path.is_some() {
-        let mut provider = LogarchiveProvider::new(Path::new(&archive_path.unwrap_or_default()));
+        let provider = LogarchiveProvider::new(Path::new(&archive_path.unwrap_or_default()));
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(&timesync_data, &mut provider, &path)
+        parse_trace_file(&timesync_data, &provider, &path)
     } else {
-        let mut provider = LiveSystemProvider::default();
+        let provider = LiveSystemProvider;
         let timesync_data = collect_timesync(&provider).unwrap_or_default();
-        parse_trace_file(&timesync_data, &mut provider, &path)
+        parse_trace_file(&timesync_data, &provider, &path)
     };
 
     let logs: Vec<LogData> = match logs_result {

@@ -75,9 +75,9 @@ pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
         .collect();
 
     let path_filter = create_regex(options.path_regex.as_deref().unwrap_or(""))
-        .map_err(|_| AccessorError::location(&options.start_path, "invalid path_regex"))?;
+        .map_err(|_err| AccessorError::location(&options.start_path, "invalid path_regex"))?;
     let file_filter = create_regex(options.filename_regex.as_deref().unwrap_or(""))
-        .map_err(|_| AccessorError::location(&options.start_path, "invalid filename_regex"))?;
+        .map_err(|_err| AccessorError::location(&options.start_path, "invalid filename_regex"))?;
 
     let max_list =
         if options.metadata.is_some_and(|b| b) || manager.config.format == OutputFormat::Timeline {
@@ -458,7 +458,7 @@ fn enrich_ntfs_file<R: Read + Seek>(
                 .unwrap_or_default();
         }
     } else if want_hash && bytes.is_empty() {
-        // If file is larger than YARA_MAX_SIZE
+        // If file is larger than `YARA_MAX_SIZE`
         // We stream and hash it
         let (md5, sha1, sha256) = hash_live_data(reader, file, ntfs_info, &listing.hashes)?;
         ntfs_info.md5 = md5;
@@ -469,7 +469,7 @@ fn enrich_ntfs_file<R: Read + Seek>(
     Ok(true)
 }
 
-/// Read the $DATA attribute if smaller the YARA_MAX_SIZE
+/// Read the $DATA attribute if smaller the `YARA_MAX_SIZE`
 ///
 /// Will decompress WOF data if required
 fn read_listing_bytes<R: Read + Seek>(
@@ -526,6 +526,7 @@ fn hash_attribute_value<R: Read + Seek>(
     loop {
         let bytes_result = data_attr_value.read(reader, &mut temp_buff);
         let bytes = match bytes_result {
+            Ok(0) => break,
             Ok(result) => result,
             Err(err) => {
                 error!("Failed to read data for hashing: {err:?}");
@@ -533,27 +534,21 @@ fn hash_attribute_value<R: Read + Seek>(
             }
         };
 
-        let finished = 0;
-        if bytes == finished {
-            break;
-        }
-
-        if bytes < temp_buff_size {
-            temp_buff = temp_buff[0..bytes].to_vec();
-        }
+        let mut chunk = &temp_buff[..bytes];
 
         if hashes.md5 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut md5);
+            let _ = copy(&mut chunk, &mut md5);
         }
 
         if hashes.sha1 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha1);
+            let _ = copy(&mut chunk, &mut sha1);
         }
 
         if hashes.sha256 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha256);
+            let _ = copy(&mut chunk, &mut sha256);
         }
     }
+
     let mut md5_string = String::new();
     let mut sha1_string = String::new();
     let mut sha256_string = String::new();
