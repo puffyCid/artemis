@@ -55,7 +55,7 @@ use tracing::{error, info, warn};
 /// Max size of file we read into memory if we need to parse PE or scan with Yara
 const YARA_MAX_SIZE: u64 = 50 * 1024 * 1024;
 
-/// Walk the NTFS filesystem and return `NtfsWalkEntry`
+/// Walk the NTFS filesystem and output results
 pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
     volume: &NtfsVolume<T>,
     drive: char,
@@ -227,6 +227,13 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                 Ok(results) => results,
                 Err(err) => {
                     warn!("Could not read NTFS metadata for {display_path}: {err:?}");
+                    // Even if we fail to parse an entry
+                    // We can still try to descend
+                    if key.is_directory() && listing.depth < listing.max_depth {
+                        listing.depth += 1;
+                        walk_ntfs_dir(ntfs, reader, &file, &display_path, sids, listing)?;
+                        listing.depth -= 1;
+                    }
                     continue;
                 }
             };
@@ -268,7 +275,7 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
     Ok(())
 }
 
-/// Return `NtfsWalkEntry` for each file
+/// Return `FileNtfsInfo` for each file
 fn fill_ntfs_entry<R: Read + Seek>(
     ntfs: &Ntfs,
     reader: &mut R,
@@ -329,6 +336,7 @@ fn fill_ntfs_entry<R: Read + Seek>(
         compressed_size,
         compression_type,
         inode: file.file_record_number(),
+        sequence_number: file.sequence_number(),
         parent_sequence_number: filename.parent_sequence,
         parent_mft_reference: filename.parent_file_record,
         owner: standard.owner_id().unwrap_or_default(),
@@ -378,7 +386,7 @@ fn enrich_ntfs_file<R: Read + Seek>(
 
     if want_yara && ntfs_info.size > YARA_MAX_SIZE {
         info!(
-            "Skipping file {}. File size is {} vs 100MB max scans size",
+            "Skipping file {}. File size is {} vs 50MB max scans size",
             ntfs_info.display_path, ntfs_info.size
         );
         return Ok(false);
@@ -513,9 +521,9 @@ fn hash_attribute_value<R: Read + Seek>(
     let mut sha1 = IoWrapper(Sha1::new());
     let mut sha256 = IoWrapper(Sha256::new());
     let temp_buff_size = 65536;
+    let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
 
     loop {
-        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
         let bytes_result = data_attr_value.read(reader, &mut temp_buff);
         let bytes = match bytes_result {
             Ok(result) => result,

@@ -16,13 +16,12 @@ use crate::accessor::walk::{WalkAccessor, WalkEntry};
 use crate::artifacts::os::linux::executable::parser::parse_elf_reader;
 use crate::artifacts::os::macos::macho::error::MachoError;
 use crate::artifacts::os::macos::macho::parser::parse_macho_reader;
-use crate::artifacts::os::systeminfo::info::{PlatformType, get_platform_enum};
+use crate::artifacts::os::systeminfo::info::PlatformType;
 use crate::artifacts::os::windows::pe::parser::parse_pe_reader;
 use crate::filesystem::files::hash_reader;
 use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::files::FileOptions;
-use crate::structs::toml::OutputFormat;
 use crate::utils::regex_options::{create_regex, regex_check};
 use common::files::EntryKind;
 use common::files::FileInfo;
@@ -62,7 +61,7 @@ pub(crate) fn get_filelist(
         };
     }
 
-    return match source.id() {
+    match source.id() {
         SourceId::Ntfs(_) => accessor
             .source_walk_ntfs(&source, options, manager, &rule)
             .map_err(|err| {
@@ -71,65 +70,7 @@ pub(crate) fn get_filelist(
             }),
         SourceId::Host => todo!(),
         SourceId::Zip(_) => todo!(),
-    };
-
-    let mut walk = match WalkAccessor::new(&source, &options.start_path) {
-        Ok(result) => result,
-        Err(err) => {
-            error!(
-                "Could not start filelisting at {}: {err:?}",
-                options.start_path
-            );
-            return Err(FileError::Filelisting);
-        }
-    };
-    let depth = options.depth.unwrap_or(1);
-    walk = walk.max_depth(depth);
-    for exclude in options.exclude_directories.as_ref().unwrap_or(&Vec::new()) {
-        walk = walk.exclude(exclude);
     }
-
-    let mut rule = String::new();
-    #[cfg(feature = "yarax")]
-    if options.yara.as_ref().is_some_and(|s| !s.is_empty()) {
-        // Unwrap is safe since we validate above
-        rule = match extract_rule(options.yara.as_ref().unwrap()) {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Bad yara rule {err:?}");
-                return Err(FileError::Filelisting);
-            }
-        };
-    }
-
-    let path_filter = user_regex(options.path_regex.as_ref().unwrap_or(&String::new()))?;
-    let file_filter = user_regex(options.filename_regex.as_ref().unwrap_or(&String::new()))?;
-
-    // Max filelisting size is 1k if we are timelining or parsing executable metadata
-    // Otherwise the filelisting is 10k
-    let max_list =
-        if options.metadata.is_some_and(|b| b) || manager.config.format == OutputFormat::Timeline {
-            1000
-        } else {
-            10000
-        };
-
-    let walk_options = WalkOptions {
-        path_filter,
-        file_filter,
-        yara_rule: rule,
-        plat: get_platform_enum(),
-        max_list,
-    };
-
-    walking(
-        &mut walk,
-        &mut accessor,
-        &source,
-        options,
-        manager,
-        &walk_options,
-    )
 }
 
 struct WalkOptions {
