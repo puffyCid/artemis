@@ -107,7 +107,7 @@ pub(super) fn walk_zip(
             &record.path,
             depth,
             listing.evidence,
-            Some(&record),
+            Some(record),
             EntryKind::File,
         );
         if !row_matches(&listing, &info) {
@@ -238,7 +238,7 @@ fn emit_parent(listing: &mut ZipListing<'_>, relative: &str) {
             format!("{}/{value}", listing.start)
         };
 
-        maybe_emit_dir(listing, &inner, depth, None)
+        maybe_emit_dir(listing, &inner, depth, None);
     }
 }
 
@@ -304,15 +304,11 @@ fn fill_zip(
         modified: record
             .and_then(|entry| entry.modified.clone())
             .unwrap_or(String::from("1970-01-01T00:00:00.000Z")),
-        size: record.map(|entry| entry.size).unwrap_or(0),
-        compressed_size: record
-            .map(|entry| entry.compressed_size)
-            .unwrap_or_default(),
-        compression: record
-            .map(|entry| entry.compression.clone())
-            .unwrap_or_default(),
-        crc32: record.map(|entry| entry.crc32).unwrap_or_default(),
-        encrypted: record.map(|entry| entry.encrypted).unwrap_or_default(),
+        size: record.map_or(0, |entry| entry.size),
+        compressed_size: record.map_or(0, |entry| entry.compressed_size),
+        compression: record.map_or(String::new(), |entry| entry.compression.clone()),
+        crc32: record.map_or(0, |entry| entry.crc32),
+        encrypted: record.is_some_and(|entry| entry.encrypted),
         kind,
         depth: depth as usize,
         display_path,

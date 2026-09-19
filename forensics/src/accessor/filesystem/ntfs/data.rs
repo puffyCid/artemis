@@ -310,7 +310,6 @@ pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timesta
         modified: filetime_to_iso(info.modification_time().nt_timestamp()),
         accessed: filetime_to_iso(info.access_time().nt_timestamp()),
         changed: filetime_to_iso(info.mft_record_modification_time().nt_timestamp()),
-        ..Default::default()
     })
 }
 
