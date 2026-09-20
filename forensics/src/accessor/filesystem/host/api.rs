@@ -73,9 +73,9 @@ impl HostFs {
 
         let mut file = HostFs::open(&path)?;
 
-        let mut buf = Vec::new();
+        let mut buf = vec![0; size as usize];
         let bytes = file
-            .read_to_end(&mut buf)
+            .read(&mut buf)
             .map_err(|err| AccessorError::io_path(&path, err))?;
 
         if bytes != buf.len() {
@@ -296,8 +296,8 @@ impl HostFs {
         OpenOptions::new()
             .read(true)
             .custom_flags(O_NONBLOCK)
-            .open(&path)
-            .map_err(|err| AccessorError::io_path(&path, err))
+            .open(path)
+            .map_err(|err| AccessorError::io_path(path, err))
     }
 
     /// Return `PathBuf` from `InnerPath`
