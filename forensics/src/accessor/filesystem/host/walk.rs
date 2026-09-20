@@ -35,7 +35,7 @@ pub(super) fn walk_host(
         .unwrap_or_default()
         .into_iter()
         .collect();
-    load_firmlinks(&mut exclude);
+    load_ignore_paths(&mut exclude);
 
     let path_filter = create_regex(options.path_regex.as_deref().unwrap_or(""))
         .map_err(|_err| AccessorError::location(&options.start_path, "invalid path_regex"))?;
@@ -290,7 +290,16 @@ fn parse_host_binary(bytes: Vec<u8>, display_path: &str) -> Value {
     }
 }
 
-fn load_firmlinks(exclude: &mut HashSet<String>) {
+/// There are a few directories we ignore for safety:
+///
+/// /proc on Unix systems. This is a memory only filesystem
+///
+/// Firmlinks on macOS
+fn load_ignore_paths(exclude: &mut HashSet<String>) {
+    #[cfg(target_family = "unix")]
+    // Exclude /proc directory to skip memory only filesystem
+    exclude.insert(String::from("/proc"));
+
     if !cfg!(target_os = "macos") {
         return;
     }

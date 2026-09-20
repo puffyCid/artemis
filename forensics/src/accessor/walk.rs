@@ -85,7 +85,7 @@ impl WalkAccessor {
         // Determine if we need to start the walk
         if !self.started {
             self.started = true;
-            self.load_firmlinks(accessor);
+            self.load_ignore_paths(accessor);
 
             if let Err(err) = self.start_walk(accessor) {
                 return Some(Err(err));
@@ -154,8 +154,17 @@ impl WalkAccessor {
         }
     }
 
-    /// On macOS read the default firmlink paths
-    fn load_firmlinks(&mut self, accessor: &Accessor) {
+    /// There are a few directories we ignore for safety. These directories and files
+    /// can always be accessed via globbing if a user wants to read them
+    ///
+    /// /proc on Unix systems. This is a memory only filesystem
+    ///
+    /// Firmlinks on macOS
+    fn load_ignore_paths(&mut self, accessor: &Accessor) {
+        #[cfg(target_family = "unix")]
+        // Exclude /proc directory to skip memory only filesystem
+        self.exclude.insert(String::from("/proc"));
+
         if !cfg!(target_os = "macos") || self.source.id() != &SourceId::Host {
             return;
         }

@@ -24,13 +24,27 @@ use crate::{
 use common::files::{Attributes, EntryKind};
 use glob::Pattern;
 use std::{
-    fs::{self, File, FileType, Metadata, metadata, read, symlink_metadata},
+    fs::{self, File, FileType, Metadata, OpenOptions, metadata, symlink_metadata},
+    io::Read,
     path::{Path, PathBuf},
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[cfg(target_family = "unix")]
 use crate::utils::time::unixepoch_to_iso_with_nano;
+
+#[cfg(target_family = "unix")]
+use std::os::unix::fs::OpenOptionsExt;
+
+#[cfg(target_os = "linux")]
+const O_NONBLOCK: i32 = 0o4000;
+#[cfg(target_os = "macos")]
+const O_NONBLOCK: i32 = 0o4;
+#[cfg(all(
+    target_family = "unix",
+    not(any(target_os = "linux", target_os = "macos"))
+))]
+const O_NONBLOCK: i32 = 0o4000;
 
 /// Filesystem reader for a live OS
 ///
@@ -48,6 +62,7 @@ impl HostFs {
         if path.is_symlink() || !path.is_file() {
             return Err(AccessorError::not_a_file(HostFs::display_path(&path)));
         }
+
         let metadata = metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
         let size = metadata.len();
         if let Some(limit) = max_read_size
@@ -55,7 +70,19 @@ impl HostFs {
         {
             return Err(AccessorError::file_too_large(size, limit));
         }
-        read(&path).map_err(|err| AccessorError::io_path(&path, err))
+
+        let mut file = HostFs::open(&path)?;
+
+        let mut buf = Vec::new();
+        let bytes = file
+            .read_to_end(&mut buf)
+            .map_err(|err| AccessorError::io_path(&path, err))?;
+
+        if bytes != buf.len() {
+            warn!("Did not read all bytes got: {bytes} vs {}", buf.len());
+        }
+
+        Ok(buf)
     }
 
     /// Read the file reference handle
@@ -197,7 +224,7 @@ impl HostFs {
         }
 
         let location = ReaderLocation::from_scheme(Scheme::Host, HostFs::full_path(&path));
-        let file = File::open(&path).map_err(|err| AccessorError::io_path(path, err))?;
+        let file = HostFs::open(&path)?;
 
         Ok(AccessorReader::host(file, location))
     }
@@ -262,6 +289,15 @@ impl HostFs {
         evidence: &str,
     ) -> AccessorResult<()> {
         walk_host(inner, options, manager, rule, evidence)
+    }
+
+    /// Read a file and try to handle weird file descriptors or blocking files
+    fn open(path: &PathBuf) -> AccessorResult<File> {
+        OpenOptions::new()
+            .read(true)
+            .custom_flags(O_NONBLOCK)
+            .open(&path)
+            .map_err(|err| AccessorError::io_path(&path, err))
     }
 
     /// Return `PathBuf` from `InnerPath`

@@ -188,6 +188,7 @@ pub(crate) fn hash_file_data(hashes: &Hashes, data: &[u8]) -> (String, String, S
     (md5_string, sha1_string, sha256_string)
 }
 
+/// Hash a file with the `AccessorReader`
 pub(crate) fn hash_reader(
     hashes: &Hashes,
     reader: &mut AccessorReader,
@@ -209,7 +210,7 @@ pub(crate) fn hash_reader(
             Ok(0) => break,
             Ok(result) => result,
             Err(err) => {
-                error!("Failed to read file: {err:?}");
+                error!("Failed to use AccessorReader for hashing: {err:?}");
                 return (md5_string, sha1_string, sha256_string);
             }
         };

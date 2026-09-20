@@ -305,10 +305,21 @@ pub(crate) struct EntryStat {
 }
 
 /// Timestamps returned from the `Accessor`
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Timestamp {
     pub(crate) created: String,
     pub(crate) modified: String,
     pub(crate) accessed: String,
     pub(crate) changed: String,
+}
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Self {
+            created: String::from("1970-01-01T00:00:00.000Z"),
+            modified: String::from("1970-01-01T00:00:00.000Z"),
+            accessed: String::from("1970-01-01T00:00:00.000Z"),
+            changed: String::from("1970-01-01T00:00:00.000Z"),
+        }
+    }
 }
