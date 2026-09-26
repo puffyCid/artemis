@@ -629,6 +629,7 @@ mod tests {
         assert_eq!(file["kind"], "File");
         assert_eq!(file["size"], 11);
         assert_eq!(file["depth"], 2);
+
         assert!(rows.iter().any(|row| row["filename"] == "nested"));
         assert!(rows.iter().all(|row| row["filename"] != "other.txt"));
     }
@@ -645,6 +646,7 @@ mod tests {
         let mut options = listing_options(&archive, 2);
         options.filename_regex = Some(String::from(r"^readme\.txt$"));
         let (_, rows) = walk_rows("zip_walk_regex", &archive, &options);
+
         assert!(rows.iter().any(|row| row["filename"] == "readme.txt"));
         assert!(rows.iter().all(|row| row["filename"] != "test.txt"));
     }
@@ -663,6 +665,7 @@ mod tests {
         options.exclude_directories = Some(vec![String::from("home")]);
 
         let (_, rows) = walk_rows("zip_walk_exclude", &archive, &options);
+
         assert!(rows.iter().any(|row| row["filename"] == "readme.txt"));
         assert!(rows.iter().all(|row| row["filename"] != "home"));
         assert!(rows.iter().all(|row| row["filename"] != "test.txt"));
@@ -691,6 +694,7 @@ mod tests {
         };
 
         let (md5, sha1, sha256) = hash_file_data(&hashes, b"hello world\n");
+
         assert_eq!(hello["md5"], md5);
         assert_eq!(hello["sha1"], sha1);
         assert_eq!(hello["sha256"], sha256);

@@ -66,3 +66,73 @@ pub(crate) fn get_filelist(
             }),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::artifacts::os::files::filelisting::get_filelist;
+    use crate::{
+        output::manager::OutputManager,
+        structs::{
+            artifacts::os::files::FileOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
+        },
+    };
+    use std::path::PathBuf;
+
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
+            compress,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_filelist_unix() {
+        let options = FileOptions {
+            start_path: String::from("/"),
+            source: String::from("host:"),
+            ..Default::default()
+        };
+
+        let mut output = output_options("unix_root", "./tmp", false);
+
+        get_filelist(&options, &mut output).unwrap();
+    }
+
+    #[test]
+    fn test_get_filelist_zip() {
+        let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        dir.push("tests/test_data/archives/artifacts.zip");
+
+        let options = FileOptions {
+            start_path: String::from("/"),
+            source: format!("zip:{}", dir.to_str().unwrap()),
+            ..Default::default()
+        };
+
+        let mut output = output_options("zip_root", "./tmp", false);
+
+        get_filelist(&options, &mut output).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_get_filelist_windows() {
+        let options = FileOptions {
+            start_path: String::from("C:\\"),
+            source: String::from("ntfs:C"),
+            ..Default::default()
+        };
+
+        let mut output = output_options("windows_root", "./tmp", false);
+
+        get_filelist(&options, &mut output).unwrap();
+    }
+}

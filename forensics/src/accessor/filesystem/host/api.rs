@@ -74,17 +74,15 @@ impl HostFs {
         }
 
         let mut file = HostFs::open(&path)?;
-
-        let mut buf = Vec::new();
-        buf.reserve(size as usize);
+        let mut buf = Vec::with_capacity(size as usize);
 
         const SIZE: usize = 65536;
-        let mut tmp = [0u8; SIZE];
+        let mut tmp = vec![0u8; SIZE].into_boxed_slice();
         loop {
             match file.read(&mut tmp) {
                 Ok(0) => break,
                 Ok(bytes) => buf.extend_from_slice(&tmp[..bytes]),
-                Err(err) if err.kind() == ErrorKind::Interrupted => continue,
+                Err(err) if err.kind() == ErrorKind::Interrupted => {},
                 Err(err) if err.kind() == ErrorKind::WouldBlock => break,
                 Err(err) => return Err(AccessorError::io_path(&path, err)),
             }
