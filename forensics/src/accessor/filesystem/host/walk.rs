@@ -67,9 +67,7 @@ pub(super) fn walk_host(
         batch: Vec::new(),
     };
 
-    if let Err(err) = walk_host_dir(inner, &mut listing) {
-        error!("Failed to complete full host filelisting: {err:?}");
-    }
+    walk_host_dir(inner, &mut listing)?;
 
     if !listing.batch.is_empty() {
         host_output(take(&mut listing.batch), listing.manager, listing.options);
