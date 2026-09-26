@@ -404,7 +404,7 @@ fn enrich_ntfs_file<R: Read + Seek>(
         return Ok(false);
     }
 
-    let need_bytes = want_yara || (want_pe && ntfs_info.size < YARA_MAX_SIZE);
+    let need_bytes = want_yara || (want_pe && ntfs_info.size <= YARA_MAX_SIZE);
     let mut bytes = Vec::new();
 
     // File is small enough to be read into memory

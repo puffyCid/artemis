@@ -82,7 +82,7 @@ impl HostFs {
             match file.read(&mut tmp) {
                 Ok(0) => break,
                 Ok(bytes) => buf.extend_from_slice(&tmp[..bytes]),
-                Err(err) if err.kind() == ErrorKind::Interrupted => {},
+                Err(err) if err.kind() == ErrorKind::Interrupted => {}
                 Err(err) if err.kind() == ErrorKind::WouldBlock => break,
                 Err(err) => return Err(AccessorError::io_path(&path, err)),
             }
