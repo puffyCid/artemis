@@ -1,8 +1,3 @@
-use common::files::{EntryKind, FileHostInfo, Hashes};
-use regex::Regex;
-use serde_json::Value;
-use tracing::{error, info, warn};
-
 use crate::{
     accessor::{
         entry::handle::DirEntry,
@@ -17,7 +12,11 @@ use crate::{
     structs::{artifacts::os::files::FileOptions, toml::OutputFormat},
     utils::regex_options::{create_regex, regex_check},
 };
+use common::files::{EntryKind, FileHostInfo, Hashes};
+use regex::Regex;
+use serde_json::Value;
 use std::{collections::HashSet, mem::take, path::PathBuf};
+use tracing::{error, info, warn};
 
 /// Max size of file we read into memory if we need to parse binaries or scan with Yara
 const YARA_MAX_SIZE: u64 = 50 * 1024 * 1024;
@@ -221,7 +220,7 @@ fn enrich_host_file(
         host_info.md5 = md5;
         host_info.sha1 = sha1;
         host_info.sha256 = sha256;
-    } else {
+    } else if want_hash {
         if let Some(handle) = entry.handle.as_file()
             && let Ok(mut reader) = HostFs::reader_handle(handle)
         {

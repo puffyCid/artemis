@@ -25,7 +25,7 @@ use common::files::{Attributes, EntryKind};
 use glob::Pattern;
 use std::{
     fs::{self, File, FileType, Metadata, OpenOptions, metadata, symlink_metadata},
-    io::Read,
+    io::{ErrorKind, Read},
     path::{Path, PathBuf},
 };
 use tracing::{debug, warn};
@@ -73,13 +73,18 @@ impl HostFs {
 
         let mut file = HostFs::open(&path)?;
 
-        let mut buf = vec![0; size as usize];
-        let bytes = file
-            .read(&mut buf)
-            .map_err(|err| AccessorError::io_path(&path, err))?;
+        let mut buf = Vec::new();
+        buf.reserve(size as usize);
 
-        if bytes != buf.len() {
-            warn!("Did not read all bytes got: {bytes} vs {}", buf.len());
+        let mut tmp = [0u8; 65536];
+        loop {
+            match file.read(&mut tmp) {
+                Ok(0) => break,
+                Ok(bytes) => buf.extend_from_slice(&tmp[..bytes]),
+                Err(err) if err.kind() == ErrorKind::Interrupted => continue,
+                Err(err) if err.kind() == ErrorKind::WouldBlock => break,
+                Err(err) => return Err(AccessorError::io_path(&path, err)),
+            }
         }
 
         Ok(buf)
@@ -293,10 +298,15 @@ impl HostFs {
 
     /// Read a file and try to handle weird file descriptors or blocking files
     fn open(path: &PathBuf) -> AccessorResult<File> {
-        OpenOptions::new()
-            .read(true)
-            .custom_flags(O_NONBLOCK)
-            .open(path)
+        let mut opts = OpenOptions::new();
+        opts.read(true);
+
+        // Avoid blocking files
+        // Sometimes seen in /proc paths
+        #[cfg(target_family = "unix")]
+        opts.custom_flags(O_NONBLOCK);
+
+        opts.open(path)
             .map_err(|err| AccessorError::io_path(path, err))
     }
 
