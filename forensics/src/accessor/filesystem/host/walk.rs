@@ -270,13 +270,7 @@ fn parse_host_binary(bytes: Vec<u8>, display_path: &str) -> Value {
             .unwrap_or_default();
     }
 
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "freebsd",
-        target_os = "openbsd",
-        target_os = "dragonfly",
-        target_family = "unix"
-    ))]
+    #[cfg(all(unix, not(target_os = "macos")))]
     {
         use crate::artifacts::os::linux::executable::parser::parse_elf_reader;
 

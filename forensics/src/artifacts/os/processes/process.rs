@@ -296,7 +296,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_executable_metadata() {
-        let test_path = "/bin/ls";
+        let test_path = "/bin/grep";
         let results = executable_metadata(test_path, &PlatformType::Linux).unwrap();
 
         assert!(!results.is_null());

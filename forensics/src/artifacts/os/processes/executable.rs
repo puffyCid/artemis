@@ -26,7 +26,7 @@ mod tests {
 
     #[test]
     fn test_elf_metadata() {
-        let test_path = "/bin/ls";
+        let test_path = "/bin/grep";
         let results = elf_metadata(test_path).unwrap();
 
         assert!(!results.machine_type.is_empty());

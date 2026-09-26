@@ -28,7 +28,7 @@ use std::{
     io::{ErrorKind, Read},
     path::{Path, PathBuf},
 };
-use tracing::{debug, warn};
+use tracing::debug;
 
 #[cfg(target_family = "unix")]
 use crate::utils::time::unixepoch_to_iso_with_nano;
@@ -38,8 +38,10 @@ use std::os::unix::fs::OpenOptionsExt;
 
 #[cfg(target_os = "linux")]
 const O_NONBLOCK: i32 = 0o4000;
+
 #[cfg(target_os = "macos")]
 const O_NONBLOCK: i32 = 0o4;
+
 #[cfg(all(
     target_family = "unix",
     not(any(target_os = "linux", target_os = "macos"))
@@ -76,7 +78,8 @@ impl HostFs {
         let mut buf = Vec::new();
         buf.reserve(size as usize);
 
-        let mut tmp = [0u8; 65536];
+        const SIZE: usize = 65536;
+        let mut tmp = [0u8; SIZE];
         loop {
             match file.read(&mut tmp) {
                 Ok(0) => break,
@@ -436,11 +439,10 @@ impl HostFs {
                 unixepoch_to_iso_with_nano(meta.st_birthtime(), meta.st_birthtime_nsec());
         }
 
-        #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
-        use std::os::unix::fs::MetadataExt;
-
-        #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+        #[cfg(all(unix, not(any(target_os = "linux", target_os = "macos"))))]
         {
+            use std::os::unix::fs::MetadataExt;
+
             times.accessed = unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec());
             times.modified = unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec());
             times.changed = unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec());

@@ -48,7 +48,7 @@ fn validate_output(path: &PathBuf) {
     assert_ne!(results, 0);
 
     let results: i64 = conn
-        .query_row("select count(*) from files", [], |row| row.get(0))
+        .query_row("select count(*) from files_host", [], |row| row.get(0))
         .unwrap();
     assert_ne!(results, 0);
 }
