@@ -95,7 +95,7 @@ impl OutputManager {
     ) -> OutputResult<()> {
         match self.encoder.encoder_mode() {
             EncoderMode::Chunked => {
-                let handle = self.write(artifact_name, records)?;
+                let handle = self.write_chunk(artifact_name, records)?;
 
                 if !self.artifacts.iter().any(|name| name == artifact_name) {
                     self.artifacts.push(artifact_name.to_string());
@@ -178,7 +178,7 @@ impl OutputManager {
     }
 
     /// Write artifact records to our configured destination `Sink`
-    fn write(
+    fn write_chunk(
         &mut self,
         artifact_name: &str,
         records: &mut dyn RecordStream,

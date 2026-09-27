@@ -3,7 +3,7 @@ mod cache;
 pub(crate) mod config;
 pub(crate) mod entry;
 pub(crate) mod error;
-mod filesystem;
+pub(crate) mod filesystem;
 pub(crate) mod io;
 pub(crate) mod location;
 pub(crate) mod source;

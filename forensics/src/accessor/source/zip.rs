@@ -1,14 +1,18 @@
-use crate::accessor::{
-    config::AccessorConfig,
-    entry::{
-        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-        locator::SourceId,
+use crate::{
+    accessor::{
+        config::AccessorConfig,
+        entry::{
+            handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+            locator::SourceId,
+        },
+        error::AccessorResult,
+        filesystem::zip::zip_archive::ZipFs,
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::backend::SourceBackend,
     },
-    error::AccessorResult,
-    filesystem::zip::ZipFs,
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::backend::SourceBackend,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use std::path::PathBuf;
 
@@ -30,6 +34,18 @@ impl ZipSource {
             archive_path,
             max_read_size: config.max_read_size,
         })
+    }
+
+    /// Generate a filelisting for a ZIP file
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        self.fs.walk(inner, options, manager, rule, evidence)
     }
 }
 
@@ -230,6 +246,6 @@ mod tests {
             .stat(&InnerPath::new(PathBuf::from("inner.txt")))
             .unwrap();
 
-        assert!(meta.times.modified.is_some());
+        assert!(!meta.times.modified.is_empty());
     }
 }

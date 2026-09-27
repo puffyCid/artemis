@@ -710,7 +710,7 @@ pub struct ADSInfo {
     pub size: u64,
 }
 
-#[derive(Debug, Serialize, Clone, Default)]
+#[derive(Debug, Serialize, Clone, Default, PartialEq)]
 pub enum CompressionType {
     NTFSCompressed,
     WofCompressed,

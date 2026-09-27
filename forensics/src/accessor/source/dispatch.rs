@@ -1,9 +1,13 @@
-use crate::accessor::{
-    entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-    error::AccessorResult,
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::{backend::SourceBackend, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+use crate::{
+    accessor::{
+        entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+        error::{AccessorError, AccessorResult},
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::{backend::SourceBackend, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+    },
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 
 /// Supported sources that we support reading data from
@@ -107,6 +111,60 @@ impl Source {
             Source::Host(source) => source.stat_dir_handle(handle),
             Source::Zip(source) => source.stat_dir_handle(handle),
             Source::Ntfs(source) => source.stat_dir_handle(handle),
+        }
+    }
+
+    /// Expose generating a NTFS filelisting to the `Accessor`
+    pub(crate) fn walk_ntfs(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Ntfs(source) => source.walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_ntfs requires a ntfs source",
+            )),
+        }
+    }
+
+    /// Expose generating a ZIP filelisting to the `Accessor`
+    pub(crate) fn walk_zip(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Zip(source) => source.walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_zip requires a zip source",
+            )),
+        }
+    }
+
+    /// Expose generating a live system filelisting to the `Accessor`
+    pub(crate) fn walk_host(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Host(_) => HostSource::walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_host requires a host source",
+            )),
         }
     }
 }

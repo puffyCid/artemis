@@ -1,14 +1,18 @@
-use crate::accessor::{
-    config::AccessorConfig,
-    entry::{
-        handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-        locator::SourceId,
+use crate::{
+    accessor::{
+        config::AccessorConfig,
+        entry::{
+            handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+            locator::SourceId,
+        },
+        error::{AccessorError, AccessorResult},
+        filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
+        io::reader::AccessorReader,
+        location::path::InnerPath,
+        source::backend::SourceBackend,
     },
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
-    io::reader::AccessorReader,
-    location::path::InnerPath,
-    source::backend::SourceBackend,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use std::{
     io::{Read, Seek},
@@ -51,6 +55,15 @@ trait NtfsFsBackend: Send {
     fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat>;
     /// Return metadata and timestamps for provided `DirHandle`
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat>;
+    /// Generate a NTFS filelisting
+    fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()>;
 }
 
 impl<T> NtfsFsBackend for NtfsFs<T>
@@ -100,6 +113,17 @@ where
     fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
         self.stat_dir_handle(handle)
     }
+
+    fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        self.walk(inner, options, manager, rule, evidence)
+    }
 }
 
 impl NtfsSource {
@@ -127,6 +151,18 @@ impl NtfsSource {
             max_read_size: config.max_read_size,
             fs: Box::new(NtfsFs::new(volume, 'X')),
         })
+    }
+
+    /// Start walking the NTFS filesystem
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        self.fs.walk(inner, options, manager, rule, evidence)
     }
 }
 

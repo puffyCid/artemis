@@ -1,8 +1,12 @@
 // Full credit to: https://github.com/ColinFinck/ntfs/blob/master/examples/ntfs-shell/sector_reader.rs - MIT/Apache License - 2022-11-07
 
-use crate::accessor::error::{AccessorError, AccessorResult};
+use crate::accessor::{
+    error::{AccessorError, AccessorResult},
+    filesystem::ntfs::security::read_secure,
+};
 use ntfs::Ntfs;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{self, BufReader, Read, Seek, SeekFrom},
     path::PathBuf,
@@ -138,12 +142,14 @@ where
 /// Parsed NTFS volume backed by any `Read` + `Seek` source
 ///
 /// Used for live raw drives (Windows), disk images (any OS), and future image formats
-/// All reads that touch the underlying byte source go through [`Self::with_reader`]
+/// All reads that touch the underlying byte source go through `Self::with_reader`
 pub(crate) struct NtfsVolume<R: Read + Seek + Send> {
     /// Target NTFS volume we are reading
     target_path: String,
     /// `Ntfs` structure we are parsing
     ntfs: Ntfs,
+    /// User and Group SIDs for lookups
+    sids: HashMap<u32, (String, String)>,
     /// Reader being used to access the volume
     reader: Mutex<R>,
 }
@@ -163,30 +169,37 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
                 reason: err.to_string(),
             })?;
 
+        let sids = read_secure(&ntfs, &mut reader)?;
+
         Ok(Self {
             target_path,
             ntfs,
             reader: Mutex::new(reader),
+            sids,
         })
     }
 
     /// Return active `target_path`
-    pub(crate) fn target_path(&self) -> &str {
+    pub(super) fn target_path(&self) -> &str {
         &self.target_path
     }
 
     /// Return information about the `NTFS` volume
-    pub(crate) fn ntfs(&self) -> &Ntfs {
+    pub(super) fn ntfs(&self) -> &Ntfs {
         &self.ntfs
     }
 
     /// Access the `NTFS` reader
-    pub(crate) fn with_reader<F, T>(&self, operation: F) -> AccessorResult<T>
+    pub(super) fn with_reader<F, T>(&self, operation: F) -> AccessorResult<T>
     where
         F: FnOnce(&Ntfs, &mut R) -> AccessorResult<T>,
     {
         let mut reader = self.lock_reader()?;
         operation(&self.ntfs, &mut reader)
+    }
+
+    pub(super) fn sids(&self) -> &HashMap<u32, (String, String)> {
+        &self.sids
     }
 
     /// Ensure our `NTFS` reader is properly locked. Should always be safe since artemis will always be single-threaded
@@ -217,7 +230,7 @@ impl NtfsVolume<BufReader<SectorReader<File>>> {
         }
 
         let drive_upper = drive.to_ascii_uppercase();
-        let device_path = format!(r"\\.\{drive_upper}:");
+        let device_path = format!("\\\\.\\{drive_upper}:");
         let file =
             File::open(&device_path).map_err(|err| AccessorError::io_path(&device_path, err))?;
         let sector_reader =

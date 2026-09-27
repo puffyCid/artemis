@@ -279,10 +279,10 @@ fn read_file(
 
     if let Ok(meta) = accessor.source_stat_handle(source, handle) {
         file_report.size = meta.meta.size;
-        file_report.created = meta.times.created.unwrap_or_default();
-        file_report.modified = meta.times.modified.unwrap_or_default();
-        file_report.accessed = meta.times.accessed.unwrap_or_default();
-        file_report.changed = meta.times.changed.unwrap_or_default();
+        file_report.created = meta.times.created;
+        file_report.modified = meta.times.modified;
+        file_report.accessed = meta.times.accessed;
+        file_report.changed = meta.times.changed;
     }
 
     let hash = grab_file(&mut reader, zip)?;

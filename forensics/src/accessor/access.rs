@@ -1,20 +1,25 @@
-use crate::accessor::{
-    cache::SourceCache,
-    config::AccessorConfig,
-    entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
-    error::AccessorResult,
-    io::reader::AccessorReader,
-    location::loc::Location,
-    source::{
-        factory::{
-            build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
-            open_reader_on_source, parse_inner_path, read_dir_handle_on_source, read_dir_on_source,
-            read_file_handle_on_source, read_file_on_source, source_id_from_dir_locator,
-            source_id_from_file_locator, stat_dir_handle_on_source, stat_handle_on_source,
-            stat_on_source, validate_dir_handle_for_source, validate_file_handle_for_source,
+use crate::{
+    accessor::{
+        cache::SourceCache,
+        config::AccessorConfig,
+        entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
+        error::{AccessorError, AccessorResult},
+        io::reader::AccessorReader,
+        location::loc::Location,
+        source::{
+            factory::{
+                build_source, ensure_source, glob_on_source, open_reader_handle_on_source,
+                open_reader_on_source, parse_inner_path, read_dir_handle_on_source,
+                read_dir_on_source, read_file_handle_on_source, read_file_on_source,
+                source_id_from_dir_locator, source_id_from_file_locator, stat_dir_handle_on_source,
+                stat_handle_on_source, stat_on_source, validate_dir_handle_for_source,
+                validate_file_handle_for_source,
+            },
+            handle::SourceHandle,
         },
-        handle::SourceHandle,
     },
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use tracing::info;
 
@@ -356,6 +361,96 @@ impl Accessor {
         validate_dir_handle_for_source(source.id(), &handle.locator)?;
         stat_dir_handle_on_source(&self.cache, source.id(), handle)
     }
+
+    /// Generate a NTFS filelisting from an opened source
+    pub(crate) fn source_walk_ntfs(
+        &self,
+        source: &SourceHandle,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+    ) -> AccessorResult<()> {
+        info!(
+            "Walk NTFS {} with source {}",
+            options.start_path,
+            source.display()
+        );
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(
+                &options.start_path,
+                "NTFS source is not open",
+            ));
+        };
+
+        backend.walk_ntfs(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
+    }
+
+    /// Generate a ZIP filelisting from an opened source
+    pub(crate) fn source_walk_zip(
+        &self,
+        source: &SourceHandle,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+    ) -> AccessorResult<()> {
+        info!(
+            "Walk ZIP {} with source {}",
+            options.start_path,
+            source.display()
+        );
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(
+                &options.start_path,
+                "ZIP source is not open",
+            ));
+        };
+
+        backend.walk_zip(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
+    }
+
+    /// Generate a live system filelisting from an opened source
+    pub(crate) fn source_walk_host(
+        &self,
+        source: &SourceHandle,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+    ) -> AccessorResult<()> {
+        info!(
+            "Walk Host {} with source {}",
+            options.start_path,
+            source.display()
+        );
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(
+                &options.start_path,
+                "Host source is not open",
+            ));
+        };
+
+        backend.walk_host(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
+    }
 }
 
 #[cfg(test)]
@@ -637,7 +732,7 @@ mod tests {
         test_location.push("tests/test_data/archives/document.odt");
 
         let meta = access.stat(test_location.to_str().unwrap()).unwrap();
-        assert!(meta.times.modified.is_some());
+        assert!(!meta.times.modified.is_empty());
         assert_eq!(meta.meta.size, 10493);
     }
 
@@ -655,12 +750,12 @@ mod tests {
                 let meta = access
                     .stat_dir_handle(entry.handle.as_directory().unwrap())
                     .unwrap();
-                assert!(meta.times.modified.is_some());
+                assert!(!meta.times.modified.is_empty());
 
                 continue;
             } else if entry.is_file() {
                 let meta = access.stat_handle(entry.handle.as_file().unwrap()).unwrap();
-                assert!(meta.times.modified.is_some());
+                assert!(!meta.times.modified.is_empty());
             }
         }
     }
@@ -691,7 +786,7 @@ mod tests {
         let stat = access.stat_handle(file).unwrap();
 
         assert_eq!(stat.meta.filename, "stat.txt");
-        assert!(stat.times.modified.is_some());
+        assert!(!stat.times.modified.is_empty());
     }
 
     #[test]
@@ -708,7 +803,7 @@ mod tests {
 
         assert_eq!(stat.meta.filename, "stat.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);
-        assert!(stat.times.accessed.is_some());
+        assert!(!stat.times.modified.is_empty());
 
         let matches = access
             .source_globfs(&source, &format!("{}/*", dir.display()))
@@ -748,7 +843,7 @@ mod tests {
 
         let file = access.source_stat(&source, "content.xml").unwrap();
         assert_eq!(file.meta.filename, "content.xml");
-        assert!(file.times.modified.is_some());
+        assert!(!file.times.modified.is_empty());
 
         let virt = access.source_stat(&source, "META-INF").unwrap();
         assert_eq!(virt.meta.kind, EntryKind::Directory);
@@ -774,7 +869,7 @@ mod tests {
         let mft = access.source_stat(&source, "$MFT").unwrap();
 
         assert_eq!(mft.meta.filename, "$MFT");
-        assert!(mft.times.filename_modified.is_some());
+        assert!(!mft.times.changed.is_empty());
 
         let entries = access.source_globfs(&source, "*").unwrap();
         let file = entries
@@ -812,7 +907,7 @@ mod tests {
         assert_eq!(stat.meta.kind, EntryKind::Directory);
         assert_eq!(stat.meta.filename, "nested");
 
-        assert!(stat.times.modified.is_some());
+        assert!(!stat.times.modified.is_empty());
     }
 
     #[test]
@@ -827,7 +922,7 @@ mod tests {
 
         assert_eq!(file.meta.filename, "content.xml");
         assert_eq!(file.meta.kind, EntryKind::File);
-        assert!(file.times.modified.is_some());
+        assert!(!file.times.modified.is_empty());
 
         let virt = access
             .stat(&format!("zip:{}!META-INF", archive.display()))

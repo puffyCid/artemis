@@ -1,28 +1,52 @@
-use crate::accessor::{
-    entry::{
-        handle::{
-            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
+use crate::{
+    accessor::{
+        entry::{
+            handle::{
+                DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle,
+                Timestamp,
+            },
+            locator::{DirLocator, FileLocator},
         },
-        locator::{DirLocator, FileLocator},
+        error::{AccessorError, AccessorResult},
+        filesystem::{
+            helper::glob::{
+                DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
+                normalize_glob_pattern, path_component_count,
+            },
+            host::walk::walk_host,
+        },
+        io::reader::{AccessorReader, ReaderLocation},
+        location::{path::InnerPath, scheme::Scheme},
     },
-    error::{AccessorError, AccessorResult},
-    filesystem::helper::glob::{
-        DescendGuard, append_inner_path, glob_max_depth, is_recursive, join_relative,
-        normalize_glob_pattern, path_component_count,
-    },
-    io::reader::{AccessorReader, ReaderLocation},
-    location::{path::InnerPath, scheme::Scheme},
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
-use common::files::EntryKind;
+use common::files::{Attributes, EntryKind};
 use glob::Pattern;
 use std::{
-    fs::{self, File, FileType, Metadata, metadata, read, symlink_metadata},
+    fs::{self, File, FileType, Metadata, OpenOptions, metadata, symlink_metadata},
+    io::{ErrorKind, Read},
     path::{Path, PathBuf},
 };
 use tracing::debug;
 
 #[cfg(target_family = "unix")]
 use crate::utils::time::unixepoch_to_iso_with_nano;
+
+#[cfg(target_family = "unix")]
+use std::os::unix::fs::OpenOptionsExt;
+
+#[cfg(target_os = "linux")]
+const O_NONBLOCK: i32 = 0o4000;
+
+#[cfg(target_os = "macos")]
+const O_NONBLOCK: i32 = 0o4;
+
+#[cfg(all(
+    target_family = "unix",
+    not(any(target_os = "linux", target_os = "macos"))
+))]
+const O_NONBLOCK: i32 = 0o4000;
 
 /// Filesystem reader for a live OS
 ///
@@ -40,6 +64,7 @@ impl HostFs {
         if path.is_symlink() || !path.is_file() {
             return Err(AccessorError::not_a_file(HostFs::display_path(&path)));
         }
+
         let metadata = metadata(&path).map_err(|err| AccessorError::io_path(&path, err))?;
         let size = metadata.len();
         if let Some(limit) = max_read_size
@@ -47,7 +72,23 @@ impl HostFs {
         {
             return Err(AccessorError::file_too_large(size, limit));
         }
-        read(&path).map_err(|err| AccessorError::io_path(&path, err))
+
+        let mut file = HostFs::open(&path)?;
+        let mut buf = Vec::with_capacity(size as usize);
+
+        const SIZE: usize = 65536;
+        let mut tmp = vec![0u8; SIZE].into_boxed_slice();
+        loop {
+            match file.read(&mut tmp) {
+                Ok(0) => break,
+                Ok(bytes) => buf.extend_from_slice(&tmp[..bytes]),
+                Err(err) if err.kind() == ErrorKind::Interrupted => {}
+                Err(err) if err.kind() == ErrorKind::WouldBlock => break,
+                Err(err) => return Err(AccessorError::io_path(&path, err)),
+            }
+        }
+
+        Ok(buf)
     }
 
     /// Read the file reference handle
@@ -113,7 +154,7 @@ impl HostFs {
                 Timestamp::default()
             };
 
-            let meta = EntryMeta::new(kind, metadata.len(), HostFs::display_path(&child_path));
+            let meta = HostFs::entry_meta(kind, &metadata, HostFs::display_path(&child_path));
             entries.push(DirEntry::new(name, handle, meta, times));
         }
 
@@ -189,7 +230,7 @@ impl HostFs {
         }
 
         let location = ReaderLocation::from_scheme(Scheme::Host, HostFs::full_path(&path));
-        let file = File::open(&path).map_err(|err| AccessorError::io_path(path, err))?;
+        let file = HostFs::open(&path)?;
 
         Ok(AccessorReader::host(file, location))
     }
@@ -218,7 +259,7 @@ impl HostFs {
         let kind = HostFs::entry_kind(meta.file_type());
 
         Ok(EntryStat {
-            meta: EntryMeta::new(kind, meta.len(), HostFs::display_path(&path)),
+            meta: HostFs::entry_meta(kind, &meta, HostFs::display_path(&path)),
             times: HostFs::host_times(&meta),
         })
     }
@@ -243,6 +284,31 @@ impl HostFs {
                 handle.display_path()
             ))),
         }
+    }
+
+    /// Output a filelisting from a live system
+    pub(crate) fn walk(
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        walk_host(inner, options, manager, rule, evidence)
+    }
+
+    /// Read a file and try to handle weird file descriptors or blocking files
+    fn open(path: &PathBuf) -> AccessorResult<File> {
+        let mut opts = OpenOptions::new();
+        opts.read(true);
+
+        // Avoid blocking files
+        // Sometimes seen in /proc paths
+        #[cfg(target_family = "unix")]
+        opts.custom_flags(O_NONBLOCK);
+
+        opts.open(path)
+            .map_err(|err| AccessorError::io_path(path, err))
     }
 
     /// Return `PathBuf` from `InnerPath`
@@ -332,9 +398,9 @@ impl HostFs {
             use crate::utils::time::filetime_to_iso;
             use std::os::windows::fs::MetadataExt;
 
-            times.created = Some(filetime_to_iso(meta.creation_time()));
-            times.modified = Some(filetime_to_iso(meta.last_write_time()));
-            times.accessed = Some(filetime_to_iso(meta.last_access_time()));
+            times.created = filetime_to_iso(meta.creation_time());
+            times.modified = filetime_to_iso(meta.last_write_time());
+            times.accessed = filetime_to_iso(meta.last_access_time());
         }
 
         #[cfg(target_os = "linux")]
@@ -345,18 +411,9 @@ impl HostFs {
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
-            times.modified = Some(unixepoch_to_iso_with_nano(
-                meta.st_mtime(),
-                meta.st_mtime_nsec(),
-            ));
-            times.accessed = Some(unixepoch_to_iso_with_nano(
-                meta.st_atime(),
-                meta.st_atime_nsec(),
-            ));
-            times.changed = Some(unixepoch_to_iso_with_nano(
-                meta.st_ctime(),
-                meta.st_ctime_nsec(),
-            ));
+            times.modified = unixepoch_to_iso_with_nano(meta.st_mtime(), meta.st_mtime_nsec());
+            times.accessed = unixepoch_to_iso_with_nano(meta.st_atime(), meta.st_atime_nsec());
+            times.changed = unixepoch_to_iso_with_nano(meta.st_ctime(), meta.st_ctime_nsec());
         }
 
         #[cfg(target_os = "linux")]
@@ -370,29 +427,85 @@ impl HostFs {
                     .unwrap_or_default()
                     .as_micros();
 
-                times.created = Some(unixepoch_microseconds_to_iso(micros as i64));
+                times.created = unixepoch_microseconds_to_iso(micros as i64);
             }
         }
 
         #[cfg(target_os = "macos")]
         {
-            times.created = Some(unixepoch_to_iso_with_nano(
-                meta.st_birthtime(),
-                meta.st_birthtime_nsec(),
-            ));
+            times.created =
+                unixepoch_to_iso_with_nano(meta.st_birthtime(), meta.st_birthtime_nsec());
         }
 
-        #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
-        use std::os::unix::fs::MetadataExt;
-
-        #[cfg(any(target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))]
+        #[cfg(all(unix, not(any(target_os = "linux", target_os = "macos"))))]
         {
-            times.accessed = Some(unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec()));
-            times.modified = Some(unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec()));
-            times.changed = Some(unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec()));
+            use std::os::unix::fs::MetadataExt;
+
+            times.accessed = unixepoch_to_iso_with_nano(meta.atime(), meta.atime_nsec());
+            times.modified = unixepoch_to_iso_with_nano(meta.mtime(), meta.mtime_nsec());
+            times.changed = unixepoch_to_iso_with_nano(meta.ctime(), meta.ctime_nsec());
         }
 
         times
+    }
+
+    /// Return additional metadata based on the OS
+    fn host_ids(meta: &Metadata) -> (u32, u32, u64, Vec<Attributes>) {
+        #[cfg(target_family = "unix")]
+        {
+            use std::os::unix::fs::MetadataExt;
+            (
+                meta.uid(),
+                meta.gid(),
+                meta.ino(),
+                HostFs::attributes(meta.mode()),
+            )
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::fs::MetadataExt;
+            (0, 0, 0, HostFs::attributes(meta.file_attributes()))
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            (0, 0, 0, Vec::new())
+        }
+    }
+
+    /// Return attributes for a entry
+    fn attributes(value: u32) -> Vec<Attributes> {
+        #[cfg(target_os = "windows")]
+        {
+            use crate::accessor::filesystem::helper::attributes::windows_attributes;
+
+            windows_attributes(value)
+        }
+
+        #[cfg(target_family = "unix")]
+        {
+            use crate::accessor::filesystem::helper::attributes::unix_attributes;
+
+            unix_attributes(value)
+        }
+
+        #[cfg(not(any(unix, windows)))]
+        {
+            Vec::new()
+        }
+    }
+
+    /// Return metadata about the file entry
+    fn entry_meta(kind: EntryKind, meta: &Metadata, display_path: String) -> EntryMeta {
+        let (uid, gid, inode, attributes) = HostFs::host_ids(meta);
+        let mut entry = EntryMeta::new(kind, meta.len(), display_path);
+        entry.uid = uid;
+        entry.gid = gid;
+        entry.inode = inode;
+        entry.attributes = attributes;
+
+        entry
     }
 
     /// Determine `EntryKind` based on `FileType`
@@ -439,7 +552,7 @@ mod tests {
     use crate::accessor::{
         entry::handle::{DirHandle, FileHandle},
         error::AccessorError,
-        filesystem::host::HostFs,
+        filesystem::host::api::HostFs,
         location::path::InnerPath,
     };
     use common::files::EntryKind;
@@ -573,7 +686,7 @@ mod tests {
         test_location.push("tests");
         let results = HostFs::stat(&inner(&test_location, "")).unwrap();
 
-        assert!(results.times.modified.is_some());
+        assert!(!results.times.modified.is_empty());
         assert_eq!(results.meta.kind, EntryKind::Directory);
     }
 
@@ -587,7 +700,7 @@ mod tests {
 
         let results = HostFs::stat_handle(&handle).unwrap();
 
-        assert!(results.times.modified.is_some());
+        assert!(!results.times.modified.is_empty());
         assert_eq!(results.meta.kind, EntryKind::File);
     }
 
@@ -600,7 +713,14 @@ mod tests {
 
         let results = HostFs::stat_dir_handle(&handle).unwrap();
 
-        assert!(results.times.modified.is_some());
+        assert!(!results.times.modified.is_empty());
         assert_eq!(results.meta.kind, EntryKind::Directory);
+    }
+
+    #[test]
+    fn test_attributes() {
+        let test = 6225919;
+        let results = HostFs::attributes(test);
+        assert!(!results.is_empty());
     }
 }

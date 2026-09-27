@@ -3,7 +3,7 @@ use crate::accessor::{
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
-use common::files::EntryKind;
+use common::files::{Attributes, EntryKind};
 use std::path::PathBuf;
 
 /// Metadata returned from glob and directory listing.
@@ -21,6 +21,14 @@ pub(crate) struct EntryMeta {
     pub(crate) directory: String,
     /// Extension for the filename if any
     pub(crate) extension: String,
+    /// Unique reference for the entry
+    pub(crate) inode: u64,
+    /// User ID for the entry
+    pub(crate) uid: u32,
+    /// Group ID for the entry
+    pub(crate) gid: u32,
+    /// Attributes for the entry
+    pub(crate) attributes: Vec<Attributes>,
     /// Human readable path to the entry with `Scheme`
     pub(crate) display_path: String,
 }
@@ -39,6 +47,10 @@ impl EntryMeta {
             extension: extension_from_filename(&filename),
             filename,
             display_path: path,
+            uid: 0,
+            gid: 0,
+            inode: 0,
+            attributes: Vec::new(),
         }
     }
 }
@@ -293,14 +305,21 @@ pub(crate) struct EntryStat {
 }
 
 /// Timestamps returned from the `Accessor`
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Timestamp {
-    pub(crate) created: Option<String>,
-    pub(crate) modified: Option<String>,
-    pub(crate) accessed: Option<String>,
-    pub(crate) changed: Option<String>,
-    pub(crate) filename_created: Option<String>,
-    pub(crate) filename_modified: Option<String>,
-    pub(crate) filename_accessed: Option<String>,
-    pub(crate) filename_changed: Option<String>,
+    pub(crate) created: String,
+    pub(crate) modified: String,
+    pub(crate) accessed: String,
+    pub(crate) changed: String,
+}
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Self {
+            created: String::from("1970-01-01T00:00:00.000Z"),
+            modified: String::from("1970-01-01T00:00:00.000Z"),
+            accessed: String::from("1970-01-01T00:00:00.000Z"),
+            changed: String::from("1970-01-01T00:00:00.000Z"),
+        }
+    }
 }

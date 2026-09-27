@@ -10,28 +10,28 @@ use crate::{
             volume::NtfsVolume,
             walk::{
                 get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref,
-                resolve_entry, resolve_file,
+                resolve_entry, resolve_file, walk_ntfs,
             },
             wof::{decompress_wof, is_wof_file},
         },
         io::reader::{AccessorReader, ReaderLocation},
         location::{path::InnerPath, scheme::Scheme},
     },
+    artifacts::os::windows::mft::attributes::filename::Filename,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
     utils::time::filetime_to_iso,
 };
-use common::files::EntryKind;
+use common::{files::EntryKind, windows::Namespace};
 use ntfs::{
-    NtfsAttributeType::FileName,
-    NtfsFile, NtfsReadSeek,
-    attribute_value::NtfsAttributeValue,
-    structured_values::{NtfsFileName, NtfsFileNamespace},
+    NtfsAttributeType::FileName, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
 };
 use std::{cmp::Ordering, fmt, mem};
 use std::{
     io::{self, Read, Seek, SeekFrom},
     sync::Arc,
 };
-use tracing::warn;
+use tracing::{error, warn};
 
 /// A filesystem like accessor that can be used to read files from the raw NTFS
 pub(crate) struct NtfsFs<T: Read + Seek + Send> {
@@ -254,6 +254,26 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
             ))),
         }
     }
+
+    /// Walk the NTFS filesystem and return data through a callback function
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        walk_ntfs(
+            &self.volume,
+            self.drive,
+            inner,
+            options,
+            manager,
+            rule,
+            evidence,
+        )
+    }
 }
 
 /// Return metadata and timetamps for a NTFS entry
@@ -277,7 +297,7 @@ fn stat_from_file<R: Read + Seek>(
 
     Ok(EntryStat {
         meta: EntryMeta::new(kind, size, format!("ntfs:{display_path}")),
-        times: ntfs_times(reader, file)?,
+        times: ntfs_standard_times(file)?,
     })
 }
 
@@ -286,88 +306,78 @@ pub(crate) fn ntfs_standard_times(file: &NtfsFile<'_>) -> AccessorResult<Timesta
     let info = file.info().map_err(ntfs_err)?;
 
     Ok(Timestamp {
-        created: Some(filetime_to_iso(info.creation_time().nt_timestamp())),
-        modified: Some(filetime_to_iso(info.modification_time().nt_timestamp())),
-        accessed: Some(filetime_to_iso(info.access_time().nt_timestamp())),
-        changed: Some(filetime_to_iso(
-            info.mft_record_modification_time().nt_timestamp(),
-        )),
-        ..Default::default()
+        created: filetime_to_iso(info.creation_time().nt_timestamp()),
+        modified: filetime_to_iso(info.modification_time().nt_timestamp()),
+        accessed: filetime_to_iso(info.access_time().nt_timestamp()),
+        changed: filetime_to_iso(info.mft_record_modification_time().nt_timestamp()),
     })
 }
 
-/// Return the 4 FILENAME timestamps
-pub(crate) fn ntfs_filename_times(name: &NtfsFileName) -> Timestamp {
-    Timestamp {
-        filename_created: Some(filetime_to_iso(name.creation_time().nt_timestamp())),
-        filename_modified: Some(filetime_to_iso(name.modification_time().nt_timestamp())),
-        filename_accessed: Some(filetime_to_iso(name.access_time().nt_timestamp())),
-        filename_changed: Some(filetime_to_iso(
-            name.mft_record_modification_time().nt_timestamp(),
-        )),
-        ..Default::default()
-    }
+pub(super) struct FilenameInfo {
+    pub(super) created: String,
+    pub(super) modified: String,
+    pub(super) accessed: String,
+    pub(super) changed: String,
+    pub(super) namespace: Namespace,
+    pub(super) parent_file_record: u32,
+    pub(super) parent_sequence: u16,
 }
 
-/// Return all 8 timestamps
-pub(crate) fn merge_ntfs_times(standard: Timestamp, filename: Timestamp) -> Timestamp {
-    Timestamp {
-        created: standard.created,
-        modified: standard.modified,
-        accessed: standard.accessed,
-        changed: standard.changed,
-        filename_created: filename.filename_created,
-        filename_modified: filename.filename_modified,
-        filename_accessed: filename.filename_accessed,
-        filename_changed: filename.filename_changed,
-    }
-}
-
-/// Extract all 8 timestamps for a NTFS entry
-pub(crate) fn ntfs_times<R: Read + Seek>(
-    reader: &mut R,
+/// Return the FILENAME attribute
+pub(super) fn ntfs_filename_times<R: Read + Seek>(
     file: &NtfsFile<'_>,
-) -> AccessorResult<Timestamp> {
-    let standard = ntfs_standard_times(file)?;
-
-    if let Some(name) = first_non_dos_filename(reader, file)? {
-        return Ok(merge_ntfs_times(standard, ntfs_filename_times(&name)));
-    }
-
-    warn!(
-        "Could not get FILENAME times for record: {}",
-        file.file_record_number()
-    );
-
-    Ok(standard)
-}
-
-/// Extract the FILENAME timestamp for the NTFS entry
-fn first_non_dos_filename<R: Read + Seek>(
     reader: &mut R,
-    file: &NtfsFile<'_>,
-) -> AccessorResult<Option<NtfsFileName>> {
-    let mut attrs = file.attributes();
-    while let Some(attr_value) = attrs.next(reader) {
-        let item = attr_value.map_err(ntfs_err)?;
-        let attr = item.to_attribute().map_err(ntfs_err)?;
+) -> AccessorResult<FilenameInfo> {
+    let mut attr = file.attributes();
+    while let Some(Ok(value)) = attr.next(reader) {
+        let attr_data = value.to_attribute().map_err(ntfs_err)?;
+        let name = attr_data.ty().map_err(ntfs_err)?;
 
-        if attr.ty().map_err(ntfs_err)? != FileName {
+        if name != FileName {
             continue;
         }
 
-        let name = attr
-            .structured_value::<_, NtfsFileName>(reader)
-            .map_err(ntfs_err)?;
+        let mut data = attr_data.value(reader).map_err(ntfs_err)?;
+        let attr_size = data.len();
+        let mut buf = vec![0; attr_size as usize];
+        let bytes = data.read(reader, &mut buf).map_err(ntfs_err)?;
+        if bytes != attr_size as usize {
+            warn!("Read incomplete FILENAME attributes, wanted '{attr_size}' got '{bytes}'");
+        }
 
-        if name.namespace() == NtfsFileNamespace::Dos {
+        let filename = match Filename::parse_filename(&buf) {
+            Ok((_, result)) => result,
+            Err(err) => {
+                error!(
+                    "Failed to parse FILENAME attribute for {}: {err:?}",
+                    file.file_record_number()
+                );
+                continue;
+            }
+        };
+
+        if filename.namespace == Namespace::Dos {
             continue;
         }
 
-        return Ok(Some(name));
+        return Ok(FilenameInfo {
+            created: filetime_to_iso(filename.created),
+            modified: filetime_to_iso(filename.modified),
+            accessed: filetime_to_iso(filename.accessed),
+            changed: filetime_to_iso(filename.changed),
+            namespace: filename.namespace,
+            parent_file_record: filename.parent_mft,
+            parent_sequence: filename.parent_sequence,
+        });
     }
 
-    Ok(None)
+    Err(AccessorError::Ntfs {
+        path: None,
+        reason: format!(
+            "Failed to find FILENAME attribute for: {}",
+            file.file_record_number()
+        ),
+    })
 }
 
 /// Create a reader to stream large files by accessing the raw NTFS filesystem
@@ -1150,13 +1160,9 @@ mod tests {
 
         assert_eq!(stat.meta.filename, "hello world.txt");
         assert_eq!(stat.meta.kind, EntryKind::File);
-        assert!(stat.times.accessed.is_some());
-        assert!(stat.times.created.is_some());
-        assert!(stat.times.changed.is_some());
-        assert!(stat.times.modified.is_some());
-
-        assert!(stat.times.filename_accessed.is_some());
-        assert!(stat.times.filename_changed.is_some());
-        assert!(stat.times.filename_created.is_some());
+        assert!(!stat.times.accessed.is_empty());
+        assert!(!stat.times.created.is_empty());
+        assert!(!stat.times.changed.is_empty());
+        assert!(!stat.times.modified.is_empty());
     }
 }
