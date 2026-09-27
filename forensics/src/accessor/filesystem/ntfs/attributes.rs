@@ -1,8 +1,11 @@
-use crate::accessor::{
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::walk::ntfs_err,
+use crate::{
+    accessor::{
+        error::{AccessorError, AccessorResult},
+        filesystem::ntfs::walk::ntfs_err,
+    },
+    utils::nom_helper::{Endian, nom_unsigned_four_bytes},
 };
-use common::windows::ADSInfo;
+use common::{files::ReparseType, windows::ADSInfo};
 use ntfs::{
     Ntfs, NtfsAttributeType, NtfsFile, NtfsReadSeek, attribute_value::NtfsAttributeValue,
     structured_values::NtfsAttributeList,
@@ -260,8 +263,83 @@ pub(super) fn list_ads_names<T: Read + Seek>(
     Ok(ads)
 }
 
+/// Get the Reparse value type
+pub(crate) fn get_reparse_type(data: &[u8]) -> AccessorResult<ReparseType> {
+    let tag = match nom_unsigned_four_bytes(data, Endian::Le) {
+        Ok((_, result)) => result,
+        Err(_err) => return Ok(ReparseType::None),
+    };
+
+    Ok(reparse_type(tag))
+}
+
+/// Determine Reparse Type
+fn reparse_type(tag: u32) -> ReparseType {
+    match tag {
+        0x00000000 => ReparseType::Reserved,
+        0x00000001 => ReparseType::ReservedOne,
+        0x00000002 => ReparseType::ReservedTwo,
+        0xA0000003 => ReparseType::MountPoint,
+        0xC0000004 => ReparseType::HierarchicalStorageManagement,
+        0x80000005 => ReparseType::DriveExtender,
+        0x80000006 => ReparseType::HierarchicalStorageManagement2,
+        0x80000007 => ReparseType::SingleInstanceStorage,
+        0x80000008 => ReparseType::Wim,
+        0x80000009 => ReparseType::ClusteredSharedVolume,
+        0x8000000A => ReparseType::DistributedFileSystem,
+        0x8000000B => ReparseType::FilterManager,
+        0xA000000C => ReparseType::SymbolicLink,
+        0xA0000010 => ReparseType::IisCache,
+        0x80000012 => ReparseType::DistributedFileSystemReplication,
+        0x80000013 => ReparseType::Dedup,
+        0xC0000014 => ReparseType::Appxstrm,
+        0x80000014 => ReparseType::NetworkFileSystem,
+        0x80000015 => ReparseType::FilePlaceholder,
+        0x80000016 => ReparseType::DynamicFilter,
+        0x80000017 => ReparseType::Wof,
+        0x80000018 => ReparseType::WindowsContainerIsolation,
+        0x90001018 => ReparseType::WindowsContainerIsolation1,
+        0xA0000019 => ReparseType::GlobalReparse,
+        0x9000001A => ReparseType::Cloud,
+        0x9000101A => ReparseType::Cloud1,
+        0x9000201A => ReparseType::Cloud2,
+        0x9000301A => ReparseType::Cloud3,
+        0x9000401A => ReparseType::Cloud4,
+        0x9000501A => ReparseType::Cloud5,
+        0x9000601A => ReparseType::Cloud6,
+        0x9000701A => ReparseType::Cloud7,
+        0x9000801A => ReparseType::Cloud8,
+        0x9000901A => ReparseType::Cloud9,
+        0x9000A01A => ReparseType::CloudA,
+        0x9000B01A => ReparseType::CloudB,
+        0x9000C01A => ReparseType::CloudC,
+        0x9000D01A => ReparseType::CloudD,
+        0x9000E01A => ReparseType::CloudE,
+        0x9000F01A => ReparseType::CloudF,
+        0x8000001B => ReparseType::AppExecLink,
+        0x9000001C => ReparseType::ProjectedFileSystem,
+        0xA000001D => ReparseType::LinuxSymbolicLink,
+        0x8000001E => ReparseType::StorageSync,
+        0x90000027 => ReparseType::StorageSyncFolder,
+        0xA000001F => ReparseType::WindowsContainerTombstone,
+        0x80000020 => ReparseType::Unhandled,
+        0x80000021 => ReparseType::Onedrive,
+        0xA0000022 => ReparseType::ProjectFileSystemTombstone,
+        0x80000023 => ReparseType::AfUnix,
+        0x80000024 => ReparseType::LinuxFifo,
+        0x80000025 => ReparseType::LinuxChar,
+        0x80000026 => ReparseType::LinuxBlock,
+        0xA0000027 => ReparseType::LinuxLink,
+        0xA0001027 => ReparseType::LinuxLink1,
+        _ => ReparseType::None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::accessor::filesystem::ntfs::attributes::reparse_type;
+    use common::files::ReparseType;
+
     #[test]
     #[cfg(target_os = "windows")]
     fn test_read_usnjrnl() {
@@ -282,5 +360,23 @@ mod tests {
         // The UsnJrnl has sparse data that is often ~10GB in size
         // We should be skipping sparse data
         assert!(bytes.len() < 1024 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_reparse_type() {
+        let test = [
+            0x00000000, 0x00000001, 0x00000002, 0xA0000003, 0xC0000004, 0x80000005, 0x80000006,
+            0x80000007, 0x80000008, 0x80000009, 0x8000000A, 0x8000000B, 0xA000000C, 0xA0000010,
+            0x80000012, 0x80000013, 0xC0000014, 0x80000014, 0x80000015, 0x80000016, 0x80000017,
+            0x80000018, 0x90001018, 0xA0000019, 0x9000001A, 0x9000101A, 0x9000201A, 0x9000301A,
+            0x9000401A, 0x9000501A, 0x9000601A, 0x9000701A, 0x9000801A, 0x9000901A, 0x9000A01A,
+            0x9000B01A, 0x9000C01A, 0x9000D01A, 0x9000E01A, 0x9000F01A, 0x8000001B, 0x9000001C,
+            0xA000001D, 0x8000001E, 0x90000027, 0xA000001F, 0x80000020, 0x80000021, 0xA0000022,
+            0x80000023, 0x80000024, 0x80000025, 0x80000026, 0xA0000027, 0xA0001027,
+        ];
+        for entry in test {
+            assert_ne!(reparse_type(entry), ReparseType::None);
+        }
+        assert_eq!(reparse_type(0xff), ReparseType::None);
     }
 }

@@ -33,9 +33,8 @@ artifact_name = "bits"
 carve = true
 
 [[artifacts]]
-artifact_name = "rawfiles"
-[artifacts.rawfiles]
-drive_letter = 'C'
+artifact_name = "files"
+[artifacts.files]
 start_path = "C:\\Users\\"
 depth = 3
 recover_indx = false
@@ -45,6 +44,7 @@ sha256 = false
 metadata = false
 path_regex = ""
 filename_regex = ""
+source = "ntfs:C"
 
 [[artifacts]]
 artifact_name = "registry" # Parses the whole Registry file

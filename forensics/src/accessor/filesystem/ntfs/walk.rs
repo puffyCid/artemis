@@ -8,7 +8,9 @@ use crate::{
         filesystem::{
             helper::attributes::windows_attributes,
             ntfs::{
-                attributes::{list_ads_names, read_named_data},
+                attributes::{
+                    get_reparse_type, list_ads_names, read_named_data, read_reparse_data,
+                },
                 data::{
                     display_ntfs_path, inner_to_ntfs_path, ntfs_filename_times, ntfs_standard_times,
                 },
@@ -32,7 +34,7 @@ use crate::{
 };
 use base16ct::lower::encode_str;
 use common::{
-    files::{EntryKind, FileNtfsInfo, Hashes},
+    files::{Attributes, EntryKind, FileNtfsInfo, Hashes},
     windows::CompressionType,
 };
 use digest_io::IoWrapper;
@@ -320,7 +322,7 @@ fn fill_ntfs_entry<R: Read + Seek>(
     }
 
     let scheme_path = format!("ntfs:{display_path}");
-    let info = FileNtfsInfo {
+    let mut info = FileNtfsInfo {
         full_path: display_path.to_string(),
         directory: directory_from_display(&scheme_path),
         filename: name.to_string(),
@@ -354,6 +356,13 @@ fn fill_ntfs_entry<R: Read + Seek>(
         drive: format!("{}:", listing.drive),
         ..Default::default()
     };
+
+    if info.attributes.contains(&Attributes::ReparsePoint)
+        && let Ok(bytes) = read_reparse_data(reader, file)
+        && let Ok(tag) = get_reparse_type(&bytes)
+    {
+        info.reparse_type = tag;
+    }
 
     Ok(info)
 }
