@@ -132,6 +132,10 @@ mod tests {
                 filename: String::new(),
                 extension: String::new(),
                 directory: String::new(),
+                inode: 0,
+                uid: 0,
+                gid: 0,
+                attributes: Vec::new(),
             },
         }];
 

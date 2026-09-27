@@ -348,7 +348,10 @@ pub(super) fn ntfs_filename_times<R: Read + Seek>(
         let filename = match Filename::parse_filename(&buf) {
             Ok((_, result)) => result,
             Err(err) => {
-                error!("Failed to parse FILENAME attribute: {err:?}");
+                error!(
+                    "Failed to parse FILENAME attribute for {}: {err:?}",
+                    file.file_record_number()
+                );
                 continue;
             }
         };
@@ -370,7 +373,10 @@ pub(super) fn ntfs_filename_times<R: Read + Seek>(
 
     Err(AccessorError::Ntfs {
         path: None,
-        reason: String::from("Failed to find FILENAME attribute"),
+        reason: format!(
+            "Failed to find FILENAME attribute for: {}",
+            file.file_record_number()
+        ),
     })
 }
 

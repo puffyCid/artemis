@@ -128,7 +128,7 @@ fn parse_sii(data: &[u8], record_size: u32) -> nom::IResult<&[u8], Vec<SecurityI
     let mut sii_data = data;
     let mut sids: Vec<SecurityIDs> = Vec::new();
 
-    while !sii_data.is_empty() && sii_data.len() > record_size as usize {
+    while !sii_data.is_empty() && sii_data.len() >= record_size as usize {
         // Get size of record
         let (remaining_data, sid_record_data) = take(record_size)(sii_data)?;
         sii_data = remaining_data;
@@ -211,7 +211,7 @@ fn parse_sds<'a>(
         }
 
         let (_, sid_user) = parse_sid(offset_sid, data_sid)?;
-        let (_, sid_group) = parse_sid(offset_group, data_sid).unwrap();
+        let (_, sid_group) = parse_sid(offset_group, data_sid)?;
 
         // Skip not found SIDs
         if !sid_user.contains("S-1-") || !sid_group.contains("S-1-") {

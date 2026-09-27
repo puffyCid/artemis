@@ -350,15 +350,13 @@ fn enrich_zip_file(
         return Ok(true);
     }
 
-    if zip_info.size > YARA_MAX_SIZE {
+    if want_yara && zip_info.size > YARA_MAX_SIZE {
         info!(
             "Skipping file {}. File size is {} vs 50MB max scans size",
             zip_info.display_path, zip_info.size
         );
-        if want_yara {
-            return Ok(false);
-        }
-        return Ok(true);
+
+        return Ok(false);
     }
 
     let bytes = match fs.read_entry_bytes(record.index) {
@@ -439,11 +437,6 @@ fn parse_zip_binary(bytes: Vec<u8>, display_path: &str) -> Value {
 /// Track the `FilesZipInfo` batch entries
 /// Once we hit the max limit we output our results
 fn push_row(listing: &mut ZipListing<'_>, info: FilesZipInfo) {
-    info!(
-        "ZIP listing start '{}'. Current Directory: '{}'",
-        listing.start, info.directory
-    );
-
     listing.batch.push(info);
 
     if listing.batch.len() >= listing.max_list {

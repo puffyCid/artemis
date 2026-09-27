@@ -218,6 +218,7 @@ fn enrich_host_file(
             "Skipping file {}. File size is {} vs 50MB max scans size",
             host_info.display_path, host_info.size
         );
+
         return Ok(false);
     }
 
