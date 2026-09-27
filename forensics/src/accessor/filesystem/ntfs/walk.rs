@@ -947,6 +947,7 @@ mod tests {
 
         assert_eq!(main.meta.kind, EntryKind::File);
         assert_eq!(main.meta.size, 514);
+
         assert!(!main.times.created.is_empty());
         assert!(!main.times.modified.is_empty());
         assert!(!main.times.accessed.is_empty());
