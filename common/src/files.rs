@@ -237,6 +237,7 @@ pub struct FileNtfsInfo {
     pub group_sid: String,
     pub drive: String,
     pub reparse_type: ReparseType,
+    pub is_indx: bool,
     pub evidence: String,
 }
 
