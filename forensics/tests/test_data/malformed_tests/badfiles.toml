@@ -14,3 +14,4 @@ md5 = true
 sha1 = false
 sha256 = false
 regex_filter = ""
+verbose = false

@@ -27,6 +27,7 @@ sha1 = false
 sha256 = false
 regex_filter = ""
 source = "host:"
+verbose = false
 
 [[artifacts]]
 artifact_name = "systeminfo"
