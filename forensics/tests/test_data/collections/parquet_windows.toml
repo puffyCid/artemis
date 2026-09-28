@@ -37,7 +37,7 @@ artifact_name = "files"
 [artifacts.files]
 start_path = "C:\\Users\\"
 depth = 3
-recover_indx = false
+verbose = false
 md5 = false
 sha1 = false
 sha256 = false

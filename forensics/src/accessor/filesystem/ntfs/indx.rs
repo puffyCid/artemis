@@ -153,32 +153,33 @@ fn parse_indx_slack(data: &[u8]) -> nom::IResult<&[u8], Vec<IndxSlackEntry>> {
             };
 
             let (inode, sequence_number) = child_mft_reference(prefix);
-            match Filename::parse_filename(slack_entry) {
-                Ok((remaining, filename)) => {
-                    indx_slack_data = remaining;
-                    if filename.name.is_empty() {
-                        break;
-                    }
+            if let Ok((remaining, filename)) = Filename::parse_filename(slack_entry) {
+                indx_slack_data = remaining;
+                if filename.name.is_empty() {
+                    break;
+                }
 
-                    slack.push(IndxSlackEntry {
-                        filename: filename.name,
-                        created: filename.created,
-                        modified: filename.modified,
-                        changed: filename.changed,
-                        accessed: filename.accessed,
-                        size: filename.size,
-                        flags: filename.file_attributes_data,
-                        inode,
-                        sequence_number,
-                        parent_mft_reference: filename.parent_mft,
-                        parent_sequence_number: filename.parent_sequence,
-                        namespace: filename.namespace,
-                    });
+                if filename.namespace == Namespace::Dos {
+                    continue;
                 }
-                Err(_) => {
-                    let (remaining, _) = take(size_of::<u64>())(slack_entry)?;
-                    indx_slack_data = remaining;
-                }
+
+                slack.push(IndxSlackEntry {
+                    filename: filename.name,
+                    created: filename.created,
+                    modified: filename.modified,
+                    changed: filename.changed,
+                    accessed: filename.accessed,
+                    size: filename.size,
+                    flags: filename.file_attributes_data,
+                    inode,
+                    sequence_number,
+                    parent_mft_reference: filename.parent_mft,
+                    parent_sequence_number: filename.parent_sequence,
+                    namespace: filename.namespace,
+                });
+            } else {
+                let (remaining, _) = take(size_of::<u64>())(slack_entry)?;
+                indx_slack_data = remaining;
             }
         }
 

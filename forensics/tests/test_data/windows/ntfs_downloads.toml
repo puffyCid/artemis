@@ -10,15 +10,15 @@ collection_id = 1
 destination = "local"
 
 [[artifacts]]
-artifact_name = "rawfiles"
-[artifacts.rawfiles]
-drive_letter = 'C'
+artifact_name = "files"
+[artifacts.files]
 start_path = "C:\\Users"
 depth = 5
-recover_indx = false
+verbose = false
 md5 = false
 sha1 = false
 sha256 = false
 metadata = true
 path_regex = ".*\\\\Downloads\\\\"
 filename_regex = ""
+source = "ntfs:C"
