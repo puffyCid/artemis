@@ -387,7 +387,7 @@ mod tests {
 
         assert_eq!(info.created, "2022-11-09T04:43:46.905Z");
         assert_eq!(info.modified, "2022-11-09T04:43:56.208Z");
-        assert_eq!(info.created, "");
+        assert_eq!(info.filename_created, "");
         assert_eq!(info.kind, EntryKind::File);
 
         assert_eq!(info.inode, 8589934608);
