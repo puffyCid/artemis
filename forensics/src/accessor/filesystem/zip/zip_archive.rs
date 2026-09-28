@@ -154,7 +154,7 @@ impl ZipIndex {
 /// A filesystem like accessor that can be used to read files from a zip file
 pub(crate) struct ZipFs {
     /// Index of the file we want to access
-    pub(crate) index: ZipIndex,
+    pub(super) index: ZipIndex,
     archive: Mutex<ZipArchive<File>>,
 }
 
