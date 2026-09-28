@@ -276,7 +276,7 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                 warn!("Could not descend into {display_path}: {err:?}");
             }
             listing.depth -= 1;
-
+            
             if listing.options.verbose {
                 append_indx_slack(reader, &file, &display_path, listing);
             }

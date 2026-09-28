@@ -159,10 +159,6 @@ fn parse_indx_slack(data: &[u8]) -> nom::IResult<&[u8], Vec<IndxSlackEntry>> {
                     break;
                 }
 
-                if filename.namespace == Namespace::Dos {
-                    continue;
-                }
-
                 slack.push(IndxSlackEntry {
                     filename: filename.name,
                     created: filename.created,
@@ -288,10 +284,6 @@ fn slack_to_file_info(
         drive: format!("{drive}:"),
         evidence: evidence.to_string(),
         is_indx: true,
-        filename_created: String::from("1970-01-01T00:00:00.000Z"),
-        filename_changed: String::from("1970-01-01T00:00:00.000Z"),
-        filename_accessed: String::from("1970-01-01T00:00:00.000Z"),
-        filename_modified: String::from("1970-01-01T00:00:00.000Z"),
         ..Default::default()
     }
 }
@@ -393,8 +385,8 @@ mod tests {
         assert_eq!(info.filename, "test.aut");
         assert_eq!(info.extension, "aut");
 
-        assert_eq!(info.filename_created, "2022-11-09T04:43:46.905Z");
-        assert_eq!(info.filename_modified, "2022-11-09T04:43:56.208Z");
+        assert_eq!(info.created, "2022-11-09T04:43:46.905Z");
+        assert_eq!(info.modified, "2022-11-09T04:43:56.208Z");
         assert_eq!(info.created, "");
         assert_eq!(info.kind, EntryKind::File);
 
