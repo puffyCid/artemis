@@ -42,12 +42,11 @@ pub(super) fn walk_host(
     let file_filter = create_regex(options.filename_regex.as_deref().unwrap_or(""))
         .map_err(|_err| AccessorError::location(&options.start_path, "invalid filename_regex"))?;
 
-    let max_list =
-        if options.metadata.is_some_and(|b| b) || manager.config.format == OutputFormat::Timeline {
-            1000
-        } else {
-            10000
-        };
+    let max_list = if options.metadata || manager.config.format == OutputFormat::Timeline {
+        1000
+    } else {
+        10000
+    };
 
     let mut listing = HostListing {
         options,
@@ -57,9 +56,9 @@ pub(super) fn walk_host(
         path_filter,
         file_filter,
         hashes: Hashes {
-            md5: options.md5.unwrap_or_default(),
-            sha1: options.sha1.unwrap_or_default(),
-            sha256: options.sha256.unwrap_or_default(),
+            md5: options.md5,
+            sha1: options.sha1,
+            sha256: options.sha256,
         },
         exclude: &exclude,
         max_list,
@@ -201,7 +200,7 @@ fn enrich_host_file(
     listing: &HostListing<'_>,
 ) -> AccessorResult<bool> {
     let want_hash = listing.hashes.md5 || listing.hashes.sha1 || listing.hashes.sha256;
-    let want_bin = listing.options.metadata.is_some_and(|b| b);
+    let want_bin = listing.options.metadata;
 
     #[cfg(feature = "yarax")]
     let want_yara = !listing.yara_rule.is_empty();
@@ -526,9 +525,9 @@ mod tests {
         write_file(&dir, "hello.txt", b"hello world\n");
 
         let mut options = listing_options(&dir, 1);
-        options.md5 = Some(true);
-        options.sha1 = Some(true);
-        options.sha256 = Some(true);
+        options.md5 = true;
+        options.sha1 = true;
+        options.sha256 = true;
         let (_, rows) = walk_rows("host_walk_hash", &options);
 
         let hello = rows

@@ -54,6 +54,9 @@ pub(crate) enum CommandArgs {
         /// Source for filelisting
         #[arg(long, default_value = "host:")]
         source: String,
+        /// Include verbose data
+        #[arg(long)]
+        verbose: bool,
     },
     /// Get systeminfo
     Systeminfo {},
