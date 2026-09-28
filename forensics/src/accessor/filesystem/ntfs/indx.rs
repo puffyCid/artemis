@@ -1,3 +1,11 @@
+use crate::{
+    accessor::{
+        filesystem::{helper::attributes::windows_attributes, ntfs::attributes::read_value_bytes},
+        io::reader::{directory_from_display, extension_from_filename},
+    },
+    artifacts::os::windows::mft::attributes::filename::Filename,
+    utils::time::filetime_to_iso,
+};
 use common::{
     files::{Attributes, EntryKind, FileNtfsInfo},
     windows::Namespace,
@@ -9,15 +17,6 @@ use nom::{
 use ntfs::{NtfsAttributeType, NtfsFile};
 use std::io::{Read, Seek};
 use tracing::warn;
-
-use crate::{
-    accessor::{
-        filesystem::{helper::attributes::windows_attributes, ntfs::attributes::read_value_bytes},
-        io::reader::{directory_from_display, extension_from_filename},
-    },
-    artifacts::os::windows::mft::attributes::filename::Filename,
-    utils::time::filetime_to_iso,
-};
 
 pub(super) fn recover_indx_slack<R: Read + Seek>(
     reader: &mut R,
@@ -140,6 +139,11 @@ fn parse_indx_slack(data: &[u8]) -> nom::IResult<&[u8], Vec<IndxSlackEntry>> {
             get_mft_parent_reference(indx_data)?;
 
         let (indx_slack, _) = take(record_size)(indx_data)?;
+
+        if allocated_size < record_size {
+            break;
+        }
+
         let (_, mut indx_slack_data) = take(allocated_size - record_size)(indx_slack)?;
 
         while !indx_slack_data.is_empty() {
@@ -154,10 +158,6 @@ fn parse_indx_slack(data: &[u8]) -> nom::IResult<&[u8], Vec<IndxSlackEntry>> {
                     indx_slack_data = remaining;
                     if filename.name.is_empty() {
                         break;
-                    }
-
-                    if filename.namespace == Namespace::Dos {
-                        continue;
                     }
 
                     slack.push(IndxSlackEntry {
@@ -176,7 +176,7 @@ fn parse_indx_slack(data: &[u8]) -> nom::IResult<&[u8], Vec<IndxSlackEntry>> {
                     });
                 }
                 Err(_) => {
-                    let (_, remaining) = take(size_of::<u64>())(slack_entry)?;
+                    let (remaining, _) = take(size_of::<u64>())(slack_entry)?;
                     indx_slack_data = remaining;
                 }
             }
@@ -270,10 +270,10 @@ fn slack_to_file_info(
         directory: directory_from_display(&scheme_path),
         filename: entry.filename.clone(),
         extension: extension_from_filename(&entry.filename),
-        filename_created: filetime_to_iso(entry.created),
-        filename_modified: filetime_to_iso(entry.modified),
-        filename_changed: filetime_to_iso(entry.changed),
-        filename_accessed: filetime_to_iso(entry.accessed),
+        created: filetime_to_iso(entry.created),
+        modified: filetime_to_iso(entry.modified),
+        changed: filetime_to_iso(entry.changed),
+        accessed: filetime_to_iso(entry.accessed),
         attributes,
         size: entry.size,
         kind,
@@ -287,6 +287,10 @@ fn slack_to_file_info(
         drive: format!("{drive}:"),
         evidence: evidence.to_string(),
         is_indx: true,
+        filename_created: String::from("1970-01-01T00:00:00.000Z"),
+        filename_changed: String::from("1970-01-01T00:00:00.000Z"),
+        filename_accessed: String::from("1970-01-01T00:00:00.000Z"),
+        filename_modified: String::from("1970-01-01T00:00:00.000Z"),
         ..Default::default()
     }
 }

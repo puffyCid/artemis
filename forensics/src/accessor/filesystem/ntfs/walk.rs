@@ -14,6 +14,7 @@ use crate::{
                 data::{
                     display_ntfs_path, inner_to_ntfs_path, ntfs_filename_times, ntfs_standard_times,
                 },
+                indx::recover_indx_slack,
                 volume::NtfsVolume,
                 wof::{decompress_wof, is_wof_file},
             },
@@ -275,6 +276,10 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                 warn!("Could not descend into {display_path}: {err:?}");
             }
             listing.depth -= 1;
+
+            if listing.options.verbose {
+                append_indx_slack(reader, &file, &display_path, listing);
+            }
         }
     }
 
@@ -377,6 +382,44 @@ fn wof_compressed_size<R: Read + Seek>(reader: &mut R, file: &NtfsFile<'_>) -> A
         .to_attribute()
         .map_err(ntfs_err)?
         .value_length())
+}
+
+/// Carve INDX entries from slack space
+fn append_indx_slack<R: Read + Seek>(
+    reader: &mut R,
+    dir: &NtfsFile<'_>,
+    parent: &str,
+    listing: &mut NtfsListing<'_>,
+) {
+    for info in recover_indx_slack(
+        reader,
+        dir,
+        parent,
+        listing.depth as usize,
+        listing.drive,
+        listing.evidence,
+    ) {
+        if listing.exclude.contains(&info.full_path) {
+            continue;
+        }
+
+        if listing.options.path_regex.is_some()
+            && !regex_check(&listing.path_filter, &info.full_path)
+        {
+            continue;
+        }
+
+        if listing.options.filename_regex.is_some()
+            && !regex_check(&listing.file_filter, &info.filename)
+        {
+            continue;
+        }
+
+        listing.batch.push(info);
+        if listing.batch.len() >= listing.max_list {
+            ntfs_output(take(&mut listing.batch), listing.manager, listing.options);
+        }
+    }
 }
 
 /// If PE parsing or Yara scanning enabled
