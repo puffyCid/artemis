@@ -22,3 +22,4 @@ path_regex = ""                                                                 
 filename_regex = ""                                                                                                                           # Regex for files
 yara = "cnVsZSBBcHBsZVJ1bGUgewogICAgc3RyaW5nczoKICAgICAgJHZhbHVlID0gIkFwcGxlIiBub2Nhc2UKCiAgICBjb25kaXRpb246CiAgICAgIGFsbCBvZiB0aGVtCn0="
 source = "host:"                                                                                                                          # Accessor source
+verbose = false

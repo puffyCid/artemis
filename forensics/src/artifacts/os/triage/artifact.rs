@@ -492,8 +492,8 @@ mod tests {
         let source = accessor.open_source("host:").unwrap();
 
         let report = read_file(&handle, &mut accessor, &source, &mut zip).unwrap();
-        assert_eq!(report.md5, "1a5c4b6f53a5b884bd0e3cb7e694ee76");
-        assert_eq!(report.size, 657);
+        assert_eq!(report.md5, "328147abe9d4c082b4641982429786b8");
+        assert_eq!(report.size, 673);
     }
 
     #[test]

@@ -26,3 +26,4 @@ sha256 = false                                   # SHA256 all files
 path_regex = ""                                  # Regex for paths
 filename_regex = ""                                  # Regex for files
 source = "host:"
+verbose = false

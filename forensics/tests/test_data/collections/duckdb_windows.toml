@@ -44,6 +44,7 @@ metadata = false
 path_regex = ""
 filename_regex = ""
 source = "ntfs:C"
+verbose = false
 
 [[artifacts]]
 artifact_name = "registry" # Parses the whole Registry file

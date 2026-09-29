@@ -14,6 +14,7 @@ use crate::{
                 data::{
                     display_ntfs_path, inner_to_ntfs_path, ntfs_filename_times, ntfs_standard_times,
                 },
+                indx::recover_indx_slack,
                 volume::NtfsVolume,
                 wof::{decompress_wof, is_wof_file},
             },
@@ -80,12 +81,11 @@ pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
     let file_filter = create_regex(options.filename_regex.as_deref().unwrap_or(""))
         .map_err(|_err| AccessorError::location(&options.start_path, "invalid filename_regex"))?;
 
-    let max_list =
-        if options.metadata.is_some_and(|b| b) || manager.config.format == OutputFormat::Timeline {
-            1000
-        } else {
-            10000
-        };
+    let max_list = if options.metadata || manager.config.format == OutputFormat::Timeline {
+        1000
+    } else {
+        10000
+    };
 
     let mut listing = NtfsListing {
         options,
@@ -95,9 +95,9 @@ pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
         path_filter,
         file_filter,
         hashes: Hashes {
-            md5: options.md5.unwrap_or_default(),
-            sha1: options.sha1.unwrap_or_default(),
-            sha256: options.sha256.unwrap_or_default(),
+            md5: options.md5,
+            sha1: options.sha1,
+            sha256: options.sha256,
         },
         exclude: &exclude,
         max_list,
@@ -276,6 +276,10 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
                 warn!("Could not descend into {display_path}: {err:?}");
             }
             listing.depth -= 1;
+
+            if listing.options.verbose {
+                append_indx_slack(reader, &file, &display_path, listing);
+            }
         }
     }
 
@@ -380,6 +384,44 @@ fn wof_compressed_size<R: Read + Seek>(reader: &mut R, file: &NtfsFile<'_>) -> A
         .value_length())
 }
 
+/// Carve INDX entries from slack space
+fn append_indx_slack<R: Read + Seek>(
+    reader: &mut R,
+    dir: &NtfsFile<'_>,
+    parent: &str,
+    listing: &mut NtfsListing<'_>,
+) {
+    for info in recover_indx_slack(
+        reader,
+        dir,
+        parent,
+        listing.depth as usize,
+        listing.drive,
+        listing.evidence,
+    ) {
+        if listing.exclude.contains(&info.full_path) {
+            continue;
+        }
+
+        if listing.options.path_regex.is_some()
+            && !regex_check(&listing.path_filter, &info.full_path)
+        {
+            continue;
+        }
+
+        if listing.options.filename_regex.is_some()
+            && !regex_check(&listing.file_filter, &info.filename)
+        {
+            continue;
+        }
+
+        listing.batch.push(info);
+        if listing.batch.len() >= listing.max_list {
+            ntfs_output(take(&mut listing.batch), listing.manager, listing.options);
+        }
+    }
+}
+
 /// If PE parsing or Yara scanning enabled
 /// Try to parse the file
 ///
@@ -394,7 +436,7 @@ fn enrich_ntfs_file<R: Read + Seek>(
     listing: &NtfsListing<'_>,
 ) -> AccessorResult<bool> {
     let want_hash = listing.hashes.md5 || listing.hashes.sha1 || listing.hashes.sha256;
-    let want_pe = listing.options.metadata.is_some_and(|b| b);
+    let want_pe = listing.options.metadata;
 
     #[cfg(feature = "yarax")]
     let want_yara = !listing.yara_rule.is_empty();
@@ -1048,9 +1090,9 @@ mod tests {
     #[test]
     fn test_walk_ntfs_hashes_match_file_bytes() {
         let mut options = listing_options(2);
-        options.md5 = Some(true);
-        options.sha1 = Some(true);
-        options.sha256 = Some(true);
+        options.md5 = true;
+        options.sha1 = true;
+        options.sha256 = true;
 
         let (_, rows) = walk_test_image("ntfs_walk_hash", &options);
         let hello = rows

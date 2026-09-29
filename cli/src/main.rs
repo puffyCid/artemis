@@ -224,6 +224,7 @@ mod tests {
                     exclude_directories: None,
                     yara_rule: None,
                     source: String::from("host:"),
+                    verbose: false,
                 }),
                 format: String::from("json"),
                 output_dir: String::from("./tmp"),
