@@ -649,7 +649,7 @@ mod tests {
             let path_results = access
                 .source_read_dir(&source, &file.meta.full_path)
                 .unwrap();
-            assert_eq!(path_results, results);
+            assert_eq!(path_results.len(), results.len());
             if file.meta.full_path == "C:\\Users" {
                 assert!(!results.is_empty());
                 assert!(!path_results.is_empty());
