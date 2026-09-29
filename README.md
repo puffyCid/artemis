@@ -57,7 +57,6 @@ Commands:
   systeminfo           Get systeminfo
   prefetch             windows: Parse Prefetch
   eventlogs            windows: Parse EventLogs
-  rawfilelisting       windows: Parse NTFS to get filelisting
   shimdb               windows: Parse ShimDatabase
   registry             windows: Parse Registry
   userassist           windows: Parse Userassist

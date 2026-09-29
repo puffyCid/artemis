@@ -16,21 +16,6 @@ pub struct EventLogsOptions {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct RawFilesOptions {
-    pub drive_letter: char,
-    pub start_path: String,
-    pub depth: u8,
-    /**Extract deleted indx entries */
-    pub recover_indx: bool,
-    pub md5: Option<bool>,
-    pub sha1: Option<bool>,
-    pub sha256: Option<bool>,
-    pub metadata: Option<bool>,
-    pub path_regex: Option<String>,
-    pub filename_regex: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 pub struct ShimdbOptions {
     pub alt_file: Option<String>,
 }

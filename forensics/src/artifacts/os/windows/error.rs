@@ -4,7 +4,6 @@ use std::fmt;
 pub(crate) enum WinArtifactError {
     Prefetch,
     EventLogs,
-    Ntfs,
     Output,
     Serialize,
     Shimdb,
@@ -35,7 +34,6 @@ impl fmt::Display for WinArtifactError {
         match self {
             WinArtifactError::Prefetch => write!(f, "Failed to parse Prefetch"),
             WinArtifactError::EventLogs => write!(f, "Failed to parse EventLogs"),
-            WinArtifactError::Ntfs => write!(f, "Failed to parse NTFS"),
             WinArtifactError::Output => write!(f, "Failed to output data"),
             WinArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             WinArtifactError::Shimdb => write!(f, "Failed to parse Shimdb"),

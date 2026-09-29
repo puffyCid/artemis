@@ -14,27 +14,6 @@ pub(crate) fn extract_rule(encoded_rule: &str) -> Result<String, ArtemisError> {
     Ok(rule)
 }
 
-/// Scan a file using Yara-X
-pub(crate) fn scan_file(path: &str, rule: &str) -> Result<Vec<String>, ArtemisError> {
-    let compile = compile_rule(rule)?;
-
-    let rules = compile.build();
-    let mut scanner = Scanner::new(&rules);
-    let results = scanner.scan_file(path);
-    let hits = match results {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to scan file {path}: {err:?}",);
-            return Err(ArtemisError::YaraScan);
-        }
-    };
-    let mut matches = Vec::new();
-    for hit in hits.matching_rules() {
-        matches.push(hit.identifier().to_string());
-    }
-    Ok(matches)
-}
-
 /// Scan bytes using Yara-X
 pub(crate) fn scan_bytes(data: &[u8], rule: &str) -> Result<Vec<String>, ArtemisError> {
     let compile = compile_rule(rule)?;
@@ -140,7 +119,7 @@ mod tests {
         filesystem::files::read_file,
         utils::{
             encoding::base64_encode_standard,
-            yara::{extract_rule, remote_yara, scan_base64_bytes, scan_file},
+            yara::{extract_rule, remote_yara, scan_base64_bytes},
         },
     };
     use std::path::PathBuf;
@@ -160,25 +139,6 @@ mod tests {
         "#;
 
         let _ = compile_rule(rule).unwrap();
-    }
-
-    #[test]
-    fn test_scan_file() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let rule = r#"
-        rule hello_world {
-        strings:
-        $ = "hello, world! Its Rust!"
-        condition:
-        all of them
-        }
-        "#;
-
-        let result = scan_file(test_location.to_str().unwrap(), rule).unwrap();
-
-        assert_eq!(result[0], "hello_world");
     }
 
     #[test]
@@ -226,17 +186,6 @@ mod tests {
         let url = "https://raw.githubusercontent.com/Yara-Rules/rules/refs/heads/master/malware/APT_APT1.yar";
         let result = remote_yara(url).unwrap();
         assert!(!result.is_empty());
-    }
-
-    #[test]
-    fn test_remote_yara_scan() {
-        let rule = "https://raw.githubusercontent.com/Yara-Rules/rules/refs/heads/master/malware/APT_APT1.yar";
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let rule = extract_rule(rule).unwrap();
-        let result = scan_file(test_location.to_str().unwrap(), &rule).unwrap();
-        assert!(result.is_empty());
     }
 
     #[test]

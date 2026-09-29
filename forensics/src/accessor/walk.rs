@@ -70,7 +70,7 @@ impl WalkAccessor {
         self
     }
 
-    /// Paths we should ignore when walk the file system
+    /// Paths we should ignore when walking the file system
     pub(crate) fn exclude(mut self, path: impl Into<String>) -> Self {
         self.exclude.insert(path.into());
         self
