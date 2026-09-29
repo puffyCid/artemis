@@ -8,9 +8,9 @@ use crate::output::marker::MarkerTracker;
 use crate::structs::artifacts::os::linux::Ext4Options;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
-    RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
-    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-    UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
+    RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
+    ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions,
+    UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
 };
 use crate::structs::artifacts::triage::TriageOptions;
 use crate::structs::artifacts::{
@@ -123,7 +123,6 @@ pub struct Artifacts {
     pub rawfiles_ext4: Option<Ext4Options>,
     pub eventlogs: Option<EventLogsOptions>,
     pub prefetch: Option<PrefetchOptions>,
-    pub rawfiles: Option<RawFilesOptions>,
     pub shimdb: Option<ShimdbOptions>,
     pub registry: Option<RegistryOptions>,
     pub userassist: Option<UserAssistOptions>,

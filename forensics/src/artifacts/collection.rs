@@ -12,9 +12,9 @@ use super::{
         systeminfo::artifact::systeminfo,
         triage::artifact::triage,
         windows::artifacts::{
-            amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_filelist, recycle_bin,
-            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
-            userassist, users_windows, usnjrnl, wmi_persist,
+            amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, recycle_bin, registry,
+            search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist,
+            users_windows, usnjrnl, wmi_persist,
         },
     },
 };
@@ -307,20 +307,6 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Ok(_) => info!("Collected Eventlogs"),
                     Err(err) => {
                         error!("Failed to parse Eventlogs: {err:?}");
-                        manager.write_failed_artifact(artifact, options);
-                    }
-                }
-            }
-            "rawfiles" if !skip(&artifacts.rawfiles, &collector.marker, artifact) => {
-                let options = match &artifacts.rawfiles {
-                    Some(result) => result,
-                    None => continue,
-                };
-                let results = raw_filelist(options, &mut manager);
-                match results {
-                    Ok(_) => info!("Collected Raw Filelisting"),
-                    Err(err) => {
-                        error!("Failed to get raw filelisting: {err:?}");
                         manager.write_failed_artifact(artifact, options);
                     }
                 }

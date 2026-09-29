@@ -88,39 +88,6 @@ pub(crate) enum CommandArgs {
         #[arg(long)]
         only_templates: bool,
     },
-    /// windows: Parse NTFS to get filelisting
-    Rawfilelisting {
-        /// Drive letter to parse
-        #[arg(long, default_value_t = 'C')]
-        drive_letter: char,
-        /// Start path for listing
-        #[arg(long, default_value_t = String::from("C:\\"))]
-        start_path: String,
-        /// Depth for file listing. Max is 255
-        #[arg(long, default_value_t = 1)]
-        depth: u8,
-        /// Parse deleted $INDX entries
-        #[arg(long)]
-        recover_indx: bool,
-        /// MD5 hash files
-        #[arg(long)]
-        md5: bool,
-        /// SHA1 hash files
-        #[arg(long)]
-        sha1: bool,
-        /// SHA256 hash files
-        #[arg(long)]
-        sha256: bool,
-        /// Parse PE binaries
-        #[arg(long)]
-        metadata: bool,
-        /// Regex to only include entries that match path
-        #[arg(long, default_value = None)]
-        path_regex: Option<String>,
-        /// Regex to only include entries that match filename
-        #[arg(long, default_value = None)]
-        filename_regex: Option<String>,
-    },
     /// windows: Parse ShimDatabase
     Shimdb {
         /// Alternative full path to SDB file

@@ -1,9 +1,9 @@
 use super::{
     accounts::parser::grab_users, amcache::parser::grab_amcache, bits::parser::grab_bits,
     error::WinArtifactError, eventlogs::parser::grab_eventlogs, jumplists::parser::grab_jumplists,
-    mft::parser::grab_mft, ntfs::parser::ntfs_filelist, outlook::parser::grab_outlook,
-    prefetch::parser::grab_prefetch, recyclebin::parser::grab_recycle_bin,
-    registry::parser::parse_registry, search::parser::grab_search, services::parser::grab_services,
+    mft::parser::grab_mft, outlook::parser::grab_outlook, prefetch::parser::grab_prefetch,
+    recyclebin::parser::grab_recycle_bin, registry::parser::parse_registry,
+    search::parser::grab_search, services::parser::grab_services,
     shellbags::parser::grab_shellbags, shimcache::parser::grab_shimcache,
     shimdb::parser::grab_shimdb, shortcuts::parser::grab_lnk_directory, srum::parser::grab_srum,
     tasks::parser::grab_tasks, userassist::parser::grab_userassist, usnjrnl::parser::grab_usnjrnl,
@@ -13,10 +13,9 @@ use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions, OutlookOptions,
-    PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
-    ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions,
-    SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
-    WmiPersistOptions,
+    PrefetchOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
+    ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
+    UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
 };
 use tracing::error;
 
@@ -78,20 +77,6 @@ pub(crate) fn registry(
     if let Err(err) = parse_registry(options, manager) {
         error!("Failed to parse Registry: {err:?}");
         return Err(WinArtifactError::Registry);
-    }
-
-    Ok(())
-}
-
-/// Parse the Windows `NTFS` artifact
-pub(crate) fn raw_filelist(
-    options: &RawFilesOptions,
-    manager: &mut OutputManager,
-) -> Result<(), WinArtifactError> {
-    // Since we may be walking the file system, let the parser handle outputting the data
-    if let Err(err) = ntfs_filelist(options, manager) {
-        error!("Failed to parse NTFS: {err:?}");
-        return Err(WinArtifactError::Ntfs);
     }
 
     Ok(())
@@ -624,17 +609,16 @@ mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::windows::artifacts::{
-            amcache, bits, eventlogs, jumplists, mft, prefetch, raw_filelist, recycle_bin,
-            registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
-            userassist, users_windows, usnjrnl, wmi_persist,
+            amcache, bits, eventlogs, jumplists, mft, prefetch, recycle_bin, registry, search,
+            services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist,
+            users_windows, usnjrnl, wmi_persist,
         },
         output::manager::OutputManager,
         structs::artifacts::os::windows::{
             AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
-            PrefetchOptions, RawFilesOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
-            ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions,
-            SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions,
-            WmiPersistOptions,
+            PrefetchOptions, RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions,
+            ShellbagsOptions, ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions,
+            TasksOptions, UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
         },
     };
     use std::path::PathBuf;
@@ -697,26 +681,6 @@ mod tests {
         let mut output = output_options("reg_temp", "./tmp", true);
 
         let status = registry(&options, &mut output).unwrap();
-        assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_raw_filelist() {
-        let options = RawFilesOptions {
-            drive_letter: 'C',
-            start_path: String::from("C:\\"),
-            depth: 1,
-            recover_indx: false,
-            md5: None,
-            sha1: None,
-            sha256: None,
-            metadata: None,
-            filename_regex: None,
-            path_regex: None,
-        };
-        let mut output = output_options("rawfiles_temp", "./tmp", false);
-
-        let status = raw_filelist(&options, &mut output).unwrap();
         assert_eq!(status, ());
     }
 

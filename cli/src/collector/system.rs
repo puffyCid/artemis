@@ -13,10 +13,10 @@ use forensics::{
             processes::ProcessOptions,
             windows::{
                 AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, MftOptions,
-                OutlookOptions, PrefetchOptions, RawFilesOptions, RecycleBinOptions,
-                RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
-                ShimcacheOptions, ShimdbOptions, ShortcutOptions, SrumOptions, TasksOptions,
-                UserAssistOptions, UsnJrnlOptions, WindowsUserOptions, WmiPersistOptions,
+                OutlookOptions, PrefetchOptions, RecycleBinOptions, RegistryOptions, SearchOptions,
+                ServicesOptions, ShellbagsOptions, ShimcacheOptions, ShimdbOptions,
+                ShortcutOptions, SrumOptions, TasksOptions, UserAssistOptions, UsnJrnlOptions,
+                WindowsUserOptions, WmiPersistOptions,
             },
         },
         toml::{ArtemisToml, Artifacts, OutputConfig, OutputFormat},
@@ -319,33 +319,6 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
             collect.prefetch = Some(options);
             collect.artifact_name = String::from("prefetch");
         }
-        CommandArgs::Rawfilelisting {
-            drive_letter,
-            start_path,
-            depth,
-            recover_indx,
-            md5,
-            sha1,
-            sha256,
-            metadata,
-            path_regex,
-            filename_regex,
-        } => {
-            let options = RawFilesOptions {
-                drive_letter: *drive_letter,
-                start_path: start_path.clone(),
-                depth: *depth,
-                recover_indx: *recover_indx,
-                md5: Some(*md5),
-                sha1: Some(*sha1),
-                sha256: Some(*sha256),
-                metadata: Some(*metadata),
-                path_regex: path_regex.clone(),
-                filename_regex: filename_regex.clone(),
-            };
-            collect.rawfiles = Some(options);
-            collect.artifact_name = String::from("rawfiles");
-        }
         CommandArgs::Recyclebin { alt_file } => {
             let options = RecycleBinOptions {
                 alt_file: alt_file.clone(),
@@ -507,9 +480,9 @@ mod tests {
     use super::{Commands, run_collector, setup_artifact};
     use crate::collector::system::CommandArgs::{
         Amcache, Bits, Eventlogs, Filelisting, Fsevents, GroupsMacos, Journal, Jumplists, Launchd,
-        Loginitems, Logons, Prefetch, Processes, Rawfilelisting, Recyclebin, Registry, Services,
-        Shellbags, Shimcache, Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo,
-        Tasks, Unifiedlogs, UsersMacos, UsersWindows,
+        Loginitems, Logons, Prefetch, Processes, Recyclebin, Registry, Services, Shellbags,
+        Shimcache, Shimdb, Spotlight, Srum, SudologsLinux, SudologsMacos, Systeminfo, Tasks,
+        Unifiedlogs, UsersMacos, UsersWindows,
     };
     use forensics::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;
@@ -917,32 +890,6 @@ mod tests {
             artifact: Some(Bits {
                 carve: false,
                 alt_file: None,
-            }),
-            format: String::from("json"),
-            output_dir: String::from("./tmp"),
-            compress: false,
-            start: None,
-            end: None,
-        };
-
-        let out = output();
-        run_collector(&command, out);
-    }
-
-    #[test]
-    fn test_run_collector_rawfiles() {
-        let command = Commands::Acquire {
-            artifact: Some(Rawfilelisting {
-                drive_letter: 'C',
-                start_path: String::from("C:\\"),
-                depth: 1,
-                recover_indx: false,
-                md5: false,
-                sha1: false,
-                sha256: false,
-                metadata: false,
-                path_regex: None,
-                filename_regex: None,
             }),
             format: String::from("json"),
             output_dir: String::from("./tmp"),

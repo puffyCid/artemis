@@ -94,26 +94,8 @@ fn read_bytes_api<T: std::io::Read + std::io::Seek>(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::read_bytes;
-    use crate::filesystem::{
-        files::file_reader,
-        ntfs::{raw_files::raw_reader, reader::read_bytes_api, setup::setup_ntfs_parser},
-    };
+    use crate::filesystem::{files::file_reader, ntfs::reader::read_bytes_api};
     use std::{io::BufReader, path::PathBuf};
-
-    #[test]
-    fn test_read_bytes() {
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        let result = raw_reader(
-            "C:\\Windows\\explorer.exe",
-            &ntfs_parser.ntfs,
-            &mut ntfs_parser.fs,
-        )
-        .unwrap();
-
-        let bytes = read_bytes(0, 50, Some(&result), &mut ntfs_parser.fs).unwrap();
-        assert_eq!(bytes.len(), 50);
-    }
 
     #[test]
     fn test_read_bytes_api() {

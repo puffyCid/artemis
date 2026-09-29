@@ -12,21 +12,12 @@ use crate::{
         strings::strings_contains,
     },
 };
-use base16ct::lower::encode_str;
-use common::files::Hashes;
-use digest_io::IoWrapper;
-use md5::{Digest, Md5};
 use ntfs::{
     Ntfs, NtfsError, NtfsFile, NtfsFileReference, NtfsReadSeek, attribute_value::NtfsAttributeValue,
 };
 use regex::Regex;
-use sha1::Sha1;
-use sha2::Sha256;
-use std::{
-    fs::File,
-    io::{BufReader, copy},
-};
-use tracing::{error, warn};
+use std::{fs::File, io::BufReader};
+use tracing::error;
 
 /// Read the whole attribute data. This can be used to read a whole file
 pub(crate) fn raw_read_data(
@@ -51,127 +42,6 @@ pub(crate) fn raw_read_data(
             buff_data.append(&mut temp_buff);
         }
     }
-}
-
-/// Return the file reference number for a file. Can be used to create reader to stream the file
-pub(crate) fn raw_reader<'a>(
-    path: &str,
-    ntfs: &'a Ntfs,
-    fs: &mut BufReader<SectorReader<File>>,
-) -> Result<NtfsFile<'a>, FileSystemError> {
-    let min_path_len = 4;
-    if path.len() < min_path_len || !path.contains(':') {
-        return Err(FileSystemError::NotFile);
-    }
-
-    let drive = &path.chars().next().unwrap(); // Only need Drive letter
-    let root_dir_result = ntfs.root_directory(fs);
-    let root_dir = match root_dir_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Failed to get NTFS root directory, error: {err:?}");
-            return Err(FileSystemError::RootDirectory);
-        }
-    };
-
-    let mut ntfs_options = NtfsOptions {
-        start_path: path.to_string(),
-        start_path_depth: 0,
-        depth: path.split('\\').count(),
-        path_regex: create_regex("").unwrap(), // Valid Regex, should never fail
-        file_regex: create_regex("").unwrap(), // Valid Regex, should never fail
-        filelist: Vec::new(),
-        directory_tracker: vec![format!("{drive}:")],
-    };
-
-    // Search and iterate through the NTFS system for the file
-    let _ = iterate_ntfs(root_dir, fs, ntfs, &mut ntfs_options);
-
-    // Loop through filelisting. It should only have one entry
-    for filelist in ntfs_options.filelist {
-        if filelist.full_path != path {
-            continue;
-        }
-
-        let ntfs_file_result = filelist.file.to_file(ntfs, fs);
-        let ntfs_file = match ntfs_file_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to get NTFS root directory, error: {err:?}");
-                return Err(FileSystemError::NtfsSectorReader);
-            }
-        };
-
-        // Return the file reference
-        return Ok(ntfs_file);
-    }
-
-    warn!("Could not create reader for {path}");
-    Err(FileSystemError::OpenFile)
-}
-
-/// Given a file $DATA attribute, read and hash the data
-pub(crate) fn raw_hash_data(
-    data_attr_value: &mut NtfsAttributeValue<'_, '_>,
-    fs: &mut BufReader<SectorReader<File>>,
-    hash_data: &Hashes,
-) -> (String, String, String) {
-    let mut md5 = IoWrapper(Md5::new());
-    let mut sha1 = IoWrapper(Sha1::new());
-    let mut sha256 = IoWrapper(Sha256::new());
-    loop {
-        let temp_buff_size = 65536;
-        let mut temp_buff: Vec<u8> = vec![0u8; temp_buff_size];
-        let bytes_result = data_attr_value.read(fs, &mut temp_buff);
-        let bytes = match bytes_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Failed to read data for hashing: {err:?}");
-                break;
-            }
-        };
-        let finished = 0;
-        if bytes == finished {
-            break;
-        }
-
-        // Make sure our temp buff does not have any extra zeros from the initialization
-        if bytes < temp_buff_size {
-            temp_buff = temp_buff[0..bytes].to_vec();
-        }
-
-        if hash_data.md5 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut md5);
-        }
-        if hash_data.sha1 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha1);
-        }
-        if hash_data.sha256 {
-            let _ = copy(&mut temp_buff.as_slice(), &mut sha256);
-        }
-    }
-
-    let mut md5_string = String::new();
-    let mut sha1_string = String::new();
-    let mut sha256_string = String::new();
-
-    if hash_data.md5 {
-        let hash = md5.0.finalize();
-        let mut buf = [0u8; 32];
-        md5_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
-    }
-    if hash_data.sha1 {
-        let hash = sha1.0.finalize();
-        let mut buf = [0u8; 40];
-        sha1_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
-    }
-    if hash_data.sha256 {
-        let hash = sha256.0.finalize();
-        let mut buf = [0u8; 64];
-        sha256_string = encode_str(&hash, &mut buf).unwrap_or_default().to_string();
-    }
-
-    (md5_string, sha1_string, sha256_string)
 }
 
 /// Read a single file by parsing the NTFS system
@@ -501,59 +371,17 @@ pub(crate) fn iterate_ntfs(
 #[cfg(test)]
 #[cfg(target_os = "windows")]
 mod tests {
-    use super::{NtfsOptions, iterate_ntfs, raw_reader};
+    use super::{NtfsOptions, iterate_ntfs};
     use crate::{
         filesystem::ntfs::{
-            raw_files::{raw_hash_data, raw_read_data, raw_read_file, read_attribute},
+            raw_files::{raw_read_data, raw_read_file, read_attribute},
             sector_reader::SectorReader,
             setup::setup_ntfs_parser,
         },
         utils::regex_options::create_regex,
     };
-    use common::files::Hashes;
     use ntfs::Ntfs;
     use std::{fs::File, io::BufReader, path::PathBuf};
-
-    #[test]
-    fn test_hash_data() {
-        let drive_path = "\\\\.\\C:";
-        let fs = File::open(drive_path).unwrap();
-
-        let reader_sector_size = 4096;
-        let sector_reader = SectorReader::new(fs, reader_sector_size).unwrap();
-        let mut fs = BufReader::new(sector_reader);
-        let ntfs = Ntfs::new(&mut fs).unwrap();
-        let root_dir = ntfs.root_directory(&mut fs).unwrap();
-
-        let index = root_dir.directory_index(&mut fs).unwrap();
-        let mut iter = index.entries();
-        let hashes = Hashes {
-            md5: true,
-            sha1: true,
-            sha256: true,
-        };
-
-        while let Some(entry) = iter.next(&mut fs) {
-            let entry_index = entry.unwrap();
-
-            let ntfs_file = entry_index
-                .file_reference()
-                .to_file(&ntfs, &mut fs)
-                .unwrap();
-
-            if !ntfs_file.is_directory() {
-                let ntfs_data = ntfs_file.data(&mut fs, "").unwrap().unwrap();
-                let ntfs_attribute = ntfs_data.to_attribute().unwrap();
-                let mut data_attr_value = ntfs_attribute.value(&mut fs).unwrap();
-                let (md5, sha1, sha256) = raw_hash_data(&mut data_attr_value, &mut fs, &hashes);
-
-                assert_eq!(md5.is_empty(), false);
-                assert_eq!(sha1.is_empty(), false);
-                assert_eq!(sha256.is_empty(), false);
-                break;
-            }
-        }
-    }
 
     #[test]
     fn test_read_data() {
@@ -637,17 +465,5 @@ mod tests {
         );
 
         assert!(ntfs_options.filelist.len() > 0);
-    }
-
-    #[test]
-    fn test_raw_reader() {
-        let mut ntfs_parser = setup_ntfs_parser('C').unwrap();
-        let result = raw_reader(
-            "C:\\Windows\\explorer.exe",
-            &ntfs_parser.ntfs,
-            &mut ntfs_parser.fs,
-        )
-        .unwrap();
-        assert!(result.file_record_number() > 5);
     }
 }
