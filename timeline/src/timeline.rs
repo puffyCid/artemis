@@ -7,9 +7,9 @@ use crate::artifacts::{
     },
     processes::{network, processes},
     windows::{
-        amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_files, recycle_bin,
-        registry, search, services, shellbags, shimcache, shimdb, shortcuts, srum, tasks,
-        userassist, users, usnjrnl, wmi,
+        amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, recycle_bin, registry, search,
+        services, shellbags, shimcache, shimdb, shortcuts, srum, tasks, userassist, users, usnjrnl,
+        wmi,
     },
 };
 use serde_json::Value;
@@ -26,7 +26,7 @@ pub fn timeline_artifact(
     match artifact.to_ascii_lowercase().as_str() {
         "amcache" => amcache(data, start, end),
         "bits" => bits(data, start, end),
-        "files" => files(data, start, end),
+        "files" | "files_ntfs" | "files_zip" | "files_host" => files(data, start, end),
         "journal" => journal(data, start, end),
         "registry" => registry(data, start, end),
         "processes" => processes(data, start, end),
@@ -34,7 +34,6 @@ pub fn timeline_artifact(
         "mft" => mft(data, start, end),
         "srum" => srum(data, start, end),
         "search" => search(data, start, end),
-        "rawfiles" => raw_files(data, start, end),
         "recyclebin" => recycle_bin(data, start, end),
         "shimcache" => shimcache(data, start, end),
         "shimdb" => shimdb(data, start, end),

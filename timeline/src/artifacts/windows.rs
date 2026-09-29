@@ -237,48 +237,6 @@ fn extract_shortcut_times(data: &Value) -> Option<HashMap<&str, String>> {
     Some(times)
 }
 
-pub(crate) fn raw_files(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
-    if !data.is_object() {
-        return false;
-    }
-    let mut entries = Vec::new();
-    data["artifact"] = "RawFiles".into();
-    data["data_type"] = "windows:ntfs:file".into();
-    data["message"] = Value::String(data["full_path"].as_str().unwrap_or_default().into());
-    let temp = json![{
-        "created": &data["created"].as_str().unwrap_or_default(),
-        "modified": data["modified"].as_str().unwrap_or_default(),
-        "accessed": data["accessed"].as_str().unwrap_or_default(),
-        "changed": data["changed"].as_str().unwrap_or_default(),
-        "filename_created": data["filename_created"].as_str().unwrap_or_default(),
-        "filename_modified": data["filename_modified"].as_str().unwrap_or_default(),
-        "filename_accessed": data["filename_accessed"].as_str().unwrap_or_default(),
-        "filename_changed": data["filename_changed"].as_str().unwrap_or_default(),
-    }];
-
-    let mut times = extract_times(&temp).unwrap_or_default();
-    extract_filename_times(&temp, &mut times).unwrap_or_default();
-    for (key, value) in times {
-        // If $INDX recovery is enabled. Standard Info timestamps will be empty
-        // We will only have FileName timestamps
-        // Skip emtpy Standard Info timestamps
-        if key.is_empty() || filter_data(key, start, end) {
-            continue;
-        }
-
-        data["datetime"] = Value::String(key.into());
-        data["timestamp_desc"] = Value::String(value);
-        entries.push(data.clone());
-    }
-
-    if entries.is_empty() {
-        return false;
-    }
-
-    *data = Value::Array(entries);
-    true
-}
-
 pub(crate) fn outlook(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {
     if !data.is_object() {
         return false;
@@ -787,8 +745,7 @@ pub(crate) fn mft(data: &mut Value, start: &Option<String>, end: &Option<String>
 #[cfg(test)]
 mod tests {
     use crate::artifacts::windows::{
-        amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, raw_files, recycle_bin,
-        registry, users,
+        amcache, bits, eventlogs, jumplists, mft, outlook, prefetch, recycle_bin, registry, users,
     };
     use serde_json::json;
 
@@ -901,44 +858,6 @@ mod tests {
         assert_eq!(test[0]["datetime"], "2024-01-01T00:00:00.000Z");
         assert_eq!(test[0]["artifact"], "Registry");
         assert_eq!(test[0]["message"], "HKEY\\Test\\Run | Value: test");
-    }
-
-    #[test]
-    fn test_raw_files() {
-        let mut test = json!({
-            "created": "2024-01-01T00:00:00.000Z",
-            "full_path": "/usr/bin/ls",
-            "modified": "2024-01-01T03:00:00.000Z",
-            "changed": "2024-01-01T02:00:00.000Z",
-            "accessed": "2024-01-01T01:00:00.000Z",
-            "filename_changed": "2024-01-01T03:00:00.000Z",
-            "filename_created": "2024-01-01T03:00:00.000Z",
-            "filename_modified": "2024-01-01T03:00:00.000Z",
-            "filename_accessed": "2024-01-01T03:00:00.000Z",
-        });
-
-        assert!(raw_files(&mut test, &None, &None));
-        assert_eq!(test[0]["accessed"], "2024-01-01T01:00:00.000Z");
-        assert_eq!(test[0]["artifact"], "RawFiles");
-        assert_eq!(test[0]["message"], "/usr/bin/ls");
-    }
-
-    #[test]
-    fn test_raw_files_empty() {
-        let mut test = json!({
-            "created": "",
-            "full_path": "/usr/bin/ls",
-            "modified": "",
-            "changed": "",
-            "accessed": "",
-            "filename_changed": "2024-01-01T03:00:00.001Z",
-            "filename_created": "2024-01-01T03:00:00.002Z",
-            "filename_modified": "2024-01-01T03:00:00.030Z",
-            "filename_accessed": "2024-01-01T03:00:00.040Z",
-        });
-
-        assert!(raw_files(&mut test, &None, &None));
-        assert_eq!(test.as_array().unwrap().len(), 4);
     }
 
     #[test]
