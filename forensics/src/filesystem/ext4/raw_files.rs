@@ -255,39 +255,6 @@ pub(crate) fn raw_read_dir(
     Ok(files)
 }
 
-/// Returns an inode for the provided file path
-/// The inode can later be used to create a reader for the file (using `Ext4Reader.reader`) which can be used to used to stream the file
-pub(crate) fn raw_reader<T: std::io::Seek + std::io::Read>(
-    path: &str,
-    reader: &mut Ext4Reader<T>,
-) -> Result<u32, FileSystemError> {
-    let mut ext4_options = Ext4Options {
-        device: String::new(),
-        start_path: path.to_string(),
-        depth: path.split("/").count(),
-        start_path_depth: 0,
-        path_regex: create_regex("").unwrap(), // Valid Regex, should never fail
-        file_regex: create_regex("").unwrap(), // Valid Regex, should never fail
-        filelist: Vec::new(),
-        cache: Vec::new(),
-    };
-    let root = get_root(reader)?;
-    ext4_options
-        .cache
-        .push(root.name.trim_end_matches('/').to_string());
-    iterate_ext4(&root, reader, &mut ext4_options);
-    for file in ext4_options.filelist {
-        if file.full_path != path {
-            continue;
-        }
-
-        return Ok(file.inode);
-    }
-
-    error!("Could not find inode for file ({path}).");
-    Err(FileSystemError::ReadFile)
-}
-
 /// Setup options when reading the ext4 filesystem
 pub(crate) struct Ext4Options {
     /// We need a device path. Ex: /dev/sda1. If none is provided, we attempt to get a list using `get_disk`.
@@ -380,7 +347,6 @@ mod tests {
         artifacts::os::systeminfo::info::get_info_metadata,
         filesystem::ext4::raw_files::{
             Ext4Options, get_root, iterate_ext4, raw_read_dir, raw_read_file, raw_read_inode,
-            raw_reader,
         },
         utils::regex_options::create_regex,
     };
@@ -388,11 +354,7 @@ mod tests {
         extfs::{Ext4Reader, Ext4ReaderAction},
         structs::FileType,
     };
-    use std::{
-        fs::File,
-        io::{BufReader, Read},
-        path::PathBuf,
-    };
+    use std::{fs::File, io::BufReader, path::PathBuf};
 
     #[test]
     fn test_iterate_ext4() {
@@ -562,24 +524,6 @@ mod tests {
         let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
         let bytes = raw_read_inode(17, &mut ext_reader).unwrap();
         assert_eq!(bytes.len(), 145312);
-    }
-
-    #[test]
-    fn test_raw_reader() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/images/ext4/test.img");
-        let reader = File::open(&test_location.to_str().unwrap()).unwrap();
-        let buf = BufReader::new(reader);
-        let mut ext_reader = Ext4Reader::new(buf, 4096, 0).unwrap();
-        let inode = raw_reader(
-            "/run/media/puffycid/d32162ac-f1a7-487a-88ef-10c9ad4e5fff/test/nest/ls",
-            &mut ext_reader,
-        )
-        .unwrap();
-        let mut file_reader = ext_reader.reader(inode).unwrap();
-        let mut buf = [0; 145312];
-        file_reader.read_exact(&mut buf).unwrap();
-        assert_ne!(buf, [0; 145312])
     }
 
     #[test]
