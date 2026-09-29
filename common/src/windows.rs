@@ -665,45 +665,6 @@ pub enum ShellType {
     _Optical, // No optical drives available to test on.
 }
 
-#[derive(Debug, Serialize, Clone, Default)]
-pub struct RawFilelist {
-    pub full_path: String,
-    pub directory: String,
-    pub filename: String,
-    pub extension: String,
-    pub created: String,
-    pub modified: String,
-    pub changed: String,
-    pub accessed: String,
-    pub filename_created: String,
-    pub filename_modified: String,
-    pub filename_changed: String,
-    pub filename_accessed: String,
-    pub size: u64,
-    pub compressed_size: u64,
-    pub compression_type: CompressionType,
-    pub inode: u64,
-    pub sequence_number: u16,
-    pub parent_mft_reference: u64,
-    pub owner: u32,
-    pub attributes: Vec<String>,
-    pub namespace: Namespace,
-    pub md5: String,
-    pub sha1: String,
-    pub sha256: String,
-    pub is_file: bool,
-    pub is_directory: bool,
-    pub is_indx: bool,
-    pub depth: usize,
-    pub usn: u64,
-    pub sid: u32,
-    pub user_sid: String,
-    pub group_sid: String,
-    pub drive: String,
-    pub ads_info: Vec<ADSInfo>,
-    pub pe_info: Vec<PeInfo>,
-}
-
 #[derive(Debug, Serialize, Clone)]
 pub struct ADSInfo {
     pub name: String,
