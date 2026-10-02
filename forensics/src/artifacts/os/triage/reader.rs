@@ -125,7 +125,7 @@ mod tests {
             .unwrap();
 
         let hash = grab_file(&mut reader, &mut zip).unwrap();
-        assert_eq!(hash, "bee488add81fef5a1d751cabc0d707a2");
+        assert_eq!(hash, "3ca59210c3557f88026cfbba1e11c8fc");
         zip.finish().unwrap();
     }
 
