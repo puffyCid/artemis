@@ -3,7 +3,6 @@ name = "Edge"
 directory = "./tmp"
 format = "json"
 compress = false
-timeline = false
 endpoint_id = "2844dba2-fb47-466c-8d57-dab2bc02294f"
 collection_id = 1
 destination = "local"

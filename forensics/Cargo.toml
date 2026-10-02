@@ -71,7 +71,7 @@ parquet = { version = "60.0.0", default-features = false, features = [
 
 # Optional Stuff
 url = { version = "2.5.8", optional = true }
-yara-x = { version = "1.20.0", optional = true, default-features = false, features = [
+yara-x = { version = "1.21.0", optional = true, default-features = false, features = [
     "constant-folding",
     "exact-atoms",
     "fast-regexp",
@@ -101,7 +101,7 @@ futures-concurrency = { version = "7.7.1", default-features = false, optional = 
 futures-lite = { version = "2.6.1", default-features = false, optional = true }
 
 
-duckdb = { version = "1.10505.0", default-features = false, features = [
+duckdb = { version = "1.10506.0", default-features = false, features = [
     "bundled",
 ], optional = true }
 

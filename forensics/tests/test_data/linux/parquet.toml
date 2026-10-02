@@ -4,7 +4,6 @@ name = "parquet_tester"
 directory = "./tmp"
 format = "parquet"
 compress = false
-timeline = false
 endpoint_id = "abdc"
 collection_id = 1
 destination = "local"

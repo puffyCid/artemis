@@ -3,7 +3,6 @@ name = "linux_collection"
 directory = "./tmp"
 format = "jsonl"
 compress = true
-timeline = false
 endpoint_id = "REPLACEME"
 collection_id = 1
 destination = "api"
