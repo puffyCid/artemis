@@ -1,4 +1,5 @@
 pub(crate) mod access;
+mod bootsector;
 mod cache;
 pub(crate) mod config;
 pub(crate) mod entry;
