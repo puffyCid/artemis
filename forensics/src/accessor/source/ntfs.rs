@@ -211,7 +211,12 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_ntfs_read_root_dirs() {
+        use crate::accessor::source::backend::SourceBackend;
+        use crate::accessor::{
+            config::AccessorConfig, location::path::InnerPath, source::ntfs::NtfsSource,
+        };
         use common::files::EntryKind;
+        use std::path::PathBuf;
 
         let config = AccessorConfig::default();
         let source = NtfsSource::new(&config, 'C').unwrap();
