@@ -1,9 +1,7 @@
-use crate::accessor::error::{AccessorError, AccessorResult};
-use nom::{
-    bytes::complete::take,
-    number::complete::{le_u8, le_u16, le_u32},
+use crate::{
+    accessor::error::{AccessorError, AccessorResult},
+    utils::nom_helper::{nom_take, nom_u8, nom_u16, nom_u32},
 };
-use tracing::warn;
 
 /// Parsed Master Boot Record partition table
 #[derive(PartialEq, Debug, Clone)]
@@ -118,7 +116,7 @@ fn parse_partition_table(sector: &[u8]) -> AccessorResult<(u32, Vec<MbrEntry>)> 
         }
     }
 
-    let (_, sig) = nom_u16(input, "MBR signature is trnucated")?;
+    let (_, sig) = nom_u16(input, "MBR signature is truncated")?;
     if sig != 0xaa55 {
         return Err(AccessorError::volume(format!(
             "Invalid MBR sig {sig:#06x}. Wanted 0xaa55"
@@ -128,7 +126,7 @@ fn parse_partition_table(sector: &[u8]) -> AccessorResult<(u32, Vec<MbrEntry>)> 
     Ok((disk_id, entries))
 }
 
-/// Pase each MBR entry
+/// Parse each MBR entry
 fn parse_mbr_entry(slot: u8, data: &[u8]) -> AccessorResult<MbrEntry> {
     let (input, status) = nom_u8(data, "MBR partition status is truncated")?;
     let (input, _start_chs) = nom_take(input, 3 as u8, "MBR partition start CHS is truncated")?;
@@ -145,30 +143,6 @@ fn parse_mbr_entry(slot: u8, data: &[u8]) -> AccessorResult<MbrEntry> {
         start_lba,
         sector_count,
     })
-}
-
-/// Nom take helper for the Accessor
-fn nom_take<'a>(
-    input: &'a [u8],
-    len: impl nom::ToUsize,
-    reason: &str,
-) -> AccessorResult<(&'a [u8], &'a [u8])> {
-    take::<_, _, nom::error::Error<_>>(len)(input).map_err(|_| AccessorError::volume(reason))
-}
-
-/// Nom le_u8 helper for the Accessor
-fn nom_u8<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u8)> {
-    le_u8::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
-}
-
-/// Nom le_u16 helper for the Accessor
-fn nom_u16<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u16)> {
-    le_u16::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
-}
-
-/// Nom le_u32 helper for the Accessor
-fn nom_u32<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u32)> {
-    le_u32::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
 }
 
 /// Determine the partition type, only a few are supported right now

@@ -244,7 +244,7 @@ impl AccessorError {
         }
     }
 
-    pub(super) fn volume(reason: impl Into<String>) -> Self {
+    pub(crate) fn volume(reason: impl Into<String>) -> Self {
         Self::Volume {
             reason: reason.into(),
         }

@@ -13,6 +13,9 @@ use nom::{
         le_u8, le_u16, le_u32, le_u64, le_u128,
     },
 };
+use uuid::Uuid;
+
+use crate::accessor::error::{AccessorError, AccessorResult};
 
 pub(crate) enum Endian {
     /**Little Endian */
@@ -128,6 +131,44 @@ pub(crate) fn nom_data(data: &[u8], count: u64) -> nom::IResult<&[u8], &[u8]> {
     Ok((input, value))
 }
 
+/// Nom take helper for the Accessor
+pub(crate) fn nom_take<'a>(
+    input: &'a [u8],
+    len: impl nom::ToUsize,
+    reason: &str,
+) -> AccessorResult<(&'a [u8], &'a [u8])> {
+    take::<_, _, nom::error::Error<_>>(len)(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u8 helper for the Accessor
+pub(crate) fn nom_u8<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u8)> {
+    le_u8::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u16 helper for the Accessor
+pub(crate) fn nom_u16<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u16)> {
+    le_u16::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u32 helper for the Accessor
+pub(crate) fn nom_u32<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u32)> {
+    le_u32::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u64 helper for the Accessor
+pub(crate) fn nom_u64<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u64)> {
+    le_u64::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom GUID (LE) helper for the Accessor
+pub(crate) fn nom_guid<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], Uuid)> {
+    let (input, guid_data) = nom_take(input, 16 as u8, reason)?;
+    let guid_bytes = guid_data
+        .try_into()
+        .map_err(|_| AccessorError::volume(reason))?;
+
+    Ok((input, Uuid::from_bytes_le(guid_bytes)))
+}
 #[cfg(test)]
 mod tests {
     use crate::utils::nom_helper::{

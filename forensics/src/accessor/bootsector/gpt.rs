@@ -1,11 +1,19 @@
-use crate::utils::{strings::extract_utf16_string, uuid::format_guid_le_bytes};
+use crate::{
+    accessor::error::{AccessorError, AccessorResult},
+    utils::{
+        nom_helper::{nom_guid, nom_take, nom_u32, nom_u64},
+        strings::extract_utf16_string,
+        uuid::format_guid_le_bytes,
+    },
+};
 use nom::{
     bytes::complete::take,
     error::ErrorKind,
     number::complete::{le_u32, le_u64},
 };
 use std::collections::HashMap;
-use tracing::error;
+use tracing::{error, warn};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Default)]
 pub(super) struct GptPartition {
@@ -17,6 +25,58 @@ pub(super) struct GptPartition {
     attributes: u64,
     partition_name: String,
     offset_start: u64,
+}
+
+/// Parsed GPT header
+///
+/// Describes where the partition entry array is located
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct GptHeader {
+    /// GPT revision
+    revision: u32,
+    /// GPT header size
+    header_size: u32,
+    /// GPT header checksum
+    header_crc32: u32,
+    /// LBA associated with this header
+    current_lba: u64,
+    /// LBA associated with the backup GPT header
+    backup_lba: u64,
+    /// First LBA available for partitions
+    first_usable_lba: u64,
+    /// Last LBA available for partitions
+    last_usable_lba: u64,
+    /// Unique disk GUID
+    disk_guid: Uuid,
+    /// Starting LBA of the partition entry array
+    partition_entry_lba: u64,
+    /// Number of slots in the partition entry array
+    partition_entry_count: u32,
+    /// Size of one partition entry
+    partition_entry_size: u32,
+    /// Checksum of the partition entry array
+    partition_array_crc32: u32,
+}
+
+/// Single GPT partition entry
+#[derive(Debug, Clone, PartialEq)]
+pub(super) struct GptEntry {
+    /// Slot number in the GPT partition entry array
+    slot: u32,
+    /// GUID associated with the partition type
+    partition_type_guid: Uuid,
+    /// Unique GUID for this partition
+    partition_guid: Uuid,
+    /// First LBA occupied by this partition.
+    /// Value is inclusive
+    start_lba: u64,
+    /// Last LBA occupied by this partition.
+    /// Value is inclusive
+    end_lba: u64,
+    /// GPT partition attributes
+    attributes: u64,
+    /// Partition name (UTF16)
+    partition_name: String,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
@@ -39,95 +99,170 @@ enum GuidNames {
     Unknown,
 }
 
-/// Parse the GPT partition data
-pub(crate) fn parse_gpt(data: &[u8]) -> nom::IResult<&[u8], Vec<GptPartition>> {
-    let boot_binary_code: u16 = 512;
-    let (input, _binary) = take(boot_binary_code)(data)?;
-    let (input, signature) = le_u64(input)?;
+impl GptHeader {
+    /// Calculate the size of the complete partition entry array
+    pub(super) fn partition_array_size(&self) -> AccessorResult<u64> {
+        u64::from(self.partition_entry_count)
+            .checked_mul(self.partition_entry_size as u64)
+            .ok_or_else(|| AccessorError::volume("GPT partition entry array size overflow"))
+    }
 
-    // Should be "EFI PART"
-    let sig = 6075990659671082565;
-    if signature != sig {
-        error!("Got bad GPT header wanted '6075990659671082565' got: {signature} ");
-        return Err(nom::Err::Failure(nom::error::Error::new(
-            &[],
-            ErrorKind::Fail,
+    /// Calculate the byte offset of the partition entry array
+    pub(super) fn partition_array_offset(&self, sector_size: u64) -> AccessorResult<u64> {
+        self.partition_entry_lba
+            .checked_mul(sector_size)
+            .ok_or_else(|| AccessorError::volume("GPT partition entry array offset overflow"))
+    }
+}
+
+impl GptEntry {
+    /// Calculate the partition length
+    pub(super) fn byte_length(&self, sector_size: u64) -> AccessorResult<u64> {
+        let sector_count = self
+            .end_lba
+            .checked_sub(self.start_lba)
+            .and_then(|value| value.checked_add(1))
+            .ok_or_else(|| {
+                AccessorError::volume(format!(
+                    "GPT partition {} has an invalid LBA range: {}-{}",
+                    self.slot, self.start_lba, self.end_lba
+                ))
+            })?;
+
+        sector_count
+            .checked_mul(sector_size)
+            .ok_or_else(|| AccessorError::volume("GPT partition byte lenght overflow"))
+    }
+}
+
+pub(super) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
+    let (input, sig) = nom_u64(sector, "GPT sig is truncated")?;
+    if sig != 0x5452415020494645 {
+        return Err(AccessorError::volume(format!(
+            "Invalid GPT sig {sig:#018x}"
         )));
     }
 
-    let (input, _revision) = le_u32(input)?;
-    let (input, _header_size) = le_u32(input)?;
-    let (input, _crc_hash) = le_u32(input)?;
-    let (input, _reserved) = le_u32(input)?;
+    let (input, revision) = nom_u32(input, "GPT revision is truncated")?;
+    let (input, header_size) = nom_u32(input, "GPT header is truncated")?;
+    let (input, header_crc32) = nom_u32(input, "GPT header CRC32 is truncated")?;
+    let (input, reserved) = nom_u32(input, "GPT reserved field is truncated")?;
+    let (input, current_lba) = nom_u64(input, "GPT current LBA is truncated")?;
+    let (input, backup_lba) = nom_u64(input, "GPT backup LBA is truncated")?;
 
-    // LBA - logical based address
-    let (input, _current_logical_based_address) = le_u64(input)?;
-    let (input, _backup_lba) = le_u64(input)?;
-    let (input, _first_usable_partition) = le_u64(input)?;
-    let (input, _secondary_partition_table) = le_u64(input)?;
+    let (input, first_usable_lba) = nom_u64(input, "GPT first usable LBA is truncated")?;
+    let (input, last_usable_lba) = nom_u64(input, "GPT last usable LBA is truncated")?;
+    let (input, disk_guid) = nom_guid(input, "GPT disk GUID is truncated")?;
+    let (input, partition_entry_lba) = nom_u64(input, "GPT partition entry LBA is truncated")?;
+    let (input, partition_entry_count) = nom_u32(input, "GPT partition entry count is truncated")?;
 
-    let guid_size: u8 = 16;
-    let (input, guid_bytes) = take(guid_size)(input)?;
-    let _guid = format_guid_le_bytes(guid_bytes);
+    let (input, partition_entry_size) = nom_u32(input, "GPT partition entry size is truncated")?;
+    let (input, partition_array_crc32) = nom_u32(input, "GPT partition array CRC32 is truncated")?;
 
-    let (input, _start_lba_array_entries) = le_u64(input)?;
-    let (input, number_partitions_in_array) = le_u32(input)?;
-    let (input, single_partition_size) = le_u32(input)?;
-    let (input, _crc_partitions_hash) = le_u32(input)?;
-
-    // Remaining bytes are reserved. Should be all zeros
-    // If the sector size is not 512. This would be larger
-    let reserved: u16 = 420;
-    let (mut input, _) = take(reserved)(input)?;
-
-    let mut count = 0;
-    let mut partitions = Vec::new();
-    while input.len() >= single_partition_size as usize && count < number_partitions_in_array {
-        let (remaining, entry) = parse_gpt_entry(input)?;
-        input = remaining;
-        count += 1;
-
-        // Done if the partition is all zeros (it is unused)
-        if entry.platform == GuidNames::Unused {
-            break;
-        }
-        partitions.push(entry);
+    if header_size < 92 {
+        return Err(AccessorError::volume(format!(
+            "Invalid GPT header size {header_size}, minimum size is 92"
+        )));
     }
 
-    Ok((input, partitions))
+    let available = u32::try_from(sector.len())
+        .map_err(|_| AccessorError::volume("GPT header sector length larger than u32::MAX"))?;
+
+    if header_size > available {
+        return Err(AccessorError::volume(format!(
+            "GPT header size {header_size} larger than available data {available}"
+        )));
+    }
+
+    if reserved != 0 {
+        warn!("GPT reserved field is not zero: {reserved}");
+    }
+
+    if partition_entry_size < 128 || !partition_entry_size.is_power_of_two() {
+        return Err(AccessorError::volume(format!(
+            "Invalid GPT partition entry size {partition_entry_size}"
+        )));
+    }
+
+    if first_usable_lba > last_usable_lba {
+        return Err(AccessorError::volume(format!(
+            "Invalid GPT LBA range: {first_usable_lba}-{last_usable_lba}"
+        )));
+    }
+
+    Ok(GptHeader {
+        revision,
+        header_size,
+        header_crc32,
+        current_lba,
+        backup_lba,
+        first_usable_lba,
+        last_usable_lba,
+        disk_guid,
+        partition_entry_lba,
+        partition_entry_count,
+        partition_entry_size,
+        partition_array_crc32,
+    })
 }
 
-/// Parse the GPT entry value. Typically 128 bytes in size and max number of entries is typically 128
-fn parse_gpt_entry(data: &[u8]) -> nom::IResult<&[u8], GptPartition> {
-    let guid_size: u8 = 16;
-    let (input, guid_bytes) = take(guid_size)(data)?;
-    let partition_guid = format_guid_le_bytes(guid_bytes);
-    let (input, guid_bytes) = take(guid_size)(input)?;
-    let guid = format_guid_le_bytes(guid_bytes);
+pub(super) fn parse_gpt_entries(data: &[u8], header: &GptHeader) -> AccessorResult<Vec<GptEntry>> {
+    let required_size = header.partition_array_size()?;
+    let available_size = u64::try_from(data.len())
+        .map_err(|_| AccessorError::volume("GPT entry array length exceeds u64::MAX"))?;
 
-    let (input, first_lba) = le_u64(input)?;
-    let (input, last_lba) = le_u64(input)?;
-    let (input, attributes) = le_u64(input)?;
+    if available_size < required_size {
+        return Err(AccessorError::volume(format!(
+            "GPT partition entry array is truncated: expected {required_size} bytes, got {available_size}"
+        )));
+    }
 
-    let name_size: u8 = 72;
-    let (input, name_bytes) = take(name_size)(input)?;
+    let mut input = data;
+    let mut entries = Vec::new();
+
+    for slot in 0..header.partition_entry_count {
+        let (remaining, entry_data) = nom_take(
+            input,
+            header.partition_entry_size,
+            &format!("GPT partition entry {slot} is truncated"),
+        )?;
+
+        input = remaining;
+
+        let entry = parse_gpt_entry(slot, entry_data)?;
+        if entry.partition_type_guid != Uuid::nil() {
+            entries.push(entry);
+        }
+    }
+
+    Ok(entries)
+}
+
+fn parse_gpt_entry(slot: u32, data: &[u8]) -> AccessorResult<GptEntry> {
+    let (input, partition_type_guid) = nom_guid(data, "GPT partition type GUID is truncated")?;
+    let (input, partition_guid) = nom_guid(input, "GPT unique partition GUID is truncated")?;
+    let (input, start_lba) = nom_u64(input, "GPT partition start LBA is truncated")?;
+    let (input, end_lba) = nom_u64(input, "GPT partition end LBA is truncated")?;
+
+    let (input, attributes) = nom_u64(input, "GPT partition attributes are truncated")?;
+    let (_, name_bytes) = nom_take(input, 72 as u8, "GPT partition name is truncated")?;
     let partition_name = extract_utf16_string(name_bytes);
 
-    let sector_size = 512;
-    let entry = GptPartition {
-        platform: *guid_mapping()
-            .get(&partition_guid.to_uppercase())
-            .unwrap_or(&GuidNames::Unknown),
+    if partition_type_guid != Uuid::nil() && end_lba < start_lba {
+        return Err(AccessorError::volume(format!(
+            "GPT partition entry {slot} has invalid LBA range {start_lba}-{end_lba}"
+        )));
+    }
+
+    Ok(GptEntry {
+        slot,
+        partition_type_guid,
         partition_guid,
-        guid,
-        first_lba,
-        last_lba,
+        start_lba,
+        end_lba,
         attributes,
         partition_name,
-        offset_start: first_lba * sector_size,
-    };
-
-    Ok((input, entry))
+    })
 }
 
 /// Mappings of popular GUID partitions. From: <https://en.wikipedia.org/wiki/GUID_Partition_Table>
@@ -903,17 +1038,21 @@ fn guid_mapping() -> HashMap<String, GuidNames> {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::bootsector::gpt::{GuidNames, guid_mapping, parse_gpt, parse_gpt_entry};
+    use crate::accessor::bootsector::gpt::{
+        GuidNames, guid_mapping, parse_gpt_entry, parse_gpt_header,
+    };
     use std::{fs::read, path::PathBuf};
 
     #[test]
-    fn test_parse_gpt() {
+    fn test_parse_gpt_header() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/bootsector/gpt/lba1.raw");
         let bytes = read(test_location.to_str().unwrap()).unwrap();
 
-        let (_, gpt) = parse_gpt(&bytes).unwrap();
-        assert!(gpt.is_empty());
+        let results = parse_gpt_header(bytes.get(512..).unwrap()).unwrap();
+        assert_eq!(results.current_lba, 1);
+        assert_eq!(results.partition_entry_lba, 2);
+        assert_eq!(results.partition_entry_size, 128);
     }
 
     #[test]
@@ -927,15 +1066,17 @@ mod tests {
             0, 0,
         ];
 
-        let (_, result) = parse_gpt_entry(&test).unwrap();
+        let result = parse_gpt_entry(0, &test).unwrap();
         assert_eq!(
-            result.partition_guid,
+            result.partition_type_guid.as_hyphenated().to_string(),
             "21686148-6449-6e6f-744e-656564454649"
         );
-        assert_eq!(result.first_lba, 2048);
-        assert_eq!(result.last_lba, 4095);
-        assert_eq!(result.platform, GuidNames::Bios);
-        assert_eq!(result.guid, "dff3644e-d3bf-4606-9632-7c93a5b0a11e");
+        assert_eq!(result.start_lba, 2048);
+        assert_eq!(result.end_lba, 4095);
+        assert_eq!(
+            result.partition_guid.as_hyphenated().to_string(),
+            "dff3644e-d3bf-4606-9632-7c93a5b0a11e"
+        );
     }
 
     #[test]
@@ -949,15 +1090,17 @@ mod tests {
             0, 0, 0,
         ];
 
-        let (_, result) = parse_gpt_entry(&test).unwrap();
+        let result = parse_gpt_entry(0, &test).unwrap();
         assert_eq!(
-            result.partition_guid,
+            result.partition_type_guid.as_hyphenated().to_string(),
             "0fc63daf-8483-4772-8e79-3d69d8477de4"
         );
-        assert_eq!(result.first_lba, 4096);
-        assert_eq!(result.last_lba, 209713151);
-        assert_eq!(result.platform, GuidNames::Linux);
-        assert_eq!(result.guid, "809d27a2-0714-4981-a663-3c1ceb8ce517");
+        assert_eq!(result.start_lba, 4096);
+        assert_eq!(result.end_lba, 209713151);
+        assert_eq!(
+            result.partition_guid.as_hyphenated().to_string(),
+            "809d27a2-0714-4981-a663-3c1ceb8ce517"
+        );
     }
 
     #[test]
