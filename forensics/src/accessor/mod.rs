@@ -2,6 +2,7 @@ pub(crate) mod access;
 mod bootsector;
 mod cache;
 pub(crate) mod config;
+mod disk;
 pub(crate) mod entry;
 pub(crate) mod error;
 pub(crate) mod filesystem;

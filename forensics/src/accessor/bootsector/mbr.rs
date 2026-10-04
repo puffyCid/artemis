@@ -5,32 +5,32 @@ use crate::{
 
 /// Parsed Master Boot Record partition table
 #[derive(PartialEq, Debug, Clone)]
-pub(super) struct Mbr {
+pub(crate) struct Mbr {
     /// Unique Disk for the MBR
-    pub(super) disk_id: u32,
+    pub(crate) disk_id: u32,
     /// Array of MBR entries identified
-    pub(super) entries: Vec<MbrEntry>,
+    pub(crate) entries: Vec<MbrEntry>,
 }
 
 /// Single MBR entry record
 #[derive(PartialEq, Debug, Clone)]
-pub(super) struct MbrEntry {
+pub(crate) struct MbrEntry {
     /// The MBR entry slot number
-    pub(super) slot: u8,
+    pub(crate) slot: u8,
     /// Raw status byte
-    pub(super) status: u8,
+    pub(crate) status: u8,
     /// `PartitionType` value
-    pub(super) partition_type: PartitionType,
+    pub(crate) partition_type: PartitionType,
     /// Raw `PartitionType` numeric value
-    pub(super) partition_type_raw: u8,
+    pub(crate) partition_type_raw: u8,
     /// Starting logical block address
-    pub(super) start_lba: u32,
+    pub(crate) start_lba: u32,
     /// Number of sectors in the partition
-    pub(super) sector_count: u32,
+    pub(crate) sector_count: u32,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub(super) enum PartitionType {
+pub(crate) enum PartitionType {
     Ntfs,
     Linux,
     Unknown,
@@ -47,46 +47,46 @@ pub(super) enum PartitionType {
 
 impl MbrEntry {
     /// Return whether the `MbrEntry` bootable
-    pub(super) fn is_bootable(&self) -> bool {
+    pub(crate) fn is_bootable(&self) -> bool {
         self.status == 0x80
     }
 
     /// Return whether the `MbrEntry` points to extended boot record
-    pub(super) fn is_extended(&self) -> bool {
+    pub(crate) fn is_extended(&self) -> bool {
         matches!(self.partition_type_raw, 0x5 | 0xf)
     }
 
     /// Return whether the `MbrEntry` is protective GPT partition
-    pub(super) fn is_protective_gpt(&self) -> bool {
+    pub(crate) fn is_protective_gpt(&self) -> bool {
         self.partition_type_raw == 0xee
     }
 
     /// Calculate the byte offset of the partition for logical sector size
-    pub(super) fn byte_offset(&self, sector_size: u64) -> u64 {
+    pub(crate) fn byte_offset(&self, sector_size: u64) -> u64 {
         self.start_lba as u64 * sector_size
     }
 
     /// Calculate the byte length of the partition for a logical sector size
-    pub(super) fn byte_length(&self, sector_size: u64) -> u64 {
+    pub(crate) fn byte_length(&self, sector_size: u64) -> u64 {
         self.sector_count as u64 * sector_size
     }
 }
 
 impl Mbr {
     /// Return whether the Master Boot Record contains a protective GPT partition
-    pub(super) fn is_protective_gpt(&self) -> bool {
+    pub(crate) fn is_protective_gpt(&self) -> bool {
         self.entries.iter().any(MbrEntry::is_protective_gpt)
     }
 }
 
 /// Parse the Master Boot Record bytes
-pub(super) fn parse_mbr(sector: &[u8]) -> AccessorResult<Mbr> {
+pub(crate) fn parse_mbr(sector: &[u8]) -> AccessorResult<Mbr> {
     let (disk_id, entries) = parse_partition_table(sector)?;
     Ok(Mbr { disk_id, entries })
 }
 
 /// Parse the extended partitions: <https://en.wikipedia.org/wiki/Extended_boot_record>
-pub(super) fn parse_ebr(sector: &[u8]) -> AccessorResult<Vec<MbrEntry>> {
+pub(crate) fn parse_ebr(sector: &[u8]) -> AccessorResult<Vec<MbrEntry>> {
     let (_disk_id, entries) = parse_partition_table(sector)?;
 
     Ok(entries)

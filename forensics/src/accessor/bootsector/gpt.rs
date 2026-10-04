@@ -13,7 +13,7 @@ use uuid::Uuid;
 ///
 /// Describes where the partition entry array is located
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct GptHeader {
+pub(crate) struct GptHeader {
     /// GPT revision
     revision: u32,
     /// GPT header size
@@ -21,7 +21,7 @@ pub(super) struct GptHeader {
     /// GPT header checksum
     header_crc32: u32,
     /// LBA associated with this header
-    current_lba: u64,
+    pub(crate) current_lba: u64,
     /// LBA associated with the backup GPT header
     backup_lba: u64,
     /// First LBA available for partitions
@@ -42,23 +42,23 @@ pub(super) struct GptHeader {
 
 /// Single GPT partition entry
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct GptEntry {
+pub(crate) struct GptEntry {
     /// Slot number in the GPT partition entry array
-    slot: u32,
+    pub(crate) slot: u32,
     /// GUID associated with the partition type
-    partition_type_guid: Uuid,
+    pub(crate) partition_type_guid: Uuid,
     /// Unique GUID for this partition
     partition_guid: Uuid,
     /// First LBA occupied by this partition.
     /// Value is inclusive
-    start_lba: u64,
+    pub(crate) start_lba: u64,
     /// Last LBA occupied by this partition.
     /// Value is inclusive
     end_lba: u64,
     /// GPT partition attributes
     attributes: u64,
     /// Partition name (UTF16)
-    partition_name: String,
+    pub(crate) partition_name: String,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
@@ -83,14 +83,14 @@ enum GuidNames {
 
 impl GptHeader {
     /// Calculate the size of the complete partition entry array
-    pub(super) fn partition_array_size(&self) -> AccessorResult<u64> {
+    pub(crate) fn partition_array_size(&self) -> AccessorResult<u64> {
         u64::from(self.partition_entry_count)
             .checked_mul(self.partition_entry_size as u64)
             .ok_or_else(|| AccessorError::volume("GPT partition entry array size overflow"))
     }
 
     /// Calculate the byte offset of the partition entry array
-    pub(super) fn partition_array_offset(&self, sector_size: u64) -> AccessorResult<u64> {
+    pub(crate) fn partition_array_offset(&self, sector_size: u64) -> AccessorResult<u64> {
         self.partition_entry_lba
             .checked_mul(sector_size)
             .ok_or_else(|| AccessorError::volume("GPT partition entry array offset overflow"))
@@ -99,7 +99,7 @@ impl GptHeader {
 
 impl GptEntry {
     /// Calculate the partition length
-    pub(super) fn byte_length(&self, sector_size: u64) -> AccessorResult<u64> {
+    pub(crate) fn byte_length(&self, sector_size: u64) -> AccessorResult<u64> {
         let sector_count = self
             .end_lba
             .checked_sub(self.start_lba)
@@ -117,7 +117,8 @@ impl GptEntry {
     }
 }
 
-pub(super) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
+/// Parse the GPT header data
+pub(crate) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
     let (input, sig) = nom_u64(sector, "GPT sig is truncated")?;
     if sig != 0x5452415020494645 {
         return Err(AccessorError::volume(format!(
@@ -139,7 +140,7 @@ pub(super) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
     let (input, partition_entry_count) = nom_u32(input, "GPT partition entry count is truncated")?;
 
     let (input, partition_entry_size) = nom_u32(input, "GPT partition entry size is truncated")?;
-    let (input, partition_array_crc32) = nom_u32(input, "GPT partition array CRC32 is truncated")?;
+    let (_, partition_array_crc32) = nom_u32(input, "GPT partition array CRC32 is truncated")?;
 
     if header_size < 92 {
         return Err(AccessorError::volume(format!(
@@ -188,7 +189,8 @@ pub(super) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
     })
 }
 
-pub(super) fn parse_gpt_entries(data: &[u8], header: &GptHeader) -> AccessorResult<Vec<GptEntry>> {
+/// Get GPT partition entries
+pub(crate) fn parse_gpt_entries(data: &[u8], header: &GptHeader) -> AccessorResult<Vec<GptEntry>> {
     let required_size = header.partition_array_size()?;
     let available_size = u64::try_from(data.len())
         .map_err(|_| AccessorError::volume("GPT entry array length exceeds u64::MAX"))?;
@@ -220,6 +222,7 @@ pub(super) fn parse_gpt_entries(data: &[u8], header: &GptHeader) -> AccessorResu
     Ok(entries)
 }
 
+/// Parse each GPT entry data
 fn parse_gpt_entry(slot: u32, data: &[u8]) -> AccessorResult<GptEntry> {
     let (input, partition_type_guid) = nom_guid(data, "GPT partition type GUID is truncated")?;
     let (input, partition_guid) = nom_guid(input, "GPT unique partition GUID is truncated")?;
