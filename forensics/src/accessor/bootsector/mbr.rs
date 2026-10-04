@@ -1,39 +1,38 @@
-use crate::accessor::bootsector::gpt::GptPartition;
+use crate::accessor::error::{AccessorError, AccessorResult};
 use nom::{
     bytes::complete::take,
     number::complete::{le_u8, le_u16, le_u32},
 };
 use tracing::warn;
 
-#[derive(Debug)]
-struct BootInfo {
-    boot_type: BootType,
-    partitions: Vec<Partition>,
-    gpt_partitions: Option<Vec<GptPartition>>,
+/// Parsed Master Boot Record partition table
+#[derive(PartialEq, Debug, Clone)]
+pub(super) struct Mbr {
+    /// Unique Disk for the MBR
+    pub(super) disk_id: u32,
+    /// Array of MBR entries identified
+    pub(super) entries: Vec<MbrEntry>,
 }
 
-#[derive(Debug, PartialEq)]
-enum BootType {
-    MasterBootRecord,
-    GuidPartitionTable,
-}
-
-#[derive(Debug, Clone)]
-struct Partition {
-    partition_type: PartitionType,
-    partition_type_value: u8,
-    first_sector_offset: u32,
-    last_sector_offset: u32,
-    first_logical_offset: u32,
-    /**Offset to partition data */
-    offset_start: u64,
-    sectors_in_partition: u32,
-    partition_size: u64,
-    bootable: bool,
+/// Single MBR entry record
+#[derive(PartialEq, Debug, Clone)]
+pub(super) struct MbrEntry {
+    /// The MBR entry slot number
+    pub(super) slot: u8,
+    /// Raw status byte
+    pub(super) status: u8,
+    /// `PartitionType` value
+    pub(super) partition_type: PartitionType,
+    /// Raw `PartitionType` numeric value
+    pub(super) partition_type_raw: u8,
+    /// Starting logical block address
+    pub(super) start_lba: u32,
+    /// Number of sectors in the partition
+    pub(super) sector_count: u32,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-enum PartitionType {
+pub(super) enum PartitionType {
     Ntfs,
     Linux,
     Unknown,
@@ -47,75 +46,128 @@ enum PartitionType {
     None,
 }
 
-/// Parse the Master Boot Record (MBR) partition. We must be able to parse this in order to parse the rest of the filesystem
-pub(crate) fn parse_mbr(data: &[u8]) -> nom::IResult<&[u8], BootInfo> {
-    let boot_binary_code: u16 = 440;
-    let (input, _binary) = take(boot_binary_code)(data)?;
-
-    let (input, _disk_id) = le_u32(input)?;
-    let (mut input, _reserved) = le_u16(input)?;
-
-    let mut info = BootInfo {
-        boot_type: BootType::MasterBootRecord,
-        partitions: Vec::new(),
-        gpt_partitions: None,
-    };
-
-    let partition_size: u8 = 16;
-    let max_partitions = 4;
-    let mut count = 0;
-
-    // Last two partitions usually do not have anything
-    while count < max_partitions {
-        let (remaining, partition) = take(partition_size)(input)?;
-        input = remaining;
-
-        let (_, (part, is_gpt)) = parse_partition(partition)?;
-        info.partitions.push(part);
-
-        if is_gpt {
-            info.boot_type = BootType::GuidPartitionTable;
-        }
-        count += 1;
+impl MbrEntry {
+    /// Return whether the `MbrEntry` bootable
+    pub(super) fn is_bootable(&self) -> bool {
+        self.status == 0x80
     }
-    let (input, _valid_bootsector) = le_u16(input)?;
-    Ok((input, info))
+
+    /// Return whether the `MbrEntry` points to extended boot record
+    pub(super) fn is_extended(&self) -> bool {
+        matches!(self.partition_type_raw, 0x5 | 0xf)
+    }
+
+    /// Return whether the `MbrEntry` is protective GPT partition
+    pub(super) fn is_protective_gpt(&self) -> bool {
+        self.partition_type_raw == 0xee
+    }
+
+    /// Calculate the byte offset of the partition for logical sector size
+    pub(super) fn byte_offset(&self, sector_size: u64) -> u64 {
+        self.start_lba as u64 * sector_size
+    }
+
+    /// Calculate the byte length of the partition for a logical sector size
+    pub(super) fn byte_length(&self, sector_size: u64) -> u64 {
+        self.start_lba as u64 * sector_size
+    }
 }
 
-/// Parse the partition data. It is very small, 16 bytes.
-fn parse_partition(data: &[u8]) -> nom::IResult<&[u8], (Partition, bool)> {
-    let (input, bootable) = le_u8(data)?;
-    let sector_size: u8 = 3;
-    let (input, sector_start) = take(sector_size)(input)?;
-    let (input, partition_type) = le_u8(input)?;
-    let (input, sector_last) = take(sector_size)(input)?;
+impl Mbr {
+    /// Return whether the Master Boot Record contains a protective GPT partition
+    pub(super) fn is_protective_gpt(&self) -> bool {
+        self.entries.iter().any(MbrEntry::is_protective_gpt)
+    }
+}
 
-    let (input, first_logical_offset) = le_u32(input)?;
-    let (input, sectors_in_partition) = le_u32(input)?;
-    // Safe to reference by slice index because we use nom to ensure our sector_last and sector_start length is at least 3 bytes in size
-    let last_sector_offset =
-        ((sector_last[0] as u32) << 16) + ((sector_last[1] as u32) << 8) + sector_last[2] as u32;
-    let first_sector_offset =
-        ((sector_start[0] as u32) << 16) + ((sector_start[1] as u32) << 8) + sector_start[2] as u32;
+/// Parse the Master Boot Record bytes
+pub(super) fn parse_mbr(sector: &[u8]) -> AccessorResult<Mbr> {
+    let (disk_id, entries) = parse_partition_table(sector)?;
+    Ok(Mbr { disk_id, entries })
+}
 
-    let mut is_gpt = false;
-    let part = Partition {
-        partition_type: get_partition_type(partition_type),
-        partition_type_value: partition_type,
-        first_sector_offset,
-        last_sector_offset,
-        first_logical_offset,
-        offset_start: first_logical_offset as u64 * 512,
-        sectors_in_partition,
-        partition_size: (sectors_in_partition as u64 * 512),
-        bootable: bootable == 0x80,
-    };
+/// Parse the extended partitions: <https://en.wikipedia.org/wiki/Extended_boot_record>
+pub(super) fn parse_ebr(sector: &[u8]) -> AccessorResult<Vec<MbrEntry>> {
+    let (_disk_id, entries) = parse_partition_table(sector)?;
 
-    if part.partition_type == PartitionType::Protective {
-        is_gpt = true;
+    Ok(entries)
+}
+
+/// Parse the Master Boot Record table
+fn parse_partition_table(sector: &[u8]) -> AccessorResult<(u32, Vec<MbrEntry>)> {
+    let boot_code: u16 = 440;
+
+    let (input, _boot) = nom_take(sector, boot_code, "MBR boot code is truncated")?;
+    let (input, disk_id) = nom_u32(input, "MBR disk ID is truncated")?;
+    let (mut input, _reserved) = nom_u16(input, "MBR reserved field is truncated")?;
+
+    let mut entries = Vec::new();
+    let mbr_entry_len: u8 = 16;
+    for slot in 0..4 {
+        let (remaining, entry) = nom_take(
+            input,
+            mbr_entry_len,
+            &format!("MBR partition entry {slot} is truncated"),
+        )?;
+        input = remaining;
+
+        let value = parse_mbr_entry(slot, entry)?;
+        if value.partition_type_raw != 0 && value.sector_count != 0 {
+            entries.push(value);
+        }
     }
 
-    Ok((input, (part, is_gpt)))
+    let (_, sig) = nom_u16(input, "MBR signature is trnucated")?;
+    if sig != 0xaa55 {
+        return Err(AccessorError::volume(format!(
+            "Invalid MBR sig {sig:#06x}. Wanted 0xaa55"
+        )));
+    }
+
+    Ok((disk_id, entries))
+}
+
+/// Pase each MBR entry
+fn parse_mbr_entry(slot: u8, data: &[u8]) -> AccessorResult<MbrEntry> {
+    let (input, status) = nom_u8(data, "MBR partition status is truncated")?;
+    let (input, _start_chs) = nom_take(input, 3 as u8, "MBR partition start CHS is truncated")?;
+    let (input, partition_type_raw) = nom_u8(input, "MBR partition type is truncated")?;
+    let (input, _end_chs) = nom_take(input, 3 as u8, "MBR partition end CHS is truncated")?;
+    let (input, start_lba) = nom_u32(input, "MBR partition start LBA is truncated")?;
+    let (_, sector_count) = nom_u32(input, "MBR partition sector count is truncated")?;
+
+    Ok(MbrEntry {
+        slot,
+        status,
+        partition_type: get_partition_type(partition_type_raw),
+        partition_type_raw,
+        start_lba,
+        sector_count,
+    })
+}
+
+/// Nom take helper for the Accessor
+fn nom_take<'a>(
+    input: &'a [u8],
+    len: impl nom::ToUsize,
+    reason: &str,
+) -> AccessorResult<(&'a [u8], &'a [u8])> {
+    take::<_, _, nom::error::Error<_>>(len)(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u8 helper for the Accessor
+fn nom_u8<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u8)> {
+    le_u8::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u16 helper for the Accessor
+fn nom_u16<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u16)> {
+    le_u16::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
+}
+
+/// Nom le_u32 helper for the Accessor
+fn nom_u32<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u32)> {
+    le_u32::<_, nom::error::Error<_>>(input).map_err(|_| AccessorError::volume(reason))
 }
 
 /// Determine the partition type, only a few are supported right now
@@ -134,80 +186,27 @@ fn get_partition_type(part: u8) -> PartitionType {
     }
 }
 
-/// Parse the extended partitions: <https://en.wikipedia.org/wiki/Extended_boot_record>
-fn parse_extended(
-    data: &[u8],
-    root_offset: u64,
-    extended_offset: u64,
-) -> nom::IResult<&[u8], (Vec<Partition>, bool)> {
-    let mut parts = Vec::new();
-
-    // *may* contain another boot loader
-    let unused: u16 = 446;
-    let (input, _) = take(unused)(data)?;
-    let entry_size: u8 = 16;
-    let (input, first_entry) = take(entry_size)(input)?;
-    let (_, (mut first_part, _)) = parse_partition(first_entry)?;
-
-    let mut has_extened = false;
-    // The first entry in an extended partition should never? be extended Type. But check just in case
-    if first_part.partition_type == PartitionType::Extended {
-        warn!(
-            "The first MBR extended partition entry is an extended partition type. This should not happen? Got: {first_part:?}"
-        );
-        has_extened = true;
-        first_part.offset_start += root_offset;
-    }
-
-    let (input, second_entry) = take(entry_size)(input)?;
-    let (_, (mut extended_part, _)) = parse_partition(second_entry)?;
-
-    // Extended partition only has two partitions. But technically allows 4?
-    let (input, _third_entry) = take(entry_size)(input)?;
-    let (input, _fourth_entry) = take(entry_size)(input)?;
-    let (input, sig) = le_u16(input)?;
-
-    let part_sig = 43605;
-    if sig != part_sig {
-        warn!("Did not get expected MBR extended signature. Expected 0xAA55, got: {sig}");
-    }
-
-    if extended_part.partition_type == PartitionType::Extended {
-        has_extened = true;
-    }
-
-    // The last extended partition value will have None partition type
-    if has_extened || extended_part.partition_type == PartitionType::None {
-        // Add root offset to ensure we are using the absolute offset to the partition
-        extended_part.offset_start += root_offset;
-        // First entry offset combines the current extended partition offset and the relative offset
-        first_part.offset_start =
-            (first_part.first_logical_offset as u64 + extended_offset / 512) * 512;
-    }
-    parts.push(first_part);
-
-    parts.push(extended_part);
-    Ok((input, (parts, has_extened)))
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::accessor::bootsector::mbr::{
-        BootType, PartitionType, get_partition_type, parse_extended, parse_mbr, parse_partition,
+    use crate::accessor::{
+        bootsector::mbr::{
+            PartitionType, get_partition_type, parse_ebr, parse_mbr, parse_mbr_entry,
+        },
+        error::AccessorError,
     };
     use std::{fs::read, path::PathBuf};
 
     #[test]
-    fn test_parse_extended() {
+    fn test_parse_ebr() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/bootsector/mbr/extended_partition.raw");
         let bytes = read(test_location.to_str().unwrap()).unwrap();
-        let (_, (results, has_extended)) = parse_extended(&bytes, 0, 0).unwrap();
-        assert!(has_extended);
+        let results = parse_ebr(&bytes).unwrap();
+
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].partition_type, PartitionType::Linux);
-        assert_eq!(results[0].offset_start, 1024);
-        assert_eq!(results[1].offset_start, 10000111616);
+        assert_eq!(results[0].sector_count, 19529728);
+        assert_eq!(results[1].start_lba, 19531468);
         assert_eq!(results[1].partition_type, PartitionType::Extended);
     }
 
@@ -217,15 +216,6 @@ mod tests {
         for entry in test {
             assert_ne!(get_partition_type(entry), PartitionType::Unknown);
         }
-    }
-
-    #[test]
-    fn test_parse_parition() {
-        let test = [128, 4, 1, 4, 131, 254, 194, 255, 0, 8, 0, 0, 0, 128, 224, 0];
-        let (_, (result, is_gpt)) = parse_partition(&test).unwrap();
-        assert_eq!(result.partition_size, 7532969984);
-        assert_eq!(result.first_sector_offset, 262404);
-        assert!(!is_gpt);
     }
 
     #[test]
@@ -258,11 +248,17 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 85, 170,
         ];
-        let (_, result) = parse_mbr(&test).unwrap();
-        assert_eq!(result.boot_type, BootType::MasterBootRecord);
-        assert_eq!(result.partitions.len(), 4);
+        let result = parse_mbr(&test).unwrap();
+        assert_eq!(result.disk_id, 4033035010);
+        assert_eq!(result.entries.len(), 2);
 
-        assert_eq!(result.partitions[1].offset_start, 7535066112);
+        assert_eq!(result.entries[1].byte_offset(512), 7535066112);
+        assert_eq!(result.entries[0].slot, 0);
+        assert_eq!(result.entries[0].partition_type_raw, 0x83);
+        assert_eq!(result.entries[0].partition_type, PartitionType::Linux);
+
+        assert!(result.entries[1].is_extended());
+        assert!(!result.is_protective_gpt());
     }
 
     #[test]
@@ -287,12 +283,36 @@ mod tests {
             40, 167, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 170,
         ];
-        let (_, (results, has_extended)) = parse_extended(&test, 832568320, 0).unwrap();
-        assert!(!has_extended);
-        assert_eq!(results.len(), 2);
+        let results = parse_ebr(&test).unwrap();
+
+        assert_eq!(results.len(), 1);
         assert_eq!(results[0].partition_type, PartitionType::LinuxLvm);
-        assert_eq!(results[0].offset_start, 1024);
-        assert_eq!(results[1].offset_start, 832568320);
-        assert_eq!(results[1].partition_type, PartitionType::None);
+        assert_eq!(results[0].byte_offset(512), 1024);
+        assert_eq!(results[0].start_lba, 2);
+    }
+
+    #[test]
+    fn test_parse_mbr_bad_signature() {
+        let sector = [0u8; 512];
+        let error = parse_mbr(&sector).unwrap_err();
+        assert!(matches!(
+            error,
+            AccessorError::Volume { reason } if reason.contains("Invalid MBR sig")
+        ));
+    }
+
+    #[test]
+    fn test_parse_mbr_entry() {
+        let test = [128, 4, 1, 4, 131, 254, 194, 255, 0, 8, 0, 0, 0, 128, 224, 0];
+
+        let results = parse_mbr_entry(1, &test).unwrap();
+
+        assert_eq!(results.partition_type_raw, 0x83);
+        assert_eq!(results.start_lba, 2048);
+        assert_eq!(results.sector_count, 14712832);
+
+        assert_eq!(results.byte_length(512), 1048576);
+        assert!(results.is_bootable());
+        assert!(!results.is_protective_gpt());
     }
 }

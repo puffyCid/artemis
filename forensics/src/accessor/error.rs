@@ -184,62 +184,68 @@ impl From<io::Error> for AccessorError {
 }
 
 impl AccessorError {
-    pub(crate) fn io_path(path: impl Into<PathBuf>, source: io::Error) -> Self {
+    pub(super) fn io_path(path: impl Into<PathBuf>, source: io::Error) -> Self {
         Self::Io {
             path: Some(path.into()),
             source,
         }
     }
 
-    pub(crate) fn location(input: impl Into<String>, reason: impl Into<String>) -> Self {
+    pub(super) fn location(input: impl Into<String>, reason: impl Into<String>) -> Self {
         Self::Location {
             input: input.into(),
             reason: reason.into(),
         }
     }
 
-    pub(crate) fn unsupported_scheme(scheme: impl Into<String>) -> Self {
+    pub(super) fn unsupported_scheme(scheme: impl Into<String>) -> Self {
         Self::UnsupportedScheme {
             scheme: scheme.into(),
         }
     }
 
-    pub(crate) fn not_found(path: impl Into<String>) -> Self {
+    pub(super) fn not_found(path: impl Into<String>) -> Self {
         Self::NotFound { path: path.into() }
     }
 
-    pub(crate) fn not_a_file(path: impl Into<String>) -> Self {
+    pub(super) fn not_a_file(path: impl Into<String>) -> Self {
         Self::NotAFile { path: path.into() }
     }
 
-    pub(crate) fn not_a_directory(path: impl Into<String>) -> Self {
+    pub(super) fn not_a_directory(path: impl Into<String>) -> Self {
         Self::NotADirectory { path: path.into() }
     }
 
-    pub(crate) fn file_too_large(size: u64, limit: u64) -> Self {
+    pub(super) fn file_too_large(size: u64, limit: u64) -> Self {
         Self::FileTooLarge { size, limit }
     }
 
-    pub(crate) fn bad_glob(pattern: impl Into<String>, reason: impl Into<String>) -> Self {
+    pub(super) fn bad_glob(pattern: impl Into<String>, reason: impl Into<String>) -> Self {
         Self::BadGlob {
             pattern: pattern.into(),
             reason: reason.into(),
         }
     }
 
-    pub(crate) fn invalid_handle(reason: impl Into<String>) -> Self {
+    pub(super) fn invalid_handle(reason: impl Into<String>) -> Self {
         Self::InvalidHandle {
             reason: reason.into(),
         }
     }
 
-    pub(crate) fn is_recoverable_via_raw(&self) -> bool {
+    pub(super) fn is_recoverable_via_raw(&self) -> bool {
         matches!(self, Self::Io { source, .. } if matches!(source.kind(), io::ErrorKind::PermissionDenied | io::ErrorKind::NotFound))
     }
 
-    pub(crate) fn zip(archive: PathBuf, reason: impl Into<String>) -> Self {
+    pub(super) fn zip(archive: PathBuf, reason: impl Into<String>) -> Self {
         Self::Zip {
             archive: Some(archive),
+            reason: reason.into(),
+        }
+    }
+
+    pub(super) fn volume(reason: impl Into<String>) -> Self {
+        Self::Volume {
             reason: reason.into(),
         }
     }
