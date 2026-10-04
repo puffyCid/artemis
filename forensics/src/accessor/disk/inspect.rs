@@ -15,11 +15,11 @@ const LOGIC_SECTOR_SIZE: u64 = 512;
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct DiskLayout {
     /// Used to determine the partition table
-    logical_sector_size: u64,
+    pub(super) logical_sector_size: u64,
     /// Source of the partition records
-    table: PartitionTableKind,
+    pub(super) table: PartitionTableKind,
     /// Array of partitions
-    partitions: Vec<DiskPartition>,
+    pub(super) partitions: Vec<DiskPartition>,
 }
 
 /// Support partition record types
@@ -41,19 +41,19 @@ pub(super) struct DiskPartition {
     /// Readable partition ID
     ///
     /// Example: `Partition0`
-    id: String,
+    pub(super) id: String,
     /// Slot for partition in MBR or GPT array
-    slot: u32,
+    pub(super) slot: u32,
     /// First sector of the partition
-    start_lba: u64,
+    pub(super) start_lba: u64,
     /// Number of sectors in the partition
-    sector_count: u64,
+    pub(super) sector_count: u64,
     /// Byte offset from the start of the logical disk
-    byte_offset: u64,
+    pub(super) byte_offset: u64,
     /// Byte length of the partition
-    byte_length: u64,
+    pub(super) byte_length: u64,
     /// Partition table metadata
-    kind: PartitionKind,
+    pub(super) kind: PartitionKind,
 }
 
 /// Partition table metadata
@@ -231,7 +231,11 @@ fn reader_length<R: Read + Seek>(reader: &mut R) -> AccessorResult<u64> {
 }
 
 /// Read bytes at provided offset
-fn read_at<R: Read + Seek>(reader: &mut R, offset: u64, len: usize) -> AccessorResult<Vec<u8>> {
+pub(super) fn read_at<R: Read + Seek>(
+    reader: &mut R,
+    offset: u64,
+    len: usize,
+) -> AccessorResult<Vec<u8>> {
     reader
         .seek(SeekFrom::Start(offset))
         .map_err(|err| AccessorError::volume(format!("Failed to seek to byte {offset}: {err}")))?;
