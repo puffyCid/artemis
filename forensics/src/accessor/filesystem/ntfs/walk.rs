@@ -913,6 +913,7 @@ mod tests {
     use crate::{
         accessor::{
             filesystem::ntfs::{volume::NtfsVolume, walk::list_children},
+            io::partition::PartitionReader,
             location::path::InnerPath,
         },
         filesystem::files::hash_file_data,
@@ -925,14 +926,18 @@ mod tests {
     use common::files::{EntryKind, Hashes};
     use serde_json::Value;
     use std::{
-        fs::{read_dir, read_to_string},
+        fs::{File, read_dir, read_to_string},
+        io::BufReader,
         path::PathBuf,
     };
 
-    fn test_image() -> PathBuf {
+    fn test_volume() -> NtfsVolume<PartitionReader<BufReader<File>>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ntfs/test.raw");
-        path
+        let file = File::open(&path).unwrap();
+        let len = file.metadata().unwrap().len();
+
+        NtfsVolume::open_partition(BufReader::new(file), 0, len, "logical image").unwrap()
     }
 
     fn output_manager(name: &str) -> OutputManager {
@@ -958,7 +963,7 @@ mod tests {
     }
 
     fn walk_test_image(name: &str, options: &FileOptions) -> (OutputManager, Vec<Value>) {
-        let volume = NtfsVolume::open_image(test_image()).unwrap();
+        let volume = test_volume();
         let inner = InnerPath::empty();
         let mut manager = output_manager(name);
         walk_ntfs(&volume, 'C', &inner, options, &mut manager, "", "ntfs:C:").unwrap();
@@ -987,7 +992,7 @@ mod tests {
 
     #[test]
     fn test_ntfs_volume() {
-        let volume = NtfsVolume::open_image(test_image()).unwrap();
+        let volume = test_volume();
         let result = list_children(&volume, 'C', &"", &"").unwrap();
         assert_eq!(result.len(), 15);
 

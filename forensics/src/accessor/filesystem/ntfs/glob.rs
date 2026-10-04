@@ -138,9 +138,10 @@ fn glob_path_pattern<T: Read + Seek + Send>(
 mod tests {
     use crate::accessor::{
         filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
+        io::partition::PartitionReader,
         location::path::InnerPath,
     };
-    use std::path::PathBuf;
+    use std::{fs::File, io::BufReader, path::PathBuf};
 
     fn inner(part: &str) -> InnerPath {
         if part.is_empty() {
@@ -150,10 +151,14 @@ mod tests {
         }
     }
 
-    fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
+    fn test_fs() -> NtfsFs<PartitionReader<BufReader<std::fs::File>>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ntfs/test.raw");
-        let volume = NtfsVolume::open_image(path).unwrap();
+        let file = File::open(&path).unwrap();
+        let len = file.metadata().unwrap().len();
+        let volume =
+            NtfsVolume::open_partition(BufReader::new(file), 0, len, "logical image").unwrap();
+
         NtfsFs::new(volume, 'C')
     }
 

@@ -1,15 +1,15 @@
-// Full credit to: https://github.com/ColinFinck/ntfs/blob/master/examples/ntfs-shell/sector_reader.rs - MIT/Apache License - 2022-11-07
+// `SectorReader` Full credit to: https://github.com/ColinFinck/ntfs/blob/master/examples/ntfs-shell/sector_reader.rs - MIT/Apache License - 2022-11-07
 
 use crate::accessor::{
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::security::read_secure,
+    io::partition::PartitionReader,
 };
 use ntfs::Ntfs;
 use std::{
     collections::HashMap,
     fs::File,
     io::{self, BufReader, Read, Seek, SeekFrom},
-    path::PathBuf,
     sync::{Mutex, MutexGuard},
 };
 
@@ -211,14 +211,6 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
     }
 }
 
-impl NtfsVolume<BufReader<File>> {
-    /// Open raw logical NTFS images. Example: A logical image of the C drive
-    pub(crate) fn open_image(path: PathBuf) -> AccessorResult<Self> {
-        let file = File::open(&path).map_err(|err| AccessorError::io_path(&path, err))?;
-        Self::open(BufReader::new(file), format!("ntfs:{}", path.display()))
-    }
-}
-
 impl NtfsVolume<BufReader<SectorReader<File>>> {
     /// Open the live drive Volume on a Windows system
     pub(crate) fn open_live_drive(drive: char) -> AccessorResult<Self> {
@@ -235,6 +227,25 @@ impl NtfsVolume<BufReader<SectorReader<File>>> {
             File::open(&device_path).map_err(|err| AccessorError::io_path(&device_path, err))?;
         let sector_reader =
             SectorReader::new(file, VOLUME_SECTOR_SIZE).map_err(AccessorError::from)?;
+
         Self::open(BufReader::new(sector_reader), format!("ntfs:{drive}:"))
+    }
+}
+
+impl<R: Read + Seek + Send> NtfsVolume<PartitionReader<R>> {
+    /// Open a NTFS filesystem partition
+    pub(crate) fn open_partition(
+        reader: R,
+        byte_offset: u64,
+        byte_length: u64,
+        label: impl Into<String>,
+    ) -> AccessorResult<Self> {
+        let partition = PartitionReader::new(reader, byte_offset, byte_length).map_err(|err| {
+            AccessorError::volume(format!(
+                "Failed to limit partition at byte {byte_offset} length {byte_length}: {err}"
+            ))
+        })?;
+
+        Self::open(partition, label)
     }
 }
