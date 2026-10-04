@@ -43,6 +43,7 @@ pub(super) enum PartitionType {
     Extended,
     LinuxSwap,
     LinuxLvm,
+    Efi,
     None,
 }
 
@@ -69,7 +70,7 @@ impl MbrEntry {
 
     /// Calculate the byte length of the partition for a logical sector size
     pub(super) fn byte_length(&self, sector_size: u64) -> u64 {
-        self.start_lba as u64 * sector_size
+        self.sector_count as u64 * sector_size
     }
 }
 
@@ -180,7 +181,8 @@ fn get_partition_type(part: u8) -> PartitionType {
         0x82 => PartitionType::LinuxSwap,
         0x8e => PartitionType::LinuxLvm,
         0xc => PartitionType::Fat32,
-        0xee | 0xef => PartitionType::Protective,
+        0xee => PartitionType::Protective,
+        0xef => PartitionType::Efi,
         0x5 | 0xf => PartitionType::Extended,
         _ => PartitionType::Unknown,
     }
@@ -311,7 +313,7 @@ mod tests {
         assert_eq!(results.start_lba, 2048);
         assert_eq!(results.sector_count, 14712832);
 
-        assert_eq!(results.byte_length(512), 1048576);
+        assert_eq!(results.byte_length(512), 7532969984);
         assert!(results.is_bootable());
         assert!(!results.is_protective_gpt());
     }
