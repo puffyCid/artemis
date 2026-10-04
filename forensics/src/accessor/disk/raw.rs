@@ -15,7 +15,7 @@ use crate::accessor::{
 /// Commonly acquired with `dd` command
 #[derive(Debug)]
 pub(super) struct RawDisk {
-    /// Path the raw disk file
+    /// Path for the raw disk file
     path: PathBuf,
 }
 
