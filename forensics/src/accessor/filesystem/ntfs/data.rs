@@ -975,8 +975,6 @@ mod tests {
 
     #[test]
     fn test_read_handle_matches_read_file() {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("tests/test_data/filesystems/ntfs/test.raw");
         let volume = test_volume();
         let entries = list_children(&volume, 'C', "", "").unwrap();
         let main = entries

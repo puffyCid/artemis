@@ -208,13 +208,6 @@ fn open_ntfs_fs(drive: char) -> AccessorResult<Box<dyn NtfsFsBackend>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{
-        config::AccessorConfig,
-        location::path::InnerPath,
-        source::{backend::SourceBackend, ntfs::NtfsSource},
-    };
-    use std::path::PathBuf;
-
     #[test]
     #[cfg(target_os = "windows")]
     fn test_ntfs_read_root_dirs() {
