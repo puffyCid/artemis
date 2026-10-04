@@ -82,7 +82,7 @@ fn check_filesystem<R: Read + Seek>(
     let kind = if is_logical_ntfs(&sector) {
         FilesystemKind::Ntfs
     } else {
-        FilesystemKind::Unknown
+        return Ok(None);
     };
 
     Ok(Some(kind))
