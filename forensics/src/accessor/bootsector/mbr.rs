@@ -129,9 +129,9 @@ fn parse_partition_table(sector: &[u8]) -> AccessorResult<(u32, Vec<MbrEntry>)> 
 /// Parse each MBR entry
 fn parse_mbr_entry(slot: u8, data: &[u8]) -> AccessorResult<MbrEntry> {
     let (input, status) = nom_u8(data, "MBR partition status is truncated")?;
-    let (input, _start_chs) = nom_take(input, 3 as u8, "MBR partition start CHS is truncated")?;
+    let (input, _start_chs) = nom_take(input, 3_u8, "MBR partition start CHS is truncated")?;
     let (input, partition_type_raw) = nom_u8(input, "MBR partition type is truncated")?;
-    let (input, _end_chs) = nom_take(input, 3 as u8, "MBR partition end CHS is truncated")?;
+    let (input, _end_chs) = nom_take(input, 3_u8, "MBR partition end CHS is truncated")?;
     let (input, start_lba) = nom_u32(input, "MBR partition start LBA is truncated")?;
     let (_, sector_count) = nom_u32(input, "MBR partition sector count is truncated")?;
 

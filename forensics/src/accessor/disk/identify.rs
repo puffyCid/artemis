@@ -40,7 +40,7 @@ pub(super) fn identify_disk<R: Read + Seek>(
         identified.push(IdentifiedPartition {
             filesystem: identify_partition(reader, partition)?,
             partition: partition.clone(),
-        })
+        });
     }
 
     Ok(identified)
@@ -51,15 +51,15 @@ fn identify_partition<R: Read + Seek>(
     reader: &mut R,
     partition: &DiskPartition,
 ) -> AccessorResult<FilesystemKind> {
-    if let Some(kind) = is_ntfs(reader, partition)? {
+    if let Some(kind) = check_filesystem(reader, partition)? {
         return Ok(kind);
     }
 
     Ok(FilesystemKind::Unknown)
 }
 
-/// Check if the partition is using NTFS filesystem
-fn is_ntfs<R: Read + Seek>(
+/// Check for partition filesystem
+fn check_filesystem<R: Read + Seek>(
     reader: &mut R,
     partition: &DiskPartition,
 ) -> AccessorResult<Option<FilesystemKind>> {
@@ -88,7 +88,7 @@ fn is_ntfs<R: Read + Seek>(
 fn boot_signature(sector: &[u8]) -> AccessorResult<u16> {
     let footer = sector
         .get(510..512)
-        .ok_or_else(|| AccessorError::volume("boot sector is shorter than 512 bytes"))?;
+        .ok_or_else(|| AccessorError::volume("Boot sector is shorter than 512 bytes"))?;
 
     let (_, sig) = nom_u16(footer, "Boot sector footer signature is truncated")?;
 
@@ -98,8 +98,10 @@ fn boot_signature(sector: &[u8]) -> AccessorResult<u16> {
 #[cfg(test)]
 mod tests {
     use crate::accessor::disk::{
-        identify::{FilesystemKind, boot_signature, identify_disk, identify_partition, is_ntfs},
-        inspect::{DiskLayout, DiskPartition, PartitionKind, PartitionTableKind},
+        identify::{
+            FilesystemKind, boot_signature, check_filesystem, identify_disk, identify_partition,
+        },
+        inspect::{DiskLayout, DiskPartition, PartitionKind, PartitionTableKind, inspect_disk},
     };
     use std::io::Cursor;
 
@@ -131,6 +133,20 @@ mod tests {
         }
     }
 
+    fn write_mbr_entry(
+        disk: &mut [u8],
+        slot: u8,
+        partition_type: u8,
+        start_lba: u32,
+        sector_count: u32,
+    ) {
+        let offset = 446 + usize::from(slot) * 16;
+        disk[offset + 4] = partition_type;
+
+        disk[offset + 8..offset + 12].copy_from_slice(&start_lba.to_le_bytes());
+        disk[offset + 12..offset + 16].copy_from_slice(&sector_count.to_le_bytes());
+    }
+
     #[test]
     fn test_identify_partition() {
         let sector = boot_sector(b"NTFS    ", &[]);
@@ -155,9 +171,9 @@ mod tests {
     }
 
     #[test]
-    fn test_is_ntfs() {
+    fn test_check_filesystem() {
         let sector = boot_sector(b"NTFS    ", &[]);
-        let result = is_ntfs(&mut Cursor::new(sector), &gpt_partition(0, 512))
+        let result = check_filesystem(&mut Cursor::new(sector), &gpt_partition(0, 512))
             .unwrap()
             .unwrap();
 
@@ -177,5 +193,57 @@ mod tests {
         let result = identify_disk(&mut Cursor::new(sector), &layout).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].filesystem, FilesystemKind::Ntfs);
+    }
+
+    #[test]
+    fn test_identify_ntfs_at_partition_offset() {
+        let mut disk = vec![0u8; 2560];
+        disk[510] = 0x55;
+        disk[511] = 0xAA;
+        write_mbr_entry(&mut disk, 0, 0x07, 2, 1);
+        write_mbr_entry(&mut disk, 2, 0x83, 4, 1);
+
+        let ntfs = boot_sector(b"NTFS    ", &[]);
+        let offset = 4 * 512;
+
+        disk[offset..offset + ntfs.len()].copy_from_slice(&ntfs);
+        let layout = inspect_disk(&mut Cursor::new(disk.clone())).unwrap();
+        let found = identify_disk(&mut Cursor::new(disk), &layout).unwrap();
+
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].partition.id, "Partition0");
+        assert_eq!(found[0].filesystem, FilesystemKind::Unknown);
+        assert_eq!(found[0].partition.byte_offset, 1024);
+
+        assert_eq!(found[1].partition.id, "Partition2");
+        assert_eq!(found[1].filesystem, FilesystemKind::Ntfs);
+        assert_eq!(found[1].partition.byte_offset, 2048);
+        assert_eq!(found[1].partition.byte_length, 512);
+    }
+
+    #[test]
+    fn test_identify_truncated_boot_sector_is_unknown() {
+        let mut past_end = gpt_partition(1024, 512);
+        past_end.id = String::from("Partition1");
+        past_end.slot = 1;
+        let layout = DiskLayout {
+            logical_sector_size: 512,
+            table: PartitionTableKind::Mbr,
+            partitions: vec![gpt_partition(0, 512), past_end],
+        };
+
+        let found =
+            identify_disk(&mut Cursor::new(boot_sector(b"NTFS    ", &[])), &layout).unwrap();
+
+        assert_eq!(found.len(), 2);
+        assert_eq!(found[0].filesystem, FilesystemKind::Ntfs);
+        assert_eq!(found[1].filesystem, FilesystemKind::Unknown);
+    }
+
+    #[test]
+    fn test_identify_short_partition_is_unknown() {
+        let kind =
+            identify_partition(&mut Cursor::new(vec![0u8; 512]), &gpt_partition(0, 100)).unwrap();
+        assert_eq!(kind, FilesystemKind::Unknown);
     }
 }

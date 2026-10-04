@@ -149,7 +149,7 @@ pub(crate) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
     }
 
     let available = u32::try_from(sector.len())
-        .map_err(|_| AccessorError::volume("GPT header sector length larger than u32::MAX"))?;
+        .map_err(|_err| AccessorError::volume("GPT header sector length larger than u32::MAX"))?;
 
     if header_size > available {
         return Err(AccessorError::volume(format!(
@@ -193,7 +193,7 @@ pub(crate) fn parse_gpt_header(sector: &[u8]) -> AccessorResult<GptHeader> {
 pub(crate) fn parse_gpt_entries(data: &[u8], header: &GptHeader) -> AccessorResult<Vec<GptEntry>> {
     let required_size = header.partition_array_size()?;
     let available_size = u64::try_from(data.len())
-        .map_err(|_| AccessorError::volume("GPT entry array length exceeds u64::MAX"))?;
+        .map_err(|_err| AccessorError::volume("GPT entry array length exceeds u64::MAX"))?;
 
     if available_size < required_size {
         return Err(AccessorError::volume(format!(
@@ -230,7 +230,7 @@ fn parse_gpt_entry(slot: u32, data: &[u8]) -> AccessorResult<GptEntry> {
     let (input, end_lba) = nom_u64(input, "GPT partition end LBA is truncated")?;
 
     let (input, attributes) = nom_u64(input, "GPT partition attributes are truncated")?;
-    let (_, name_bytes) = nom_take(input, 72 as u8, "GPT partition name is truncated")?;
+    let (_, name_bytes) = nom_take(input, 72_u8, "GPT partition name is truncated")?;
     let partition_name = extract_utf16_string(name_bytes);
 
     if partition_type_guid != Uuid::nil() && end_lba < start_lba {
