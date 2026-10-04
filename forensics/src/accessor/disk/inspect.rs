@@ -212,7 +212,7 @@ fn logic_partition(length: u64, kind: PartitionKind) -> DiskPartition {
 }
 
 /// Check for logical NTFS disk
-fn is_logical_ntfs(sector: &[u8]) -> bool {
+pub(super) fn is_logical_ntfs(sector: &[u8]) -> bool {
     sector.len() >= 512
         && &sector[3..11] == b"NTFS    "
         && u16::from_le_bytes([sector[510], sector[511]]) == 0xaa55

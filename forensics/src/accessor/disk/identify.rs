@@ -1,11 +1,8 @@
 use tracing::warn;
 
-use crate::{
-    accessor::{
-        disk::inspect::{DiskLayout, DiskPartition, read_at},
-        error::{AccessorError, AccessorResult},
-    },
-    utils::nom_helper::nom_u16,
+use crate::accessor::{
+    disk::inspect::{DiskLayout, DiskPartition, is_logical_ntfs, read_at},
+    error::AccessorResult,
 };
 use std::io::{Read, Seek};
 
@@ -81,38 +78,20 @@ fn check_filesystem<R: Read + Seek>(
     }
 
     let sector = read_at(reader, partition.byte_offset, boot_size as usize)?;
-    let sig = boot_signature(&sector)?;
 
-    let boot_sig = 0xaa55;
-    if sig != boot_sig {
-        return Ok(None);
-    }
-
-    let kind = match sector.get(3..11) {
-        Some(b"NTFS    ") => FilesystemKind::Ntfs,
-        _ => return Ok(None),
+    let kind = if is_logical_ntfs(&sector) {
+        FilesystemKind::Ntfs
+    } else {
+        FilesystemKind::Unknown
     };
 
     Ok(Some(kind))
 }
 
-/// Return the boot signature for the partition
-fn boot_signature(sector: &[u8]) -> AccessorResult<u16> {
-    let footer = sector
-        .get(510..512)
-        .ok_or_else(|| AccessorError::volume("Boot sector is shorter than 512 bytes"))?;
-
-    let (_, sig) = nom_u16(footer, "Boot sector footer signature is truncated")?;
-
-    Ok(sig)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::accessor::disk::{
-        identify::{
-            FilesystemKind, boot_signature, check_filesystem, identify_disk, identify_partition,
-        },
+        identify::{FilesystemKind, check_filesystem, identify_disk, identify_partition},
         inspect::{DiskLayout, DiskPartition, PartitionKind, PartitionTableKind, inspect_disk},
     };
     use std::io::Cursor;
@@ -173,13 +152,6 @@ mod tests {
             identify_partition(&mut Cursor::new(vec![0u8; 512]), &gpt_partition(0, 512)).unwrap();
 
         assert_eq!(kind, FilesystemKind::Unknown);
-    }
-
-    #[test]
-    fn test_boot_signature() {
-        let boot = boot_sector(b"testtest", &[]);
-        let result = boot_signature(&boot).unwrap();
-        assert_eq!(result, 0xaa55);
     }
 
     #[test]
