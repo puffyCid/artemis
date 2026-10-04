@@ -50,11 +50,11 @@ impl DiskSource {
 
     /// Read the first supported filesystem that contains the correct filepath (`InnerPath`).
     ///
-    /// Example: `raw:image.raw/Windows/test.txt` returns the first match.
+    /// Example: `raw:/image.raw!/Windows/test.txt` returns the first match.
     /// If multiple partitions are on the image with the same path
     /// we return first one that matches
     ///
-    /// User can provide a specific partition via `raw:image.raw!Partition0:hello\\file.txt`
+    /// User can provide a specific partition via `raw:/image.raw!Partition0:hello\\file.txt`
     pub(crate) fn read_file(&self, inner: &InnerPath) -> AccessorResult<Vec<u8>> {
         let (selected, filesystem_path) = split_selector(inner);
         let partitions = self.identified_partitions()?;
