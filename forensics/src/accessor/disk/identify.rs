@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use crate::{
     accessor::{
         disk::inspect::{DiskLayout, DiskPartition, read_at},
@@ -37,8 +39,18 @@ pub(super) fn identify_disk<R: Read + Seek>(
     let mut identified = Vec::with_capacity(layout.partitions.len());
 
     for partition in &layout.partitions {
+        let filesystem = match identify_partition(reader, partition) {
+            Ok(result) => result,
+            Err(err) => {
+                warn!(
+                    "Unknown partition for '{}'. Kind: {:?}. Length: {}: {err:?}",
+                    partition.id, partition.kind, partition.byte_length
+                );
+                FilesystemKind::Unknown
+            }
+        };
         identified.push(IdentifiedPartition {
-            filesystem: identify_partition(reader, partition)?,
+            filesystem,
             partition: partition.clone(),
         });
     }
