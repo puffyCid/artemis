@@ -54,7 +54,7 @@ impl DiskSource {
     /// If multiple partitions are on the image with the same path
     /// we return first one that matches
     ///
-    /// User can provide a specific partition via `raw:image.raw:Partition0:hello\\file.txt`
+    /// User can provide a specific partition via `raw:image.raw!Partition0:hello\\file.txt`
     pub(crate) fn read_file(&self, inner: &InnerPath) -> AccessorResult<Vec<u8>> {
         let (selected, filesystem_path) = split_selector(inner);
         let partitions = self.identified_partitions()?;
@@ -82,7 +82,7 @@ impl DiskSource {
         Err(AccessorError::not_found(inner.display()))
     }
 
-    /// Find all partitions from provided disk iamge
+    /// Find all partitions from provided disk image
     fn identified_partitions(&self) -> AccessorResult<Vec<IdentifiedPartition>> {
         let mut reader = self.open_disk()?;
         let layout = inspect_disk(&mut reader)?;
@@ -114,6 +114,7 @@ fn supported_targets<'a>(
     partitions: &'a [IdentifiedPartition],
     selected: Option<&str>,
 ) -> AccessorResult<Vec<&'a IdentifiedPartition>> {
+    // If user provided an explicit partition. We try that first
     if let Some(id) = selected {
         let partition = partitions
             .iter()
@@ -123,6 +124,7 @@ fn supported_targets<'a>(
         return Ok(vec![require_supported(partition)?]);
     }
 
+    // Identify all support partition filesystems
     let supported = partitions
         .iter()
         .filter(|partition| is_supported(partition.filesystem))
@@ -168,7 +170,7 @@ fn unsupported(partition: &IdentifiedPartition) -> AccessorError {
     ))
 }
 
-/// Filesytems we current support on partitions
+/// Filesystems we current support on partitions
 fn is_supported(kind: FilesystemKind) -> bool {
     match kind {
         FilesystemKind::Ntfs => true,
@@ -180,8 +182,8 @@ fn is_supported(kind: FilesystemKind) -> bool {
 ///
 /// We only accept partition with label `Partition`
 fn split_selector(inner: &InnerPath) -> (Option<String>, InnerPath) {
-    let display = inner.display().to_ascii_lowercase();
-    let Some(remaining) = display.strip_prefix("partition") else {
+    let display = inner.display();
+    let Some(remaining) = display.strip_prefix("Partition") else {
         return (None, inner.clone());
     };
 
