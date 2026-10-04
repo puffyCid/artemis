@@ -3,29 +3,11 @@ use crate::{
     utils::{
         nom_helper::{nom_guid, nom_take, nom_u32, nom_u64},
         strings::extract_utf16_string,
-        uuid::format_guid_le_bytes,
     },
 };
-use nom::{
-    bytes::complete::take,
-    error::ErrorKind,
-    number::complete::{le_u32, le_u64},
-};
 use std::collections::HashMap;
-use tracing::{error, warn};
+use tracing::warn;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Default)]
-pub(super) struct GptPartition {
-    partition_guid: String,
-    guid: String,
-    platform: GuidNames,
-    first_lba: u64,
-    last_lba: u64,
-    attributes: u64,
-    partition_name: String,
-    offset_start: u64,
-}
 
 /// Parsed GPT header
 ///
@@ -131,7 +113,7 @@ impl GptEntry {
 
         sector_count
             .checked_mul(sector_size)
-            .ok_or_else(|| AccessorError::volume("GPT partition byte lenght overflow"))
+            .ok_or_else(|| AccessorError::volume("GPT partition byte length overflow"))
     }
 }
 
