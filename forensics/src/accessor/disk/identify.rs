@@ -1,10 +1,9 @@
-use tracing::warn;
-
 use crate::accessor::{
     disk::inspect::{DiskLayout, DiskPartition, is_logical_ntfs, read_at},
     error::AccessorResult,
 };
 use std::io::{Read, Seek};
+use tracing::warn;
 
 /// Filesystem found at partition offset
 #[derive(Debug, Clone, Copy, PartialEq)]
