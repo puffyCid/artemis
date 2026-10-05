@@ -25,6 +25,13 @@ impl DiskFormat {
             Self::Raw => Ok(DiskReader::Raw(RawDisk::new(path)?.open_reader()?)),
         }
     }
+
+    /// Return `DiskFormat` as string
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Self::Raw => "raw",
+        }
+    }
 }
 
 /// Open a logical disk reader for a disk image

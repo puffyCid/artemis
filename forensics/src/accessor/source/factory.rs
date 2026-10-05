@@ -41,6 +41,7 @@ pub(crate) fn ensure_source(
         SourceId::Host => Source::Host(HostSource::new(config)),
         SourceId::Ntfs(drive) => Source::Ntfs(NtfsSource::new(config, *drive)?),
         SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
+        SourceId::Disk { format, path } => todo!(),
     };
 
     cache.insert(source_id.clone(), source);
@@ -73,6 +74,7 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                 .ok_or_else(|| AccessorError::location("", "zip location missing archive path"))?;
             Ok(SourceId::Zip(source.as_path().to_path_buf()))
         }
+        Scheme::Raw => todo!(),
     }
 }
 
@@ -85,6 +87,13 @@ pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResu
         FileLocator::Host { .. } => Ok(SourceId::Host),
         FileLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
+        FileLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            ..
+        } => todo!(),
     }
 }
 
@@ -243,6 +252,13 @@ pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult
         DirLocator::Host { .. } => Ok(SourceId::Host),
         DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
+        DirLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            ..
+        } => todo!(),
     }
 }
 

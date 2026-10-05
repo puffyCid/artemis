@@ -36,6 +36,7 @@ impl Location {
                         parse_schemed_location(input, None)
                     }
                 }
+                Scheme::Raw => parse_raw_location(input),
             };
         }
 
@@ -188,6 +189,30 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
     })
 }
 
+fn parse_raw_location(input: &str) -> AccessorResult<Location> {
+    let (source_part, inner_part) = match input.split_once('!') {
+        Some((source_part, inner_part)) => (source_part, Some(inner_part)),
+        None => (input, None),
+    };
+
+    let mut location = parse_schemed_location(source_part, None)?;
+    if let Some(inner_part) = inner_part {
+        location.inner_path = disk_inner_path(inner_part)?;
+    }
+
+    Ok(location)
+}
+
+fn disk_inner_path(value: &str) -> AccessorResult<InnerPath> {
+    let trimmed = value.trim_start_matches(['/', '\\']);
+
+    if trimmed.is_empty() {
+        return Ok(InnerPath::empty());
+    }
+
+    Ok(InnerPath::new(PathBuf::from(trimmed)))
+}
+
 /// Determine the `SourcePath` based on `Scheme` and remaining path
 fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<SourcePath>> {
     match scheme {
@@ -206,6 +231,16 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
                     "zip archive paths must be absolute host paths",
                 ));
             }
+            Ok(Some(SourcePath::new(PathBuf::from(remainder))))
+        }
+        Scheme::Raw => {
+            if remainder.is_empty() || !is_absolute_host_path(remainder) {
+                return Err(AccessorError::location(
+                    remainder,
+                    "Raw image paths must be absolute",
+                ));
+            }
+
             Ok(Some(SourcePath::new(PathBuf::from(remainder))))
         }
     }
@@ -286,7 +321,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
-        Scheme::Zip => Ok(InnerPath::empty()),
+        Scheme::Zip | Scheme::Raw => Ok(InnerPath::empty()),
     }
 }
 

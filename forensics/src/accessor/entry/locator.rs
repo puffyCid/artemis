@@ -1,6 +1,8 @@
 use ntfs::NtfsFileReference;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use crate::accessor::disk::format::DiskFormat;
 
 /// Source of our data that we want to access
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -12,6 +14,13 @@ pub enum SourceId {
     Ntfs(char),
     /// A zip file
     Zip(PathBuf),
+    /// Disk Image
+    Disk {
+        /// Disk image format
+        format: DiskFormat,
+        /// Path to the disk image
+        path: PathBuf,
+    },
 }
 
 impl SourceId {
@@ -21,6 +30,7 @@ impl SourceId {
             SourceId::Host => String::from("host"),
             SourceId::Ntfs(drive) => format!("ntfs:{drive}:"),
             SourceId::Zip(path) => format!("zip:{}", path.display()),
+            SourceId::Disk { format, path } => format!("{}:{}", format.as_str(), path.display()),
         }
     }
 }
@@ -32,6 +42,15 @@ pub(crate) struct NtfsEntryRef {
     pub(crate) file_record_number: u64,
     /// NTFS Sequence Number
     pub(crate) sequence_number: u16,
+}
+
+/// File reference in a disk image.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum DiskEntryRef {
+    /// NTFS filesystem reference
+    Ntfs(NtfsEntryRef),
+    /// Reference to root partition
+    PartitionRoot,
 }
 
 impl NtfsEntryRef {
@@ -70,6 +89,19 @@ pub(crate) enum FileLocator {
         /// Path to the file in the zip
         entry: String,
     },
+    /// Filesystem reference in a disk image
+    Disk {
+        /// Path to the disk image
+        image: PathBuf,
+        /// Disk image format
+        format: DiskFormat,
+        /// Partition name the file reference is on
+        partition_id: String,
+        /// Path to the file inside the disk image
+        filesystem_path: String,
+        /// Reference to file location
+        entry: DiskEntryRef,
+    },
 }
 
 /// Requirements to locate a directory from a provided source
@@ -96,4 +128,39 @@ pub(crate) enum DirLocator {
         /// Path to the directory in the zip
         prefix: String,
     },
+    /// Filesystem reference in a disk image
+    Disk {
+        /// Path to the disk image
+        image: PathBuf,
+        /// Disk image format
+        format: DiskFormat,
+        /// Partition name the directory reference is on
+        partition_id: String,
+        /// Path to the directory inside the disk image
+        filesystem_path: String,
+        /// Reference to directory location
+        entry: DiskEntryRef,
+    },
+}
+
+/// `raw:/image.raw!Partition0:hello\file.txt`, or `raw:/image.raw!Partition0` at the partition root.
+pub(crate) fn disk_display_path(
+    image: &Path,
+    format: &DiskFormat,
+    partition_id: &str,
+    filesystem_path: &str,
+) -> String {
+    if filesystem_path.is_empty() {
+        format!("{}:{}!{partition_id}", format.as_str(), image.display())
+    } else {
+        format!(
+            "{}:{}!{partition_id}:{filesystem_path}",
+            format.as_str(),
+            image.display()
+        )
+    }
+}
+/// `raw:/image.raw!` for the image root, where the partitions are listed.
+pub(crate) fn disk_root_display(image: &Path, format: &DiskFormat) -> String {
+    format!("{}:{}!", format.as_str(), image.display())
 }

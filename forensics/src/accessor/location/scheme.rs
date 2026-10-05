@@ -12,6 +12,8 @@ pub(crate) enum Scheme {
     Ntfs,
     /// Access the data inside a zip file
     Zip,
+    /// Raw disk image
+    Raw,
 }
 
 impl Scheme {
@@ -21,6 +23,7 @@ impl Scheme {
             Self::Host => "host",
             Self::Ntfs => "ntfs",
             Self::Zip => "zip",
+            Self::Raw => "raw",
         }
     }
 
@@ -30,6 +33,7 @@ impl Scheme {
             "host" => Ok(Self::Host),
             "ntfs" => Ok(Self::Ntfs),
             "zip" => Ok(Self::Zip),
+            "raw" => Ok(Self::Raw),
             _ => Err(AccessorError::unsupported_scheme(value)),
         }
     }
@@ -54,7 +58,7 @@ pub(crate) fn location_scheme(input: &str) -> Option<Scheme> {
 
     match scheme {
         Scheme::Host | Scheme::Ntfs => is_absolute_host_path(remainder).then_some(scheme),
-        Scheme::Zip => {
+        Scheme::Zip | Scheme::Raw => {
             let archive = remainder
                 .split_once('!')
                 .map_or(remainder, |(archive, _)| archive);

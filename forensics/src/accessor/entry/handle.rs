@@ -1,4 +1,5 @@
 use crate::accessor::{
+    disk::format::DiskFormat,
     entry::locator::{DirLocator, FileLocator},
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
@@ -83,6 +84,21 @@ impl FileHandle {
             FileLocator::Zip { archive, entry, .. } => {
                 format!("{}!{entry}", archive.display())
             }
+            FileLocator::Disk {
+                partition_id,
+                filesystem_path,
+                ..
+            } => {
+                if filesystem_path.is_empty() {
+                    partition_id.clone()
+                } else {
+                    filesystem_path
+                        .rsplit(['/', '\\'])
+                        .next()
+                        .unwrap_or(filesystem_path)
+                        .to_string()
+                }
+            }
         }
     }
 
@@ -110,6 +126,19 @@ impl FileHandle {
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
             }
+            FileLocator::Disk {
+                image,
+                format,
+                partition_id,
+                filesystem_path,
+                ..
+            } => {
+                format!(
+                    "{}:{}!{partition_id}:{filesystem_path}",
+                    format.as_str(),
+                    image.display()
+                )
+            }
         }
     }
 
@@ -119,6 +148,9 @@ impl FileHandle {
             FileLocator::Host { .. } => Scheme::Host,
             FileLocator::Ntfs { .. } => Scheme::Ntfs,
             FileLocator::Zip { .. } => Scheme::Zip,
+            FileLocator::Disk { format, .. } => match format {
+                DiskFormat::Raw => Scheme::Raw,
+            },
         }
     }
 }
@@ -155,6 +187,19 @@ impl DirHandle {
                     format!("zip:{}!{prefix}", archive.display())
                 }
             }
+            DirLocator::Disk {
+                image,
+                format,
+                partition_id,
+                filesystem_path,
+                ..
+            } => {
+                format!(
+                    "{}:{}!{partition_id}:{filesystem_path}",
+                    format.as_str(),
+                    image.display()
+                )
+            }
         }
     }
 
@@ -172,6 +217,21 @@ impl DirHandle {
                     archive.display().to_string()
                 } else {
                     format!("{}!{prefix}", archive.display())
+                }
+            }
+            DirLocator::Disk {
+                partition_id,
+                filesystem_path,
+                ..
+            } => {
+                if filesystem_path.is_empty() {
+                    partition_id.clone()
+                } else {
+                    filesystem_path
+                        .rsplit(['/', '\\'])
+                        .next()
+                        .unwrap_or(filesystem_path)
+                        .to_string()
                 }
             }
         }
@@ -197,6 +257,9 @@ impl DirHandle {
             DirLocator::Host { .. } => Scheme::Host,
             DirLocator::Ntfs { .. } => Scheme::Ntfs,
             DirLocator::Zip { .. } => Scheme::Zip,
+            DirLocator::Disk { format, .. } => match format {
+                DiskFormat::Raw => Scheme::Raw,
+            },
         }
     }
 }
