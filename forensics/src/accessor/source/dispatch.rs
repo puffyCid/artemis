@@ -180,4 +180,22 @@ impl Source {
             )),
         }
     }
+
+    /// Expose generating a disk image filelisting to the `Accessor`
+    pub(crate) fn walk_disk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Disk(source) => source.walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_disk requires a disk source",
+            )),
+        }
+    }
 }

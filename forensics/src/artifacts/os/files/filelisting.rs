@@ -64,7 +64,12 @@ pub(crate) fn get_filelist(
                 error!("ZIP filelisting failed: {err:?}");
                 FileError::Filelisting
             }),
-        SourceId::Disk { format, path } => todo!(),
+        SourceId::Disk { .. } => accessor
+            .source_walk_disk(&source, options, manager, &rule)
+            .map_err(|err| {
+                error!("Disk filelisting failed: {err:?}");
+                FileError::Filelisting
+            }),
     }
 }
 

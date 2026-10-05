@@ -1,23 +1,34 @@
-use crate::accessor::{
-    config::AccessorConfig,
-    disk::{
-        format::{DiskFormat, DiskReader},
-        identify::{FilesystemKind, IdentifiedPartition, identify_disk},
-        inspect::{DiskPartition, inspect_disk},
-    },
-    entry::{
-        handle::{
-            DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle, Timestamp,
+use crate::{
+    accessor::{
+        config::AccessorConfig,
+        disk::{
+            format::{DiskFormat, DiskReader},
+            identify::{FilesystemKind, IdentifiedPartition, identify_disk},
+            inspect::{DiskPartition, inspect_disk},
         },
-        locator::{DirLocator, DiskEntryRef, FileLocator, disk_display_path, disk_root_display},
+        entry::{
+            handle::{
+                DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle,
+                Timestamp,
+            },
+            locator::{
+                DirLocator, DiskEntryRef, FileLocator, disk_display_path, disk_root_display,
+            },
+        },
+        error::{AccessorError, AccessorResult},
+        filesystem::ntfs::{
+            data::NtfsFs,
+            volume::NtfsVolume,
+            walk::{LabeledPath, PathLabel},
+        },
+        io::{
+            partition::PartitionReader,
+            reader::{AccessorReader, ReaderLocation, extension_from_filename},
+        },
+        location::path::InnerPath,
     },
-    error::{AccessorError, AccessorResult},
-    filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
-    io::{
-        partition::PartitionReader,
-        reader::{AccessorReader, ReaderLocation, extension_from_filename},
-    },
-    location::path::InnerPath,
+    output::manager::OutputManager,
+    structs::artifacts::os::files::FileOptions,
 };
 use common::files::EntryKind;
 use std::{
@@ -311,6 +322,89 @@ impl DiskSource {
         let partition = self.partition(partition_id)?;
 
         self.open_referenced_reader(&partition, filesystem_path, entry)
+    }
+
+    pub(crate) fn walk(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        let (selected, filesystem_path) = split_selector(inner);
+        let partitions = self.identified_partitions()?;
+        let targets = supported_targets(&partitions, selected.as_deref())?;
+        let walk_all = selected.is_none() && is_filesystem_root(&filesystem_path);
+
+        for partition in targets {
+            match self.walk_partition(
+                partition,
+                &filesystem_path,
+                options,
+                manager,
+                rule,
+                evidence,
+            ) {
+                Ok(()) => {
+                    info!(
+                        "matched on partition {}. Filesystem: {:?}",
+                        partition.partition.id, partition.filesystem
+                    );
+                    if !walk_all {
+                        return Ok(());
+                    }
+                }
+                Err(AccessorError::NotFound { .. }) if walk_all || selected.is_none() => {}
+                Err(AccessorError::NotFound { .. }) => {
+                    return Err(AccessorError::not_found(inner.display()));
+                }
+                Err(err) => return Err(err),
+            }
+        }
+
+        if walk_all {
+            return Ok(());
+        }
+        Err(AccessorError::not_found(inner.display()))
+    }
+
+    fn walk_partition(
+        &self,
+        partition: &IdentifiedPartition,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match partition.filesystem {
+            FilesystemKind::Ntfs => {
+                let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+                let image = self.path.clone();
+                let format = self.format;
+                let partition_id = partition.partition.id.clone();
+
+                let paths = PathLabel::custom(move |ntfs_display| {
+                    let filesystem_path = ntfs_filesystem_path(ntfs_display);
+                    LabeledPath {
+                        directory: parent_path(&filesystem_path),
+                        display_path: disk_display_path(
+                            &image,
+                            &format,
+                            &partition_id,
+                            &filesystem_path,
+                        ),
+                        drive: partition_id.clone(),
+                        full_path: filesystem_path,
+                    }
+                });
+                filesystem.walk_labeled(inner, options, manager, rule, evidence, paths)
+            }
+            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
+                Err(unsupported(partition))
+            }
+        }
     }
 
     /// Find all partitions from provided disk image
@@ -844,6 +938,10 @@ fn parent_path(path: &str) -> String {
         Some(index) => trimmed[..index].to_string(),
         None => String::new(),
     }
+}
+
+fn is_filesystem_root(inner: &InnerPath) -> bool {
+    inner.display().trim_matches(['\\', '/']).is_empty()
 }
 
 fn rewrite_meta(meta: EntryMeta, full_path: String, display_path: String) -> EntryMeta {

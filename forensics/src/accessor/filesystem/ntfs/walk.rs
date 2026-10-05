@@ -57,6 +57,44 @@ use tracing::{error, info, warn};
 /// Max size of file we read into memory if we need to parse PE or scan with Yara
 const YARA_MAX_SIZE: u64 = 50 * 1024 * 1024;
 
+/// Paths for a single filelisting record
+pub(crate) struct LabeledPath {
+    pub(crate) full_path: String,
+    pub(crate) display_path: String,
+    pub(crate) directory: String,
+    pub(crate) drive: String,
+}
+
+/// Turn a NTFS path into `LabeledPath`
+pub(crate) struct PathLabel {
+    render: Box<dyn Fn(&str) -> LabeledPath>,
+}
+
+impl PathLabel {
+    pub(crate) fn drive(drive: char) -> Self {
+        Self::custom(move |ntfs_display| {
+            let scheme_path = format!("ntfs:{ntfs_display}");
+
+            LabeledPath {
+                full_path: ntfs_display.to_string(),
+                display_path: scheme_path.clone(),
+                directory: directory_from_display(&scheme_path),
+                drive: format!("{drive}:"),
+            }
+        })
+    }
+
+    pub(crate) fn custom(render: impl Fn(&str) -> LabeledPath + 'static) -> Self {
+        Self {
+            render: Box::new(render),
+        }
+    }
+
+    pub(crate) fn render(&self, ntfs_display: &str) -> LabeledPath {
+        (self.render)(ntfs_display)
+    }
+}
+
 /// Walk the NTFS filesystem and output results
 pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
     volume: &NtfsVolume<T>,
@@ -66,6 +104,7 @@ pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
     manager: &mut OutputManager,
     yara_rule: &str,
     evidence: &str,
+    paths: PathLabel,
 ) -> AccessorResult<()> {
     let (inner_path, _) = inner_to_ntfs_path(inner, drive);
     let parent_display = display_ntfs_path(drive, &inner_path);
@@ -105,6 +144,7 @@ pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
         drive,
         depth: 1,
         max_depth: options.depth.unwrap_or(1),
+        paths,
     };
 
     volume.with_reader(|ntfs, reader| {
@@ -163,6 +203,8 @@ struct NtfsListing<'a> {
     depth: u32,
     /// The max depth we are descending
     max_depth: u32,
+    /// How NTFS paths are written for each entry
+    paths: PathLabel,
 }
 
 /// Recursively walk the the NTFS filesystem
@@ -214,7 +256,8 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
             format!("{parent_display}\\{name}",)
         };
 
-        if listing.exclude.contains(&display_path) {
+        let labeled = listing.paths.render(&display_path);
+        if listing.exclude.contains(&display_path) || listing.exclude.contains(&labeled.full_path) {
             continue;
         }
 
@@ -325,10 +368,10 @@ fn fill_ntfs_entry<R: Read + Seek>(
         }
     }
 
-    let scheme_path = format!("ntfs:{display_path}");
+    let labeled = listing.paths.render(display_path);
     let mut info = FileNtfsInfo {
-        full_path: display_path.to_string(),
-        directory: directory_from_display(&scheme_path),
+        full_path: labeled.full_path,
+        directory: labeled.directory,
         filename: name.to_string(),
         extension: extension_from_filename(name),
         created: filetime_to_iso(standard.creation_time().nt_timestamp()),
@@ -343,7 +386,7 @@ fn fill_ntfs_entry<R: Read + Seek>(
         size,
         kind,
         depth: listing.depth as usize,
-        display_path: scheme_path,
+        display_path: labeled.display_path,
         compressed_size,
         compression_type,
         inode: file.file_record_number(),
@@ -391,7 +434,7 @@ fn append_indx_slack<R: Read + Seek>(
     parent: &str,
     listing: &mut NtfsListing<'_>,
 ) {
-    for info in recover_indx_slack(
+    for mut info in recover_indx_slack(
         reader,
         dir,
         parent,
@@ -399,9 +442,16 @@ fn append_indx_slack<R: Read + Seek>(
         listing.drive,
         listing.evidence,
     ) {
-        if listing.exclude.contains(&info.full_path) {
+        let labeled = listing.paths.render(&info.full_path);
+        if listing.exclude.contains(&info.full_path) || listing.exclude.contains(&labeled.full_path)
+        {
             continue;
         }
+
+        info.full_path = labeled.full_path;
+        info.display_path = labeled.display_path;
+        info.directory = labeled.directory;
+        info.drive = labeled.drive;
 
         if listing.options.path_regex.is_some()
             && !regex_check(&listing.path_filter, &info.full_path)
@@ -912,7 +962,10 @@ mod tests {
     use super::walk_ntfs;
     use crate::{
         accessor::{
-            filesystem::ntfs::{volume::NtfsVolume, walk::list_children},
+            filesystem::ntfs::{
+                volume::NtfsVolume,
+                walk::{PathLabel, list_children},
+            },
             io::partition::PartitionReader,
             location::path::InnerPath,
         },
@@ -966,7 +1019,17 @@ mod tests {
         let volume = test_volume();
         let inner = InnerPath::empty();
         let mut manager = output_manager(name);
-        walk_ntfs(&volume, 'C', &inner, options, &mut manager, "", "ntfs:C:").unwrap();
+        walk_ntfs(
+            &volume,
+            'C',
+            &inner,
+            options,
+            &mut manager,
+            "",
+            "ntfs:C:",
+            PathLabel::drive('C'),
+        )
+        .unwrap();
 
         let output_dir = PathBuf::from("./tmp").join(name);
         let mut rows = Vec::new();

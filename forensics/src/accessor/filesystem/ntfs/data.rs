@@ -9,8 +9,8 @@ use crate::{
             attributes::read_named_data,
             volume::NtfsVolume,
             walk::{
-                get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref,
-                resolve_entry, resolve_file, walk_ntfs,
+                PathLabel, get_file_size, list_children, list_children_handle, ntfs_err,
+                open_by_ref, resolve_entry, resolve_file, walk_ntfs,
             },
             wof::{decompress_wof, is_wof_file},
         },
@@ -275,6 +275,29 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
             manager,
             rule,
             evidence,
+            PathLabel::drive(self.drive),
+        )
+    }
+
+    /// Walk the NTFS filesystem, using `PathLabel` for the paths written on each record.
+    pub(crate) fn walk_labeled(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+        paths: PathLabel,
+    ) -> AccessorResult<()> {
+        walk_ntfs(
+            &self.volume,
+            self.drive,
+            inner,
+            options,
+            manager,
+            rule,
+            evidence,
+            paths,
         )
     }
 }
