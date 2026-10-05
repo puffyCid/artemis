@@ -92,11 +92,7 @@ impl FileHandle {
                 if filesystem_path.is_empty() {
                     partition_id.clone()
                 } else {
-                    filesystem_path
-                        .rsplit(['/', '\\'])
-                        .next()
-                        .unwrap_or(filesystem_path)
-                        .to_string()
+                    filesystem_path.clone()
                 }
             }
         }
@@ -215,11 +211,7 @@ impl DirHandle {
                 if filesystem_path.is_empty() {
                     partition_id.clone()
                 } else {
-                    filesystem_path
-                        .rsplit(['/', '\\'])
-                        .next()
-                        .unwrap_or(filesystem_path)
-                        .to_string()
+                    filesystem_path.clone()
                 }
             }
         }

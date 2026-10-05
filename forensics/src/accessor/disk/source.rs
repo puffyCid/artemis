@@ -33,6 +33,9 @@ pub(crate) struct DiskSource {
     max_read_size: Option<u64>,
 }
 
+/// Drive letter used when opening NTFS volumes inside disk images
+const NTFS_DRIVE: char = 'X';
+
 impl DiskSource {
     /// Open a provided disk image file
     pub(crate) fn open(
@@ -154,6 +157,48 @@ impl DiskSource {
         }
 
         Err(AccessorError::not_found(inner.display()))
+    }
+
+    pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
+        let FileLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            entry,
+        } = &handle.locator
+        else {
+            return Err(AccessorError::invalid_handle(format!(
+                "disk source cannot stat file handle for {}",
+                handle.display_path()
+            )));
+        };
+
+        self.ensure_same_image(image, *format)?;
+
+        let partition = self.partition(partition_id)?;
+        self.stat_referenced_entry(&partition, filesystem_path, entry)
+    }
+
+    pub(crate) fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
+        let DirLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            entry,
+        } = &handle.locator
+        else {
+            return Err(AccessorError::invalid_handle(format!(
+                "disk source cannot stat directory handle for {}",
+                handle.display_path()
+            )));
+        };
+
+        self.ensure_same_image(image, *format)?;
+
+        let partition = self.partition(partition_id)?;
+        self.stat_referenced_entry(&partition, filesystem_path, entry)
     }
 
     pub(crate) fn globfs(
@@ -407,6 +452,71 @@ impl DiskSource {
             )),
         }
     }
+
+    fn ensure_same_image(&self, image: &PathBuf, format: DiskFormat) -> AccessorResult<()> {
+        if image == &self.path && format == self.format {
+            return Ok(());
+        }
+        Err(AccessorError::invalid_handle(
+            "disk handle belongs to a different image",
+        ))
+    }
+
+    fn partition(&self, partition_id: &str) -> AccessorResult<IdentifiedPartition> {
+        let partitions = self.identified_partitions()?;
+        let partition = partitions
+            .into_iter()
+            .find(|partition| partition.partition.id == partition_id)
+            .ok_or_else(|| AccessorError::not_found(partition_id))?;
+
+        require_supported(&partition)?;
+        Ok(partition)
+    }
+
+    fn stat_referenced_entry(
+        &self,
+        partition: &IdentifiedPartition,
+        filesystem_path: &str,
+        entry: &DiskEntryRef,
+    ) -> AccessorResult<EntryStat> {
+        if matches!(entry, DiskEntryRef::PartitionRoot) {
+            return self.stat_partition_file(partition, &InnerPath::empty());
+        }
+
+        let stat = match (partition.filesystem, entry) {
+            (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(file_ref)) => {
+                let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+                let handle = FileHandle::new(FileLocator::Ntfs {
+                    drive: NTFS_DRIVE,
+                    file_ref: file_ref.clone(),
+                    display_path: filesystem_path.to_string(),
+                });
+                filesystem.stat_handle(&handle)?
+            }
+            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
+                return Err(unsupported(partition));
+            }
+            #[allow(unreachable_patterns)]
+            _ => {
+                return Err(AccessorError::invalid_handle(format!(
+                    "{} entry reference does not match {:?} filesystem",
+                    partition.partition.id, partition.filesystem
+                )));
+            }
+        };
+
+        let display_path = disk_display_path(
+            &self.path,
+            &self.format,
+            &partition.partition.id,
+            filesystem_path,
+        );
+
+        Ok(EntryStat {
+            meta: rewrite_meta(stat.meta, filesystem_path.to_string(), display_path),
+            times: stat.times,
+        })
+    }
 }
 
 /// When auto-choosing the partition
@@ -450,8 +560,7 @@ fn open_ntfs<R: Read + Seek + Send + 'static>(
         partition.id.clone(),
     )?;
 
-    let image_drive = 'X';
-    Ok(NtfsFs::new(volume, image_drive))
+    Ok(NtfsFs::new(volume, NTFS_DRIVE))
 }
 
 /// Check to make sure we support the selected partition
@@ -543,7 +652,7 @@ fn path_meta(kind: EntryKind, size: u64, full_path: &str, display_path: &str) ->
 /// Convert `ntfs:X:\hello\file.txt` or `X:\hello\file.txt` to `hello\file.txt`.
 fn ntfs_filesystem_path(display_path: &str) -> String {
     let path = display_path.strip_prefix("ntfs:").unwrap_or(display_path);
-    let drive = format!("X:");
+    let drive = format!("{NTFS_DRIVE}:");
     let path = path.strip_prefix(&drive).unwrap_or(path);
     path.trim_start_matches(['\\', '/']).to_string()
 }
