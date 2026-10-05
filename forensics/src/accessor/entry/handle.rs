@@ -1,6 +1,6 @@
 use crate::accessor::{
     disk::format::DiskFormat,
-    entry::locator::{DirLocator, FileLocator},
+    entry::locator::{DirLocator, FileLocator, disk_display_path},
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
@@ -132,13 +132,7 @@ impl FileHandle {
                 partition_id,
                 filesystem_path,
                 ..
-            } => {
-                format!(
-                    "{}:{}!{partition_id}:{filesystem_path}",
-                    format.as_str(),
-                    image.display()
-                )
-            }
+            } => disk_display_path(image, format, partition_id, filesystem_path),
         }
     }
 
@@ -193,13 +187,7 @@ impl DirHandle {
                 partition_id,
                 filesystem_path,
                 ..
-            } => {
-                format!(
-                    "{}:{}!{partition_id}:{filesystem_path}",
-                    format.as_str(),
-                    image.display()
-                )
-            }
+            } => disk_display_path(image, format, partition_id, filesystem_path),
         }
     }
 

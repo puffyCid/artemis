@@ -92,7 +92,7 @@ impl Location {
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
         // Check for disk images or container files
         // 'zip:test.zip!*' or in future 'dd:image.raw!/users/*/*.txt'
-        if matches!(location_scheme(input), Some(Scheme::Zip))
+        if matches!(location_scheme(input), Some(Scheme::Zip | Scheme::Raw))
             && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;

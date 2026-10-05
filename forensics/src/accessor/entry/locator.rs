@@ -143,7 +143,9 @@ pub(crate) enum DirLocator {
     },
 }
 
-/// `raw:/image.raw!Partition0:hello\file.txt`, or `raw:/image.raw!Partition0` at the partition root.
+/// Returns a clean display path
+///
+/// Example: `raw:/image.raw!Partition0:hello\file.txt`, or `raw:/image.raw!Partition0` at the partition root.
 pub(crate) fn disk_display_path(
     image: &Path,
     format: &DiskFormat,
