@@ -13,7 +13,10 @@ use crate::accessor::{
     },
     error::{AccessorError, AccessorResult},
     filesystem::ntfs::{data::NtfsFs, volume::NtfsVolume},
-    io::{partition::PartitionReader, reader::extension_from_filename},
+    io::{
+        partition::PartitionReader,
+        reader::{AccessorReader, ReaderLocation, extension_from_filename},
+    },
     location::path::InnerPath,
 };
 use common::files::EntryKind;
@@ -92,6 +95,25 @@ impl DiskSource {
         Err(AccessorError::not_found(inner.display()))
     }
 
+    pub(crate) fn read_file_handle(&self, handle: &FileHandle) -> AccessorResult<Vec<u8>> {
+        let FileLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            entry,
+        } = &handle.locator
+        else {
+            return Err(AccessorError::invalid_handle(format!(
+                "disk source cannot read file handle for {}",
+                handle.display_path()
+            )));
+        };
+        self.ensure_same_image(image, *format)?;
+        let partition = self.partition(partition_id)?;
+        self.read_referenced_file(&partition, filesystem_path, entry)
+    }
+
     /// Read the first supported filesystem that contains the correct directory (`InnerPath`).
     ///
     /// Example: `raw:/image.raw!/Windows/` returns the first match.
@@ -127,6 +149,26 @@ impl DiskSource {
         }
 
         Err(AccessorError::not_found(inner.display()))
+    }
+
+    pub(crate) fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
+        let DirLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            entry,
+        } = &handle.locator
+        else {
+            return Err(AccessorError::invalid_handle(format!(
+                "disk source cannot list directory handle for {}",
+                handle.display_path()
+            )));
+        };
+
+        self.ensure_same_image(image, *format)?;
+        let partition = self.partition(partition_id)?;
+        self.read_reference_dir(&partition, filesystem_path, entry)
     }
 
     pub(crate) fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
@@ -224,6 +266,51 @@ impl DiskSource {
         }
 
         Ok(matches)
+    }
+
+    pub(crate) fn open_reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
+        let (selected, filesystem_path) = split_selector(inner);
+        let partitions = self.identified_partitions()?;
+        let targets = supported_targets(&partitions, selected.as_deref())?;
+
+        for partition in targets {
+            match self.open_partition_reader(partition, &filesystem_path) {
+                Ok(reader) => {
+                    info!(
+                        "Matched on partition {}. Filesystem: {:?}",
+                        partition.partition.id, partition.filesystem
+                    );
+                    return Ok(reader);
+                }
+                Err(AccessorError::NotFound { .. }) if selected.is_none() => {}
+                Err(AccessorError::NotFound { .. }) => {
+                    return Err(AccessorError::not_found(inner.display()));
+                }
+                Err(err) => return Err(err),
+            }
+        }
+        Err(AccessorError::not_found(inner.display()))
+    }
+
+    pub(crate) fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
+        let FileLocator::Disk {
+            image,
+            format,
+            partition_id,
+            filesystem_path,
+            entry,
+        } = &handle.locator
+        else {
+            return Err(AccessorError::invalid_handle(format!(
+                "disk source cannot open reader handle for {}",
+                handle.display_path()
+            )));
+        };
+
+        self.ensure_same_image(image, *format)?;
+        let partition = self.partition(partition_id)?;
+
+        self.open_referenced_reader(&partition, filesystem_path, entry)
     }
 
     /// Find all partitions from provided disk image
@@ -517,6 +604,144 @@ impl DiskSource {
             times: stat.times,
         })
     }
+
+    fn read_referenced_file(
+        &self,
+        partition: &IdentifiedPartition,
+        filesystem_path: &str,
+        entry: &DiskEntryRef,
+    ) -> AccessorResult<Vec<u8>> {
+        if matches!(entry, DiskEntryRef::PartitionRoot) {
+            return Err(AccessorError::not_a_file(disk_display_path(
+                &self.path,
+                &self.format,
+                &partition.partition.id,
+                filesystem_path,
+            )));
+        }
+
+        match (partition.filesystem, entry) {
+            (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(file_ref)) => {
+                let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+                let handle = FileHandle::new(FileLocator::Ntfs {
+                    drive: NTFS_DRIVE,
+                    file_ref: file_ref.clone(),
+                    display_path: filesystem_path.to_string(),
+                });
+                filesystem.read_handle(&handle, self.max_read_size)
+            }
+            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
+                Err(unsupported(partition))
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "{} entry reference does not match {:?} filesystem",
+                partition.partition.id, partition.filesystem
+            ))),
+        }
+    }
+
+    fn read_reference_dir(
+        &self,
+        partition: &IdentifiedPartition,
+        filesystem_path: &str,
+        entry: &DiskEntryRef,
+    ) -> AccessorResult<Vec<DirEntry>> {
+        if matches!(entry, DiskEntryRef::PartitionRoot) {
+            return self.read_partition_dir(partition, &InnerPath::empty());
+        }
+
+        match (partition.filesystem, entry) {
+            (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(dir_ref)) => {
+                let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+                let handle = DirHandle::new(DirLocator::Ntfs {
+                    drive: NTFS_DRIVE,
+                    dir_ref: dir_ref.clone(),
+                    display_path: filesystem_path.to_string(),
+                });
+                filesystem
+                    .read_dir_handle(&handle)?
+                    .into_iter()
+                    .map(|child| self.map_dir_entry(&partition.partition.id, child))
+                    .collect()
+            }
+            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
+                Err(unsupported(partition))
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "{} entry reference does not match {:?} filesystem",
+                partition.partition.id, partition.filesystem
+            ))),
+        }
+    }
+
+    fn open_partition_reader(
+        &self,
+        partition: &IdentifiedPartition,
+        inner: &InnerPath,
+    ) -> AccessorResult<AccessorReader> {
+        match partition.filesystem {
+            FilesystemKind::Ntfs => {
+                let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+                let reader = filesystem.reader(inner)?;
+                Ok(self.with_disk_location(reader, &partition.partition.id, &inner.display()))
+            }
+            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
+                Err(unsupported(partition))
+            }
+        }
+    }
+
+    fn open_referenced_reader(
+        &self,
+        partition: &IdentifiedPartition,
+        filesystem_path: &str,
+        entry: &DiskEntryRef,
+    ) -> AccessorResult<AccessorReader> {
+        if matches!(entry, DiskEntryRef::PartitionRoot) {
+            return Err(AccessorError::not_a_file(disk_display_path(
+                &self.path,
+                &self.format,
+                &partition.partition.id,
+                filesystem_path,
+            )));
+        }
+
+        match (partition.filesystem, entry) {
+            (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(file_ref)) => {
+                let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+                let handle = FileHandle::new(FileLocator::Ntfs {
+                    drive: NTFS_DRIVE,
+                    file_ref: file_ref.clone(),
+                    display_path: filesystem_path.to_string(),
+                });
+                let reader = filesystem.reader_handle(&handle)?;
+                Ok(self.with_disk_location(reader, &partition.partition.id, filesystem_path))
+            }
+            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
+                Err(unsupported(partition))
+            }
+            _ => Err(AccessorError::invalid_handle(format!(
+                "{} entry reference does not match {:?} filesystem",
+                partition.partition.id, partition.filesystem
+            ))),
+        }
+    }
+
+    fn with_disk_location(
+        &self,
+        mut reader: AccessorReader,
+        partition_id: &str,
+        filesystem_path: &str,
+    ) -> AccessorReader {
+        reader.location = ReaderLocation::from_display(disk_display_path(
+            &self.path,
+            &self.format,
+            partition_id,
+            filesystem_path,
+        ));
+
+        reader
+    }
 }
 
 /// When auto-choosing the partition
@@ -664,8 +889,8 @@ mod tests {
         config::AccessorConfig,
         disk::format::DiskFormat,
         entry::{
-            handle::{DirHandle, ItemHandle},
-            locator::{DirLocator, DiskEntryRef},
+            handle::{DirHandle, FileHandle, ItemHandle},
+            locator::{DirLocator, DiskEntryRef, FileLocator},
         },
         error::AccessorError,
         location::path::InnerPath,
@@ -752,6 +977,7 @@ mod tests {
             })
         ));
     }
+
     #[test]
     fn test_read_dir_ntfs_root() {
         let entries = source(&test_image())
@@ -792,5 +1018,147 @@ mod tests {
         assert_eq!(found[0].meta.full_path, "hello\\hello world.txt");
         assert!(found[0].meta.display_path.contains("Partition0:"));
         assert!(!found[0].meta.display_path.contains("X:"));
+    }
+
+    #[test]
+    fn test_read_file_handle() {
+        let image = test_image();
+        let source = source(&image);
+        let entries = source.read_dir(&path("hello")).unwrap();
+        let handle = entries
+            .iter()
+            .find(|entry| entry.name == "hello world.txt")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let bytes = source.read_file_handle(handle).unwrap();
+        assert_eq!(bytes, b"hello world\n");
+    }
+
+    #[test]
+    fn test_read_dir_handle_partition_root() {
+        let image = test_image();
+        let source = source(&image);
+        let root = source.read_dir(&path("")).unwrap();
+
+        let handle = root[0].handle.as_directory().unwrap();
+        let entries = source.read_dir_handle(handle).unwrap();
+        let by_path = source.read_dir(&path("Partition0:")).unwrap();
+
+        assert_eq!(entries.len(), by_path.len());
+        assert!(entries.iter().any(|entry| entry.name == "hello"));
+        assert!(
+            entries
+                .iter()
+                .all(|entry| !entry.meta.display_path.contains("X:"))
+        );
+    }
+
+    #[test]
+    fn test_read_dir_handle_nested_directory() {
+        let image = test_image();
+        let source = source(&image);
+
+        let root = source.read_dir(&path("Partition0:")).unwrap();
+        let hello = root
+            .iter()
+            .find(|entry| entry.name == "hello")
+            .unwrap()
+            .handle
+            .as_directory()
+            .unwrap();
+
+        let entries = source.read_dir_handle(hello).unwrap();
+        let file = entries
+            .iter()
+            .find(|entry| entry.name == "hello world.txt")
+            .unwrap();
+
+        assert_eq!(file.meta.full_path, "hello\\hello world.txt");
+        assert!(
+            file.meta
+                .display_path
+                .contains("Partition0:hello\\hello world.txt")
+        );
+
+        assert!(!file.meta.display_path.contains("X:"));
+        let bytes = source
+            .read_file_handle(file.handle.as_file().unwrap())
+            .unwrap();
+        assert_eq!(bytes, b"hello world\n");
+    }
+
+    #[test]
+    fn test_read_file_handle_rejects_partition_root() {
+        let image = test_image();
+        let source = source(&image);
+        let handle = FileHandle::new(FileLocator::Disk {
+            image: image.clone(),
+            format: DiskFormat::Raw,
+            partition_id: String::from("Partition0"),
+            filesystem_path: String::new(),
+            entry: DiskEntryRef::PartitionRoot,
+        });
+
+        let err = source.read_file_handle(&handle).unwrap_err();
+        assert!(matches!(err, AccessorError::NotAFile { .. }));
+    }
+
+    #[test]
+    fn test_open_reader() {
+        let image = test_image();
+        let source = source(&image);
+        let mut reader = source.open_reader(&path("hello\\hello world.txt")).unwrap();
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).unwrap();
+
+        assert_eq!(bytes, b"hello world\n");
+        assert!(
+            reader
+                .location
+                .display_path()
+                .contains("Partition0:hello\\hello world.txt")
+        );
+        assert!(!reader.location.display_path().contains("X:"));
+    }
+
+    #[test]
+    fn test_open_reader_handle() {
+        let image = test_image();
+        let source = source(&image);
+        let entries = source.read_dir(&path("hello")).unwrap();
+        let handle = entries
+            .iter()
+            .find(|entry| entry.name == "hello world.txt")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let mut reader = source.open_reader_handle(handle).unwrap();
+        let mut bytes = Vec::new();
+
+        reader.read_to_end(&mut bytes).unwrap();
+        assert_eq!(bytes, b"hello world\n");
+        assert_eq!(reader.location.display_path(), handle.display_path());
+        assert!(!reader.location.display_path().contains("X:"));
+    }
+
+    #[test]
+    fn test_open_reader_handle_rejects_partition_root() {
+        let image = test_image();
+        let source = source(&image);
+        let handle = FileHandle::new(FileLocator::Disk {
+            image: image.clone(),
+            format: DiskFormat::Raw,
+            partition_id: String::from("Partition0"),
+            filesystem_path: String::new(),
+            entry: DiskEntryRef::PartitionRoot,
+        });
+
+        let err = source.open_reader_handle(&handle).unwrap_err();
+        assert!(matches!(err, AccessorError::NotAFile { .. }));
     }
 }
