@@ -1,5 +1,6 @@
 use crate::{
     accessor::{
+        disk::source::DiskSource,
         entry::handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         error::{AccessorError, AccessorResult},
         io::reader::AccessorReader,
@@ -22,6 +23,8 @@ pub(crate) enum Source {
     Zip(ZipSource),
     /// Use raw NTFS Windows drive as the source
     Ntfs(NtfsSource),
+    /// Use a raw disk image as the source
+    Disk(DiskSource),
 }
 
 impl Source {
@@ -31,6 +34,7 @@ impl Source {
             Self::Host(source) => source.read_file(inner),
             Self::Zip(source) => source.read_file(inner),
             Self::Ntfs(source) => source.read_file(inner),
+            Self::Disk(source) => source.read_file(inner),
         }
     }
 
@@ -40,6 +44,7 @@ impl Source {
             Self::Host(source) => source.read_dir(inner),
             Self::Zip(source) => source.read_dir(inner),
             Self::Ntfs(source) => source.read_dir(inner),
+            Self::Disk(source) => source.read_dir(inner),
         }
     }
 
@@ -48,6 +53,7 @@ impl Source {
             Self::Host(source) => source.read_dir_handle(handle),
             Self::Zip(source) => source.read_dir_handle(handle),
             Self::Ntfs(source) => source.read_dir_handle(handle),
+            Self::Disk(source) => source.read_dir_handle(handle),
         }
     }
 
@@ -57,6 +63,7 @@ impl Source {
             Self::Host(source) => source.globfs(dir, pattern),
             Self::Zip(source) => source.globfs(dir, pattern),
             Self::Ntfs(source) => source.globfs(dir, pattern),
+            Self::Disk(source) => source.globfs(dir, pattern),
         }
     }
 
@@ -66,6 +73,7 @@ impl Source {
             Self::Host(source) => source.read_file_handle(handle),
             Self::Zip(source) => source.read_file_handle(handle),
             Self::Ntfs(source) => source.read_file_handle(handle),
+            Self::Disk(source) => source.read_file_handle(handle),
         }
     }
 
@@ -75,6 +83,7 @@ impl Source {
             Self::Host(source) => source.open_reader_handle(handle),
             Self::Zip(source) => source.open_reader_handle(handle),
             Self::Ntfs(source) => source.open_reader_handle(handle),
+            Self::Disk(source) => source.open_reader_handle(handle),
         }
     }
 
@@ -84,6 +93,7 @@ impl Source {
             Self::Host(source) => source.open_reader(inner),
             Self::Zip(source) => source.open_reader(inner),
             Self::Ntfs(source) => source.open_reader(inner),
+            Self::Disk(source) => source.open_reader(inner),
         }
     }
 
@@ -93,6 +103,7 @@ impl Source {
             Source::Host(source) => source.stat(inner),
             Source::Zip(source) => source.stat(inner),
             Source::Ntfs(source) => source.stat(inner),
+            Source::Disk(source) => source.stat(inner),
         }
     }
 
@@ -102,6 +113,7 @@ impl Source {
             Source::Host(source) => source.stat_handle(handle),
             Source::Zip(source) => source.stat_handle(handle),
             Source::Ntfs(source) => source.stat_handle(handle),
+            Source::Disk(source) => source.stat_handle(handle),
         }
     }
 
@@ -111,6 +123,7 @@ impl Source {
             Source::Host(source) => source.stat_dir_handle(handle),
             Source::Zip(source) => source.stat_dir_handle(handle),
             Source::Ntfs(source) => source.stat_dir_handle(handle),
+            Source::Disk(source) => source.stat_dir_handle(handle),
         }
     }
 

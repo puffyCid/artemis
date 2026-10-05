@@ -1,6 +1,7 @@
 use crate::accessor::{
     cache::SourceCache,
     config::AccessorConfig,
+    disk::{format::DiskFormat, source::DiskSource},
     entry::{
         handle::{DirEntry, DirHandle, EntryStat, FileHandle, GlobMatch},
         locator::{DirLocator, FileLocator, SourceId},
@@ -41,7 +42,9 @@ pub(crate) fn ensure_source(
         SourceId::Host => Source::Host(HostSource::new(config)),
         SourceId::Ntfs(drive) => Source::Ntfs(NtfsSource::new(config, *drive)?),
         SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
-        SourceId::Disk { format, path } => todo!(),
+        SourceId::Disk { format, path } => {
+            Source::Disk(DiskSource::open(config, *format, path.clone())?)
+        }
     };
 
     cache.insert(source_id.clone(), source);
@@ -74,7 +77,17 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                 .ok_or_else(|| AccessorError::location("", "zip location missing archive path"))?;
             Ok(SourceId::Zip(source.as_path().to_path_buf()))
         }
-        Scheme::Raw => todo!(),
+        Scheme::Raw => {
+            let source = location
+                .source
+                .as_ref()
+                .ok_or_else(|| AccessorError::location("", "raw location missing image path"))?;
+
+            Ok(SourceId::Disk {
+                format: DiskFormat::Raw,
+                path: source.as_path().to_path_buf(),
+            })
+        }
     }
 }
 
@@ -87,13 +100,10 @@ pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResu
         FileLocator::Host { .. } => Ok(SourceId::Host),
         FileLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
-        FileLocator::Disk {
-            image,
-            format,
-            partition_id,
-            filesystem_path,
-            ..
-        } => todo!(),
+        FileLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
+            format: *format,
+            path: image.clone(),
+        }),
     }
 }
 
@@ -239,6 +249,14 @@ pub(crate) fn validate_file_handle_for_source(
                 ..
             },
         ) if archive == handle_archive => Ok(()),
+        (
+            SourceId::Disk { format, path },
+            FileLocator::Disk {
+                format: handle_format,
+                image,
+                ..
+            },
+        ) if format == handle_format && path == image => Ok(()),
         _ => Err(AccessorError::invalid_handle(format!(
             "file handle does not belong to open source {}",
             source_id.display()
@@ -252,13 +270,10 @@ pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult
         DirLocator::Host { .. } => Ok(SourceId::Host),
         DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
-        DirLocator::Disk {
-            image,
-            format,
-            partition_id,
-            filesystem_path,
-            ..
-        } => todo!(),
+        DirLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
+            format: *format,
+            path: image.clone(),
+        }),
     }
 }
 
@@ -286,6 +301,14 @@ pub(crate) fn validate_dir_handle_for_source(
                 ..
             },
         ) if archive == handle_archive => Ok(()),
+        (
+            SourceId::Disk { format, path },
+            DirLocator::Disk {
+                format: handle_format,
+                image,
+                ..
+            },
+        ) if format == handle_format && path == image => Ok(()),
         _ => Err(AccessorError::invalid_handle(format!(
             "directory handle does not belong to open source {}",
             source_id.display()
