@@ -17,6 +17,7 @@ use crate::accessor::{
 pub(super) struct RawDisk {
     /// Path for the raw disk file
     path: PathBuf,
+    format: DiskFormat,
 }
 
 impl RawDisk {
@@ -33,7 +34,10 @@ impl RawDisk {
             ));
         }
 
-        Ok(Self { path })
+        Ok(Self {
+            path,
+            format: DiskFormat::Raw,
+        })
     }
 
     /// Path for raw disk image
@@ -43,7 +47,7 @@ impl RawDisk {
 
     /// Format for this image
     pub(super) fn format(&self) -> DiskFormat {
-        DiskFormat::Raw
+        self.format
     }
 }
 

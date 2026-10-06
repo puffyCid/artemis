@@ -128,7 +128,7 @@ impl FileHandle {
                 partition_id,
                 filesystem_path,
                 ..
-            } => disk_display_path(image, format, partition_id, filesystem_path),
+            } => disk_display_path(image, *format, partition_id, filesystem_path),
         }
     }
 
@@ -183,7 +183,7 @@ impl DirHandle {
                 partition_id,
                 filesystem_path,
                 ..
-            } => disk_display_path(image, format, partition_id, filesystem_path),
+            } => disk_display_path(image, *format, partition_id, filesystem_path),
         }
     }
 

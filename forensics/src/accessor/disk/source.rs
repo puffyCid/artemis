@@ -290,7 +290,7 @@ impl DiskSource {
         let mut matches = Vec::new();
 
         for partition in targets {
-            match self.glob_partition(&partition, &filesystem_path, pattern) {
+            match self.glob_partition(partition, &filesystem_path, pattern) {
                 Ok(found) => matches.extend(found),
                 Err(AccessorError::NotFound { .. }) if selected.is_none() => {}
                 Err(AccessorError::NotFound { .. }) => {
@@ -438,7 +438,7 @@ impl DiskSource {
                         directory: parent_path(&filesystem_path),
                         display_path: disk_display_path(
                             &image,
-                            &format,
+                            format,
                             &partition_id,
                             &filesystem_path,
                         ),
@@ -517,7 +517,7 @@ impl DiskSource {
 
                 let display_path = disk_display_path(
                     &self.path,
-                    &self.format,
+                    self.format,
                     &partition.partition.id,
                     &filesystem_path,
                 );
@@ -575,7 +575,7 @@ impl DiskSource {
         };
 
         let display_path =
-            disk_display_path(&self.path, &self.format, partition_id, &filesystem_path);
+            disk_display_path(&self.path, self.format, partition_id, &filesystem_path);
 
         Ok(DirEntry::new(
             entry.name,
@@ -598,7 +598,7 @@ impl DiskSource {
 
     /// Return a Partition root `EntryStat` with default `Timestamp`
     fn image_root_stat(&self) -> EntryStat {
-        let display_path = disk_root_display(&self.path, &self.format);
+        let display_path = disk_root_display(&self.path, self.format);
         let filename = self
             .path
             .file_name()
@@ -619,7 +619,7 @@ impl DiskSource {
             .iter()
             .map(|partition| {
                 let id = partition.partition.id.clone();
-                let display_path = disk_display_path(&self.path, &self.format, &id, "");
+                let display_path = disk_display_path(&self.path, self.format, &id, "");
 
                 // Construct an `EntryMeta` value if we are listing partitions
                 let meta = path_meta(
@@ -772,7 +772,7 @@ impl DiskSource {
 
         let display_path = disk_display_path(
             &self.path,
-            &self.format,
+            self.format,
             &partition.partition.id,
             filesystem_path,
         );
@@ -796,7 +796,7 @@ impl DiskSource {
         if matches!(entry, DiskEntryRef::PartitionRoot) {
             return Err(AccessorError::not_a_file(disk_display_path(
                 &self.path,
-                &self.format,
+                self.format,
                 &partition.partition.id,
                 filesystem_path,
             )));
@@ -897,7 +897,7 @@ impl DiskSource {
         if matches!(entry, DiskEntryRef::PartitionRoot) {
             return Err(AccessorError::not_a_file(disk_display_path(
                 &self.path,
-                &self.format,
+                self.format,
                 &partition.partition.id,
                 filesystem_path,
             )));
@@ -942,7 +942,7 @@ impl DiskSource {
     ) -> AccessorReader {
         reader.location = ReaderLocation::from_display(disk_display_path(
             &self.path,
-            &self.format,
+            self.format,
             partition_id,
             filesystem_path,
         ));

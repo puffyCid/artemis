@@ -24,14 +24,14 @@ pub(super) enum DiskReader {
 
 impl DiskFormat {
     /// Return a reader for the disk image
-    pub(super) fn open_reader(&self, path: &Path) -> AccessorResult<DiskReader> {
+    pub(super) fn open_reader(self, path: &Path) -> AccessorResult<DiskReader> {
         match self {
             Self::Raw => Ok(DiskReader::Raw(RawDisk::new(path)?.open_reader()?)),
         }
     }
 
     /// Return `DiskFormat` as string
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Raw => "raw",
         }
@@ -70,7 +70,7 @@ impl Seek for DiskReader {
 /// Example: `raw:/image.raw!Partition0:hello\file.txt`, or `raw:/image.raw!Partition0` for the partition root
 pub(crate) fn disk_display_path(
     image: &Path,
-    format: &DiskFormat,
+    format: DiskFormat,
     partition_id: &str,
     filesystem_path: &str,
 ) -> String {
@@ -87,6 +87,6 @@ pub(crate) fn disk_display_path(
 /// Returns just the disk image path
 ///
 ///  `raw:/image.raw!` for the image root, where the partitions are listed.
-pub(crate) fn disk_root_display(image: &Path, format: &DiskFormat) -> String {
+pub(crate) fn disk_root_display(image: &Path, format: DiskFormat) -> String {
     format!("{}:{}", format.as_str(), image.display())
 }
