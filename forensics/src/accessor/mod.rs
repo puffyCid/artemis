@@ -1,5 +1,5 @@
 pub(crate) mod access;
-mod bootsector;
+pub(crate) mod bootsector;
 mod cache;
 pub(crate) mod config;
 pub(crate) mod disk;

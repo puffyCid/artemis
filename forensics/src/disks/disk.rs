@@ -47,6 +47,8 @@ struct DiskInfo {
 /// Get some metadata on partitions in the provided disk image
 pub(crate) fn disk_info(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
     let location = Location::parse_source(source)?;
+    // If we are given a relative path to the disk image
+    // The accessor treats that as a normal host path
     if location.scheme == Scheme::Host {
         return Err(AccessorError::UnsupportedScheme {
             scheme: location.scheme.as_str().to_string(),
@@ -94,7 +96,7 @@ pub(crate) fn disk_info(source: &str, manager: &mut OutputManager) -> DiskResult
 }
 
 /// Partition table kind as a stable output string
-fn table_name(table: &PartitionTableKind) -> &'static str {
+pub(super) fn table_name(table: &PartitionTableKind) -> &'static str {
     match table {
         PartitionTableKind::Mbr { .. } => "mbr",
         PartitionTableKind::Gpt { .. } => "gpt",
@@ -103,7 +105,7 @@ fn table_name(table: &PartitionTableKind) -> &'static str {
 }
 
 /// Disk container format for a source scheme
-fn disk_format(scheme: Scheme) -> Result<DiskFormat, AccessorError> {
+pub(super) fn disk_format(scheme: Scheme) -> Result<DiskFormat, AccessorError> {
     match scheme {
         Scheme::Raw => Ok(DiskFormat::Raw),
         Scheme::Host | Scheme::Ntfs | Scheme::Zip => Err(AccessorError::UnsupportedScheme {
