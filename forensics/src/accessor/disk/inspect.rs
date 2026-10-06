@@ -26,9 +26,15 @@ pub(super) struct DiskLayout {
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum PartitionTableKind {
     /// Master Boot Record
-    Mbr,
+    Mbr {
+        /// MBR disk ID
+        disk_id: u32,
+    },
     /// GUID Partition Table
-    Gpt,
+    Gpt {
+        /// GPT disk GUID
+        disk_guid: Uuid,
+    },
     /// Filesystem with no partition table
     ///
     /// Example: Logical forensic image
@@ -65,6 +71,8 @@ pub(super) enum PartitionKind {
         partition_type_raw: u8,
         /// Readable partition value
         partition_type: PartitionType,
+        /// Is MBR partition bootable
+        bootable: bool,
     },
     /// GPT partition entry
     Gpt {
@@ -72,6 +80,8 @@ pub(super) enum PartitionKind {
         type_guid: Uuid,
         /// GPT partition name
         name: String,
+        /// GPT partition attributes
+        attributes: u64,
     },
     /// Logical NTFS image
     NtfsImage,
@@ -106,7 +116,9 @@ pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<Dis
 
     Ok(DiskLayout {
         logical_sector_size: LOGIC_SECTOR_SIZE,
-        table: PartitionTableKind::Mbr,
+        table: PartitionTableKind::Mbr {
+            disk_id: mbr.disk_id,
+        },
         partitions: mbr_partitions(&mbr.entries)?,
     })
 }
@@ -146,7 +158,9 @@ fn inspect_gpt<R: Read + Seek>(reader: &mut R) -> AccessorResult<DiskLayout> {
 
     Ok(DiskLayout {
         logical_sector_size: LOGIC_SECTOR_SIZE,
-        table: PartitionTableKind::Gpt,
+        table: PartitionTableKind::Gpt {
+            disk_guid: header.disk_guid,
+        },
         partitions,
     })
 }
@@ -168,6 +182,7 @@ fn mbr_partition(entry: &MbrEntry) -> AccessorResult<DiskPartition> {
         kind: PartitionKind::Mbr {
             partition_type_raw: entry.partition_type_raw,
             partition_type: entry.partition_type.clone(),
+            bootable: entry.is_bootable(),
         },
     })
 }
@@ -192,6 +207,7 @@ fn gpt_partition(entry: &GptEntry) -> AccessorResult<DiskPartition> {
         kind: PartitionKind::Gpt {
             type_guid: entry.partition_type_guid,
             name: entry.partition_name.clone(),
+            attributes: entry.attributes,
         },
     })
 }
@@ -318,7 +334,7 @@ mod tests {
         let disk = mbr_sector(&[(0, 0x07, 2048, 1000)]);
         let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
         assert_eq!(layout.logical_sector_size, 512);
-        assert_eq!(layout.table, PartitionTableKind::Mbr);
+        assert_eq!(layout.table, PartitionTableKind::Mbr { disk_id: 0 });
         assert_eq!(layout.partitions.len(), 1);
 
         let partition = &layout.partitions[0];
@@ -334,7 +350,8 @@ mod tests {
             partition.kind,
             PartitionKind::Mbr {
                 partition_type_raw: 0x07,
-                partition_type: PartitionType::Ntfs
+                partition_type: PartitionType::Ntfs,
+                bootable: false,
             }
         ));
     }
@@ -388,7 +405,12 @@ mod tests {
         let disk = gpt_disk(&used);
         let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
 
-        assert_eq!(layout.table, PartitionTableKind::Gpt);
+        assert_eq!(
+            layout.table,
+            PartitionTableKind::Gpt {
+                disk_guid: Uuid::nil()
+            }
+        );
         assert_eq!(layout.partitions.len(), 1);
 
         let partition = &layout.partitions[0];
@@ -405,9 +427,11 @@ mod tests {
             PartitionKind::Gpt {
                 type_guid: guid,
                 name,
+                attributes,
             } => {
                 assert_eq!(*guid, type_guid);
                 assert_eq!(name, "Windows");
+                assert_eq!(*attributes, 0);
             }
             _ => panic!("expected a GPT partition"),
         }

@@ -1,2 +1,2 @@
-pub(super) mod gpt;
-pub(super) mod mbr;
+pub(crate) mod gpt;
+pub(crate) mod mbr;

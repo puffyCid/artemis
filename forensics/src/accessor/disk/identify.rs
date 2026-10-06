@@ -90,6 +90,8 @@ fn check_filesystem<R: Read + Seek>(
 
 #[cfg(test)]
 mod tests {
+    use uuid::Uuid;
+
     use crate::accessor::disk::{
         identify::{FilesystemKind, check_filesystem, identify_disk, identify_partition},
         inspect::{DiskLayout, DiskPartition, PartitionKind, PartitionTableKind, inspect_disk},
@@ -120,6 +122,7 @@ mod tests {
             kind: PartitionKind::Gpt {
                 type_guid: uuid::Uuid::nil(),
                 name: String::new(),
+                attributes: 0,
             },
         }
     }
@@ -170,7 +173,9 @@ mod tests {
         let partitions = vec![gpt_partition(0, 512)];
         let layout = DiskLayout {
             logical_sector_size: 0,
-            table: PartitionTableKind::Gpt,
+            table: PartitionTableKind::Gpt {
+                disk_guid: Uuid::nil(),
+            },
             partitions,
         };
 
@@ -212,7 +217,7 @@ mod tests {
         past_end.slot = 1;
         let layout = DiskLayout {
             logical_sector_size: 512,
-            table: PartitionTableKind::Mbr,
+            table: PartitionTableKind::Mbr { disk_id: 0 },
             partitions: vec![gpt_partition(0, 512), past_end],
         };
 

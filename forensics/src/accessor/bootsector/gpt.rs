@@ -15,29 +15,29 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct GptHeader {
     /// GPT revision
-    revision: u32,
+    pub(crate) revision: u32,
     /// GPT header size
-    header_size: u32,
+    pub(crate) header_size: u32,
     /// GPT header checksum
-    header_crc32: u32,
+    pub(crate) header_crc32: u32,
     /// LBA associated with this header
     pub(crate) current_lba: u64,
     /// LBA associated with the backup GPT header
-    backup_lba: u64,
+    pub(crate) backup_lba: u64,
     /// First LBA available for partitions
-    first_usable_lba: u64,
+    pub(crate) first_usable_lba: u64,
     /// Last LBA available for partitions
-    last_usable_lba: u64,
+    pub(crate) last_usable_lba: u64,
     /// Unique disk GUID
-    disk_guid: Uuid,
+    pub(crate) disk_guid: Uuid,
     /// Starting LBA of the partition entry array
-    partition_entry_lba: u64,
+    pub(crate) partition_entry_lba: u64,
     /// Number of slots in the partition entry array
-    partition_entry_count: u32,
+    pub(crate) partition_entry_count: u32,
     /// Size of one partition entry
-    partition_entry_size: u32,
+    pub(crate) partition_entry_size: u32,
     /// Checksum of the partition entry array
-    partition_array_crc32: u32,
+    pub(crate) partition_array_crc32: u32,
 }
 
 /// Single GPT partition entry
@@ -48,15 +48,15 @@ pub(crate) struct GptEntry {
     /// GUID associated with the partition type
     pub(crate) partition_type_guid: Uuid,
     /// Unique GUID for this partition
-    partition_guid: Uuid,
+    pub(crate) partition_guid: Uuid,
     /// First LBA occupied by this partition.
     /// Value is inclusive
     pub(crate) start_lba: u64,
     /// Last LBA occupied by this partition.
     /// Value is inclusive
-    end_lba: u64,
+    pub(crate) end_lba: u64,
     /// GPT partition attributes
-    attributes: u64,
+    pub(crate) attributes: u64,
     /// Partition name (UTF16)
     pub(crate) partition_name: String,
 }
