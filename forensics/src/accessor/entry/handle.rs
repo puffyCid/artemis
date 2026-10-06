@@ -1,6 +1,6 @@
 use crate::accessor::{
-    disk::format::DiskFormat,
-    entry::locator::{DirLocator, FileLocator, disk_display_path},
+    disk::format::{DiskFormat, disk_display_path},
+    entry::locator::{DirLocator, FileLocator},
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
 };
@@ -341,18 +341,25 @@ impl DirEntry {
     }
 }
 
+/// Data return when we stat a file
 #[derive(Debug)]
 pub(crate) struct EntryStat {
+    /// Metadata associated with file
     pub(crate) meta: EntryMeta,
+    /// Four timestamps associated with the file
     pub(crate) times: Timestamp,
 }
 
 /// Timestamps returned from the `Accessor`
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Timestamp {
+    /// Entry created timestamp
     pub(crate) created: String,
+    /// Entry modified timestamp
     pub(crate) modified: String,
+    /// Entry accessed timestamp
     pub(crate) accessed: String,
+    /// Entry changed timestamp
     pub(crate) changed: String,
 }
 

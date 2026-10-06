@@ -36,7 +36,7 @@ impl Location {
                         parse_schemed_location(input, None)
                     }
                 }
-                Scheme::Raw => parse_raw_location(input),
+                Scheme::Raw => parse_disk_location(input),
             };
         }
 
@@ -166,7 +166,7 @@ impl Location {
     }
 }
 
-/// Parse Scheme prefix into a `Location` structure
+/// Parse `Scheme` prefix into a `Location` structure
 fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> AccessorResult<Location> {
     let (scheme, remainder) = split_scheme_prefix(source_part).ok_or_else(|| {
         AccessorError::location(
@@ -189,7 +189,13 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
     })
 }
 
-fn parse_raw_location(input: &str) -> AccessorResult<Location> {
+/// Parse support disk image `Scheme` into a `Location` structure
+///
+/// The input `raw:/path/to/evidence.raw!Partition0:/Windows/System32/test.txt`
+///
+/// Returns `Scheme::Raw`, source path of `/path/to/evidence.raw`, and inner
+/// path `Partition0:/Windows/System32/test.txt`
+fn parse_disk_location(input: &str) -> AccessorResult<Location> {
     let (source_part, inner_part) = match input.split_once('!') {
         Some((source_part, inner_part)) => (source_part, Some(inner_part)),
         None => (input, None),
@@ -203,6 +209,7 @@ fn parse_raw_location(input: &str) -> AccessorResult<Location> {
     Ok(location)
 }
 
+/// Return inner path of the disk image
 fn disk_inner_path(value: &str) -> AccessorResult<InnerPath> {
     let trimmed = value.trim_start_matches(['/', '\\']);
 
@@ -292,9 +299,7 @@ fn parse_raw_source(remainder: &str, raw: RawFileSystem) -> AccessorResult<Optio
     Ok(Some(SourcePath::new(PathBuf::from(format!("{drive}:")))))
 }
 
-/// Identify the inner path of a `Scheme`
-///
-/// Example: `zip:data.zip!./home/test.txt` returns `/home/test.txt` for `InnerPath`
+/// Attempt to extract the inner path of filesystem `Scheme`
 fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath> {
     match scheme {
         Scheme::Host => {
@@ -313,6 +318,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
                     "ntfs location requires a path",
                 ));
             }
+
             if is_relative_host_path(remainder) {
                 return Err(AccessorError::location(
                     remainder,

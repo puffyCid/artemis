@@ -65,6 +65,7 @@ impl InnerPath {
                 Component::Normal(part) => normalized.push(part),
             }
         }
+
         Ok(Self(normalized))
     }
 }

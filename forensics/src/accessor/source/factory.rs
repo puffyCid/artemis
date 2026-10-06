@@ -48,6 +48,7 @@ pub(crate) fn ensure_source(
     };
 
     cache.insert(source_id.clone(), source);
+
     Ok(())
 }
 

@@ -14,10 +14,7 @@ use crate::{
             },
             wof::{decompress_wof, is_wof_file},
         },
-        io::{
-            partition::PartitionReader,
-            reader::{AccessorReader, ReaderLocation},
-        },
+        io::reader::{AccessorReader, ReaderLocation},
         location::{path::InnerPath, scheme::Scheme},
     },
     artifacts::os::windows::mft::attributes::filename::Filename,
@@ -279,7 +276,9 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
         )
     }
 
-    /// Walk the NTFS filesystem, using `PathLabel` for the paths written on each record.
+    /// Walk the NTFS filesystem, using `PathLabel` for the paths written on each record
+    ///
+    /// Used when walking disk images
     pub(crate) fn walk_labeled(
         &self,
         inner: &InnerPath,

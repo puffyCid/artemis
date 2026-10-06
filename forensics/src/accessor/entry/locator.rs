@@ -1,8 +1,7 @@
+use crate::accessor::disk::format::DiskFormat;
 use ntfs::NtfsFileReference;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-
-use crate::accessor::disk::format::DiskFormat;
+use std::path::PathBuf;
 
 /// Source of our data that we want to access
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -141,28 +140,4 @@ pub(crate) enum DirLocator {
         /// Reference to directory location
         entry: DiskEntryRef,
     },
-}
-
-/// Returns a clean display path
-///
-/// Example: `raw:/image.raw!Partition0:hello\file.txt`, or `raw:/image.raw!Partition0` at the partition root.
-pub(crate) fn disk_display_path(
-    image: &Path,
-    format: &DiskFormat,
-    partition_id: &str,
-    filesystem_path: &str,
-) -> String {
-    if filesystem_path.is_empty() {
-        format!("{}:{}!{partition_id}", format.as_str(), image.display())
-    } else {
-        format!(
-            "{}:{}!{partition_id}:{filesystem_path}",
-            format.as_str(),
-            image.display()
-        )
-    }
-}
-/// `raw:/image.raw!` for the image root, where the partitions are listed.
-pub(crate) fn disk_root_display(image: &Path, format: &DiskFormat) -> String {
-    format!("{}:{}!", format.as_str(), image.display())
 }

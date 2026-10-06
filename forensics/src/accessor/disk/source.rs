@@ -2,7 +2,7 @@ use crate::{
     accessor::{
         config::AccessorConfig,
         disk::{
-            format::{DiskFormat, DiskReader},
+            format::{DiskFormat, DiskReader, disk_display_path, disk_root_display},
             identify::{FilesystemKind, IdentifiedPartition, identify_disk},
             inspect::{DiskPartition, inspect_disk},
         },
@@ -11,9 +11,7 @@ use crate::{
                 DirEntry, DirHandle, EntryMeta, EntryStat, FileHandle, GlobMatch, ItemHandle,
                 Timestamp,
             },
-            locator::{
-                DirLocator, DiskEntryRef, FileLocator, disk_display_path, disk_root_display,
-            },
+            locator::{DirLocator, DiskEntryRef, FileLocator},
         },
         error::{AccessorError, AccessorResult},
         filesystem::ntfs::{
@@ -81,6 +79,7 @@ impl DiskSource {
     /// User can provide a specific partition via `raw:/image.raw!Partition0:hello\\file.txt`
     pub(crate) fn read_file(&self, inner: &InnerPath) -> AccessorResult<Vec<u8>> {
         let (selected, filesystem_path) = split_selector(inner);
+        // We will only read file on supported partitions
         let partitions = self.identified_partitions()?;
 
         let targets = supported_targets(&partitions, selected.as_deref())?;
@@ -89,7 +88,7 @@ impl DiskSource {
             match self.read_partition_file(partition, &filesystem_path) {
                 Ok(result) => {
                     info!(
-                        "matched on partition {}. Filesystem: {:?}",
+                        "Matched on partition {}. Filesystem: {:?}",
                         partition.partition.id, partition.filesystem
                     );
 
@@ -106,6 +105,9 @@ impl DiskSource {
         Err(AccessorError::not_found(inner.display()))
     }
 
+    /// Read a `FileHandle` on a disk image
+    ///
+    /// Typically obtained after globbing the filesystem or using `read_dir` or `read_dir_handle`
     pub(crate) fn read_file_handle(&self, handle: &FileHandle) -> AccessorResult<Vec<u8>> {
         let FileLocator::Disk {
             image,
@@ -120,6 +122,7 @@ impl DiskSource {
                 handle.display_path()
             )));
         };
+
         self.ensure_same_image(image, *format)?;
         let partition = self.partition(partition_id)?;
         self.read_referenced_file(&partition, filesystem_path, entry)
@@ -134,6 +137,7 @@ impl DiskSource {
     /// User can provide a specific partition via `raw:/image.raw!Partition0:hello\\`
     pub(crate) fn read_dir(&self, inner: &InnerPath) -> AccessorResult<Vec<DirEntry>> {
         let (selected, filesystem_path) = split_selector(inner);
+        // We will only read directory on supported partitions
         let partitions = self.identified_partitions()?;
 
         if selected.is_none() && filesystem_path.is_empty() {
@@ -145,7 +149,7 @@ impl DiskSource {
             match self.read_partition_dir(partition, &filesystem_path) {
                 Ok(results) => {
                     info!(
-                        "matched on partition {}. Filesystem: {:?}",
+                        "Matched on partition {}. Filesystem: {:?}",
                         partition.partition.id, partition.filesystem
                     );
 
@@ -162,6 +166,9 @@ impl DiskSource {
         Err(AccessorError::not_found(inner.display()))
     }
 
+    /// Read a `DirHandle` on a disk image
+    ///
+    /// Typically obtained after globbing the filesystem or using `read_dir` or `read_dir_handle`
     pub(crate) fn read_dir_handle(&self, handle: &DirHandle) -> AccessorResult<Vec<DirEntry>> {
         let DirLocator::Disk {
             image,
@@ -182,8 +189,16 @@ impl DiskSource {
         self.read_reference_dir(&partition, filesystem_path, entry)
     }
 
+    /// Stat the first supported filesystem that contains the correct filepath (`InnerPath`).
+    ///
+    /// Example: `raw:/image.raw!/Windows/test.txt` returns the first match.
+    /// If multiple partitions are on the image with the same path
+    /// we return first one that matches
+    ///
+    /// User can provide a specific partition via `raw:/image.raw!Partition0:hello\\file.txt`
     pub(crate) fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
         let (selected, filesystem_path) = split_selector(inner);
+        // We will only stat on supported partitions
         let partitions = self.identified_partitions()?;
 
         if selected.is_none() && filesystem_path.is_empty() {
@@ -195,7 +210,7 @@ impl DiskSource {
             match self.stat_partition_file(partition, &filesystem_path) {
                 Ok(results) => {
                     info!(
-                        "matched on partition {}. Filesystem: {:?}",
+                        "Matched on partition {}. Filesystem: {:?}",
                         partition.partition.id, partition.filesystem
                     );
 
@@ -212,6 +227,9 @@ impl DiskSource {
         Err(AccessorError::not_found(inner.display()))
     }
 
+    /// Stat a `FileHandle` on a disk image
+    ///
+    /// Typically obtained after globbing the filesystem or using `read_dir` or `read_dir_handle`
     pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
         let FileLocator::Disk {
             image,
@@ -228,11 +246,14 @@ impl DiskSource {
         };
 
         self.ensure_same_image(image, *format)?;
-
         let partition = self.partition(partition_id)?;
+
         self.stat_referenced_entry(&partition, filesystem_path, entry)
     }
 
+    /// Stat a `DirHandle` on a disk image
+    ///
+    /// Typically obtained after globbing the filesystem or using `read_dir` or `read_dir_handle`
     pub(crate) fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
         let DirLocator::Disk {
             image,
@@ -249,11 +270,14 @@ impl DiskSource {
         };
 
         self.ensure_same_image(image, *format)?;
-
         let partition = self.partition(partition_id)?;
+
         self.stat_referenced_entry(&partition, filesystem_path, entry)
     }
 
+    /// Glob all partitions contains the correct filepath (`InnerPath`) and pattern.
+    ///
+    /// Unlike other functions `globfs` will run on all partitions (unless a single partition is select)
     pub(crate) fn globfs(
         &self,
         directory: &InnerPath,
@@ -279,6 +303,13 @@ impl DiskSource {
         Ok(matches)
     }
 
+    /// Return an `AccessorReader` on the first supported filesystem that contains the correct filepath (`InnerPath`).
+    ///
+    /// Example: `raw:/image.raw!/Windows/test.txt` returns the first match.
+    /// If multiple partitions are on the image with the same path
+    /// we return first one that matches
+    ///
+    /// User can provide a specific partition via `raw:/image.raw!Partition0:hello\\file.txt`
     pub(crate) fn open_reader(&self, inner: &InnerPath) -> AccessorResult<AccessorReader> {
         let (selected, filesystem_path) = split_selector(inner);
         let partitions = self.identified_partitions()?;
@@ -303,6 +334,9 @@ impl DiskSource {
         Err(AccessorError::not_found(inner.display()))
     }
 
+    /// Return an `AccessorReader` on the a `FileHandle` on a disk image
+    ///
+    /// Typically obtained after globbing the filesystem or using `read_dir` or `read_dir_handle`
     pub(crate) fn open_reader_handle(&self, handle: &FileHandle) -> AccessorResult<AccessorReader> {
         let FileLocator::Disk {
             image,
@@ -324,6 +358,10 @@ impl DiskSource {
         self.open_referenced_reader(&partition, filesystem_path, entry)
     }
 
+    /// Recursively walk the all supported partitions and filesystems on a disk image
+    ///
+    /// Similar to `globfs` this function runs against all partitions unless the user selects
+    /// a specific partition to walk
     pub(crate) fn walk(
         &self,
         inner: &InnerPath,
@@ -335,6 +373,7 @@ impl DiskSource {
         let (selected, filesystem_path) = split_selector(inner);
         let partitions = self.identified_partitions()?;
         let targets = supported_targets(&partitions, selected.as_deref())?;
+
         let walk_all = selected.is_none() && is_filesystem_root(&filesystem_path);
 
         for partition in targets {
@@ -348,9 +387,12 @@ impl DiskSource {
             ) {
                 Ok(()) => {
                     info!(
-                        "matched on partition {}. Filesystem: {:?}",
+                        "Matched on partition {}. Filesystem: {:?}",
                         partition.partition.id, partition.filesystem
                     );
+
+                    // If we not walking all partitions
+                    // Then we we are done now
                     if !walk_all {
                         return Ok(());
                     }
@@ -363,12 +405,15 @@ impl DiskSource {
             }
         }
 
+        // If
         if walk_all {
             return Ok(());
         }
         Err(AccessorError::not_found(inner.display()))
     }
 
+    /// Start walking the partition
+    /// if we support parsing the filesystem
     fn walk_partition(
         &self,
         partition: &IdentifiedPartition,
@@ -380,11 +425,13 @@ impl DiskSource {
     ) -> AccessorResult<()> {
         match partition.filesystem {
             FilesystemKind::Ntfs => {
+                // Open the NTFS filesystem
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
                 let image = self.path.clone();
                 let format = self.format;
                 let partition_id = partition.partition.id.clone();
 
+                // Create `PathLabel` to leverage when walking the NTFS filesystem
                 let paths = PathLabel::custom(move |ntfs_display| {
                     let filesystem_path = ntfs_filesystem_path(ntfs_display);
                     LabeledPath {
@@ -399,6 +446,8 @@ impl DiskSource {
                         full_path: filesystem_path,
                     }
                 });
+
+                // Use our NTFS accessor to walk the filesystem
                 filesystem.walk_labeled(inner, options, manager, rule, evidence, paths)
             }
             FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
@@ -415,7 +464,7 @@ impl DiskSource {
         identify_disk(&mut reader, &layout)
     }
 
-    /// Read the filesystem on the provided partition
+    /// Read the filesystem file on the provided partition
     fn read_partition_file(
         &self,
         partition: &IdentifiedPartition,
@@ -432,6 +481,7 @@ impl DiskSource {
         }
     }
 
+    /// Read the filesystem directory on the provided partition
     fn read_partition_dir(
         &self,
         partition: &IdentifiedPartition,
@@ -441,6 +491,7 @@ impl DiskSource {
             FilesystemKind::Ntfs => {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
                 let entries = filesystem.read_dir(inner)?;
+
                 entries
                     .into_iter()
                     .map(|entry| self.map_dir_entry(&partition.partition.id, entry))
@@ -452,6 +503,7 @@ impl DiskSource {
         }
     }
 
+    /// Stat the filesystem file on the provided partition
     fn stat_partition_file(
         &self,
         partition: &IdentifiedPartition,
@@ -481,6 +533,7 @@ impl DiskSource {
         }
     }
 
+    /// Glob the filesystem on the provided partition
     fn glob_partition(
         &self,
         partition: &IdentifiedPartition,
@@ -503,6 +556,8 @@ impl DiskSource {
         }
     }
 
+    /// Take each `DirEntry` value and append our disk info (`PartitionID`) so we know which
+    /// partition is associated with the `ItemHandle` (`FileHandle` and `DirHandle`)
     fn map_dir_entry(&self, partition_id: &str, entry: DirEntry) -> AccessorResult<DirEntry> {
         let (handle, filesystem_path) = match entry.handle {
             ItemHandle::File(handle) => {
@@ -530,6 +585,8 @@ impl DiskSource {
         ))
     }
 
+    /// Take each `GlobMatch` value and append our disk info (`PartitionID`) so we know which
+    /// partition is associated with the `ItemHandle` (`FileHandle` and `DirHandle`)
     fn map_glob(&self, partition_id: &str, item: GlobMatch) -> AccessorResult<GlobMatch> {
         let entry = self.map_dir_entry(
             partition_id,
@@ -539,6 +596,7 @@ impl DiskSource {
         Ok(GlobMatch::new(entry.handle, entry.meta))
     }
 
+    /// Return a Partition root `EntryStat` with default `Timestamp`
     fn image_root_stat(&self) -> EntryStat {
         let display_path = disk_root_display(&self.path, &self.format);
         let filename = self
@@ -548,12 +606,14 @@ impl DiskSource {
             .unwrap_or("")
             .to_string();
 
+        // Construct a mock/default `EntryStat` value when targeting the root of partitions
         EntryStat {
             meta: path_meta(EntryKind::Directory, 0, &filename, &display_path),
             times: Timestamp::default(),
         }
     }
 
+    /// Return list of Partitions if a user wants us to read the root of the disk image
     fn image_root_entries(&self, partitions: &[IdentifiedPartition]) -> Vec<DirEntry> {
         partitions
             .iter()
@@ -561,6 +621,7 @@ impl DiskSource {
                 let id = partition.partition.id.clone();
                 let display_path = disk_display_path(&self.path, &self.format, &id, "");
 
+                // Construct an `EntryMeta` value if we are listing partitions
                 let meta = path_meta(
                     EntryKind::Directory,
                     partition.partition.byte_length,
@@ -575,11 +636,17 @@ impl DiskSource {
                     filesystem_path: String::new(),
                     entry: DiskEntryRef::PartitionRoot,
                 }));
+
+                // No timestamps for the partitions
                 DirEntry::new(id, handle, meta, Timestamp::default())
             })
             .collect()
     }
 
+    /// Construct a `FileHandle` that can work on disk images
+    ///
+    /// We need to update the `FileHandle` returned from filesystem parser
+    /// to include details on the Partition
     fn disk_file_handle(
         &self,
         partition_id: &str,
@@ -599,6 +666,7 @@ impl DiskSource {
                     filesystem_path: filesystem_path.clone(),
                     entry: DiskEntryRef::Ntfs(file_ref),
                 };
+
                 Ok((FileHandle::new(locator), filesystem_path))
             }
             _ => Err(AccessorError::invalid_handle(
@@ -607,6 +675,10 @@ impl DiskSource {
         }
     }
 
+    /// Construct a `DirHandle` that can work on disk images
+    ///
+    /// We need to update the `DirHandle` returned from filesystem parser
+    /// to include details on the Partition
     fn disk_dir_handle(
         &self,
         partition_id: &str,
@@ -626,6 +698,7 @@ impl DiskSource {
                     filesystem_path: filesystem_path.clone(),
                     entry: DiskEntryRef::Ntfs(dir_ref),
                 };
+
                 Ok((DirHandle::new(locator), filesystem_path))
             }
             _ => Err(AccessorError::invalid_handle(
@@ -634,17 +707,22 @@ impl DiskSource {
         }
     }
 
+    /// Make sure callers always reference the same disk image
     fn ensure_same_image(&self, image: &PathBuf, format: DiskFormat) -> AccessorResult<()> {
         if image == &self.path && format == self.format {
             return Ok(());
         }
+
         Err(AccessorError::invalid_handle(
             "disk handle belongs to a different image",
         ))
     }
 
+    /// Validate the partition provided to us can be found
+    /// on the disk image
     fn partition(&self, partition_id: &str) -> AccessorResult<IdentifiedPartition> {
         let partitions = self.identified_partitions()?;
+
         let partition = partitions
             .into_iter()
             .find(|partition| partition.partition.id == partition_id)
@@ -654,12 +732,16 @@ impl DiskSource {
         Ok(partition)
     }
 
+    /// Stat the provided `FileHandle` or `DirHandle`
+    ///
+    /// This reuses the `stat_handle` code from filesystem accessor
     fn stat_referenced_entry(
         &self,
         partition: &IdentifiedPartition,
         filesystem_path: &str,
         entry: &DiskEntryRef,
     ) -> AccessorResult<EntryStat> {
+        // Nothing meaningful to stat if user provides only the root partition
         if matches!(entry, DiskEntryRef::PartitionRoot) {
             return self.stat_partition_file(partition, &InnerPath::empty());
         }
@@ -667,17 +749,19 @@ impl DiskSource {
         let stat = match (partition.filesystem, entry) {
             (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(file_ref)) => {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+
+                // Construct the NTFS `FileHandle` via the `file_ref` value
                 let handle = FileHandle::new(FileLocator::Ntfs {
                     drive: NTFS_DRIVE,
                     file_ref: file_ref.clone(),
                     display_path: filesystem_path.to_string(),
                 });
+
                 filesystem.stat_handle(&handle)?
             }
             (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
                 return Err(unsupported(partition));
             }
-            #[allow(unreachable_patterns)]
             _ => {
                 return Err(AccessorError::invalid_handle(format!(
                     "{} entry reference does not match {:?} filesystem",
@@ -699,12 +783,16 @@ impl DiskSource {
         })
     }
 
+    /// Read the provided `FileHandle`
+    ///
+    /// This reuses the `read_handle` code from filesystem accessor
     fn read_referenced_file(
         &self,
         partition: &IdentifiedPartition,
         filesystem_path: &str,
         entry: &DiskEntryRef,
     ) -> AccessorResult<Vec<u8>> {
+        // Cannot read the literal partition
         if matches!(entry, DiskEntryRef::PartitionRoot) {
             return Err(AccessorError::not_a_file(disk_display_path(
                 &self.path,
@@ -717,11 +805,14 @@ impl DiskSource {
         match (partition.filesystem, entry) {
             (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(file_ref)) => {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+
+                // Construct the NTFS `FileHandle` via the `file_ref` value
                 let handle = FileHandle::new(FileLocator::Ntfs {
                     drive: NTFS_DRIVE,
                     file_ref: file_ref.clone(),
                     display_path: filesystem_path.to_string(),
                 });
+
                 filesystem.read_handle(&handle, self.max_read_size)
             }
             (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
@@ -734,6 +825,9 @@ impl DiskSource {
         }
     }
 
+    /// Read the provided `DirHandle`
+    ///
+    /// This reuses the `read_dir_handle` code from filesystem accessor
     fn read_reference_dir(
         &self,
         partition: &IdentifiedPartition,
@@ -747,11 +841,14 @@ impl DiskSource {
         match (partition.filesystem, entry) {
             (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(dir_ref)) => {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+
+                // Construct the NTFS `DirHandle` via the `file_ref` value
                 let handle = DirHandle::new(DirLocator::Ntfs {
                     drive: NTFS_DRIVE,
                     dir_ref: dir_ref.clone(),
                     display_path: filesystem_path.to_string(),
                 });
+
                 filesystem
                     .read_dir_handle(&handle)?
                     .into_iter()
@@ -768,6 +865,7 @@ impl DiskSource {
         }
     }
 
+    /// Return an `AccessorReader` for the provided file path
     fn open_partition_reader(
         &self,
         partition: &IdentifiedPartition,
@@ -777,6 +875,7 @@ impl DiskSource {
             FilesystemKind::Ntfs => {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
                 let reader = filesystem.reader(inner)?;
+
                 Ok(self.with_disk_location(reader, &partition.partition.id, &inner.display()))
             }
             FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
@@ -785,12 +884,16 @@ impl DiskSource {
         }
     }
 
+    /// Return an `AccessorReader` for the provided `FileHandle`
+    ///
+    /// This reuses the `reader_handle` code from filesystem accessor
     fn open_referenced_reader(
         &self,
         partition: &IdentifiedPartition,
         filesystem_path: &str,
         entry: &DiskEntryRef,
     ) -> AccessorResult<AccessorReader> {
+        // We cannot return a reader for the literal partition
         if matches!(entry, DiskEntryRef::PartitionRoot) {
             return Err(AccessorError::not_a_file(disk_display_path(
                 &self.path,
@@ -803,12 +906,16 @@ impl DiskSource {
         match (partition.filesystem, entry) {
             (FilesystemKind::Ntfs, DiskEntryRef::Ntfs(file_ref)) => {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
+
+                // Construct the NTFS `FileHandle` via the `file_ref` value
                 let handle = FileHandle::new(FileLocator::Ntfs {
                     drive: NTFS_DRIVE,
                     file_ref: file_ref.clone(),
                     display_path: filesystem_path.to_string(),
                 });
+
                 let reader = filesystem.reader_handle(&handle)?;
+
                 Ok(self.with_disk_location(reader, &partition.partition.id, filesystem_path))
             }
             (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
@@ -821,6 +928,12 @@ impl DiskSource {
         }
     }
 
+    /// Filesystem readers operate a the filesystem level
+    ///
+    /// We need to update the filesystem reader location to ensure it also handles
+    /// the disk image and partition
+    ///
+    /// Useful for logging and debugging. This will show the file our `AccessorReader` uses
     fn with_disk_location(
         &self,
         mut reader: AccessorReader,
@@ -931,6 +1044,7 @@ fn split_selector(inner: &InnerPath) -> (Option<String>, InnerPath) {
     )
 }
 
+/// Return parent directory for a path
 fn parent_path(path: &str) -> String {
     let trimmed = path.trim_end_matches(['\\', '/']);
 
@@ -940,14 +1054,29 @@ fn parent_path(path: &str) -> String {
     }
 }
 
+/// Try to determine we are at root directory
 fn is_filesystem_root(inner: &InnerPath) -> bool {
     inner.display().trim_matches(['\\', '/']).is_empty()
 }
 
+/// Update `EntryMeta` data to represent truthful paths
+///
+/// Mostly applies only to NTFS accessor. Since it expects
+/// a drive letter.
+///
+/// However since we are reading disk images
+/// we do not have driver letter
 fn rewrite_meta(meta: EntryMeta, full_path: String, display_path: String) -> EntryMeta {
     path_meta_from(meta, &full_path, &display_path)
 }
 
+/// Ensure paths returned represent accurate paths
+///
+/// For example on NTFS the disk accessor uses the mock driver letter `X` for the NTFS accessor
+///
+/// When returning paths from accessing the disk, we make sure that is removed
+///
+/// This is only applied when reading directories, stat, or globbing
 fn path_meta_from(mut meta: EntryMeta, full_path: &str, display_path: &str) -> EntryMeta {
     let filename = full_path
         .rsplit(['/', '\\'])
@@ -955,6 +1084,7 @@ fn path_meta_from(mut meta: EntryMeta, full_path: &str, display_path: &str) -> E
         .unwrap_or(full_path)
         .to_string();
 
+    // Use truthful paths when we are accessing files on disk
     meta.full_path = full_path.to_string();
     meta.display_path = display_path.to_string();
     meta.directory = parent_path(full_path);
@@ -964,6 +1094,7 @@ fn path_meta_from(mut meta: EntryMeta, full_path: &str, display_path: &str) -> E
     meta
 }
 
+/// Construct a `EntryMeta` value for provided path
 fn path_meta(kind: EntryKind, size: u64, full_path: &str, display_path: &str) -> EntryMeta {
     path_meta_from(
         EntryMeta::new(kind, size, display_path),

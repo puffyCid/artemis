@@ -34,6 +34,7 @@ pub(super) fn identify_disk<R: Read + Seek>(
 ) -> AccessorResult<Vec<IdentifiedPartition>> {
     let mut identified = Vec::with_capacity(layout.partitions.len());
 
+    // Try to identify all partitions on a disk
     for partition in &layout.partitions {
         let filesystem = match identify_partition(reader, partition) {
             Ok(result) => result,
