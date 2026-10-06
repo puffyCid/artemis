@@ -7,7 +7,7 @@ use crate::{
             source::DiskSource,
         },
         error::AccessorError,
-        location::{loc::Location, scheme::Scheme},
+        location::loc::Location,
     },
     disks::{
         disk::{disk_format, table_name},
@@ -71,12 +71,13 @@ struct BootColumns {
 /// Get a little metadata on bootloader in the provided disk image
 pub(crate) fn disk_boot(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
     let location = Location::parse_source(source)?;
+    let format = disk_format(location.scheme)?;
+
     let image = location.source.ok_or_else(|| AccessorError::Location {
         input: source.to_string(),
         reason: String::from("Disk image paths must be absolute"),
     })?;
 
-    let format = disk_format(location.scheme)?;
     let inspect =
         DiskSource::open(&AccessorConfig::default(), format, image.as_path())?.inspect()?;
 
