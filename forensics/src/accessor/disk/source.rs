@@ -485,10 +485,7 @@ impl DiskSource {
 
     /// Find all partitions from provided disk image
     fn identified_partitions(&self) -> AccessorResult<Vec<IdentifiedPartition>> {
-        let mut reader = self.open_disk()?;
-        let layout = inspect_disk(&mut reader)?;
-
-        identify_disk(&mut reader, &layout)
+        Ok(self.inspect()?.partitions)
     }
 
     /// Read the filesystem file on the provided partition
