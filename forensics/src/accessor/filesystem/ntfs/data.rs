@@ -9,7 +9,7 @@ use crate::{
             attributes::read_named_data,
             volume::NtfsVolume,
             walk::{
-                PathLabel, get_file_size, list_children, list_children_handle, ntfs_err,
+                NtfsWalk, PathLabel, get_file_size, list_children, list_children_handle, ntfs_err,
                 open_by_ref, resolve_entry, resolve_file, walk_ntfs,
             },
             wof::{decompress_wof, is_wof_file},
@@ -261,19 +261,18 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
         inner: &InnerPath,
         options: &FileOptions,
         manager: &mut OutputManager,
-        rule: &str,
+        yara_rule: &str,
         evidence: &str,
     ) -> AccessorResult<()> {
-        walk_ntfs(
-            &self.volume,
-            self.drive,
-            inner,
+        let walk = NtfsWalk {
             options,
             manager,
-            rule,
+            yara_rule,
             evidence,
-            PathLabel::drive(self.drive),
-        )
+            paths: PathLabel::drive(self.drive),
+        };
+
+        walk_ntfs(&self.volume, self.drive, inner, walk)
     }
 
     /// Walk the NTFS filesystem, using `PathLabel` for the paths written on each record
@@ -284,20 +283,19 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
         inner: &InnerPath,
         options: &FileOptions,
         manager: &mut OutputManager,
-        rule: &str,
+        yara_rule: &str,
         evidence: &str,
         paths: PathLabel,
     ) -> AccessorResult<()> {
-        walk_ntfs(
-            &self.volume,
-            self.drive,
-            inner,
+        let walk = NtfsWalk {
             options,
             manager,
-            rule,
+            yara_rule,
             evidence,
             paths,
-        )
+        };
+
+        walk_ntfs(&self.volume, self.drive, inner, walk)
     }
 }
 

@@ -106,56 +106,70 @@ impl PathLabel {
     }
 }
 
+/// Requirements for walking the NTFS filesystem
+pub(crate) struct NtfsWalk<'a> {
+    /// Filelisting options
+    pub(crate) options: &'a FileOptions,
+    /// How to output the results
+    pub(crate) manager: &'a mut OutputManager,
+    /// Yara Rule to use if we are scanning with Yara-X
+    pub(crate) yara_rule: &'a str,
+    /// Source of the filelisting
+    pub(crate) evidence: &'a str,
+    /// How to construct NTFS paths for each record
+    pub(crate) paths: PathLabel,
+}
+
 /// Walk the NTFS filesystem and output results
 pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
     volume: &NtfsVolume<T>,
     drive: char,
     inner: &InnerPath,
-    options: &FileOptions,
-    manager: &mut OutputManager,
-    yara_rule: &str,
-    evidence: &str,
-    paths: PathLabel,
+    walk: NtfsWalk<'_>,
 ) -> AccessorResult<()> {
     let (inner_path, _) = inner_to_ntfs_path(inner, drive);
     let parent_display = display_ntfs_path(drive, &inner_path);
-    let exclude: HashSet<String> = options
+    let exclude: HashSet<String> = walk
+        .options
         .exclude_directories
         .clone()
         .unwrap_or_default()
         .into_iter()
         .collect();
 
-    let path_filter = create_regex(options.path_regex.as_deref().unwrap_or(""))
-        .map_err(|_err| AccessorError::location(&options.start_path, "invalid path_regex"))?;
-    let file_filter = create_regex(options.filename_regex.as_deref().unwrap_or(""))
-        .map_err(|_err| AccessorError::location(&options.start_path, "invalid filename_regex"))?;
+    let path_filter = create_regex(walk.options.path_regex.as_deref().unwrap_or(""))
+        .map_err(|_err| AccessorError::location(&walk.options.start_path, "invalid path_regex"))?;
+    let file_filter =
+        create_regex(walk.options.filename_regex.as_deref().unwrap_or("")).map_err(|_err| {
+            AccessorError::location(&walk.options.start_path, "invalid filename_regex")
+        })?;
 
-    let max_list = if options.metadata || manager.config.format == OutputFormat::Timeline {
+    let max_list = if walk.options.metadata || walk.manager.config.format == OutputFormat::Timeline
+    {
         1000
     } else {
         10000
     };
 
     let mut listing = NtfsListing {
-        options,
-        manager,
-        yara_rule,
-        evidence,
+        options: walk.options,
+        manager: walk.manager,
+        yara_rule: walk.yara_rule,
+        evidence: walk.evidence,
         path_filter,
         file_filter,
         hashes: Hashes {
-            md5: options.md5,
-            sha1: options.sha1,
-            sha256: options.sha256,
+            md5: walk.options.md5,
+            sha1: walk.options.sha1,
+            sha256: walk.options.sha256,
         },
         exclude: &exclude,
         max_list,
         batch: Vec::new(),
         drive,
         depth: 1,
-        max_depth: options.depth.unwrap_or(1),
-        paths,
+        max_depth: walk.options.depth.unwrap_or(1),
+        paths: walk.paths,
     };
 
     volume.with_reader(|ntfs, reader| {
@@ -975,7 +989,7 @@ mod tests {
         accessor::{
             filesystem::ntfs::{
                 volume::NtfsVolume,
-                walk::{PathLabel, list_children},
+                walk::{NtfsWalk, PathLabel, list_children},
             },
             io::partition::PartitionReader,
             location::path::InnerPath,
@@ -1030,17 +1044,14 @@ mod tests {
         let volume = test_volume();
         let inner = InnerPath::empty();
         let mut manager = output_manager(name);
-        walk_ntfs(
-            &volume,
-            'C',
-            &inner,
+        let walk = NtfsWalk {
             options,
-            &mut manager,
-            "",
-            "ntfs:C:",
-            PathLabel::drive('C'),
-        )
-        .unwrap();
+            manager: &mut manager,
+            yara_rule: "",
+            evidence: "ntfs:C:",
+            paths: PathLabel::drive('C'),
+        };
+        walk_ntfs(&volume, 'C', &inner, walk).unwrap();
 
         let output_dir = PathBuf::from("./tmp").join(name);
         let mut rows = Vec::new();

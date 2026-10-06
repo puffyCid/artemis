@@ -408,7 +408,7 @@ impl DiskSource {
             }
         }
 
-        // If we walked all partitions the return now
+        // If we walked all partitions then return now
         if walk_all {
             return Ok(());
         }
