@@ -75,7 +75,7 @@ impl DiskSource {
         })
     }
 
-    /// The disk image container and get a `DiskReader`
+    /// Open disk image container and get a `DiskReader`
     fn open_disk(&self) -> AccessorResult<DiskReader> {
         self.format.open_reader(&self.path)
     }

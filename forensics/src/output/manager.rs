@@ -5,7 +5,7 @@ use crate::{
             artifact_encoder::{Encoder, EncoderMode, StreamWriter},
             factory::build_encoder,
         },
-        error::OutputResult,
+        error::{OutputError, OutputResult},
         record::RecordStream,
         report::{ArtifactRunReport, CollectionReport, hash_artifact_options},
         sink::{
@@ -112,6 +112,25 @@ impl OutputManager {
             EncoderMode::Streamed | EncoderMode::SharedStream => {
                 self.write_stream(artifact_name, artifact_options, records)
             }
+        }
+    }
+
+    /// Write **non-forensic artifact** result
+    ///
+    /// Use `write_artifact` for outputting forensic data!
+    pub(crate) fn write_output(
+        &mut self,
+        name: &str,
+        records: &mut dyn RecordStream,
+    ) -> OutputResult<()> {
+        match self.encoder.encoder_mode() {
+            EncoderMode::Chunked => {
+                self.write_chunk(name, records)?;
+                Ok(())
+            }
+            EncoderMode::Streamed | EncoderMode::SharedStream => Err(OutputError::Encode(format!(
+                "{name} cannot be written with a streamed output format"
+            ))),
         }
     }
 
@@ -1333,5 +1352,64 @@ mod tests {
         assert!(!duck_files.is_empty());
         assert!(!report_files.is_empty());
         assert!(!log_files.is_empty());
+    }
+
+    #[test]
+    fn test_write_output() {
+        let name = String::from("manager_output");
+        let output_dir = PathBuf::from("./tmp").join(&name);
+        let _ = std::fs::remove_dir_all(&output_dir);
+        let config = OutputConfig {
+            name,
+            endpoint_id: String::from("test"),
+            collection_id: 0,
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
+            ..Default::default()
+        };
+
+        #[derive(serde::Serialize)]
+        struct PlainRow {
+            label: String,
+            size: u64,
+        }
+
+        let mut records = crate::output::record::serialize_records_to_stream(vec![PlainRow {
+            label: String::from("Partition0"),
+            size: 512,
+        }])
+        .unwrap();
+
+        let mut manage = OutputManager::new(config).unwrap();
+        manage.write_output("disk_info", &mut records).unwrap();
+        manage.finalize().unwrap();
+        let mut jsonl_files = Vec::new();
+        let mut report_files = Vec::new();
+
+        for entry in read_dir(&output_dir).unwrap() {
+            let path = entry.unwrap().path();
+            let filename = path.file_name().unwrap().to_string_lossy();
+            if filename.starts_with("disk_info_") && filename.ends_with(".jsonl") {
+                jsonl_files.push(path);
+            } else if filename.starts_with("report_") && filename.ends_with(".json") {
+                report_files.push(path);
+            }
+        }
+
+        assert_eq!(jsonl_files.len(), 1);
+        let jsonl_data = read_to_string(&jsonl_files[0]).unwrap();
+        let record: serde_json::Value =
+            serde_json::from_str(jsonl_data.lines().next().unwrap()).unwrap();
+
+        assert_eq!(record["label"], "Partition0");
+        assert_eq!(record["size"], 512);
+        assert_eq!(record["collection_metadata"]["artifact_name"], "disk_info");
+
+        let report: serde_json::Value =
+            serde_json::from_str(&read_to_string(&report_files[0]).unwrap()).unwrap();
+        assert!(report["artifacts"].as_array().unwrap().is_empty());
+        assert!(report["artifact_runs"].as_array().unwrap().is_empty());
+        assert_eq!(report["total_output_files"], 0);
     }
 }
