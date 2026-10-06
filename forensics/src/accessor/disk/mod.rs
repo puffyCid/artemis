@@ -1,5 +1,5 @@
-pub(super) mod format;
-pub(super) mod identify;
-pub(super) mod inspect;
+pub(crate) mod format;
+pub(crate) mod identify;
+pub(crate) mod inspect;
 pub(super) mod raw;
-pub(super) mod source;
+pub(crate) mod source;

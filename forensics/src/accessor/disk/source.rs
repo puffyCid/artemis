@@ -4,7 +4,7 @@ use crate::{
         disk::{
             format::{DiskFormat, DiskReader, disk_display_path, disk_root_display},
             identify::{FilesystemKind, IdentifiedPartition, identify_disk},
-            inspect::{DiskPartition, inspect_disk},
+            inspect::{DiskLayout, DiskPartition, inspect_disk},
         },
         entry::{
             handle::{
@@ -45,6 +45,16 @@ pub(crate) struct DiskSource {
     max_read_size: Option<u64>,
 }
 
+/// Layout of a disk image source
+pub(crate) struct DiskInspection {
+    /// Partitions layout and image size
+    pub(crate) layout: DiskLayout,
+    /// Details on each partition
+    pub(crate) partitions: Vec<IdentifiedPartition>,
+    /// Disk format type
+    pub(crate) format: DiskFormat,
+}
+
 /// Drive letter used when opening NTFS volumes inside disk images
 const NTFS_DRIVE: char = 'X';
 
@@ -68,6 +78,19 @@ impl DiskSource {
     /// The disk image container and get a `DiskReader`
     fn open_disk(&self) -> AccessorResult<DiskReader> {
         self.format.open_reader(&self.path)
+    }
+
+    /// Inspect and get basic metadata about the disk image
+    pub(crate) fn inspect(&self) -> AccessorResult<DiskInspection> {
+        let mut reader = self.open_disk()?;
+        let layout = inspect_disk(&mut reader)?;
+
+        let partitions = identify_disk(&mut reader, &layout)?;
+        Ok(DiskInspection {
+            layout,
+            partitions,
+            format: self.format,
+        })
     }
 
     /// Read the first supported filesystem that contains the correct filepath (`InnerPath`).
@@ -1121,7 +1144,11 @@ mod tests {
     use crate::{
         accessor::{
             config::AccessorConfig,
-            disk::format::DiskFormat,
+            disk::{
+                format::DiskFormat,
+                identify::FilesystemKind,
+                inspect::{PartitionKind, PartitionTableKind},
+            },
             entry::{
                 handle::{DirHandle, FileHandle, ItemHandle},
                 locator::{DirLocator, DiskEntryRef, FileLocator},
@@ -1633,5 +1660,27 @@ mod tests {
         options.path_regex = Some(String::from("Partition0:"));
         let jsonl = walk_jsonl(&options, "disk_walk_regex_label");
         assert!(jsonl.is_empty());
+    }
+
+    #[test]
+    fn test_inspect_logical_ntfs() {
+        let image = test_image();
+        let inspection = source(&image).inspect().unwrap();
+        let file_size = std::fs::metadata(&image).unwrap().len();
+
+        assert_eq!(inspection.layout.image_size, file_size);
+        assert_eq!(inspection.layout.logical_sector_size, 512);
+
+        assert!(matches!(inspection.layout.table, PartitionTableKind::None));
+        assert_eq!(inspection.layout.partitions.len(), 1);
+        assert_eq!(inspection.partitions.len(), 1);
+
+        let partition = &inspection.partitions[0];
+
+        assert_eq!(partition.partition.id, "Partition0");
+        assert_eq!(partition.partition.byte_offset, 0);
+        assert_eq!(partition.filesystem, FilesystemKind::Ntfs);
+        assert!(matches!(partition.partition.kind, PartitionKind::NtfsImage));
+        assert_eq!(inspection.format, DiskFormat::Raw);
     }
 }

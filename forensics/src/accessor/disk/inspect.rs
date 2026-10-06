@@ -13,20 +13,20 @@ const LOGIC_SECTOR_SIZE: u64 = 512;
 
 /// The partition layout of a logical disk
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct DiskLayout {
+pub(crate) struct DiskLayout {
     /// Used to determine the partition table
-    pub(super) logical_sector_size: u64,
+    pub(crate) logical_sector_size: u64,
     /// Length of the image in bytes
-    pub(super) image_size: u64,
+    pub(crate) image_size: u64,
     /// Source of the partition records
-    pub(super) table: PartitionTableKind,
+    pub(crate) table: PartitionTableKind,
     /// Array of partitions
-    pub(super) partitions: Vec<DiskPartition>,
+    pub(crate) partitions: Vec<DiskPartition>,
 }
 
 /// Support partition record types
 #[derive(Debug, Clone, PartialEq)]
-pub(super) enum PartitionTableKind {
+pub(crate) enum PartitionTableKind {
     /// Master Boot Record
     Mbr {
         /// MBR disk ID
@@ -45,28 +45,28 @@ pub(super) enum PartitionTableKind {
 
 /// Data associated with a single `DiskPartition`
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct DiskPartition {
+pub(crate) struct DiskPartition {
     /// Readable partition ID
     ///
     /// Example: `Partition0`
-    pub(super) id: String,
+    pub(crate) id: String,
     /// Slot for partition in MBR or GPT array
-    pub(super) slot: u32,
+    pub(crate) slot: u32,
     /// First sector of the partition
-    pub(super) start_lba: u64,
+    pub(crate) start_lba: u64,
     /// Number of sectors in the partition
-    pub(super) sector_count: u64,
+    pub(crate) sector_count: u64,
     /// Byte offset from the start of the logical disk
-    pub(super) byte_offset: u64,
+    pub(crate) byte_offset: u64,
     /// Byte length of the partition
-    pub(super) byte_length: u64,
+    pub(crate) byte_length: u64,
     /// Partition table metadata
-    pub(super) kind: PartitionKind,
+    pub(crate) kind: PartitionKind,
 }
 
 /// Partition table metadata
 #[derive(Debug, Clone, PartialEq)]
-pub(super) enum PartitionKind {
+pub(crate) enum PartitionKind {
     /// MBR partition entry
     Mbr {
         /// Raw partition type number
@@ -417,6 +417,7 @@ mod tests {
             layout.partitions[0].kind,
             PartitionKind::NtfsImage
         ));
+        assert_eq!(layout.image_size, 1024);
     }
 
     #[test]
@@ -430,6 +431,7 @@ mod tests {
 
         assert_eq!(layout.table, PartitionTableKind::Gpt { disk_guid });
         assert_eq!(layout.partitions.len(), 1);
+        assert_eq!(layout.image_size, 1280);
 
         let partition = &layout.partitions[0];
 

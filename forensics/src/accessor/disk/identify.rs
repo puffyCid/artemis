@@ -7,7 +7,7 @@ use tracing::warn;
 
 /// Filesystem found at partition offset
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) enum FilesystemKind {
+pub(crate) enum FilesystemKind {
     /// NTFS volume
     Ntfs,
     /// Ext4 volume
@@ -20,11 +20,11 @@ pub(super) enum FilesystemKind {
 
 /// Partition with identified filesystem
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct IdentifiedPartition {
+pub(crate) struct IdentifiedPartition {
     /// Partition from inspected disk image
-    pub(super) partition: DiskPartition,
+    pub(crate) partition: DiskPartition,
     /// Filesystem identified
-    pub(super) filesystem: FilesystemKind,
+    pub(crate) filesystem: FilesystemKind,
 }
 
 /// Determine the filesystem type for each partition on the disk
