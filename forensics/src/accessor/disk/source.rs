@@ -16,7 +16,7 @@ use crate::{
         error::{AccessorError, AccessorResult},
         filesystem::ntfs::{
             data::NtfsFs,
-            volume::NtfsVolume,
+            volume::{NtfsDetails, NtfsVolume},
             walk::{LabeledPath, PathLabel},
         },
         io::{
@@ -91,6 +91,12 @@ impl DiskSource {
             partitions,
             format: self.format,
         })
+    }
+
+    /// Read NTFS volume details for one partition
+    pub(crate) fn ntfs_details(&self, partition: &DiskPartition) -> AccessorResult<NtfsDetails> {
+        let filesystem = open_ntfs(self.open_disk()?, partition)?;
+        filesystem.volume.ntfs_details()
     }
 
     /// Read the first supported filesystem that contains the correct filepath (`InnerPath`).
