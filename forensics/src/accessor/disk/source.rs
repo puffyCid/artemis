@@ -362,6 +362,9 @@ impl DiskSource {
     ///
     /// Similar to `globfs` this function runs against all partitions unless the user selects
     /// a specific partition to walk
+    ///
+    /// If the user provides a start path but no partition then the first match for that
+    /// start path is the path we use
     pub(crate) fn walk(
         &self,
         inner: &InnerPath,
@@ -405,10 +408,11 @@ impl DiskSource {
             }
         }
 
-        // If
+        // If we walked all partitions the return now
         if walk_all {
             return Ok(());
         }
+
         Err(AccessorError::not_found(inner.display()))
     }
 
@@ -741,7 +745,7 @@ impl DiskSource {
         filesystem_path: &str,
         entry: &DiskEntryRef,
     ) -> AccessorResult<EntryStat> {
-        // Nothing meaningful to stat if user provides only the root partition
+        // Return the stat value for the root filesystem path
         if matches!(entry, DiskEntryRef::PartitionRoot) {
             return self.stat_partition_file(partition, &InnerPath::empty());
         }

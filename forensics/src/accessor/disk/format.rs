@@ -88,5 +88,5 @@ pub(crate) fn disk_display_path(
 ///
 ///  `raw:/image.raw!` for the image root, where the partitions are listed.
 pub(crate) fn disk_root_display(image: &Path, format: DiskFormat) -> String {
-    format!("{}:{}", format.as_str(), image.display())
+    format!("{}:{}!", format.as_str(), image.display())
 }
