@@ -1118,15 +1118,22 @@ fn ntfs_filesystem_path(display_path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::DiskSource;
-    use crate::accessor::{
-        config::AccessorConfig,
-        disk::format::DiskFormat,
-        entry::{
-            handle::{DirHandle, FileHandle, ItemHandle},
-            locator::{DirLocator, DiskEntryRef, FileLocator},
+    use crate::{
+        accessor::{
+            config::AccessorConfig,
+            disk::format::DiskFormat,
+            entry::{
+                handle::{DirHandle, FileHandle, ItemHandle},
+                locator::{DirLocator, DiskEntryRef, FileLocator},
+            },
+            error::AccessorError,
+            location::path::InnerPath,
         },
-        error::AccessorError,
-        location::path::InnerPath,
+        output::manager::OutputManager,
+        structs::{
+            artifacts::os::files::FileOptions,
+            toml::{OutputConfig, OutputDestination, OutputFormat},
+        },
     };
     use std::path::PathBuf;
 
@@ -1393,5 +1400,159 @@ mod tests {
 
         let err = source.open_reader_handle(&handle).unwrap_err();
         assert!(matches!(err, AccessorError::NotAFile { .. }));
+    }
+
+    #[test]
+    fn test_stat_file_handle() {
+        let image = test_image();
+        let source = source(&image);
+        let entries = source.read_dir(&path("hello")).unwrap();
+
+        let handle = entries
+            .iter()
+            .find(|entry| entry.name == "hello world.txt")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap();
+
+        let stat = source.stat_handle(handle).unwrap();
+        let by_path = source.stat(&path("hello\\hello world.txt")).unwrap();
+
+        assert_eq!(stat.meta.full_path, by_path.meta.full_path);
+        assert_eq!(stat.meta.display_path, by_path.meta.display_path);
+        assert_eq!(stat.meta.size, by_path.meta.size);
+
+        assert_eq!(stat.times.modified, by_path.times.modified);
+        assert!(stat.meta.display_path.contains("Partition0:"));
+        assert!(!stat.meta.display_path.contains("X:"));
+    }
+
+    #[test]
+    fn test_stat_dir_handle() {
+        let image = test_image();
+        let source = source(&image);
+        let entries = source.read_dir(&path("Partition0:")).unwrap();
+
+        let handle = entries
+            .iter()
+            .find(|entry| entry.name == "hello")
+            .unwrap()
+            .handle
+            .as_directory()
+            .unwrap();
+
+        let stat = source.stat_dir_handle(handle).unwrap();
+        let by_path = source.stat(&path("hello")).unwrap();
+
+        assert_eq!(stat.meta.full_path, "hello");
+        assert_eq!(stat.meta.display_path, by_path.meta.display_path);
+        assert_eq!(stat.times.created, by_path.times.created);
+        assert!(!stat.meta.display_path.contains("X:"));
+    }
+
+    #[test]
+    fn test_stat_dir_handle_partition_root() {
+        let image = test_image();
+        let source = source(&image);
+        let entries = source.read_dir(&path("")).unwrap();
+
+        let handle = entries[0].handle.as_directory().unwrap();
+        let stat = source.stat_dir_handle(handle).unwrap();
+        let by_path = source.stat(&path("Partition0:")).unwrap();
+
+        assert_eq!(stat.meta.display_path, by_path.meta.display_path);
+        assert_eq!(stat.meta.kind, by_path.meta.kind);
+        assert_eq!(stat.times.modified, by_path.times.modified);
+
+        assert!(stat.meta.display_path.contains("!Partition0"));
+        assert!(!stat.meta.display_path.contains("X:"));
+    }
+
+    #[test]
+    fn test_stat_image_root_display_path() {
+        let stat = source(&test_image()).stat(&path("")).unwrap();
+
+        assert!(stat.meta.display_path.ends_with('!'));
+        assert!(!stat.meta.display_path.contains("Partition0"));
+        assert!(!stat.meta.display_path.contains("X:"));
+    }
+
+    #[test]
+    fn test_stat_handle_rejects_other_image() {
+        let image = test_image();
+        let source = source(&image);
+        let entries = source.read_dir(&path("hello")).unwrap();
+
+        let FileLocator::Disk {
+            partition_id,
+            filesystem_path,
+            entry,
+            ..
+        } = &entries
+            .iter()
+            .find(|entry| entry.name == "hello world.txt")
+            .unwrap()
+            .handle
+            .as_file()
+            .unwrap()
+            .locator
+        else {
+            panic!("expected a disk file handle");
+        };
+
+        let foreign = FileHandle::new(FileLocator::Disk {
+            image: PathBuf::from("other.raw"),
+            format: DiskFormat::Raw,
+            partition_id: partition_id.clone(),
+            filesystem_path: filesystem_path.clone(),
+            entry: entry.clone(),
+        });
+
+        let err = source.stat_handle(&foreign).unwrap_err();
+        assert!(matches!(err, AccessorError::InvalidHandle { .. }));
+    }
+
+    #[test]
+    fn test_walk_disk_paths() {
+        let image = test_image();
+        let source = source(&image);
+        let options = FileOptions {
+            start_path: String::new(),
+            depth: Some(2),
+            source: format!("raw:{}", image.display()),
+            ..Default::default()
+        };
+
+        let config = OutputConfig {
+            name: String::from("disk_walk"),
+            endpoint_id: String::from("test"),
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
+            compress: false,
+            ..Default::default()
+        };
+        let mut manager = OutputManager::new(config).unwrap();
+
+        source
+            .walk(&path(""), &options, &mut manager, "", "raw:test")
+            .unwrap();
+        let output_dir = PathBuf::from("./tmp/disk_walk");
+
+        let mut jsonl = String::new();
+        for entry in std::fs::read_dir(&output_dir).unwrap() {
+            let file = entry.unwrap().path();
+            let name = file.file_name().unwrap().to_string_lossy();
+            if name.starts_with("files_raw_") && name.ends_with(".jsonl") {
+                jsonl.push_str(&std::fs::read_to_string(&file).unwrap());
+            }
+        }
+
+        assert!(jsonl.contains("hello world.txt"));
+        assert!(jsonl.contains("hello\\\\hello world.txt"));
+        assert!(jsonl.contains("\"drive\":\"X:\""));
+        assert!(jsonl.contains("X:"));
+        assert!(!jsonl.contains("ntfs:"));
     }
 }

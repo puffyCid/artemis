@@ -652,6 +652,7 @@ mod tests {
             "ntfs:foo",
             "zip:data.zip",
             "zip:data.zip!entry.txt",
+            "raw:image.raw",
         ] {
             let result = Location::parse(test).unwrap();
 
@@ -684,5 +685,31 @@ mod tests {
             err,
             AccessorError::Location { reason, .. } if reason.contains("absolute")
         ));
+    }
+
+    #[test]
+    fn test_location_raw_image_only() {
+        let result = Location::parse("raw:/tmp/image.raw").unwrap();
+        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.source.unwrap().display(), "/tmp/image.raw");
+        assert!(result.inner_path.is_empty());
+    }
+
+    #[test]
+    fn test_location_raw_partition_path() {
+        let result = Location::parse("raw:/tmp/image.raw!Partition0:hello\\file.txt").unwrap();
+        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.source.unwrap().display(), "/tmp/image.raw");
+        assert_eq!(result.inner_path.display(), "Partition0:hello\\file.txt");
+    }
+
+    #[test]
+    fn test_glob_raw_partition_directory() {
+        let (loc, pattern) =
+            Location::split_glob_pattern("raw:/tmp/image.raw!hello/*.txt").unwrap();
+        assert_eq!(pattern, "*.txt");
+        assert_eq!(loc.scheme, Scheme::Raw);
+        assert_eq!(loc.source.unwrap().display(), "/tmp/image.raw");
+        assert_eq!(loc.inner_path.display(), "hello");
     }
 }
