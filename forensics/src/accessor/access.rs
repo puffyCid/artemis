@@ -452,6 +452,7 @@ impl Accessor {
         )
     }
 
+    /// Generate a disk image filelisting from an opened source
     pub(crate) fn source_walk_disk(
         &self,
         source: &SourceHandle,

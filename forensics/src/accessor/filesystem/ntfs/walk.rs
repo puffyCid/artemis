@@ -1219,7 +1219,7 @@ mod tests {
             manager: &mut manager,
             yara_rule: "",
             evidence: "ntfs:c",
-            paths: PathLabel::drive('C'),
+            paths: PathLabel::drive(drive),
         };
         walk_ntfs(&volume, drive, &inner, walk).unwrap();
     }

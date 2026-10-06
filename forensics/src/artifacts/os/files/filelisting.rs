@@ -129,6 +129,22 @@ mod tests {
     }
 
     #[test]
+    fn test_get_filelist_disk_raw() {
+        let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        dir.push("tests/test_data/filesystems/ntfs/test.raw");
+
+        let options = FileOptions {
+            start_path: String::from("/"),
+            source: format!("raw:{}", dir.to_str().unwrap()),
+            ..Default::default()
+        };
+
+        let mut output = output_options("raw_oot", "./tmp", false);
+
+        get_filelist(&options, &mut output).unwrap();
+    }
+
+    #[test]
     #[cfg(target_os = "windows")]
     fn test_get_filelist_windows() {
         let options = FileOptions {
