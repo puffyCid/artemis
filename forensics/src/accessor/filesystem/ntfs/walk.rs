@@ -425,7 +425,7 @@ fn fill_ntfs_entry<R: Read + Seek>(
         sid,
         user_sid,
         group_sid,
-        drive: format!("{}:", listing.drive),
+        drive: format!("{}:", labeled.drive),
         ..Default::default()
     };
 

@@ -1551,8 +1551,8 @@ mod tests {
 
         assert!(jsonl.contains("hello world.txt"));
         assert!(jsonl.contains("hello\\\\hello world.txt"));
-        assert!(jsonl.contains("\"drive\":\"X:\""));
-        assert!(jsonl.contains("X:"));
+        assert!(jsonl.contains("\"drive\":\"Partition0:\""));
+        assert!(jsonl.contains("Partition0:"));
         assert!(!jsonl.contains("ntfs:"));
     }
 }
