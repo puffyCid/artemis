@@ -1151,15 +1151,6 @@ mod tests {
         InnerPath::new(PathBuf::from(value))
     }
 
-    #[test]
-    fn test_read_file_logical_ntfs() {
-        let bytes = source(&test_image())
-            .read_file(&path("hello\\hello world.txt"))
-            .unwrap();
-
-        assert_eq!(bytes, b"hello world\n");
-    }
-
     fn disk_file_options() -> FileOptions {
         let image = test_image();
         FileOptions {
@@ -1201,6 +1192,15 @@ mod tests {
         }
 
         jsonl
+    }
+
+    #[test]
+    fn test_read_file_logical_ntfs() {
+        let bytes = source(&test_image())
+            .read_file(&path("hello\\hello world.txt"))
+            .unwrap();
+
+        assert_eq!(bytes, b"hello world\n");
     }
 
     #[test]
