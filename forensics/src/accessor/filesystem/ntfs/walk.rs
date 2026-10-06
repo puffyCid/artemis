@@ -1214,6 +1214,13 @@ mod tests {
         let mut manager = output_manager("live_ntfs");
 
         let volume = NtfsVolume::open_live_drive(drive).unwrap();
-        walk_ntfs(&volume, drive, &inner, &options, &mut manager, "", "ntfs:c").unwrap();
+        let walk = NtfsWalk {
+            options: &options,
+            manager: &mut manager,
+            yara_rule: "",
+            evidence: "ntfs:c",
+            paths: PathLabel::drive('C'),
+        };
+        walk_ntfs(&volume, drive, &inner, walk).unwrap();
     }
 }
