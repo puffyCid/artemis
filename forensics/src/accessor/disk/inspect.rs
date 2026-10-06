@@ -16,6 +16,8 @@ const LOGIC_SECTOR_SIZE: u64 = 512;
 pub(super) struct DiskLayout {
     /// Used to determine the partition table
     pub(super) logical_sector_size: u64,
+    /// Length of the image in bytes
+    pub(super) image_size: u64,
     /// Source of the partition records
     pub(super) table: PartitionTableKind,
     /// Array of partitions
@@ -78,6 +80,8 @@ pub(super) enum PartitionKind {
     Gpt {
         /// GPT partition value
         type_guid: Uuid,
+        /// Unique GUID for the partition
+        partition_guid: Uuid,
         /// GPT partition name
         name: String,
         /// GPT partition attributes
@@ -90,15 +94,15 @@ pub(super) enum PartitionKind {
 /// Parse the disk partition and determine the layout
 pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<DiskLayout> {
     let sector = read_at(reader, 0, LOGIC_SECTOR_SIZE as usize)?;
+    let image_size = reader_length(reader)?;
 
     // We support logical NTFS images
     if is_logical_ntfs(&sector) {
-        let length = reader_length(reader)?;
-
         return Ok(DiskLayout {
             logical_sector_size: LOGIC_SECTOR_SIZE,
             table: PartitionTableKind::None,
-            partitions: vec![logic_partition(length, PartitionKind::NtfsImage)],
+            image_size,
+            partitions: vec![logic_partition(image_size, PartitionKind::NtfsImage)],
         });
     }
 
@@ -111,11 +115,12 @@ pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<Dis
     }
 
     if mbr.is_protective_gpt() {
-        return inspect_gpt(reader);
+        return inspect_gpt(reader, image_size);
     }
 
     Ok(DiskLayout {
         logical_sector_size: LOGIC_SECTOR_SIZE,
+        image_size,
         table: PartitionTableKind::Mbr {
             disk_id: mbr.disk_id,
         },
@@ -126,7 +131,7 @@ pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<Dis
 /// If we have GPT bootsector
 ///
 /// Then parse GPT data
-fn inspect_gpt<R: Read + Seek>(reader: &mut R) -> AccessorResult<DiskLayout> {
+fn inspect_gpt<R: Read + Seek>(reader: &mut R, image_size: u64) -> AccessorResult<DiskLayout> {
     let header_sector = read_at(reader, LOGIC_SECTOR_SIZE, LOGIC_SECTOR_SIZE as usize)?;
     let header = parse_gpt_header(&header_sector)?;
 
@@ -161,6 +166,7 @@ fn inspect_gpt<R: Read + Seek>(reader: &mut R) -> AccessorResult<DiskLayout> {
         table: PartitionTableKind::Gpt {
             disk_guid: header.disk_guid,
         },
+        image_size,
         partitions,
     })
 }
@@ -208,6 +214,7 @@ fn gpt_partition(entry: &GptEntry) -> AccessorResult<DiskPartition> {
             type_guid: entry.partition_type_guid,
             name: entry.partition_name.clone(),
             attributes: entry.attributes,
+            partition_guid: entry.partition_guid,
         },
     })
 }
@@ -291,15 +298,15 @@ mod tests {
         sector
     }
 
-    fn gpt_disk(second_entry: &[u8]) -> Vec<u8> {
+    fn gpt_disk(second_entry: &[u8], disk_guid: Uuid) -> Vec<u8> {
         let mut disk = mbr_sector(&[(0, 0xEE, 1, 100)]);
-        disk.extend(gpt_header(2, 2));
+        disk.extend(gpt_header(2, 2, disk_guid));
         disk.extend(vec![0u8; 128]);
         disk.extend_from_slice(second_entry);
         disk
     }
 
-    fn gpt_header(entry_lba: u64, entry_count: u32) -> Vec<u8> {
+    fn gpt_header(entry_lba: u64, entry_count: u32, disk_guid: Uuid) -> Vec<u8> {
         let mut sector = vec![0u8; 512];
         sector[..8].copy_from_slice(b"EFI PART");
         sector[8..12].copy_from_slice(&0x0001_0000u32.to_le_bytes());
@@ -309,18 +316,27 @@ mod tests {
         sector[32..40].copy_from_slice(&9u64.to_le_bytes());
         sector[40..48].copy_from_slice(&3u64.to_le_bytes());
         sector[48..56].copy_from_slice(&8u64.to_le_bytes());
-
+        sector[56..72].copy_from_slice(&disk_guid.to_bytes_le());
         sector[72..80].copy_from_slice(&entry_lba.to_le_bytes());
         sector[80..84].copy_from_slice(&entry_count.to_le_bytes());
         sector[84..88].copy_from_slice(&128u32.to_le_bytes());
         sector
     }
 
-    fn gpt_entry(start_lba: u64, end_lba: u64, name: &str, type_guid: Uuid) -> Vec<u8> {
+    fn gpt_entry(
+        start_lba: u64,
+        end_lba: u64,
+        name: &str,
+        type_guid: Uuid,
+        partition_guid: Uuid,
+        attributes: u64,
+    ) -> Vec<u8> {
         let mut entry = vec![0u8; 128];
         entry[..16].copy_from_slice(&type_guid.to_bytes_le());
+        entry[16..32].copy_from_slice(&partition_guid.to_bytes_le());
         entry[32..40].copy_from_slice(&start_lba.to_le_bytes());
         entry[40..48].copy_from_slice(&end_lba.to_le_bytes());
+        entry[48..56].copy_from_slice(&attributes.to_le_bytes());
 
         for (index, unit) in name.encode_utf16().enumerate() {
             let offset = 56 + index * 2;
@@ -331,10 +347,13 @@ mod tests {
 
     #[test]
     fn test_inspect_mbr_partition() {
-        let disk = mbr_sector(&[(0, 0x07, 2048, 1000)]);
+        let mut disk = mbr_sector(&[(0, 0x07, 2048, 1000)]);
+        disk[440..444].copy_from_slice(&0x1234_5678u32.to_le_bytes());
+        disk[446] = 0x80;
+
         let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
         assert_eq!(layout.logical_sector_size, 512);
-        assert_eq!(layout.table, PartitionTableKind::Mbr { disk_id: 0 });
+        assert_eq!(layout.table, PartitionTableKind::Mbr { disk_id: 305419896 });
         assert_eq!(layout.partitions.len(), 1);
 
         let partition = &layout.partitions[0];
@@ -351,9 +370,11 @@ mod tests {
             PartitionKind::Mbr {
                 partition_type_raw: 0x07,
                 partition_type: PartitionType::Ntfs,
-                bootable: false,
+                bootable: true,
             }
         ));
+
+        assert_eq!(layout.image_size, 512);
     }
 
     #[test]
@@ -401,16 +422,13 @@ mod tests {
     #[test]
     fn test_inspect_gpt_preserves_array_slot() {
         let type_guid = Uuid::parse_str("ebd0a0a2-b9e5-4433-87c0-68b6b72699c7").unwrap();
-        let used = gpt_entry(2048, 4095, "Windows", type_guid);
-        let disk = gpt_disk(&used);
+        let disk_guid = Uuid::parse_str("11111111-2222-3333-4444-555555555555").unwrap();
+        let partition_guid = Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap();
+        let used = gpt_entry(2048, 4095, "Windows", type_guid, partition_guid, 1);
+        let disk = gpt_disk(&used, disk_guid);
         let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
 
-        assert_eq!(
-            layout.table,
-            PartitionTableKind::Gpt {
-                disk_guid: Uuid::nil()
-            }
-        );
+        assert_eq!(layout.table, PartitionTableKind::Gpt { disk_guid });
         assert_eq!(layout.partitions.len(), 1);
 
         let partition = &layout.partitions[0];
@@ -428,10 +446,12 @@ mod tests {
                 type_guid: guid,
                 name,
                 attributes,
+                partition_guid: unique,
             } => {
                 assert_eq!(*guid, type_guid);
                 assert_eq!(name, "Windows");
-                assert_eq!(*attributes, 0);
+                assert_eq!(*attributes, 1);
+                assert_eq!(*unique, partition_guid);
             }
             _ => panic!("expected a GPT partition"),
         }

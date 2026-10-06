@@ -120,9 +120,10 @@ mod tests {
             byte_offset,
             byte_length,
             kind: PartitionKind::Gpt {
-                type_guid: uuid::Uuid::nil(),
+                type_guid: Uuid::nil(),
                 name: String::new(),
                 attributes: 0,
+                partition_guid: Uuid::nil(),
             },
         }
     }
@@ -176,6 +177,7 @@ mod tests {
             table: PartitionTableKind::Gpt {
                 disk_guid: Uuid::nil(),
             },
+            image_size: 0,
             partitions,
         };
 
@@ -219,6 +221,7 @@ mod tests {
             logical_sector_size: 512,
             table: PartitionTableKind::Mbr { disk_id: 0 },
             partitions: vec![gpt_partition(0, 512), past_end],
+            image_size: 0,
         };
 
         let found =
