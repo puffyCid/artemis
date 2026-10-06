@@ -206,8 +206,8 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
     }
 
     pub(crate) fn ntfs_details(&self) -> AccessorResult<NtfsDetails> {
-        let path = self.target_path().clone();
-        self.with_reader(|ntfs, reader| read_ntfs_details(ntfs, reader, &path))
+        let path = self.target_path();
+        self.with_reader(|ntfs, reader| read_ntfs_details(ntfs, reader, path))
     }
 
     /// Return active `target_path`
@@ -290,13 +290,13 @@ fn read_ntfs_details<R: Read + Seek>(
 ) -> AccessorResult<NtfsDetails> {
     let volume_name = match ntfs.volume_name(reader) {
         Some(name) => {
-            let name = name.map_err(|err| ntfs_err(err))?;
-            Some(name.name().to_string_lossy().to_string())
+            let name = name.map_err(ntfs_err)?;
+            Some(name.name().to_string_lossy().clone())
         }
         None => None,
     };
 
-    let info = ntfs.volume_info(reader).map_err(|err| ntfs_err(err))?;
+    let info = ntfs.volume_info(reader).map_err(ntfs_err)?;
 
     let mft_byte_offset = ntfs
         .mft_position()

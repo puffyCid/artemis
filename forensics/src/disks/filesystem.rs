@@ -9,8 +9,8 @@ use crate::{
     disks::{disk::disk_format, error::DiskResult},
     output::{manager::OutputManager, record::serialize_records_to_stream},
 };
-
 use serde::Serialize;
+
 /// NTFS volume details for one partition
 #[derive(Serialize)]
 struct NtfsFilesystem {
@@ -68,7 +68,7 @@ pub(crate) fn disk_filesystem(source: &str, manager: &mut OutputManager) -> Disk
     Ok(())
 }
 
-/// One NTFS output row
+/// Single NTFS output row
 fn ntfs_filesystem(source: &str, partition_id: &str, details: NtfsDetails) -> NtfsFilesystem {
     NtfsFilesystem {
         source: source.to_string(),
