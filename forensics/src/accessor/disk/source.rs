@@ -446,7 +446,7 @@ impl DiskSource {
                             &partition_id,
                             &filesystem_path,
                         ),
-                        drive: partition_id.clone(),
+                        drive: format!("{partition_id}:"),
                         full_path: filesystem_path,
                     }
                 });
