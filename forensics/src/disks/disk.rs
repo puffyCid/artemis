@@ -47,15 +47,6 @@ struct DiskInfo {
 /// Get some metadata on partitions in the provided disk image
 pub(crate) fn disk_info(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
     let location = Location::parse_source(source)?;
-    // If we are given a relative path to the disk image
-    // The accessor treats that as a normal host path
-    if location.scheme == Scheme::Host {
-        return Err(AccessorError::UnsupportedScheme {
-            scheme: location.scheme.as_str().to_string(),
-        }
-        .into());
-    }
-
     let image = location.source.ok_or_else(|| AccessorError::Location {
         input: source.to_string(),
         reason: String::from("Disk image paths must be absolute"),

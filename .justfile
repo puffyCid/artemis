@@ -59,6 +59,9 @@ output: (_test "--features duck output::")
 # Test only the Accessor workflow
 accessor: (_test "accessor::")
 
+# Test only the Disk Info workflow
+disk: (_test "disks::")
+
 # Test only the FileSystem functions
 filesystem: (_test "filesystem::")
 
