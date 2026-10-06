@@ -1160,6 +1160,49 @@ mod tests {
         assert_eq!(bytes, b"hello world\n");
     }
 
+    fn disk_file_options() -> FileOptions {
+        let image = test_image();
+        FileOptions {
+            start_path: String::new(),
+            depth: Some(2),
+            source: format!("raw:{}", image.display()),
+            ..Default::default()
+        }
+    }
+
+    fn walk_jsonl(options: &FileOptions, name: &str) -> String {
+        let image = test_image();
+        let source = source(&image);
+        let output_dir = PathBuf::from("./tmp").join(name);
+        let _ = std::fs::remove_dir_all(&output_dir);
+
+        let config = OutputConfig {
+            name: name.to_string(),
+            endpoint_id: String::from("test"),
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
+            compress: false,
+            ..Default::default()
+        };
+
+        let mut manager = OutputManager::new(config).unwrap();
+        source
+            .walk(&path(""), options, &mut manager, "", "raw:test")
+            .unwrap();
+        let mut jsonl = String::new();
+
+        for entry in std::fs::read_dir(&output_dir).unwrap() {
+            let file = entry.unwrap().path();
+            let filename = file.file_name().unwrap().to_string_lossy();
+            if filename.starts_with("files_raw_") && filename.ends_with(".jsonl") {
+                jsonl.push_str(&std::fs::read_to_string(&file).unwrap());
+            }
+        }
+
+        jsonl
+    }
+
     #[test]
     fn test_read_file_explicit_partition() {
         let bytes = source(&test_image())
@@ -1554,5 +1597,41 @@ mod tests {
         assert!(jsonl.contains("\"drive\":\"Partition0:\""));
         assert!(jsonl.contains("Partition0:"));
         assert!(!jsonl.contains("ntfs:"));
+    }
+
+    #[test]
+    fn test_walk_disk_exclude_filesystem_directory() {
+        let mut options = disk_file_options();
+        options.exclude_directories = Some(vec![String::from("hello")]);
+        let jsonl = walk_jsonl(&options, "disk_walk_exclude");
+
+        assert!(!jsonl.contains("hello world.txt"));
+        assert!(jsonl.contains("README.md"));
+        assert!(jsonl.contains("\"drive\":\"Partition0:\""));
+    }
+
+    #[test]
+    fn test_walk_disk_exclude_partition_label_keeps_file() {
+        let mut options = disk_file_options();
+        options.exclude_directories = Some(vec![String::from("Partition0:hello")]);
+        let jsonl = walk_jsonl(&options, "disk_walk_exclude_label");
+        assert!(jsonl.contains("hello\\\\hello world.txt"));
+    }
+
+    #[test]
+    fn test_walk_disk_path_regex_filesystem_path() {
+        let mut options = disk_file_options();
+        options.path_regex = Some(String::from(r"hello\\hello world"));
+        let jsonl = walk_jsonl(&options, "disk_walk_regex");
+        assert!(jsonl.contains("hello\\\\hello world.txt"));
+        assert!(!jsonl.contains("README.md"));
+    }
+
+    #[test]
+    fn test_walk_disk_path_regex_partition_label_matches_nothing() {
+        let mut options = disk_file_options();
+        options.path_regex = Some(String::from("Partition0:"));
+        let jsonl = walk_jsonl(&options, "disk_walk_regex_label");
+        assert!(jsonl.is_empty());
     }
 }

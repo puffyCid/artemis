@@ -712,4 +712,21 @@ mod tests {
         assert_eq!(loc.source.unwrap().display(), "/tmp/image.raw");
         assert_eq!(loc.inner_path.display(), "hello");
     }
+
+    #[test]
+    fn test_parse_source_raw_absolute() {
+        let result = Location::parse_source("raw:/tmp/image.raw").unwrap();
+        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.source.unwrap().display(), "/tmp/image.raw");
+        assert!(result.inner_path.is_empty());
+    }
+
+    #[test]
+    fn test_parse_source_raw_relative_is_error() {
+        let err = Location::parse_source("raw:image.raw").unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Location { reason, .. } if reason.contains("absolute")
+        ));
+    }
 }
