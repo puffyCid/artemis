@@ -6,7 +6,7 @@ use crate::{
         filesystem::ntfs::volume::NtfsDetails,
         location::loc::Location,
     },
-    disks::{disk::disk_format, error::DiskResult},
+    disks::{error::DiskResult, partition::disk_format},
     output::{manager::OutputManager, record::serialize_records_to_stream},
 };
 use serde::Serialize;
@@ -41,7 +41,7 @@ struct NtfsFilesystem {
 }
 
 /// Get NTFS volume details for each NTFS partition in the disk image
-pub(crate) fn disk_filesystem(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
+pub(crate) fn filesystem_info(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
     let location = Location::parse_source(source)?;
     let format = disk_format(location.scheme)?;
 
@@ -88,7 +88,7 @@ fn ntfs_filesystem(source: &str, partition_id: &str, details: NtfsDetails) -> Nt
 
 #[cfg(test)]
 mod tests {
-    use super::disk_filesystem;
+    use super::filesystem_info;
     use crate::{
         accessor::error::AccessorError,
         disks::error::DiskError,
@@ -135,12 +135,12 @@ mod tests {
     }
 
     #[test]
-    fn test_disk_filesystem_ntfs() {
+    fn test_filesystem_info_ntfs() {
         let image = test_image();
         let source = format!("raw:{}", image.display());
         let mut manager = manager("disk_filesystem_ntfs");
 
-        disk_filesystem(&source, &mut manager).unwrap();
+        filesystem_info(&source, &mut manager).unwrap();
         manager.finalize().unwrap();
 
         let record = output_record("disk_filesystem_ntfs");
@@ -167,9 +167,9 @@ mod tests {
     }
 
     #[test]
-    fn test_disk_filesystem_relative_source_is_error() {
+    fn test_filesystem_info_relative_source_is_error() {
         let mut manager = manager("disk_filesystem_relative");
-        let err = disk_filesystem("raw:image.raw", &mut manager).unwrap_err();
+        let err = filesystem_info("raw:image.raw", &mut manager).unwrap_err();
         assert!(matches!(
             err,
             DiskError::Source(AccessorError::Location { reason, .. }) if reason.contains("absolute")

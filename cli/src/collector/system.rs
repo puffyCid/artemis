@@ -1,3 +1,5 @@
+use crate::collector::disk::{DiskCommands, run_disk};
+
 use super::commands::CommandArgs;
 use clap::Subcommand;
 use forensics::{
@@ -52,15 +54,15 @@ pub(crate) enum Commands {
         #[arg(long)]
         end: Option<String>,
     },
+    /// Query a disk image
+    Disk {
+        #[command(subcommand)]
+        disk: DiskCommands,
+    },
 }
 
 /// Run the collector and parse specified artifacts
 pub(crate) fn run_collector(command: &Commands, output: OutputConfig) {
-    let mut collector = ArtemisToml {
-        output,
-        marker: None,
-        artifacts: Vec::new(),
-    };
     match command {
         Commands::Acquire {
             artifact,
@@ -70,6 +72,12 @@ pub(crate) fn run_collector(command: &Commands, output: OutputConfig) {
             start,
             end,
         } => {
+            let mut collector = ArtemisToml {
+                output,
+                marker: None,
+                artifacts: Vec::new(),
+            };
+
             if artifact.is_none() {
                 println!("No artifact provided");
                 return;
@@ -92,10 +100,11 @@ pub(crate) fn run_collector(command: &Commands, output: OutputConfig) {
                 "[artemis] Writing output to: {:?}",
                 collector.output.directory
             );
-        }
-    }
 
-    artemis_collection(collector).expect("Failed to run collector due bad arguments")
+            artemis_collection(collector).expect("Failed to run collector due bad arguments")
+        }
+        Commands::Disk { disk } => run_disk(disk, output),
+    }
 }
 
 fn format_choice(format: &str) -> OutputFormat {

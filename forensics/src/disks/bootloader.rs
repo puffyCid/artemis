@@ -10,8 +10,8 @@ use crate::{
         location::loc::Location,
     },
     disks::{
-        disk::{disk_format, table_name},
         error::DiskResult,
+        partition::{disk_format, table_name},
     },
     output::{manager::OutputManager, record::serialize_records_to_stream},
 };
@@ -69,7 +69,7 @@ struct BootColumns {
 }
 
 /// Get a little metadata on bootloader in the provided disk image
-pub(crate) fn disk_boot(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
+pub(crate) fn boot_info(source: &str, manager: &mut OutputManager) -> DiskResult<()> {
     let location = Location::parse_source(source)?;
     let format = disk_format(location.scheme)?;
 
@@ -194,7 +194,7 @@ fn partition_type_name(kind: &PartitionType) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::disk_boot;
+    use super::boot_info;
     use crate::{
         accessor::error::AccessorError,
         disks::error::DiskError,
@@ -333,11 +333,11 @@ mod tests {
     }
 
     #[test]
-    fn test_disk_boot_logical_ntfs() {
+    fn test_boot_info_logical_ntfs() {
         let image = test_image();
         let source = format!("raw:{}", image.display());
         let mut manager = manager("disk_boot_logical");
-        disk_boot(&source, &mut manager).unwrap();
+        boot_info(&source, &mut manager).unwrap();
         manager.finalize().unwrap();
 
         let record = output_record("disk_boot_logical");
@@ -352,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn test_disk_boot_mbr() {
+    fn test_boot_info_mbr() {
         let mut disk = mbr_sector(&[(0, 0x07, 2048, 1000)]);
         disk[440..444].copy_from_slice(&0x1234_5678u32.to_le_bytes());
         disk[446] = 0x80;
@@ -360,7 +360,7 @@ mod tests {
         let image = write_image("mbr.raw", &disk);
         let source = format!("raw:{}", image.display());
         let mut manager = manager("disk_boot_mbr");
-        disk_boot(&source, &mut manager).unwrap();
+        boot_info(&source, &mut manager).unwrap();
 
         manager.finalize().unwrap();
         let record = output_record("disk_boot_mbr");
@@ -377,7 +377,7 @@ mod tests {
     }
 
     #[test]
-    fn test_disk_boot_gpt() {
+    fn test_boot_info_gpt() {
         let type_guid = Uuid::parse_str("ebd0a0a2-b9e5-4433-87c0-68b6b72699c7").unwrap();
         let disk_guid = Uuid::parse_str("11111111-2222-3333-4444-555555555555").unwrap();
         let partition_guid = Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap();
@@ -387,7 +387,7 @@ mod tests {
         let source = format!("raw:{}", image.display());
         let mut manager = manager("disk_boot_gpt");
 
-        disk_boot(&source, &mut manager).unwrap();
+        boot_info(&source, &mut manager).unwrap();
         manager.finalize().unwrap();
         let record = output_record("disk_boot_gpt");
 
@@ -407,9 +407,9 @@ mod tests {
     }
 
     #[test]
-    fn test_disk_boot_relative_source_is_error() {
+    fn test_boot_info_relative_source_is_error() {
         let mut manager = manager("disk_boot_relative");
-        let err = disk_boot("raw:image.raw", &mut manager).unwrap_err();
+        let err = boot_info("raw:image.raw", &mut manager).unwrap_err();
         assert!(matches!(
             err,
             DiskError::Source(AccessorError::Location { reason, .. }) if reason.contains("absolute")
