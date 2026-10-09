@@ -174,7 +174,7 @@ mod tests {
         assert_eq!(record["source"], source);
         assert_eq!(record["format"], "raw");
         assert_eq!(record["sector_size"], 512);
-        assert_eq!(record["table"], "none");
+        assert_eq!(record["boot_type"], "none");
         assert_eq!(record["partition_count"], 1);
 
         assert_eq!(record["image_size"].as_u64(), Some(file_size));
