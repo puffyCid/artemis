@@ -1,6 +1,5 @@
-use crate::collector::disk::{DiskCommands, run_disk};
-
 use super::commands::CommandArgs;
+use crate::collector::disk::{DiskCommands, run_disk};
 use clap::Subcommand;
 use forensics::{
     core::artemis_collection,
@@ -54,7 +53,7 @@ pub(crate) enum Commands {
         #[arg(long)]
         end: Option<String>,
     },
-    /// Query a disk image
+    /// View a disk image info
     Disk {
         #[command(subcommand)]
         disk: DiskCommands,
@@ -107,6 +106,7 @@ pub(crate) fn run_collector(command: &Commands, output: OutputConfig) {
     }
 }
 
+/// Different options for output format
 fn format_choice(format: &str) -> OutputFormat {
     match format.to_ascii_lowercase().as_str() {
         "json" => OutputFormat::Json,

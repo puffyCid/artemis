@@ -23,6 +23,7 @@ pub(crate) enum DiskCommands {
         /// Disk image source. Example: raw:/absolute/path/image.raw
         #[arg(long)]
         source: String,
+        /// Flags for output
         #[command(flatten)]
         output: DiskOutput,
     },
@@ -31,6 +32,7 @@ pub(crate) enum DiskCommands {
         /// Disk image source. Example: raw:/absolute/path/image.raw
         #[arg(long)]
         source: String,
+        /// Flags for output
         #[command(flatten)]
         output: DiskOutput,
     },
@@ -39,11 +41,13 @@ pub(crate) enum DiskCommands {
         /// Disk image source. Example: raw:/absolute/path/image.raw
         #[arg(long)]
         source: String,
+        /// Flags for output
         #[command(flatten)]
         output: DiskOutput,
     },
 }
 
+/// Run support disk commands
 pub(crate) fn run_disk(command: &DiskCommands, mut config: OutputConfig) {
     let result = match command {
         DiskCommands::Partition { source, output } => {
@@ -91,7 +95,7 @@ mod tests {
         OutputConfig {
             name: String::from("disk_cli"),
             directory: PathBuf::from("./tmp"),
-            format: OutputFormat::Jsonl,
+            format: OutputFormat::Json,
             compress: false,
             endpoint_id: String::from("abcd"),
             destination: OutputDestination::Local,
@@ -99,19 +103,19 @@ mod tests {
         }
     }
 
-    fn jsonl_contains(stem: &str, expected: &str) {
+    fn json_contains(stem: &str, expected: &str) {
         let output_dir = PathBuf::from("./tmp/disk_cli");
-        let mut jsonl = String::new();
+        let mut json = String::new();
 
         for entry in fs::read_dir(&output_dir).unwrap() {
             let file = entry.unwrap().path();
             let filename = file.file_name().unwrap().to_string_lossy();
-            if filename.starts_with(stem) && filename.ends_with(".jsonl") {
-                jsonl.push_str(&fs::read_to_string(&file).unwrap());
+            if filename.starts_with(stem) && filename.ends_with(".json") {
+                json.push_str(&fs::read_to_string(&file).unwrap());
             }
         }
 
-        assert!(jsonl.contains(expected), "{stem} missing {expected}");
+        assert!(json.contains(expected), "{stem} missing {expected}");
     }
 
     #[test]
@@ -147,9 +151,9 @@ mod tests {
             run_disk(command, output());
         }
 
-        jsonl_contains("disk_info_", "Partition0");
-        jsonl_contains("disk_boot_", "\"table\":\"none\"");
-        jsonl_contains("disk_filesystem_ntfs_", "\"volume_name\":\"test\"");
+        json_contains("disk_info_", "Partition0");
+        json_contains("disk_boot_", "\"table\":\"none\"");
+        json_contains("disk_filesystem_ntfs_", "\"volume_name\":\"test\"");
     }
 
     #[test]
