@@ -47,7 +47,7 @@ mod tests {
 
     fn test_image() -> PathBuf {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("../forensics/tests/test_data/filesystems/ntfs/test.raw");
+        path.push("forensics/tests/test_data/filesystems/ntfs/test.raw");
         path
     }
 

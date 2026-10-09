@@ -63,7 +63,7 @@ pub(crate) fn filesystem_info(source: &str, manager: &mut OutputManager) -> Disk
     }
 
     let mut records = serialize_records_to_stream(rows)?;
-    manager.write_output("disk_filesystem_ntfs", &mut records)?;
+    manager.write_artifact("disk_filesystem_ntfs", &"", &mut records)?;
 
     Ok(())
 }

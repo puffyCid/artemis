@@ -11,7 +11,7 @@ use crate::{
     },
     disks::{
         error::DiskResult,
-        partition::{disk_format, table_name},
+        partition::{boot_type, disk_format},
     },
     output::{manager::OutputManager, record::serialize_records_to_stream},
 };
@@ -24,8 +24,8 @@ struct DiskBoot {
     source: String,
     /// Partition ID name
     partition_id: String,
-    /// Partition table type such as MBR
-    table: String,
+    /// Partition boot type such as MBR
+    boot_type: String,
     /// MBR disk ID
     disk_id: Option<u32>,
     /// MBR active flag
@@ -82,7 +82,7 @@ pub(crate) fn boot_info(source: &str, manager: &mut OutputManager) -> DiskResult
         DiskSource::open(&AccessorConfig::default(), format, image.as_path())?.inspect()?;
 
     let table_kind = inspect.layout.table.clone();
-    let table = table_name(&table_kind);
+    let boot = boot_type(&table_kind);
 
     let rows = inspect
         .partitions
@@ -92,7 +92,7 @@ pub(crate) fn boot_info(source: &str, manager: &mut OutputManager) -> DiskResult
             DiskBoot {
                 source: source.to_string(),
                 partition_id: partition.partition.id,
-                table: table.to_string(),
+                boot_type: boot.to_string(),
                 disk_id: columns.disk_id,
                 bootable: columns.bootable,
                 partition_type: columns.partition_type,
@@ -107,7 +107,7 @@ pub(crate) fn boot_info(source: &str, manager: &mut OutputManager) -> DiskResult
         .collect::<Vec<_>>();
 
     let mut records = serialize_records_to_stream(rows)?;
-    manager.write_output("disk_boot", &mut records)?;
+    manager.write_artifact("disk_boot", &"", &mut records)?;
 
     Ok(())
 }

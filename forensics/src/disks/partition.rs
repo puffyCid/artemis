@@ -58,7 +58,7 @@ pub(crate) fn partition_info(source: &str, manager: &mut OutputManager) -> DiskR
         DiskSource::open(&AccessorConfig::default(), format, image.as_path())?.inspect()?;
 
     let partition_count = inspect.partitions.len() as u64;
-    let table = table_name(&inspect.layout.table);
+    let boot = boot_type(&inspect.layout.table);
     let format = inspect.format.as_str().to_string();
 
     let rows = inspect
@@ -68,7 +68,7 @@ pub(crate) fn partition_info(source: &str, manager: &mut OutputManager) -> DiskR
             source: source.to_string(),
             format: format.clone(),
             sector_size: inspect.layout.logical_sector_size,
-            table: table.to_string(),
+            table: boot.to_string(),
             partition_count,
             image_size: inspect.layout.image_size,
             partition_id: partition.partition.id,
@@ -82,13 +82,13 @@ pub(crate) fn partition_info(source: &str, manager: &mut OutputManager) -> DiskR
         .collect::<Vec<_>>();
 
     let mut records = serialize_records_to_stream(rows)?;
-    manager.write_output("disk_info", &mut records)?;
+    manager.write_artifact("disk_info", &"", &mut records)?;
 
     Ok(())
 }
 
 /// Partition table kind as a stable output string
-pub(super) fn table_name(table: &PartitionTableKind) -> &'static str {
+pub(super) fn boot_type(table: &PartitionTableKind) -> &'static str {
     match table {
         PartitionTableKind::Mbr { .. } => "mbr",
         PartitionTableKind::Gpt { .. } => "gpt",
