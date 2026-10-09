@@ -1,4 +1,5 @@
 use crate::accessor::{
+    disk::format::{DiskFormat, disk_display_path},
     entry::locator::{DirLocator, FileLocator},
     io::reader::{directory_from_display, extension_from_filename, filename_from_display},
     location::scheme::{Scheme, strip_scheme},
@@ -83,6 +84,17 @@ impl FileHandle {
             FileLocator::Zip { archive, entry, .. } => {
                 format!("{}!{entry}", archive.display())
             }
+            FileLocator::Disk {
+                partition_id,
+                filesystem_path,
+                ..
+            } => {
+                if filesystem_path.is_empty() {
+                    partition_id.clone()
+                } else {
+                    filesystem_path.clone()
+                }
+            }
         }
     }
 
@@ -110,6 +122,13 @@ impl FileHandle {
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
             }
+            FileLocator::Disk {
+                image,
+                format,
+                partition_id,
+                filesystem_path,
+                ..
+            } => disk_display_path(image, *format, partition_id, filesystem_path),
         }
     }
 
@@ -119,6 +138,9 @@ impl FileHandle {
             FileLocator::Host { .. } => Scheme::Host,
             FileLocator::Ntfs { .. } => Scheme::Ntfs,
             FileLocator::Zip { .. } => Scheme::Zip,
+            FileLocator::Disk { format, .. } => match format {
+                DiskFormat::Raw => Scheme::Raw,
+            },
         }
     }
 }
@@ -155,6 +177,13 @@ impl DirHandle {
                     format!("zip:{}!{prefix}", archive.display())
                 }
             }
+            DirLocator::Disk {
+                image,
+                format,
+                partition_id,
+                filesystem_path,
+                ..
+            } => disk_display_path(image, *format, partition_id, filesystem_path),
         }
     }
 
@@ -172,6 +201,17 @@ impl DirHandle {
                     archive.display().to_string()
                 } else {
                     format!("{}!{prefix}", archive.display())
+                }
+            }
+            DirLocator::Disk {
+                partition_id,
+                filesystem_path,
+                ..
+            } => {
+                if filesystem_path.is_empty() {
+                    partition_id.clone()
+                } else {
+                    filesystem_path.clone()
                 }
             }
         }
@@ -197,6 +237,9 @@ impl DirHandle {
             DirLocator::Host { .. } => Scheme::Host,
             DirLocator::Ntfs { .. } => Scheme::Ntfs,
             DirLocator::Zip { .. } => Scheme::Zip,
+            DirLocator::Disk { format, .. } => match format {
+                DiskFormat::Raw => Scheme::Raw,
+            },
         }
     }
 }
@@ -298,18 +341,25 @@ impl DirEntry {
     }
 }
 
+/// Data return when we stat a file
 #[derive(Debug)]
 pub(crate) struct EntryStat {
+    /// Metadata associated with file
     pub(crate) meta: EntryMeta,
+    /// Four timestamps associated with the file
     pub(crate) times: Timestamp,
 }
 
 /// Timestamps returned from the `Accessor`
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Timestamp {
+    /// Entry created timestamp
     pub(crate) created: String,
+    /// Entry modified timestamp
     pub(crate) modified: String,
+    /// Entry accessed timestamp
     pub(crate) accessed: String,
+    /// Entry changed timestamp
     pub(crate) changed: String,
 }
 

@@ -36,6 +36,7 @@ impl Location {
                         parse_schemed_location(input, None)
                     }
                 }
+                Scheme::Raw => parse_disk_location(input),
             };
         }
 
@@ -91,7 +92,7 @@ impl Location {
     pub(crate) fn split_glob_pattern(input: &str) -> AccessorResult<(Self, String)> {
         // Check for disk images or container files
         // 'zip:test.zip!*' or in future 'dd:image.raw!/users/*/*.txt'
-        if matches!(location_scheme(input), Some(Scheme::Zip))
+        if matches!(location_scheme(input), Some(Scheme::Zip | Scheme::Raw))
             && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
@@ -165,7 +166,7 @@ impl Location {
     }
 }
 
-/// Parse Scheme prefix into a `Location` structure
+/// Parse `Scheme` prefix into a `Location` structure
 fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> AccessorResult<Location> {
     let (scheme, remainder) = split_scheme_prefix(source_part).ok_or_else(|| {
         AccessorError::location(
@@ -188,6 +189,37 @@ fn parse_schemed_location(source_part: &str, inner_part: Option<&str>) -> Access
     })
 }
 
+/// Parse support disk image `Scheme` into a `Location` structure
+///
+/// The input `raw:/path/to/evidence.raw!Partition0:/Windows/System32/test.txt`
+///
+/// Returns `Scheme::Raw`, source path of `/path/to/evidence.raw`, and inner
+/// path `Partition0:/Windows/System32/test.txt`
+fn parse_disk_location(input: &str) -> AccessorResult<Location> {
+    let (source_part, inner_part) = match input.split_once('!') {
+        Some((source_part, inner_part)) => (source_part, Some(inner_part)),
+        None => (input, None),
+    };
+
+    let mut location = parse_schemed_location(source_part, None)?;
+    if let Some(inner_part) = inner_part {
+        location.inner_path = disk_inner_path(inner_part)?;
+    }
+
+    Ok(location)
+}
+
+/// Return inner path of the disk image
+fn disk_inner_path(value: &str) -> AccessorResult<InnerPath> {
+    let trimmed = value.trim_start_matches(['/', '\\']);
+
+    if trimmed.is_empty() {
+        return Ok(InnerPath::empty());
+    }
+
+    Ok(InnerPath::new(PathBuf::from(trimmed)))
+}
+
 /// Determine the `SourcePath` based on `Scheme` and remaining path
 fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<SourcePath>> {
     match scheme {
@@ -206,6 +238,16 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
                     "zip archive paths must be absolute host paths",
                 ));
             }
+            Ok(Some(SourcePath::new(PathBuf::from(remainder))))
+        }
+        Scheme::Raw => {
+            if remainder.is_empty() || !is_absolute_host_path(remainder) {
+                return Err(AccessorError::location(
+                    remainder,
+                    "Raw image paths must be absolute",
+                ));
+            }
+
             Ok(Some(SourcePath::new(PathBuf::from(remainder))))
         }
     }
@@ -257,9 +299,7 @@ fn parse_raw_source(remainder: &str, raw: RawFileSystem) -> AccessorResult<Optio
     Ok(Some(SourcePath::new(PathBuf::from(format!("{drive}:")))))
 }
 
-/// Identify the inner path of a `Scheme`
-///
-/// Example: `zip:data.zip!./home/test.txt` returns `/home/test.txt` for `InnerPath`
+/// Attempt to extract the inner path of filesystem `Scheme`
 fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath> {
     match scheme {
         Scheme::Host => {
@@ -278,6 +318,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
                     "ntfs location requires a path",
                 ));
             }
+
             if is_relative_host_path(remainder) {
                 return Err(AccessorError::location(
                     remainder,
@@ -286,7 +327,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
-        Scheme::Zip => Ok(InnerPath::empty()),
+        Scheme::Zip | Scheme::Raw => Ok(InnerPath::empty()),
     }
 }
 
@@ -611,6 +652,7 @@ mod tests {
             "ntfs:foo",
             "zip:data.zip",
             "zip:data.zip!entry.txt",
+            "raw:image.raw",
         ] {
             let result = Location::parse(test).unwrap();
 
@@ -639,6 +681,49 @@ mod tests {
     fn test_parse_source_zip_relative_archive_is_error() {
         let err = Location::parse_source("zip:file.zip").unwrap_err();
 
+        assert!(matches!(
+            err,
+            AccessorError::Location { reason, .. } if reason.contains("absolute")
+        ));
+    }
+
+    #[test]
+    fn test_location_raw_image_only() {
+        let result = Location::parse("raw:/tmp/image.raw").unwrap();
+        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.source.unwrap().display(), "/tmp/image.raw");
+        assert!(result.inner_path.is_empty());
+    }
+
+    #[test]
+    fn test_location_raw_partition_path() {
+        let result = Location::parse("raw:/tmp/image.raw!Partition0:hello\\file.txt").unwrap();
+        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.source.unwrap().display(), "/tmp/image.raw");
+        assert_eq!(result.inner_path.display(), "Partition0:hello\\file.txt");
+    }
+
+    #[test]
+    fn test_glob_raw_partition_directory() {
+        let (loc, pattern) =
+            Location::split_glob_pattern("raw:/tmp/image.raw!hello/*.txt").unwrap();
+        assert_eq!(pattern, "*.txt");
+        assert_eq!(loc.scheme, Scheme::Raw);
+        assert_eq!(loc.source.unwrap().display(), "/tmp/image.raw");
+        assert_eq!(loc.inner_path.display(), "hello");
+    }
+
+    #[test]
+    fn test_parse_source_raw_absolute() {
+        let result = Location::parse_source("raw:/tmp/image.raw").unwrap();
+        assert_eq!(result.scheme, Scheme::Raw);
+        assert_eq!(result.source.unwrap().display(), "/tmp/image.raw");
+        assert!(result.inner_path.is_empty());
+    }
+
+    #[test]
+    fn test_parse_source_raw_relative_is_error() {
+        let err = Location::parse_source("raw:image.raw").unwrap_err();
         assert!(matches!(
             err,
             AccessorError::Location { reason, .. } if reason.contains("absolute")

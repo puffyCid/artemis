@@ -64,6 +64,12 @@ pub(crate) fn get_filelist(
                 error!("ZIP filelisting failed: {err:?}");
                 FileError::Filelisting
             }),
+        SourceId::Disk { .. } => accessor
+            .source_walk_disk(&source, options, manager, &rule)
+            .map_err(|err| {
+                error!("Disk filelisting failed: {err:?}");
+                FileError::Filelisting
+            }),
     }
 }
 
@@ -118,6 +124,22 @@ mod tests {
         };
 
         let mut output = output_options("zip_root", "./tmp", false);
+
+        get_filelist(&options, &mut output).unwrap();
+    }
+
+    #[test]
+    fn test_get_filelist_disk_raw() {
+        let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        dir.push("tests/test_data/filesystems/ntfs/test.raw");
+
+        let options = FileOptions {
+            start_path: String::from("/"),
+            source: format!("raw:{}", dir.to_str().unwrap()),
+            ..Default::default()
+        };
+
+        let mut output = output_options("raw_oot", "./tmp", false);
 
         get_filelist(&options, &mut output).unwrap();
     }

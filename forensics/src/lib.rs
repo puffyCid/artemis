@@ -72,6 +72,7 @@
 mod accessor;
 pub mod artifacts;
 pub mod core;
+pub mod disks;
 mod error;
 mod filesystem;
 mod output;

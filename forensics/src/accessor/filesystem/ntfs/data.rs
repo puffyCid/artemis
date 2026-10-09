@@ -9,8 +9,8 @@ use crate::{
             attributes::read_named_data,
             volume::NtfsVolume,
             walk::{
-                get_file_size, list_children, list_children_handle, ntfs_err, open_by_ref,
-                resolve_entry, resolve_file, walk_ntfs,
+                NtfsWalk, PathLabel, get_file_size, list_children, list_children_handle, ntfs_err,
+                open_by_ref, resolve_entry, resolve_file, walk_ntfs,
             },
             wof::{decompress_wof, is_wof_file},
         },
@@ -261,18 +261,41 @@ impl<T: Read + Seek + Send + 'static> NtfsFs<T> {
         inner: &InnerPath,
         options: &FileOptions,
         manager: &mut OutputManager,
-        rule: &str,
+        yara_rule: &str,
         evidence: &str,
     ) -> AccessorResult<()> {
-        walk_ntfs(
-            &self.volume,
-            self.drive,
-            inner,
+        let walk = NtfsWalk {
             options,
             manager,
-            rule,
+            yara_rule,
             evidence,
-        )
+            paths: PathLabel::drive(self.drive),
+        };
+
+        walk_ntfs(&self.volume, self.drive, inner, walk)
+    }
+
+    /// Walk the NTFS filesystem, using `PathLabel` for the paths written on each record
+    ///
+    /// Used when walking disk images
+    pub(crate) fn walk_labeled(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        yara_rule: &str,
+        evidence: &str,
+        paths: PathLabel,
+    ) -> AccessorResult<()> {
+        let walk = NtfsWalk {
+            options,
+            manager,
+            yara_rule,
+            evidence,
+            paths,
+        };
+
+        walk_ntfs(&self.volume, self.drive, inner, walk)
     }
 }
 
@@ -796,19 +819,33 @@ mod tests {
             volume::NtfsVolume,
             walk::list_children,
         },
+        io::partition::PartitionReader,
         location::path::InnerPath,
     };
     use common::files::EntryKind;
     use std::{
-        io::{Read, Seek, SeekFrom},
+        fs::File,
+        io::{BufReader, Read, Seek, SeekFrom},
         path::PathBuf,
     };
 
-    fn test_fs() -> NtfsFs<std::io::BufReader<std::fs::File>> {
+    fn test_fs() -> NtfsFs<PartitionReader<std::io::BufReader<std::fs::File>>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ntfs/test.raw");
-        let volume = NtfsVolume::open_image(path).unwrap();
+        let file = File::open(&path).unwrap();
+        let len = file.metadata().unwrap().len();
+        let volume =
+            NtfsVolume::open_partition(BufReader::new(file), 0, len, "logical image").unwrap();
         NtfsFs::new(volume, 'C')
+    }
+
+    fn test_volume() -> NtfsVolume<PartitionReader<BufReader<File>>> {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ntfs/test.raw");
+        let file = File::open(&path).unwrap();
+        let len = file.metadata().unwrap().len();
+
+        NtfsVolume::open_partition(BufReader::new(file), 0, len, "logical image").unwrap()
     }
 
     fn hello_path() -> InnerPath {
@@ -831,10 +868,7 @@ mod tests {
 
     #[test]
     fn test_ntfs_reader() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/filesystems/ntfs/test.raw");
-
-        let volume = NtfsVolume::open_image(test_location).unwrap();
+        let volume = test_volume();
         let result = list_children(&volume, 'C', &"", &"").unwrap();
         let reader = test_fs();
 
@@ -961,9 +995,7 @@ mod tests {
 
     #[test]
     fn test_read_handle_matches_read_file() {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("tests/test_data/filesystems/ntfs/test.raw");
-        let volume = NtfsVolume::open_image(path).unwrap();
+        let volume = test_volume();
         let entries = list_children(&volume, 'C', "", "").unwrap();
         let main = entries
             .iter()
@@ -980,9 +1012,7 @@ mod tests {
 
     #[test]
     fn test_reader_handle_matches_reader() {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("tests/test_data/filesystems/ntfs/test.raw");
-        let volume = NtfsVolume::open_image(path).unwrap();
+        let volume = test_volume();
         let entries = list_children(&volume, 'C', "", "hello").unwrap();
         let hello = entries
             .iter()
@@ -1098,9 +1128,7 @@ mod tests {
 
     #[test]
     fn test_list_and_stream_smoke() {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("tests/test_data/filesystems/ntfs/test.raw");
-        let volume = NtfsVolume::open_image(path).unwrap();
+        let volume = test_volume();
         let entries = list_children(&volume, 'C', "", "").unwrap();
         let fs = NtfsFs::new(volume, 'C');
 

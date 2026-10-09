@@ -23,6 +23,7 @@ pub(crate) fn files_output_name(source: &str) -> &'static str {
         Ok(Scheme::Ntfs) => "files_ntfs",
         Ok(Scheme::Zip) => "files_zip",
         Ok(Scheme::Host) => "files_host",
+        Ok(Scheme::Raw) => "files_raw",
         Err(_err) => "files",
     }
 }
@@ -91,6 +92,7 @@ mod tests {
         assert_eq!(files_output_name("host:"), "files_host");
         assert_eq!(files_output_name(""), "files");
         assert_eq!(files_output_name("not-a-source"), "files");
+        assert_eq!(files_output_name("raw:/tmp/image.raw"), "files_raw");
     }
 
     #[test]

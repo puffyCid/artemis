@@ -606,6 +606,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 artifacts.artifact_name
             ),
         }
+
         if collector
             .marker
             .as_ref()

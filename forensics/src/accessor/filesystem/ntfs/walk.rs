@@ -57,54 +57,119 @@ use tracing::{error, info, warn};
 /// Max size of file we read into memory if we need to parse PE or scan with Yara
 const YARA_MAX_SIZE: u64 = 50 * 1024 * 1024;
 
+/// Paths for a single filelisting record
+pub(crate) struct LabeledPath {
+    /// Full path to the entry
+    pub(crate) full_path: String,
+    /// Full path to the entry
+    /// With the accessor prefix
+    pub(crate) display_path: String,
+    /// Parent folder of the entry
+    pub(crate) directory: String,
+    /// Drive associated with the entry
+    pub(crate) drive: String,
+}
+
+/// Turn a NTFS path into `LabeledPath`
+pub(crate) struct PathLabel {
+    /// Return a `LabeledPath` from a string
+    render: Box<dyn Fn(&str) -> LabeledPath>,
+}
+
+impl PathLabel {
+    /// Return a `LabeledPath` from a driver letter
+    pub(crate) fn drive(drive: char) -> Self {
+        Self::custom(move |ntfs_display| {
+            let scheme_path = format!("ntfs:{ntfs_display}");
+
+            LabeledPath {
+                full_path: ntfs_display.to_string(),
+                display_path: scheme_path.clone(),
+                directory: directory_from_display(&scheme_path),
+                drive: format!("{drive}:"),
+            }
+        })
+    }
+
+    /// Return a `PathLabel` from a custom input string
+    pub(crate) fn custom(render: impl Fn(&str) -> LabeledPath + 'static) -> Self {
+        Self {
+            render: Box::new(render),
+        }
+    }
+
+    /// Render the input as a `LabeledPath`
+    pub(crate) fn render(&self, ntfs_display: &str) -> LabeledPath {
+        // Call the function for the `PathLabel` render field
+        // <https://doc.rust-lang.org/reference/expressions/field-expr.html#field-access-expressions>
+        (self.render)(ntfs_display)
+    }
+}
+
+/// Requirements for walking the NTFS filesystem
+pub(crate) struct NtfsWalk<'a> {
+    /// Filelisting options
+    pub(crate) options: &'a FileOptions,
+    /// How to output the results
+    pub(crate) manager: &'a mut OutputManager,
+    /// Yara Rule to use if we are scanning with Yara-X
+    pub(crate) yara_rule: &'a str,
+    /// Source of the filelisting
+    pub(crate) evidence: &'a str,
+    /// How to construct NTFS paths for each record
+    pub(crate) paths: PathLabel,
+}
+
 /// Walk the NTFS filesystem and output results
 pub(crate) fn walk_ntfs<T: Read + Seek + Send>(
     volume: &NtfsVolume<T>,
     drive: char,
     inner: &InnerPath,
-    options: &FileOptions,
-    manager: &mut OutputManager,
-    yara_rule: &str,
-    evidence: &str,
+    walk: NtfsWalk<'_>,
 ) -> AccessorResult<()> {
     let (inner_path, _) = inner_to_ntfs_path(inner, drive);
     let parent_display = display_ntfs_path(drive, &inner_path);
-    let exclude: HashSet<String> = options
+    let exclude: HashSet<String> = walk
+        .options
         .exclude_directories
         .clone()
         .unwrap_or_default()
         .into_iter()
         .collect();
 
-    let path_filter = create_regex(options.path_regex.as_deref().unwrap_or(""))
-        .map_err(|_err| AccessorError::location(&options.start_path, "invalid path_regex"))?;
-    let file_filter = create_regex(options.filename_regex.as_deref().unwrap_or(""))
-        .map_err(|_err| AccessorError::location(&options.start_path, "invalid filename_regex"))?;
+    let path_filter = create_regex(walk.options.path_regex.as_deref().unwrap_or(""))
+        .map_err(|_err| AccessorError::location(&walk.options.start_path, "invalid path_regex"))?;
+    let file_filter =
+        create_regex(walk.options.filename_regex.as_deref().unwrap_or("")).map_err(|_err| {
+            AccessorError::location(&walk.options.start_path, "invalid filename_regex")
+        })?;
 
-    let max_list = if options.metadata || manager.config.format == OutputFormat::Timeline {
+    let max_list = if walk.options.metadata || walk.manager.config.format == OutputFormat::Timeline
+    {
         1000
     } else {
         10000
     };
 
     let mut listing = NtfsListing {
-        options,
-        manager,
-        yara_rule,
-        evidence,
+        options: walk.options,
+        manager: walk.manager,
+        yara_rule: walk.yara_rule,
+        evidence: walk.evidence,
         path_filter,
         file_filter,
         hashes: Hashes {
-            md5: options.md5,
-            sha1: options.sha1,
-            sha256: options.sha256,
+            md5: walk.options.md5,
+            sha1: walk.options.sha1,
+            sha256: walk.options.sha256,
         },
         exclude: &exclude,
         max_list,
         batch: Vec::new(),
         drive,
         depth: 1,
-        max_depth: options.depth.unwrap_or(1),
+        max_depth: walk.options.depth.unwrap_or(1),
+        paths: walk.paths,
     };
 
     volume.with_reader(|ntfs, reader| {
@@ -163,6 +228,8 @@ struct NtfsListing<'a> {
     depth: u32,
     /// The max depth we are descending
     max_depth: u32,
+    /// How NTFS paths are written for each entry
+    paths: PathLabel,
 }
 
 /// Recursively walk the the NTFS filesystem
@@ -214,7 +281,8 @@ fn walk_ntfs_dir<R: Read + Seek + Send>(
             format!("{parent_display}\\{name}",)
         };
 
-        if listing.exclude.contains(&display_path) {
+        let labeled = listing.paths.render(&display_path);
+        if listing.exclude.contains(&display_path) || listing.exclude.contains(&labeled.full_path) {
             continue;
         }
 
@@ -325,10 +393,10 @@ fn fill_ntfs_entry<R: Read + Seek>(
         }
     }
 
-    let scheme_path = format!("ntfs:{display_path}");
+    let labeled = listing.paths.render(display_path);
     let mut info = FileNtfsInfo {
-        full_path: display_path.to_string(),
-        directory: directory_from_display(&scheme_path),
+        full_path: labeled.full_path,
+        directory: labeled.directory,
         filename: name.to_string(),
         extension: extension_from_filename(name),
         created: filetime_to_iso(standard.creation_time().nt_timestamp()),
@@ -343,7 +411,7 @@ fn fill_ntfs_entry<R: Read + Seek>(
         size,
         kind,
         depth: listing.depth as usize,
-        display_path: scheme_path,
+        display_path: labeled.display_path,
         compressed_size,
         compression_type,
         inode: file.file_record_number(),
@@ -357,7 +425,7 @@ fn fill_ntfs_entry<R: Read + Seek>(
         sid,
         user_sid,
         group_sid,
-        drive: format!("{}:", listing.drive),
+        drive: labeled.drive,
         ..Default::default()
     };
 
@@ -391,7 +459,7 @@ fn append_indx_slack<R: Read + Seek>(
     parent: &str,
     listing: &mut NtfsListing<'_>,
 ) {
-    for info in recover_indx_slack(
+    for mut info in recover_indx_slack(
         reader,
         dir,
         parent,
@@ -399,9 +467,16 @@ fn append_indx_slack<R: Read + Seek>(
         listing.drive,
         listing.evidence,
     ) {
-        if listing.exclude.contains(&info.full_path) {
+        let labeled = listing.paths.render(&info.full_path);
+        if listing.exclude.contains(&info.full_path) || listing.exclude.contains(&labeled.full_path)
+        {
             continue;
         }
+
+        info.full_path = labeled.full_path;
+        info.display_path = labeled.display_path;
+        info.directory = labeled.directory;
+        info.drive = labeled.drive;
 
         if listing.options.path_regex.is_some()
             && !regex_check(&listing.path_filter, &info.full_path)
@@ -912,7 +987,11 @@ mod tests {
     use super::walk_ntfs;
     use crate::{
         accessor::{
-            filesystem::ntfs::{volume::NtfsVolume, walk::list_children},
+            filesystem::ntfs::{
+                volume::NtfsVolume,
+                walk::{NtfsWalk, PathLabel, list_children},
+            },
+            io::partition::PartitionReader,
             location::path::InnerPath,
         },
         filesystem::files::hash_file_data,
@@ -925,14 +1004,18 @@ mod tests {
     use common::files::{EntryKind, Hashes};
     use serde_json::Value;
     use std::{
-        fs::{read_dir, read_to_string},
+        fs::{File, read_dir, read_to_string},
+        io::BufReader,
         path::PathBuf,
     };
 
-    fn test_image() -> PathBuf {
+    fn test_volume() -> NtfsVolume<PartitionReader<BufReader<File>>> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ntfs/test.raw");
-        path
+        let file = File::open(&path).unwrap();
+        let len = file.metadata().unwrap().len();
+
+        NtfsVolume::open_partition(BufReader::new(file), 0, len, "logical image").unwrap()
     }
 
     fn output_manager(name: &str) -> OutputManager {
@@ -958,10 +1041,17 @@ mod tests {
     }
 
     fn walk_test_image(name: &str, options: &FileOptions) -> (OutputManager, Vec<Value>) {
-        let volume = NtfsVolume::open_image(test_image()).unwrap();
+        let volume = test_volume();
         let inner = InnerPath::empty();
         let mut manager = output_manager(name);
-        walk_ntfs(&volume, 'C', &inner, options, &mut manager, "", "ntfs:C:").unwrap();
+        let walk = NtfsWalk {
+            options,
+            manager: &mut manager,
+            yara_rule: "",
+            evidence: "ntfs:C:",
+            paths: PathLabel::drive('C'),
+        };
+        walk_ntfs(&volume, 'C', &inner, walk).unwrap();
 
         let output_dir = PathBuf::from("./tmp").join(name);
         let mut rows = Vec::new();
@@ -987,7 +1077,7 @@ mod tests {
 
     #[test]
     fn test_ntfs_volume() {
-        let volume = NtfsVolume::open_image(test_image()).unwrap();
+        let volume = test_volume();
         let result = list_children(&volume, 'C', &"", &"").unwrap();
         assert_eq!(result.len(), 15);
 
@@ -1124,6 +1214,13 @@ mod tests {
         let mut manager = output_manager("live_ntfs");
 
         let volume = NtfsVolume::open_live_drive(drive).unwrap();
-        walk_ntfs(&volume, drive, &inner, &options, &mut manager, "", "ntfs:c").unwrap();
+        let walk = NtfsWalk {
+            options: &options,
+            manager: &mut manager,
+            yara_rule: "",
+            evidence: "ntfs:c",
+            paths: PathLabel::drive(drive),
+        };
+        walk_ntfs(&volume, drive, &inner, walk).unwrap();
     }
 }

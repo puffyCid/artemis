@@ -18,7 +18,7 @@ use crate::{
 };
 use common::files::EntryKind;
 use common::windows::Prefetch;
-use tracing::error;
+use tracing::{error, info};
 
 /// Parse `Prefetch` based on `PrefetchOptions`
 pub(crate) fn grab_prefetch(options: &PrefetchOptions) -> Result<Vec<Prefetch>, PrefetchError> {
@@ -64,6 +64,8 @@ fn read_directory(path: &str) -> Result<Vec<Prefetch>, PrefetchError> {
         let Some(pf_file) = pf_path.handle.as_file() else {
             continue;
         };
+
+        info!("Reading prefetch file: {}", pf_file.display_path());
 
         let pf_value = match read_prefetch(&mut accessor, pf_file) {
             Ok(results) => results,

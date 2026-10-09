@@ -14,10 +14,7 @@ use crate::{
     output::manager::OutputManager,
     structs::artifacts::os::files::FileOptions,
 };
-use std::{
-    io::{Read, Seek},
-    path::PathBuf,
-};
+use std::io::{Read, Seek};
 
 /// Use live NTFS filesystem as our source for data access
 pub(crate) struct NtfsSource {
@@ -143,16 +140,6 @@ impl NtfsSource {
         })
     }
 
-    /// Create a new `NtfsSource` instance via a ntfs disk image
-    pub(crate) fn from_image(config: &AccessorConfig, image_path: PathBuf) -> AccessorResult<Self> {
-        let volume = NtfsVolume::open_image(image_path)?;
-        Ok(Self {
-            drive: 'X',
-            max_read_size: config.max_read_size,
-            fs: Box::new(NtfsFs::new(volume, 'X')),
-        })
-    }
-
     /// Start walking the NTFS filesystem
     pub(crate) fn walk(
         &self,
@@ -221,32 +208,15 @@ fn open_ntfs_fs(drive: char) -> AccessorResult<Box<dyn NtfsFsBackend>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::{
-        config::AccessorConfig,
-        location::path::InnerPath,
-        source::{backend::SourceBackend, ntfs::NtfsSource},
-    };
-    use std::path::PathBuf;
-
-    #[test]
-    fn test_ntfs_image() {
-        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("tests/test_data/filesystems/ntfs/test.raw");
-        let config = AccessorConfig::default();
-
-        let accessor = NtfsSource::from_image(&config, path).unwrap();
-
-        let matches = accessor
-            .globfs(&InnerPath::new(PathBuf::from("hello")), "*.txt")
-            .unwrap();
-
-        assert_eq!(matches.len(), 1);
-    }
-
     #[test]
     #[cfg(target_os = "windows")]
     fn test_ntfs_read_root_dirs() {
+        use crate::accessor::source::backend::SourceBackend;
+        use crate::accessor::{
+            config::AccessorConfig, location::path::InnerPath, source::ntfs::NtfsSource,
+        };
         use common::files::EntryKind;
+        use std::path::PathBuf;
 
         let config = AccessorConfig::default();
         let source = NtfsSource::new(&config, 'C').unwrap();

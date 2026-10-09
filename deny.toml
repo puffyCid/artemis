@@ -68,6 +68,7 @@ ignore = [
     { id = "RUSTSEC-2026-0222", "reason" = "Associated with yara-x. Waiting for upstream updates" },
     { id = "RUSTSEC-2026-0269", "reason" = "Associated with yara-x. Waiting for upstream updates" },
     { id = "RUSTSEC-2026-0316", "reason" = "Associated with yara-x. Waiting for upstream updates" },
+    { id = "RUSTSEC-2026-0327", "reason" = "Associated with yara-x. Waiting for upstream updates" },
 
 ] # The lint level for security vulnerabilities
 #vulnerability = "deny"

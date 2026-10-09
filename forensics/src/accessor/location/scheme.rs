@@ -12,6 +12,8 @@ pub(crate) enum Scheme {
     Ntfs,
     /// Access the data inside a zip file
     Zip,
+    /// Raw disk image
+    Raw,
 }
 
 impl Scheme {
@@ -21,6 +23,7 @@ impl Scheme {
             Self::Host => "host",
             Self::Ntfs => "ntfs",
             Self::Zip => "zip",
+            Self::Raw => "raw",
         }
     }
 
@@ -30,6 +33,7 @@ impl Scheme {
             "host" => Ok(Self::Host),
             "ntfs" => Ok(Self::Ntfs),
             "zip" => Ok(Self::Zip),
+            "raw" => Ok(Self::Raw),
             _ => Err(AccessorError::unsupported_scheme(value)),
         }
     }
@@ -54,7 +58,7 @@ pub(crate) fn location_scheme(input: &str) -> Option<Scheme> {
 
     match scheme {
         Scheme::Host | Scheme::Ntfs => is_absolute_host_path(remainder).then_some(scheme),
-        Scheme::Zip => {
+        Scheme::Zip | Scheme::Raw => {
             let archive = remainder
                 .split_once('!')
                 .map_or(remainder, |(archive, _)| archive);
@@ -79,16 +83,19 @@ pub(crate) fn strip_scheme(location: &str) -> &str {
 /// Example: `ntfs:C:\Users\test.txt` into ('ntfs', and 'C:\Users\test.txt')
 pub(crate) fn split_scheme_prefix(input: &str) -> Option<(&str, &str)> {
     let (scheme, remainder) = input.split_once(':')?;
+
     // If we get a drive letter for Windows treat that as live system
     // Ex: 'C:\\Users\\test.txt' The scheme would be 'C'
     if scheme.is_empty() || scheme.len() == 1 {
         return None;
     }
+
     Some((scheme, remainder))
 }
 
 /// Check the input path to see if matches a supported `Scheme`
 pub(crate) fn scheme_prefix(input: &str) -> Option<Scheme> {
     let (scheme, _) = split_scheme_prefix(input)?;
+
     Scheme::parse(scheme).ok()
 }

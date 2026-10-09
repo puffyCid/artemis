@@ -1,15 +1,16 @@
-// Full credit to: https://github.com/ColinFinck/ntfs/blob/master/examples/ntfs-shell/sector_reader.rs - MIT/Apache License - 2022-11-07
+// `SectorReader` Full credit to: https://github.com/ColinFinck/ntfs/blob/master/examples/ntfs-shell/sector_reader.rs - MIT/Apache License - 2022-11-07
 
 use crate::accessor::{
     error::{AccessorError, AccessorResult},
-    filesystem::ntfs::security::read_secure,
+    filesystem::ntfs::{security::read_secure, walk::ntfs_err},
+    io::partition::PartitionReader,
 };
 use ntfs::Ntfs;
 use std::{
     collections::HashMap,
     fs::File,
     io::{self, BufReader, Read, Seek, SeekFrom},
-    path::PathBuf,
+    num::NonZeroU64,
     sync::{Mutex, MutexGuard},
 };
 
@@ -154,6 +155,31 @@ pub(crate) struct NtfsVolume<R: Read + Seek + Send> {
     reader: Mutex<R>,
 }
 
+/// NTFS volume values available without walking directories
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct NtfsDetails {
+    /// Volume label from `$VOLUME_NAME`. Empty when the volume has no label
+    pub(crate) volume_name: Option<String>,
+    /// Major NTFS version from `$VOLUME_INFORMATION`
+    pub(crate) major_version: u8,
+    /// Minor NTFS version from `$VOLUME_INFORMATION`
+    pub(crate) minor_version: u8,
+    /// Raw `$VOLUME_INFORMATION` flags
+    pub(crate) volume_flags: u16,
+    /// Bytes per sector
+    pub(crate) sector_size: u16,
+    /// Bytes per cluster
+    pub(crate) cluster_size: u32,
+    /// Bytes per MFT record
+    pub(crate) file_record_size: u32,
+    /// NTFS volume length in bytes
+    pub(crate) size: u64,
+    /// Byte offset of the MFT from the start of the partition
+    pub(crate) mft_byte_offset: u64,
+    /// NTFS volume serial number
+    pub(crate) serial_number: u64,
+}
+
 impl<R: Read + Seek + Send> NtfsVolume<R> {
     /// Create a `NtfsVolume` reader from a provided reader
     pub(crate) fn open(mut reader: R, path: impl Into<String>) -> AccessorResult<Self> {
@@ -179,6 +205,11 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
         })
     }
 
+    pub(crate) fn ntfs_details(&self) -> AccessorResult<NtfsDetails> {
+        let path = self.target_path();
+        self.with_reader(|ntfs, reader| read_ntfs_details(ntfs, reader, path))
+    }
+
     /// Return active `target_path`
     pub(super) fn target_path(&self) -> &str {
         &self.target_path
@@ -198,6 +229,7 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
         operation(&self.ntfs, &mut reader)
     }
 
+    /// Return SIDs for the NTFS filesystem
     pub(super) fn sids(&self) -> &HashMap<u32, (String, String)> {
         &self.sids
     }
@@ -208,14 +240,6 @@ impl<R: Read + Seek + Send> NtfsVolume<R> {
             path: Some(self.target_path.clone()),
             reason: format!("ntfs volume reader lock poisoned: {err:?}"),
         })
-    }
-}
-
-impl NtfsVolume<BufReader<File>> {
-    /// Open raw logical NTFS images. Example: A logical image of the C drive
-    pub(crate) fn open_image(path: PathBuf) -> AccessorResult<Self> {
-        let file = File::open(&path).map_err(|err| AccessorError::io_path(&path, err))?;
-        Self::open(BufReader::new(file), format!("ntfs:{}", path.display()))
     }
 }
 
@@ -235,6 +259,64 @@ impl NtfsVolume<BufReader<SectorReader<File>>> {
             File::open(&device_path).map_err(|err| AccessorError::io_path(&device_path, err))?;
         let sector_reader =
             SectorReader::new(file, VOLUME_SECTOR_SIZE).map_err(AccessorError::from)?;
+
         Self::open(BufReader::new(sector_reader), format!("ntfs:{drive}:"))
     }
+}
+
+impl<R: Read + Seek + Send> NtfsVolume<PartitionReader<R>> {
+    /// Open a NTFS filesystem partition
+    pub(crate) fn open_partition(
+        reader: R,
+        byte_offset: u64,
+        byte_length: u64,
+        label: impl Into<String>,
+    ) -> AccessorResult<Self> {
+        let partition = PartitionReader::new(reader, byte_offset, byte_length).map_err(|err| {
+            AccessorError::volume(format!(
+                "Failed to limit partition at byte {byte_offset} length {byte_length}: {err}"
+            ))
+        })?;
+
+        Self::open(partition, label)
+    }
+}
+
+/// Read metadata about the NTFS volume
+fn read_ntfs_details<R: Read + Seek>(
+    ntfs: &Ntfs,
+    reader: &mut R,
+    path: &str,
+) -> AccessorResult<NtfsDetails> {
+    let volume_name = match ntfs.volume_name(reader) {
+        Some(name) => {
+            let name = name.map_err(ntfs_err)?;
+            Some(name.name().to_string_lossy().clone())
+        }
+        None => None,
+    };
+
+    let info = ntfs.volume_info(reader).map_err(ntfs_err)?;
+
+    let mft_byte_offset = ntfs
+        .mft_position()
+        .value()
+        .map(NonZeroU64::get)
+        .ok_or_else(|| AccessorError::Ntfs {
+            path: Some(path.to_string()),
+            reason: String::from("NTFS MFT position is missing"),
+        })?;
+
+    Ok(NtfsDetails {
+        volume_name,
+        major_version: info.major_version(),
+        minor_version: info.minor_version(),
+        volume_flags: info.flags().bits(),
+        sector_size: ntfs.sector_size(),
+        cluster_size: ntfs.cluster_size(),
+        file_record_size: ntfs.file_record_size(),
+        size: ntfs.size(),
+        mft_byte_offset,
+        serial_number: ntfs.serial_number(),
+    })
 }
