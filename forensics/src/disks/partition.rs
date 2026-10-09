@@ -125,6 +125,7 @@ mod tests {
         output::manager::OutputManager,
         structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
+    use serde_json::Value::Null;
     use std::{fs, path::PathBuf};
 
     fn test_image() -> PathBuf {
@@ -174,7 +175,7 @@ mod tests {
         assert_eq!(record["source"], source);
         assert_eq!(record["format"], "raw");
         assert_eq!(record["sector_size"], 512);
-        assert_eq!(record["boot_type"], "none");
+        assert_eq!(record["boot_type"], Null);
         assert_eq!(record["partition_count"], 1);
 
         assert_eq!(record["image_size"].as_u64(), Some(file_size));
