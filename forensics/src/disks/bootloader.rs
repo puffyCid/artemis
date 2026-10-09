@@ -343,7 +343,7 @@ mod tests {
         let record = output_record("disk_boot_logical");
         assert_eq!(record["source"], source);
         assert_eq!(record["partition_id"], "Partition0");
-        assert_eq!(record["table"], "none");
+        assert_eq!(record["boot_type"], "none");
 
         assert_mbr_columns_empty(&record);
         assert_gpt_columns_empty(&record);
@@ -366,7 +366,7 @@ mod tests {
         let record = output_record("disk_boot_mbr");
         assert_eq!(record["source"], source);
         assert_eq!(record["partition_id"], "Partition0");
-        assert_eq!(record["table"], "mbr");
+        assert_eq!(record["boot_type"], "mbr");
 
         assert_eq!(record["disk_id"].as_u64(), Some(305419896));
         assert_eq!(record["bootable"], true);
@@ -393,7 +393,7 @@ mod tests {
 
         assert_eq!(record["source"], source);
         assert_eq!(record["partition_id"], "Partition1");
-        assert_eq!(record["table"], "gpt");
+        assert_eq!(record["boot_type"], "gpt");
         assert_eq!(record["disk_guid"], "11111111-2222-3333-4444-555555555555");
 
         assert_eq!(
