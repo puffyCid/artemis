@@ -18,7 +18,7 @@ use tracing::error;
 
 #[derive(Trace, Finalize, JsData)]
 pub(super) struct JsAccessor {
-    /// An exposed `Accessor` to the BoaJS run time
+    /// An exposed `Accessor` to the `BoaJS` run time
     ///
     /// `unsafe_ignore_trace` is used to tell the `BoaJS` garbage
     /// collector not to touch our `Accessor`.
@@ -29,13 +29,13 @@ pub(super) struct JsAccessor {
 
 #[derive(Trace, Finalize, JsData)]
 pub(super) struct JsAccessorReader {
-    /// An exposed `Accessor` to the BoaJS run time
+    /// An exposed `Accessor` to the `BoaJS` run time
     ///
     /// `unsafe_ignore_trace` is used to tell the `BoaJS` garbage
     /// collector not to touch our `Accessor`.
     /// The garbage collector cannot trace this
     #[unsafe_ignore_trace]
-    accessor: RefCell<Option<AccessorReader>>,
+    reader: RefCell<Option<AccessorReader>>,
 }
 
 /// Expose the `Accessor` as a JavaScript class that can be used to interact with filesystem
@@ -517,7 +517,7 @@ impl JsAccessor {
         };
 
         let js_accessor_reader = JsAccessorReader {
-            accessor: RefCell::new(Some(reader)),
+            reader: RefCell::new(Some(reader)),
         };
 
         let proto = context.intrinsics().constructors().object().prototype();
@@ -574,7 +574,7 @@ impl JsAccessor {
         };
 
         let js_accessor_reader = JsAccessorReader {
-            accessor: RefCell::new(Some(reader)),
+            reader: RefCell::new(Some(reader)),
         };
 
         let proto = context.intrinsics().constructors().object().prototype();
