@@ -35,7 +35,7 @@ impl SourceId {
 }
 
 /// Raw file reference to a file/directory on NTFS
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct NtfsEntryRef {
     /// NTFS File Record Number
     pub(crate) file_record_number: u64,
@@ -44,7 +44,7 @@ pub(crate) struct NtfsEntryRef {
 }
 
 /// File reference in a disk image.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum DiskEntryRef {
     /// NTFS filesystem reference
     Ntfs(NtfsEntryRef),
@@ -63,7 +63,7 @@ impl NtfsEntryRef {
 }
 
 /// Requirements to locate a file from a provided source
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum FileLocator {
     /// We just need a `PathBuf` to access a file on live OS
     Host {
@@ -104,7 +104,7 @@ pub(crate) enum FileLocator {
 }
 
 /// Requirements to locate a directory from a provided source
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum DirLocator {
     /// We just need a `PathBuf` to access a directory on live OS
     Host {

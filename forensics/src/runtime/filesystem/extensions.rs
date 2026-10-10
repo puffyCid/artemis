@@ -1,4 +1,4 @@
-use crate::runtime::filesystem::reader::JsBufReader;
+use crate::runtime::filesystem::{accessor::JsAccessor, reader::JsBufReader};
 
 use super::{
     directory::js_read_dir,
@@ -51,6 +51,7 @@ pub(crate) fn filesystem_functions(context: &mut Context) {
     );
 
     let _ = context.register_global_class::<JsBufReader>();
+    let _ = context.register_global_class::<JsAccessor>();
 }
 
 #[cfg(test)]

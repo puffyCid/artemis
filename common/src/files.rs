@@ -40,7 +40,7 @@ pub struct FileHostInfo {
 /// Support data entries we can access
 ///
 /// Right now we only support reading files or directories
-#[derive(Debug, Clone, PartialEq, Serialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Default, Deserialize)]
 pub enum EntryKind {
     /// Entry is a file
     File,
@@ -65,7 +65,7 @@ pub enum EntryKind {
 ///
 /// Windows: <https://learn.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants>
 /// Unix: Read, Write, Execute
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Attributes {
     /// Windows
     ReadOnly,
