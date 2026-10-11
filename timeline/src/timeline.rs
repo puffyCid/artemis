@@ -26,7 +26,9 @@ pub fn timeline_artifact(
     match artifact.to_ascii_lowercase().as_str() {
         "amcache" => amcache(data, start, end),
         "bits" => bits(data, start, end),
-        "files" | "files_ntfs" | "files_zip" | "files_host" => files(data, start, end),
+        "files" | "files_ntfs" | "files_zip" | "files_host" | "files_raw" => {
+            files(data, start, end)
+        }
         "journal" => journal(data, start, end),
         "registry" => registry(data, start, end),
         "processes" => processes(data, start, end),

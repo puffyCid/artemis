@@ -5,10 +5,11 @@ use crate::accessor::{
     location::scheme::{Scheme, strip_scheme},
 };
 use common::files::{Attributes, EntryKind};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Metadata returned from glob and directory listing.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct EntryMeta {
     /// `EntryKind` type
     pub(crate) kind: EntryKind,
@@ -57,7 +58,7 @@ impl EntryMeta {
 }
 
 /// Handle to a file
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct FileHandle {
     /// Location to the file entry
     pub(crate) locator: FileLocator,
@@ -146,7 +147,7 @@ impl FileHandle {
 }
 
 /// Handle to a directory
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct DirHandle {
     /// Location to the directory entry
     pub(crate) locator: DirLocator,
@@ -245,7 +246,7 @@ impl DirHandle {
 }
 
 /// Result of a glob operation
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct GlobMatch {
     /// Glob match to a file
     pub(crate) handle: ItemHandle,
@@ -263,7 +264,7 @@ impl GlobMatch {
 /// Handle returned for one child of a directory listing
 ///
 /// Files use `FileHandle`. Directories use `DirHandle`
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) enum ItemHandle {
     /// A file handle to read data
     File(FileHandle),
@@ -302,7 +303,7 @@ impl ItemHandle {
 }
 
 /// Directory value from a directory listing
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct DirEntry {
     /// Name of entry
     pub(crate) name: String,
@@ -342,7 +343,7 @@ impl DirEntry {
 }
 
 /// Data return when we stat a file
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EntryStat {
     /// Metadata associated with file
     pub(crate) meta: EntryMeta,
@@ -351,7 +352,7 @@ pub(crate) struct EntryStat {
 }
 
 /// Timestamps returned from the `Accessor`
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Timestamp {
     /// Entry created timestamp
     pub(crate) created: String,

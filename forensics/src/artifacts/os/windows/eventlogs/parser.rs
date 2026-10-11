@@ -15,7 +15,11 @@ use super::{
     strings::{StringResource, get_resources},
 };
 use crate::{
-    accessor::{access::Accessor, entry::handle::GlobMatch, io::reader::AccessorReader},
+    accessor::{
+        access::Accessor,
+        entry::handle::{FileHandle, GlobMatch},
+        io::reader::AccessorReader,
+    },
     output::{
         manager::OutputManager,
         record::{
@@ -65,7 +69,7 @@ pub(crate) fn grab_eventlogs(
 ///
 /// Used by `BoaJS` to reading `EventLogs` in chunk
 pub(crate) fn parse_eventlogs(
-    path: &str,
+    handle: &FileHandle,
     offset: usize,
     limit: usize,
     include_templates: bool,
@@ -94,11 +98,25 @@ pub(crate) fn parse_eventlogs(
         None
     };
 
-    let evt_parser_results = EvtxParser::from_path(path);
+    let mut reader = match Accessor::with_defaults().open_reader_handle(handle) {
+        Ok(result) => result,
+        Err(err) => {
+            error!(
+                "Failed to create reader for {}: {err:?}",
+                handle.display_path()
+            );
+            return Err(EventLogsError::Parser);
+        }
+    };
+
+    let evt_parser_results = EvtxParser::from_read_seek(&mut reader);
     let mut evt_parser = match evt_parser_results {
         Ok(result) => result,
         Err(err) => {
-            error!("Failed to parse event log {path}, error: {err:?}");
+            error!(
+                "Failed to parse event log {}, error: {err:?}",
+                reader.location.display_path()
+            );
             return Err(EventLogsError::Parser);
         }
     };
@@ -115,12 +133,15 @@ pub(crate) fn parse_eventlogs(
                     event_record_id: data.event_record_id,
                     timestamp: data.timestamp.to_string(),
                     data: data.data,
-                    evidence: path.to_string(),
+                    evidence: handle.display_path(),
                 };
                 eventlog_records.push(event_record);
             }
             Err(err) => {
-                error!("Issue parsing record from {path}, error: {err:?}");
+                error!(
+                    "Issue parsing record from {}, error: {err:?}",
+                    handle.display_path()
+                );
                 continue;
             }
         }
@@ -133,13 +154,18 @@ pub(crate) fn parse_eventlogs(
         let mut all_messages = Vec::new();
         let mut raw_messages = Vec::new();
         for record in eventlog_records {
-            let message = if let Some(result) =
-                add_message_strings(&record, resource, &param_regex, &value_regex, path)
-            {
+            let message = if let Some(result) = add_message_strings(
+                &record,
+                resource,
+                &param_regex,
+                &value_regex,
+                &handle.display_path(),
+            ) {
                 result
             } else {
                 warn!(
-                    "Could not get template strings for file {path} record: {}. Using raw data",
+                    "Could not get template strings for file {} record: {}. Using raw data",
+                    reader.location.display_path(),
                     record.event_record_id
                 );
                 raw_messages.push(record);
