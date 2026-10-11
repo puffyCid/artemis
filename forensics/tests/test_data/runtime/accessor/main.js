@@ -428,6 +428,13 @@ function main() {
             continue;
           }
           console.log(`Meta for ${file.meta.display_path} is ${JSON.stringify(meta)}`);
+
+          const test = accessor.stat(file.meta.display_path);
+          if (test instanceof FileError) {
+            console.error(test);
+            continue;
+          }
+          console.log(`Meta for ${file.meta.display_path} is ${JSON.stringify(test)}`);
         }
       }
     }
@@ -468,6 +475,13 @@ function main() {
             continue;
           }
           console.log(`Source Meta for ${file.meta.display_path} is ${JSON.stringify(meta)}`);
+        } else if (file.meta.kind === "Directory") {
+          const meta = accessor.sourceStatDirHandle(source, file.handle);
+          if (meta instanceof FileError) {
+            console.error(meta);
+            continue;
+          }
+          console.log(`Source Dir Meta for ${file.meta.display_path} is ${JSON.stringify(meta)}`);
         }
       }
     }
