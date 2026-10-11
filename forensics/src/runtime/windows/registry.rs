@@ -1,6 +1,9 @@
 use crate::{
-    artifacts::os::windows::registry::helper::{get_registry_keys, lookup_sk_info},
-    runtime::helper::{number_arg, string_arg},
+    artifacts::os::windows::registry::helper::{get_registry_keys_handle, lookup_sk_info},
+    runtime::{
+        filesystem::accessor::return_file_handle_object,
+        helper::{number_arg, string_arg, value_arg},
+    },
     utils::regex_options::create_regex,
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
@@ -11,7 +14,9 @@ pub(crate) fn js_registry(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
+    let value = value_arg(args, 0, context)?;
+    let handle = return_file_handle_object(value)?;
+
     let key_regex = match create_regex(&string_arg(args, 1)?) {
         Ok(result) => result,
         Err(err) => {
@@ -20,7 +25,7 @@ pub(crate) fn js_registry(
         }
     };
     let start_root = string_arg(args, 3).unwrap_or_default();
-    let reg = match get_registry_keys(&start_root, &key_regex, &path) {
+    let reg = match get_registry_keys_handle(start_root, key_regex, &handle) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Failed to parse registry: {err:?}");
@@ -60,10 +65,12 @@ pub(crate) fn js_sk_info(
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::utils::encoding::base64_encode_standard;
     use crate::{
         output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
+    use std::fs;
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
@@ -81,11 +88,16 @@ mod tests {
 
     #[test]
     fn test_js_registry() {
-        let test = "ZnVuY3Rpb24gZ2V0X3JlZ2lzdHJ5KHBhdGgpIHsKICAgIGNvbnN0IGRhdGEgPSBqc19yZWdpc3RyeShwYXRoLCAiIiwgIiIpOwogICAgcmV0dXJuIGRhdGE7Cn0KZnVuY3Rpb24gZ2V0UmVnaXN0cnkocGF0aCkgewogICAgcmV0dXJuIGdldF9yZWdpc3RyeShwYXRoKTsKfQpmdW5jdGlvbiBncmFiX2luZm8ocmVnKSB7CiAgICBjb25zdCBwcm9ncmFtcyA9IFtdOwogICAgZm9yIChjb25zdCBlbnRyaWVzIG9mIHJlZyl7CiAgICAgICAgaWYgKGVudHJpZXMudmFsdWVzLmxlbmd0aCA8IDMpIHsKICAgICAgICAgICAgY29udGludWU7CiAgICAgICAgfQogICAgICAgIGNvbnN0IHByb2dyYW0gPSB7CiAgICAgICAgICAgIG5hbWU6ICIiLAogICAgICAgICAgICB2ZXJzaW9uOiAiIiwKICAgICAgICAgICAgaW5zdGFsbF9sb2NhdGlvbjogIiIsCiAgICAgICAgICAgIGluc3RhbGxfc291cmNlOiAiIiwKICAgICAgICAgICAgbGFuZ3VhZ2U6ICIiLAogICAgICAgICAgICBwdWJsaXNoZXI6ICIiLAogICAgICAgICAgICBpbnN0YWxsX3N0cmluZzogIiIsCiAgICAgICAgICAgIGluc3RhbGxfZGF0ZTogIiIsCiAgICAgICAgICAgIHVuaW5zdGFsbF9zdHJpbmc6ICIiLAogICAgICAgICAgICB1cmxfaW5mbzogIiIsCiAgICAgICAgICAgIHJlZ19wYXRoOiBlbnRyaWVzLnBhdGgKICAgICAgICB9OwogICAgICAgIGZvciAoY29uc3QgdmFsdWUgb2YgZW50cmllcy52YWx1ZXMpewogICAgICAgICAgICBzd2l0Y2godmFsdWUudmFsdWUpewogICAgICAgICAgICAgICAgY2FzZSAiRGlzcGxheU5hbWUiOgogICAgICAgICAgICAgICAgICAgIHByb2dyYW0ubmFtZSA9IHZhbHVlLmRhdGE7CiAgICAgICAgICAgICAgICAgICAgYnJlYWs7CiAgICAgICAgICAgICAgICBjYXNlICJEaXNwbGF5VmVyc2lvbiI6CiAgICAgICAgICAgICAgICAgICAgcHJvZ3JhbS52ZXJzaW9uID0gdmFsdWUuZGF0YTsKICAgICAgICAgICAgICAgICAgICBicmVhazsKICAgICAgICAgICAgICAgIGNhc2UgIkluc3RhbGxEYXRlIjoKICAgICAgICAgICAgICAgICAgICBwcm9ncmFtLmluc3RhbGxfZGF0ZSA9IHZhbHVlLmRhdGE7CiAgICAgICAgICAgICAgICAgICAgYnJlYWs7CiAgICAgICAgICAgICAgICBjYXNlICJJbnN0YWxsTG9jYXRpb24iOgogICAgICAgICAgICAgICAgICAgIHByb2dyYW0uaW5zdGFsbF9sb2NhdGlvbiA9IHZhbHVlLmRhdGE7CiAgICAgICAgICAgICAgICAgICAgYnJlYWs7CiAgICAgICAgICAgICAgICBjYXNlICJJbnN0YWxsU291cmNlIjoKICAgICAgICAgICAgICAgICAgICBwcm9ncmFtLmluc3RhbGxfc291cmNlID0gdmFsdWUuZGF0YTsKICAgICAgICAgICAgICAgICAgICBicmVhazsKICAgICAgICAgICAgICAgIGNhc2UgIkxhbmd1YWdlIjoKICAgICAgICAgICAgICAgICAgICBwcm9ncmFtLmxhbmd1YWdlID0gdmFsdWUuZGF0YTsKICAgICAgICAgICAgICAgICAgICBicmVhazsKICAgICAgICAgICAgICAgIGNhc2UgIlB1Ymxpc2hlciI6CiAgICAgICAgICAgICAgICAgICAgcHJvZ3JhbS5wdWJsaXNoZXIgPSB2YWx1ZS5kYXRhOwogICAgICAgICAgICAgICAgICAgIGJyZWFrOwogICAgICAgICAgICAgICAgY2FzZSAiVW5pbnN0YWxsU3RyaW5nIjoKICAgICAgICAgICAgICAgICAgICBwcm9ncmFtLnVuaW5zdGFsbF9zdHJpbmcgPSB2YWx1ZS5kYXRhOwogICAgICAgICAgICAgICAgICAgIGJyZWFrOwogICAgICAgICAgICAgICAgY2FzZSAiVVJMSW5mb0Fib3V0IjoKICAgICAgICAgICAgICAgICAgICBwcm9ncmFtLnVybF9pbmZvID0gdmFsdWUuZGF0YTsKICAgICAgICAgICAgICAgICAgICBicmVhazsKICAgICAgICAgICAgICAgIGRlZmF1bHQ6CiAgICAgICAgICAgICAgICAgICAgY29udGludWU7CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICAgICAgcHJvZ3JhbXMucHVzaChwcm9ncmFtKTsKICAgIH0KICAgIHJldHVybiBwcm9ncmFtczsKfQpmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgcGF0aCA9ICJDOlxcV2luZG93c1xcU3lzdGVtMzJcXGNvbmZpZ1xcU09GVFdBUkUiOwogICAgY29uc3QgcmVnID0gZ2V0UmVnaXN0cnkocGF0aCk7CiAgICBjb25zdCBwcm9ncmFtcyA9IFtdOwogICAgZm9yIChjb25zdCBlbnRyaWVzIG9mIHJlZyl7CiAgICAgICAgaWYgKCFlbnRyaWVzLnBhdGguaW5jbHVkZXMoIk1pY3Jvc29mdFxcV2luZG93c1xcQ3VycmVudFZlcnNpb25cXFVuaW5zdGFsbCIpKSB7CiAgICAgICAgICAgIGNvbnRpbnVlOwogICAgICAgIH0KICAgICAgICBwcm9ncmFtcy5wdXNoKGVudHJpZXMpOwogICAgfQogICAgcmV0dXJuIGdyYWJfaW5mbyhwcm9ncmFtcyk7Cn0KbWFpbigpOwoK";
-        let mut output = output_options("runtime_registry_test", "./tmp", true);
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/registry/main.js");
+
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
+
+        let mut output = output_options("reg_runtime_test", "./tmp", false);
         let script = JSScript {
-            name: String::from("programs"),
-            script: test.to_string(),
+            name: String::from("js_registry_firewall"),
+            script: test,
         };
         execute_script(&mut output, &script).unwrap();
     }

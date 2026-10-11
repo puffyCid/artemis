@@ -228,7 +228,7 @@ impl JsAccessor {
         context: &mut Context,
     ) -> JsResult<JsValue> {
         let value = value_arg(args, 0, context)?;
-        let handle = Self::return_file_handle_object(value)?;
+        let handle = return_file_handle_object(value)?;
         let accessor_object = return_accessor_object(this, args, context)?;
 
         let js_accessor = match accessor_object.downcast_mut::<Self>() {
@@ -387,7 +387,7 @@ impl JsAccessor {
     /// Support stat `FileHandle` with the `Accessor` from JavaScript
     fn stat_handle(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
         let value = value_arg(args, 0, context)?;
-        let handle = Self::return_file_handle_object(value)?;
+        let handle = return_file_handle_object(value)?;
         let accessor_object = return_accessor_object(this, args, context)?;
 
         let js_accessor = match accessor_object.downcast_mut::<Self>() {
@@ -554,7 +554,7 @@ impl JsAccessor {
         context: &mut Context,
     ) -> JsResult<JsValue> {
         let value = value_arg(args, 0, context)?;
-        let handle = Self::return_file_handle_object(value)?;
+        let handle = return_file_handle_object(value)?;
         let accessor_object = return_accessor_object(this, args, context)?;
 
         let js_accessor = match accessor_object.downcast_mut::<Self>() {
@@ -685,7 +685,7 @@ impl JsAccessor {
         let value = value_arg(args, 0, context)?;
         let source = Self::return_source_object(value)?;
         let file_value = value_arg(args, 1, context)?;
-        let handle = Self::return_file_handle_object(file_value)?;
+        let handle = return_file_handle_object(file_value)?;
         let accessor_object = return_accessor_object(this, args, context)?;
 
         let js_accessor = match accessor_object.downcast_mut::<Self>() {
@@ -857,7 +857,7 @@ impl JsAccessor {
         let value = value_arg(args, 0, context)?;
         let source = Self::return_source_object(value)?;
         let file_value = value_arg(args, 1, context)?;
-        let handle = Self::return_file_handle_object(file_value)?;
+        let handle = return_file_handle_object(file_value)?;
         let accessor_object = return_accessor_object(this, args, context)?;
 
         let js_accessor = match accessor_object.downcast_mut::<Self>() {
@@ -1034,7 +1034,7 @@ impl JsAccessor {
         let value = value_arg(args, 0, context)?;
         let source = Self::return_source_object(value)?;
         let file_value = value_arg(args, 1, context)?;
-        let handle = Self::return_file_handle_object(file_value)?;
+        let handle = return_file_handle_object(file_value)?;
         let accessor_object = return_accessor_object(this, args, context)?;
 
         let js_accessor = match accessor_object.downcast_mut::<Self>() {
@@ -1082,21 +1082,6 @@ impl JsAccessor {
             Ok(results) => results,
             Err(err) => {
                 let issue = format!("Failed to deserialize SourceHandle format: {err:?}");
-
-                error!(issue);
-                return Err(JsError::from_opaque(js_string!(issue).into()));
-            }
-        };
-
-        Ok(handle)
-    }
-
-    /// Deserialize the `FileHandle`
-    fn return_file_handle_object(value: Value) -> JsResult<FileHandle> {
-        let handle: FileHandle = match serde_json::from_value(value) {
-            Ok(results) => results,
-            Err(err) => {
-                let issue = format!("Failed to deserialize FileHandle format: {err:?}");
 
                 error!(issue);
                 return Err(JsError::from_opaque(js_string!(issue).into()));
@@ -1317,6 +1302,21 @@ fn return_accessor_object(
     Ok(obj_accessor)
 }
 
+/// Deserialize the `FileHandle`
+pub(crate) fn return_file_handle_object(value: Value) -> JsResult<FileHandle> {
+    let handle: FileHandle = match serde_json::from_value(value) {
+        Ok(results) => results,
+        Err(err) => {
+            let issue = format!("Failed to deserialize FileHandle format: {err:?}");
+
+            error!(issue);
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    Ok(handle)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
@@ -1345,6 +1345,7 @@ mod tests {
     fn test_javascript_accessor() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/runtime/accessor/main.js");
+
         let bytes = fs::read(test_location).unwrap();
         let test = base64_encode_standard(&bytes);
 

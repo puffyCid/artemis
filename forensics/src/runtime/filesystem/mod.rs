@@ -1,4 +1,4 @@
-mod accessor;
+pub(super) mod accessor;
 mod directory;
 pub(crate) mod extensions;
 mod files;
