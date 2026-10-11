@@ -24,7 +24,7 @@ pub(crate) fn js_registry(
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let start_root = string_arg(args, 3).unwrap_or_default();
+    let start_root = string_arg(args, 2).unwrap_or_default();
     let reg = match get_registry_keys_handle(start_root, key_regex, &handle) {
         Ok(result) => result,
         Err(err) => {
