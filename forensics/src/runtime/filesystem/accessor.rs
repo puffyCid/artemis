@@ -1316,3 +1316,43 @@ fn return_accessor_object(
 
     Ok(obj_accessor)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::utils::encoding::base64_encode_standard;
+    use crate::{
+        output::manager::OutputManager, runtime::run::execute_script,
+        structs::artifacts::runtime::script::JSScript,
+    };
+
+    use std::fs;
+    use std::path::PathBuf;
+    fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
+        let config = OutputConfig {
+            name: name.to_string(),
+            directory: PathBuf::from(directory),
+            format: OutputFormat::Jsonl,
+            compress,
+            endpoint_id: String::from("abcd"),
+            destination: OutputDestination::Local,
+            ..Default::default()
+        };
+        OutputManager::new(config).unwrap()
+    }
+
+    #[test]
+    fn test_javascript_accessor() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/accessor/main.js");
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
+
+        let mut output = output_options("runtime_test", "./tmp", false);
+        let script = JSScript {
+            name: String::from("js_accessor"),
+            script: test,
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+}
