@@ -249,6 +249,7 @@ impl AccessorReader {
     /// Read provided bytes from absolute offset
     pub(crate) fn read_bytes(&mut self, offset: u64, length: usize) -> io::Result<Vec<u8>> {
         self.seek_from_start(offset)?;
+
         let mut buf = vec![0u8; length];
         Read::read_exact(self, &mut buf)?;
 

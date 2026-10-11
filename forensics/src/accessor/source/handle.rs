@@ -1,7 +1,8 @@
 use crate::accessor::entry::locator::SourceId;
+use serde::{Deserialize, Serialize};
 
 /// Handle to an opened accessor source returned by opening a source scheme.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct SourceHandle {
     pub(crate) id: SourceId,
 }
