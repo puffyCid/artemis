@@ -367,7 +367,7 @@ function main() {
     if (events instanceof WindowsError) {
       continue;
     }
-    console.log(`I want 10 Events i got ${events.length}`);
+    console.log(`I want 10 Events i got ${events[1].length}`);
   }
 }
 main();
