@@ -1,6 +1,3 @@
-use nom::number::complete::{be_u8, be_u32, be_u64};
-use tracing::warn;
-
 use crate::{
     accessor::error::{AccessorError, AccessorResult},
     utils::nom_helper::{nom_bu8, nom_bu32, nom_bu64, nom_take},
@@ -13,63 +10,63 @@ use crate::{
 #[derive(Debug, PartialEq, Clone)]
 pub(super) struct QcowHeader {
     /// QCOW version
-    version: QcowVersion,
-    /// Backing file name location
+    pub(super) version: QcowVersion,
+    /// Backing file name location. <https://www.bitosis.nl/posts/qemu-backing-files>
     ///
     /// None if there no backing file
-    backing_file: Option<BackingFile>,
+    pub(super) backing_file: Option<BackingFile>,
     /// Bits per cluster
     ///
     /// Size is `cluster_size` = 1 << `cluster_bits`
-    cluster_bits: u32,
+    pub(super) cluster_bits: u32,
     /// Virtual disk size in bytes
-    virtual_size: u64,
+    pub(super) virtual_size: u64,
     /// Encryption method used by the QCOW disk
-    encryption: Encryption,
+    pub(super) encryption: Encryption,
     /// Number of entries in the active Level 1 table
-    l1_entries: u32,
+    pub(super) l1_entries: u32,
     /// File offset of the active Level 1 table
-    l1_offset: u64,
+    pub(super) l1_offset: u64,
     /// File offset of the refcount table
-    refcount_offset: u64,
+    pub(super) refcount_offset: u64,
     /// Number of clusters occupied by the refcount table
-    refcount_clusters: u32,
+    pub(super) refcount_clusters: u32,
     /// Number of snapshots
-    snapshot_count: u32,
+    pub(super) snapshot_count: u32,
     /// File offset to the snapshot table
-    snapshot_offset: u64,
+    pub(super) snapshot_offset: u64,
     /// Incompatible flag bitmask
-    incompatible: u64,
+    pub(super) incompatible: u64,
     /// Compatible flag bitmask
-    compatible: u64,
+    pub(super) compatible: u64,
     /// Autoclear flag bitmask
-    autoclear: u64,
-    /// Recount table order
+    pub(super) autoclear: u64,
+    /// Refcount table order
     ///
     /// Refcount bits is `refcount_bits` = 1 << `refcount_order`
-    refcount_order: u32,
+    pub(super) refcount_order: u32,
     /// Header length in bytes
-    header_length: u32,
+    pub(super) header_length: u32,
     /// Compression used by the QCOW disk
-    compression: Compression,
+    pub(super) compression: Compression,
 }
 
 /// Location of a backing file associated with the disk
 ///
 /// Backing file is not parsed when parsing the header
 #[derive(PartialEq, Debug, Clone, Copy)]
-struct BackingFile {
+pub(super) struct BackingFile {
     /// Offset to the backing file name in disk
-    offset: u64,
+    pub(super) offset: u64,
     /// Length of the name in bytes
     ///
     /// Not null terminated
-    size: u32,
+    pub(super) size: u32,
 }
 
 /// QCOW disk version
 #[derive(PartialEq, Debug, Clone, Copy)]
-enum QcowVersion {
+pub(super) enum QcowVersion {
     /// Version 2. 72 bytes
     V2,
     /// Version 3. At least 104 bytes
@@ -78,7 +75,7 @@ enum QcowVersion {
 
 /// Encryption used by the QCOW disk
 #[derive(PartialEq, Debug, Clone, Copy)]
-enum Encryption {
+pub(super) enum Encryption {
     /// Data is not encrypted
     None,
     /// Data is encrypted with AES
@@ -136,14 +133,16 @@ impl QcowHeader {
     }
 
     /// Return whether the disk uses compression
-    fn has_compression_type(&self) -> bool {
+    fn has_compression(&self) -> bool {
         self.incompatible & Self::COMPRESSION != 0
     }
 
+    /// Check for unknown incompatible flags
     fn unknown_incompatible(&self) -> u64 {
         self.incompatible & !Self::INCOMPATIBLE_FLAGS
     }
 
+    /// Check for unsupported features the accessor does not support
     pub(super) fn check_supported(&self) -> AccessorResult<()> {
         let unknown = self.unknown_incompatible();
         if unknown != 0 {
@@ -182,6 +181,7 @@ impl QcowHeader {
     }
 }
 
+/// Start parsing the QCOW header. Handles both version 2 and version 3
 pub(super) fn parse_header(data: &[u8]) -> AccessorResult<QcowHeader> {
     let (input, sig) = nom_take(data, 4_u8, "QCOW header sig is truncated")?;
     let magic = b"QFI\xfb";
@@ -305,7 +305,7 @@ fn parse_version3(
     let (input, header_length) = nom_bu32(input, "QCOW header length is truncated")?;
 
     let min_length = 104;
-    if header_length < header_length || header_length % 8 != 0 {
+    if header_length < min_length || header_length % 8 != 0 {
         return Err(AccessorError::volume(format!(
             "Invalid QCOW header length {header_length}. Version 3 headers are at least {min_length} bytes and a multiple of 8"
         )));
