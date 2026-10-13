@@ -407,8 +407,39 @@ fn compression(input: &[u8], header_length: u32, incompatible: u64) -> AccessorR
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::disk::qcow::header::{Compression, QcowVersion, parse_header};
+    use crate::accessor::{
+        disk::qcow::header::{Compression, Encryption, QcowHeader, QcowVersion, parse_header},
+        error::{AccessorError, AccessorResult},
+    };
     use std::{fs::read, path::PathBuf};
+
+    fn empty_header(version: u32, len: usize) -> Vec<u8> {
+        let mut bytes = vec![0; len];
+        bytes[..4].copy_from_slice(b"QFI\xfb");
+        bytes[4..8].copy_from_slice(&version.to_be_bytes());
+
+        if version >= 3 && len >= 104 {
+            bytes[100..104].copy_from_slice(&(len as u32).to_be_bytes());
+        }
+
+        bytes
+    }
+
+    fn put_u32(bytes: &mut [u8], offset: usize, value: u32) {
+        bytes[offset..offset + 4].copy_from_slice(&value.to_be_bytes());
+    }
+
+    fn put_u64(bytes: &mut [u8], offset: usize, value: u64) {
+        bytes[offset..offset + 8].copy_from_slice(&value.to_be_bytes());
+    }
+
+    fn volume_reason<T>(result: AccessorResult<T>) -> String {
+        match result {
+            Err(AccessorError::Volume { reason }) => reason,
+            Err(err) => panic!("expected a volume error, got {err}"),
+            Ok(_) => panic!("expected a volume error"),
+        }
+    }
 
     #[test]
     fn test_parse_header() {
@@ -424,6 +455,11 @@ mod tests {
         assert_eq!(result.l1_offset, 262144);
         assert_eq!(result.version, QcowVersion::V3);
         assert_eq!(result.compression, Compression::Zlib);
+        assert_eq!(result.encryption, Encryption::None);
+
+        assert!(result.backing_file.is_none());
+        assert!(!result.has_compression());
+        result.check_supported().unwrap();
     }
 
     #[test]
@@ -440,5 +476,237 @@ mod tests {
         assert!(result.backing_file.is_none());
         assert_eq!(result.snapshot_offset, 0);
         assert_eq!(result.snapshot_count, 0);
+    }
+
+    #[test]
+    fn test_parse_header_version2_uses_fixed_defaults() {
+        let mut bytes = empty_header(2, 200);
+        bytes[104] = 1;
+        put_u32(&mut bytes, 20, 16);
+        put_u64(&mut bytes, 24, 4096);
+
+        let header = parse_header(&bytes).unwrap();
+
+        assert_eq!(header.version, QcowVersion::V2);
+        assert_eq!(header.cluster_bits, 16);
+        assert_eq!(header.virtual_size, 4096);
+        assert_eq!(header.header_length, 72);
+
+        assert_eq!(header.refcount_order, 4);
+        assert_eq!(header.compression, Compression::Zlib);
+        assert_eq!(header.incompatible, 0);
+        assert!(!header.has_compression());
+
+        header.check_supported().unwrap();
+    }
+
+    #[test]
+    fn test_parse_header_version3_without_compression_field() {
+        let header = parse_header(&empty_header(3, 104)).unwrap();
+        assert_eq!(header.header_length, 104);
+        assert_eq!(header.compression, Compression::Zlib);
+
+        assert!(!header.has_compression());
+        header.check_supported().unwrap();
+    }
+
+    #[test]
+    fn test_parse_header_zstd() {
+        let mut bytes = empty_header(3, 112);
+        put_u64(&mut bytes, 72, QcowHeader::COMPRESSION);
+        bytes[104] = 1;
+
+        let header = parse_header(&bytes).unwrap();
+        assert_eq!(header.compression, Compression::Zstd);
+        assert!(header.has_compression());
+
+        header.check_supported().unwrap();
+    }
+
+    #[test]
+    fn test_check_supported_allows_corrupt_and_unknown_compatible_bits() {
+        let mut bytes = empty_header(3, 112);
+
+        put_u64(&mut bytes, 72, QcowHeader::DIRTY | QcowHeader::CORRUPT);
+        put_u64(&mut bytes, 80, 1 << 3);
+        put_u64(&mut bytes, 88, 1 << 5);
+
+        let header = parse_header(&bytes).unwrap();
+        assert!(header.is_dirty());
+        assert!(header.is_corrupt());
+
+        assert_eq!(header.compatible, 1 << 3);
+        assert_eq!(header.autoclear, 1 << 5);
+        assert_eq!(header.unknown_incompatible(), 0);
+
+        header.check_supported().unwrap();
+    }
+
+    #[test]
+    fn test_check_supported_rejects_deferred_features() {
+        let mut backing = empty_header(3, 112);
+        put_u64(&mut backing, 8, 256);
+        put_u32(&mut backing, 16, 1023);
+
+        let header = parse_header(&backing).unwrap();
+        assert_eq!(header.backing_file.unwrap().offset, 256);
+        assert_eq!(header.backing_file.unwrap().size, 1023);
+        assert!(volume_reason(header.check_supported()).contains("backing file"));
+
+        let mut aes = empty_header(3, 112);
+        put_u32(&mut aes, 32, 1);
+
+        let header = parse_header(&aes).unwrap();
+        assert_eq!(header.encryption, Encryption::Aes);
+        assert!(volume_reason(header.check_supported()).contains("encryption"));
+
+        let mut luks = empty_header(3, 112);
+        put_u32(&mut luks, 32, 2);
+
+        let header = parse_header(&luks).unwrap();
+        assert_eq!(header.encryption, Encryption::Luks);
+        assert!(volume_reason(header.check_supported()).contains("encryption"));
+
+        let mut external = empty_header(3, 112);
+        put_u64(&mut external, 72, QcowHeader::EXTERNAL_DATA);
+
+        let header = parse_header(&external).unwrap();
+        assert!(header.has_external_data());
+        assert!(volume_reason(header.check_supported()).contains("external data"));
+
+        let mut extended = empty_header(3, 112);
+        put_u64(&mut extended, 72, QcowHeader::EXTENDED_L2);
+        let header = parse_header(&extended).unwrap();
+
+        assert!(header.has_extended_l2());
+        assert!(volume_reason(header.check_supported()).contains("extended L2"));
+
+        let mut unknown = empty_header(3, 112);
+        put_u64(&mut unknown, 72, 1 << 5);
+
+        let header = parse_header(&unknown).unwrap();
+        assert_eq!(header.unknown_incompatible(), 1 << 5);
+        assert!(volume_reason(header.check_supported()).contains("unknown incompatible"));
+    }
+
+    #[test]
+    fn test_parse_header_rejects_malformed_bytes() {
+        let cases: Vec<(Vec<u8>, &str)> = vec![
+            (Vec::new(), "sig is truncated"),
+            (b"RAW\xfb".to_vec(), "Invalid QCOW magic"),
+            (empty_header(1, 72), "Unsupported QCOW version"),
+            (empty_header(4, 104), "Unsupported QCOW version"),
+            (empty_header(2, 71), "truncated"),
+            (empty_header(3, 80), "truncated"),
+            (
+                {
+                    let mut bytes = empty_header(3, 104);
+                    put_u32(&mut bytes, 100, 72);
+                    bytes
+                },
+                "Invalid QCOW header length",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 104);
+                    put_u32(&mut bytes, 100, 96);
+                    bytes
+                },
+                "Invalid QCOW header length",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 104);
+                    put_u32(&mut bytes, 100, 108);
+                    bytes
+                },
+                "Invalid QCOW header length",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 104);
+                    put_u32(&mut bytes, 100, 112);
+                    bytes
+                },
+                "Need 112",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    put_u32(&mut bytes, 96, 7);
+                    bytes
+                },
+                "refcount order",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    put_u32(&mut bytes, 32, 9);
+                    bytes
+                },
+                "Unknown QCOW encryption",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    put_u64(&mut bytes, 8, 512);
+                    put_u32(&mut bytes, 16, 0);
+
+                    bytes
+                },
+                "backing file name",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    put_u64(&mut bytes, 8, 512);
+                    put_u32(&mut bytes, 16, 1024);
+                    bytes
+                },
+                "backing file name",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 104);
+                    put_u64(&mut bytes, 72, QcowHeader::COMPRESSION);
+                    bytes
+                },
+                "compression field is absent",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    put_u64(&mut bytes, 72, QcowHeader::COMPRESSION);
+                    bytes
+                },
+                "compression type is deflate",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    bytes[104] = 1;
+                    bytes
+                },
+                "compression type bit is clear",
+            ),
+            (
+                {
+                    let mut bytes = empty_header(3, 112);
+                    put_u64(&mut bytes, 72, QcowHeader::COMPRESSION);
+
+                    bytes[104] = 2;
+                    bytes
+                },
+                "Unsupported QCOW compression type",
+            ),
+        ];
+
+        for (bytes, expected) in cases {
+            let reason = volume_reason(parse_header(&bytes));
+            assert!(
+                reason.contains(expected),
+                "reason `{reason}` does not contain `{expected}`"
+            );
+        }
     }
 }
