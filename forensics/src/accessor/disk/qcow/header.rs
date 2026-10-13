@@ -132,11 +132,6 @@ impl QcowHeader {
         self.incompatible & Self::EXTENDED_L2 != 0
     }
 
-    /// Return whether the disk uses compression
-    pub(super) fn has_compression(&self) -> bool {
-        self.incompatible & Self::COMPRESSION != 0
-    }
-
     /// Check for unknown incompatible flags
     pub(super) fn unknown_incompatible(&self) -> u64 {
         self.incompatible & !Self::INCOMPATIBLE_FLAGS
@@ -458,7 +453,6 @@ mod tests {
         assert_eq!(result.encryption, Encryption::None);
 
         assert!(result.backing_file.is_none());
-        assert!(!result.has_compression());
         result.check_supported().unwrap();
     }
 
@@ -495,7 +489,6 @@ mod tests {
         assert_eq!(header.refcount_order, 4);
         assert_eq!(header.compression, Compression::Zlib);
         assert_eq!(header.incompatible, 0);
-        assert!(!header.has_compression());
 
         header.check_supported().unwrap();
     }
@@ -506,7 +499,6 @@ mod tests {
         assert_eq!(header.header_length, 104);
         assert_eq!(header.compression, Compression::Zlib);
 
-        assert!(!header.has_compression());
         header.check_supported().unwrap();
     }
 
@@ -518,7 +510,6 @@ mod tests {
 
         let header = parse_header(&bytes).unwrap();
         assert_eq!(header.compression, Compression::Zstd);
-        assert!(header.has_compression());
 
         header.check_supported().unwrap();
     }
