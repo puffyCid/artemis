@@ -86,7 +86,7 @@ pub(super) enum Encryption {
 
 /// Compression used by the QCOW disk
 #[derive(PartialEq, Debug, Clone, Copy)]
-enum Compression {
+pub(super) enum Compression {
     /// Data is compressed with zlib
     ///
     /// Also referred to as `Deflate`: <https://www.qemu.org/docs/master/interop/qcow2.html#additional-fields-version-3-and-higher> and
@@ -113,32 +113,32 @@ impl QcowHeader {
         Self::DIRTY | Self::CORRUPT | Self::EXTERNAL_DATA | Self::COMPRESSION | Self::EXTENDED_L2;
 
     /// Return whether the disk is marked as dirty
-    fn is_dirty(&self) -> bool {
+    pub(super) fn is_dirty(&self) -> bool {
         self.incompatible & Self::DIRTY != 0
     }
 
     /// Return whether the disk is marked as corrupt
-    fn is_corrupt(&self) -> bool {
+    pub(super) fn is_corrupt(&self) -> bool {
         self.incompatible & Self::CORRUPT != 0
     }
 
     /// Return whether the disk has external data file
-    fn has_external_data(&self) -> bool {
+    pub(super) fn has_external_data(&self) -> bool {
         self.incompatible & Self::EXTERNAL_DATA != 0
     }
 
     /// Return whether the disk L2 entries uses extended 128-bit layout
-    fn has_extended_l2(&self) -> bool {
+    pub(super) fn has_extended_l2(&self) -> bool {
         self.incompatible & Self::EXTENDED_L2 != 0
     }
 
     /// Return whether the disk uses compression
-    fn has_compression(&self) -> bool {
+    pub(super) fn has_compression(&self) -> bool {
         self.incompatible & Self::COMPRESSION != 0
     }
 
     /// Check for unknown incompatible flags
-    fn unknown_incompatible(&self) -> u64 {
+    pub(super) fn unknown_incompatible(&self) -> u64 {
         self.incompatible & !Self::INCOMPATIBLE_FLAGS
     }
 
