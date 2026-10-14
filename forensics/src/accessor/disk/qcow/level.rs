@@ -87,7 +87,7 @@ impl Level2Cache {
         Ok(Some(level_entry(bytes, index)?))
     }
 
-    /// Store a level 2 table and drop the most recently used table if cache is full
+    /// Store a level 2 table and drop the least recently used table if cache is full
     fn insert(&mut self, host_offset: u64, table: Vec<u8>) {
         if self.capacity == 0 {
             return;
