@@ -1,15 +1,13 @@
-use std::io::Read;
-
+use crate::accessor::{
+    disk::qcow::header::Compression,
+    error::{AccessorError, AccessorResult},
+};
 use miniz_oxide::{
     DataFormat, MZError, MZFlush, MZStatus,
     inflate::stream::{InflateState, inflate},
 };
 use ruzstd::decoding::StreamingDecoder;
-
-use crate::accessor::{
-    disk::qcow::header::Compression,
-    error::{AccessorError, AccessorResult},
-};
+use std::io::Read;
 
 /// Decompress a QCOW cluster to provided `decom_cluster_size` bytes
 pub(super) fn decompress_cluster(

@@ -1,12 +1,7 @@
-use std::{
-    cmp::min,
-    io::{self, ErrorKind, Read, Seek, SeekFrom},
-};
-use tracing::warn;
-
 use crate::{
     accessor::{
         disk::qcow::{
+            decompress::decompress_cluster,
             header::{QcowHeader, parse_header},
             level::{GuestMapping, Level2Cache, QcowMap},
         },
@@ -14,6 +9,11 @@ use crate::{
     },
     utils::nom_helper::nom_bu32,
 };
+use std::{
+    cmp::min,
+    io::{self, ErrorKind, Read, Seek, SeekFrom},
+};
+use tracing::warn;
 
 /// Reader for the guest OS inside a QCOW disk image
 #[derive(Debug)]
@@ -26,6 +26,17 @@ pub(super) struct QcowReader<R> {
     qcow: QcowMap,
     /// Cached level 2 tables
     cache: Level2Cache,
+    /// Decompressed guest bytes
+    decompress: Option<DecompressCluster>,
+}
+
+/// Decompressed bytes associated with guest OS
+#[derive(Debug)]
+struct DecompressCluster {
+    /// Guest cluster index for the decompressed bytes
+    guest_index: u64,
+    /// Decompressed bytes
+    bytes: Vec<u8>,
 }
 
 impl<R: Read + Seek> QcowReader<R> {
@@ -53,6 +64,7 @@ impl<R: Read + Seek> QcowReader<R> {
             position: 0,
             qcow,
             cache: Level2Cache::new(),
+            decompress: None,
         })
     }
 
@@ -152,9 +164,12 @@ impl<R: Read + Seek> QcowReader<R> {
                 host_offset,
                 compressed_size,
             } => {
-                return Err(AccessorError::Volume {
-                    reason: format!("QCOW compressed clusters are not supported"),
-                });
+                self.copy_decompressed(
+                    &mut buf[..bytes],
+                    host_offset,
+                    compressed_size,
+                    offset_in_cluster,
+                )?;
             }
         }
 
@@ -168,6 +183,55 @@ impl<R: Read + Seek> QcowReader<R> {
             })?;
 
         Ok(bytes)
+    }
+
+    /// Decompress bytes into `buf`
+    fn copy_decompressed(
+        &mut self,
+        buf: &mut [u8],
+        host_offset: u64,
+        compressed_size: u64,
+        offset_in_cluster: u64,
+    ) -> AccessorResult<()> {
+        let guest_index = self.qcow.cluster.guest_cluster_index(self.position);
+        if self
+            .decompress
+            .as_ref()
+            .is_none_or(|d| d.guest_index != guest_index)
+        {
+            let src = read_offset_bytes(&mut self.image, host_offset, compressed_size)?;
+            let bytes = decompress_cluster(
+                self.qcow.header.compression,
+                &src,
+                self.qcow.cluster.cluster_size,
+            )?;
+
+            self.decompress = Some(DecompressCluster { guest_index, bytes });
+        }
+
+        let Some(decoded) = &self.decompress else {
+            return Err(AccessorError::volume(
+                "QCOW compressed cluster was not decompressed",
+            ));
+        };
+
+        let start = usize::try_from(offset_in_cluster).map_err(|_| {
+            AccessorError::volume("QCOW offset inside the cluster does not fit in memory")
+        })?;
+
+        let end = start.checked_add(buf.len()).ok_or_else(|| {
+            AccessorError::volume("QCOW read extends past the decompressed cluster")
+        })?;
+
+        let Some(slice) = decoded.bytes.get(start..end) else {
+            return Err(AccessorError::volume(
+                "QCOW read extends past the decompressed cluster",
+            ));
+        };
+
+        buf.copy_from_slice(slice);
+
+        Ok(())
     }
 }
 
@@ -197,14 +261,14 @@ fn image_length<R: Seek>(image: &mut R) -> AccessorResult<u64> {
 fn read_header<R: Read + Seek>(image: &mut R, file_len: u64) -> AccessorResult<QcowHeader> {
     let version2_header_length = 72;
     if file_len < version2_header_length {
-        let buf = read_bytes(image, file_len)?;
+        let buf = read_offset_bytes(image, 0, file_len)?;
         return parse_header(&buf);
     }
 
     let version3_header_length = 104;
     let probe_length = min(file_len, version3_header_length);
 
-    let mut buf = read_bytes(image, probe_length)?;
+    let mut buf = read_offset_bytes(image, 0, probe_length)?;
     let Ok(version) = read_value(&buf, 4) else {
         return parse_header(&buf);
     };
@@ -221,7 +285,7 @@ fn read_header<R: Read + Seek>(image: &mut R, file_len: u64) -> AccessorResult<Q
 
         let buffered = u64::try_from(buf.len()).unwrap_or(u64::MAX);
         if header_length as u64 > buffered && header_length as u64 <= file_len {
-            buf = read_bytes(image, header_length as u64)?;
+            buf = read_offset_bytes(image, 0, header_length as u64)?;
         }
     }
 
@@ -243,21 +307,25 @@ fn read_value(buf: &[u8], offset: usize) -> AccessorResult<u32> {
     Ok(offset)
 }
 
-/// Read bytes from the QCOW disk image
-fn read_bytes<R: Read + Seek>(image: &mut R, length: u64) -> AccessorResult<Vec<u8>> {
+/// Read bytes at provided offset
+fn read_offset_bytes<R: Read + Seek>(
+    image: &mut R,
+    offset: u64,
+    length: u64,
+) -> AccessorResult<Vec<u8>> {
     let length_usize = usize::try_from(length).map_err(|_| {
         AccessorError::volume(format!(
-            "QCOW header is {length} bytes and does not fit in memory"
+            "QCOW compressed cluster is {length} bytes and does not fit in memory"
         ))
     })?;
 
     let mut buf = vec![0_u8; length_usize];
-    image.seek(SeekFrom::Start(0))?;
+    image.seek(SeekFrom::Start(offset))?;
 
     match image.read_exact(&mut buf) {
         Ok(()) => Ok(buf),
         Err(err) if err.kind() == ErrorKind::UnexpectedEof => Err(AccessorError::volume(format!(
-            "QCOW header is shorter than {length} bytes"
+            "QCOW compressed cluster at offset {offset} extends past the image"
         ))),
         Err(err) => Err(err.into()),
     }
@@ -287,6 +355,11 @@ fn checked_seek(base: u64, delta: i64) -> AccessorResult<u64> {
 
 #[cfg(test)]
 mod tests {
+    use miniz_oxide::{
+        DataFormat,
+        deflate::core::{CompressionStrategy, CompressorOxide, TDEFLFlush, TDEFLStatus, compress},
+    };
+
     use super::QcowReader;
     use crate::accessor::error::{AccessorError, AccessorResult};
     use std::io::{Cursor, ErrorKind, Read, Seek, SeekFrom};
@@ -353,6 +426,39 @@ mod tests {
         }
     }
 
+    fn raw_deflate(plain: &[u8]) -> Vec<u8> {
+        let mut compressor =
+            CompressorOxide::with_params(DataFormat::Raw, 6, CompressionStrategy::Default, 12);
+        let mut output = vec![0_u8; plain.len() + 64];
+        let mut input = plain;
+        let mut out_pos = 0;
+
+        loop {
+            let (status, bytes_in, bytes_out) = compress(
+                &mut compressor,
+                input,
+                &mut output[out_pos..],
+                TDEFLFlush::Finish,
+            );
+
+            out_pos += bytes_out;
+
+            match status {
+                TDEFLStatus::Done => {
+                    output.truncate(out_pos);
+                    return output;
+                }
+                TDEFLStatus::Okay => {
+                    input = &input[bytes_in..];
+                    if output.len() - out_pos < 64 {
+                        output.resize(output.len() * 2, 0);
+                    }
+                }
+                other => panic!("raw deflate failed: {other:?}"),
+            }
+        }
+    }
+
     #[test]
     fn test_read_data_cluster() {
         let cluster = pattern();
@@ -396,47 +502,6 @@ mod tests {
 
         assert_eq!(reader.read(&mut buf).unwrap(), 512);
         assert!(buf.iter().all(|byte| *byte == 0));
-    }
-
-    #[test]
-    fn test_read_compressed_cluster_errors() {
-        let image = guest_image(512, 1536 | (1 << 62), &[]);
-        let mut reader = open_image(image).unwrap();
-        let err = reader.read(&mut [0_u8; 16]).unwrap_err();
-
-        assert_eq!(err.kind(), ErrorKind::InvalidData);
-        assert!(err.to_string().contains("compressed"), "{err}");
-        assert_eq!(reader.position(), 0);
-    }
-
-    #[test]
-    fn test_read_returns_bytes_before_compressed_cluster() {
-        let cluster = pattern();
-        let mut image = vec![0_u8; 2560];
-        write_header(&mut image, 3, 9, 1024, 1, 512);
-
-        put_u64(&mut image, 512, 1024);
-        put_u64(&mut image, 1024, 1536);
-        put_u64(&mut image, 1032, 2048 | (1 << 62));
-        image[1536..1536 + cluster.len()].copy_from_slice(&cluster);
-
-        let mut reader = open_image(image).unwrap();
-        let mut buf = vec![0_u8; 800];
-
-        assert_eq!(reader.read(&mut buf).unwrap(), 512);
-        assert_eq!(&buf[..512], cluster.as_slice());
-        assert_eq!(reader.position(), 512);
-
-        let err = reader.read(&mut buf).unwrap_err();
-        assert_eq!(err.kind(), ErrorKind::InvalidData);
-        assert!(err.to_string().contains("compressed"), "{err}");
-        assert_eq!(reader.position(), 512);
-
-        assert_eq!(reader.seek(SeekFrom::Start(0)).unwrap(), 0);
-        let mut prefix = [0_u8; 16];
-
-        assert_eq!(reader.read(&mut prefix).unwrap(), 16);
-        assert_eq!(prefix, cluster[..16]);
     }
 
     #[test]
@@ -524,5 +589,64 @@ mod tests {
     fn test_open_rejects_short_file() {
         let reason = volume_reason(open_image(vec![0_u8; 10]));
         assert!(reason.contains("QCOW"), "{reason}");
+    }
+
+    #[test]
+    fn test_read_compressed_cluster() {
+        let cluster = pattern();
+        let compressed = raw_deflate(&cluster);
+        assert!(compressed.len() <= 512, "{}", compressed.len());
+
+        let mut reader = open_image(guest_image(512, 1536 | (1 << 62), &compressed)).unwrap();
+        let mut prefix = [0_u8; 16];
+        assert_eq!(reader.read(&mut prefix).unwrap(), 16);
+        assert_eq!(prefix, cluster[..16]);
+        assert_eq!(reader.position(), 16);
+
+        let mut next = [0_u8; 16];
+        assert_eq!(reader.read(&mut next).unwrap(), 16);
+        assert_eq!(next, cluster[16..32]);
+        assert_eq!(reader.seek(SeekFrom::Start(100)).unwrap(), 100);
+
+        let mut one = [0_u8; 1];
+        assert_eq!(reader.read(&mut one).unwrap(), 1);
+        assert_eq!(one[0], 0x22);
+    }
+
+    #[test]
+    fn test_read_damaged_compressed_cluster_keeps_position() {
+        let mut reader = open_image(guest_image(512, 1536 | (1 << 62), &[])).unwrap();
+        let err = reader.read(&mut [0_u8; 16]).unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::InvalidData);
+        assert!(err.to_string().contains("zlib"), "{err}");
+        assert_eq!(reader.position(), 0);
+    }
+
+    #[test]
+    fn test_read_crosses_into_compressed_cluster() {
+        let first = pattern();
+        let mut second = vec![0xAB; 512];
+        second[0] = 0x44;
+        second[511] = 0x55;
+
+        let compressed = raw_deflate(&second);
+        assert!(compressed.len() <= 512, "{}", compressed.len());
+        let mut image = vec![0_u8; 2560];
+        write_header(&mut image, 3, 9, 1024, 1, 512);
+
+        put_u64(&mut image, 512, 1024);
+        put_u64(&mut image, 1024, 1536);
+        put_u64(&mut image, 1032, 2048 | (1 << 62));
+
+        image[1536..1536 + first.len()].copy_from_slice(&first);
+        image[2048..2048 + compressed.len()].copy_from_slice(&compressed);
+        let mut reader = open_image(image).unwrap();
+        let mut buf = vec![0_u8; 1024];
+
+        assert_eq!(reader.read(&mut buf).unwrap(), 1024);
+        assert_eq!(&buf[..512], first.as_slice());
+        assert_eq!(&buf[512..], second.as_slice());
+        assert_eq!(reader.position(), 1024);
     }
 }
