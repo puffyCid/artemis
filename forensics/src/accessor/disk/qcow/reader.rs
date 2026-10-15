@@ -123,7 +123,7 @@ impl<R: Read + Seek> QcowReader<R> {
         let mapping = self
             .qcow
             .map_guest(&mut self.image, &mut self.cache, self.position)
-            .map_err(|err| AccessorError::volume("QCOW guest data invalid"))?;
+            .map_err(|err| AccessorError::volume(format!("QCOW guest data invalid: {err:}")))?;
 
         match mapping {
             GuestMapping::Unallocated | GuestMapping::Zero => buf[..bytes].fill(0),
@@ -141,8 +141,10 @@ impl<R: Read + Seek> QcowReader<R> {
                             ),
                         });
                     }
-                    return Err(AccessorError::Volume {
-                        reason: format!("QCOW host read failed: {err:?}"),
+                    
+                    return Err(AccessorError::Io {
+                        path: None,
+                        source: err,
                     });
                 }
             }
