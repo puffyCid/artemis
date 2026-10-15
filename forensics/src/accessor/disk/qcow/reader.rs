@@ -141,7 +141,7 @@ impl<R: Read + Seek> QcowReader<R> {
                             ),
                         });
                     }
-                    
+
                     return Err(AccessorError::Io {
                         path: None,
                         source: err,
@@ -197,14 +197,14 @@ fn image_length<R: Seek>(image: &mut R) -> AccessorResult<u64> {
 fn read_header<R: Read + Seek>(image: &mut R, file_len: u64) -> AccessorResult<QcowHeader> {
     let version2_header_length = 72;
     if file_len < version2_header_length {
-        let buf = read_prefix(image, file_len)?;
+        let buf = read_bytes(image, file_len)?;
         return parse_header(&buf);
     }
 
     let version3_header_length = 104;
     let probe_length = min(file_len, version3_header_length);
 
-    let mut buf = read_prefix(image, probe_length)?;
+    let mut buf = read_bytes(image, probe_length)?;
     let Ok(version) = read_value(&buf, 4) else {
         return parse_header(&buf);
     };
@@ -221,7 +221,7 @@ fn read_header<R: Read + Seek>(image: &mut R, file_len: u64) -> AccessorResult<Q
 
         let buffered = u64::try_from(buf.len()).unwrap_or(u64::MAX);
         if header_length as u64 > buffered && header_length as u64 <= file_len {
-            buf = read_prefix(image, header_length as u64)?;
+            buf = read_bytes(image, header_length as u64)?;
         }
     }
 
@@ -244,7 +244,7 @@ fn read_value(buf: &[u8], offset: usize) -> AccessorResult<u32> {
 }
 
 /// Read bytes from the QCOW disk image
-fn read_prefix<R: Read + Seek>(image: &mut R, length: u64) -> AccessorResult<Vec<u8>> {
+fn read_bytes<R: Read + Seek>(image: &mut R, length: u64) -> AccessorResult<Vec<u8>> {
     let length_usize = usize::try_from(length).map_err(|_| {
         AccessorError::volume(format!(
             "QCOW header is {length} bytes and does not fit in memory"
