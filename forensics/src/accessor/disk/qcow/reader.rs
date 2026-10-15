@@ -66,7 +66,7 @@ impl<R: Read + Seek> QcowReader<R> {
         self.position
     }
 
-    /// Read guest OS bytes in the QCOW dik image
+    /// Read guest OS bytes in the QCOW disk image
     fn read_guest(&mut self, buf: &mut [u8]) -> AccessorResult<usize> {
         let virtual_size = self.virtual_size();
         if buf.is_empty() || self.position >= virtual_size {
@@ -75,7 +75,7 @@ impl<R: Read + Seek> QcowReader<R> {
 
         let remaining = virtual_size - self.position;
         let required = match usize::try_from(remaining) {
-            Ok(result) => result,
+            Ok(result) => min(result, buf.len()),
             Err(_) => buf.len(),
         };
 
@@ -171,32 +171,8 @@ impl<R: Read + Seek> QcowReader<R> {
 
 impl<R: Read + Seek> Read for QcowReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let virtual_size = self.virtual_size();
-        if buf.is_empty() || self.position >= virtual_size {
-            return Ok(0);
-        }
-
-        let remaining = virtual_size - self.position;
-        let want = match usize::try_from(remaining) {
-            Ok(n) => min(n, buf.len()),
-            Err(_) => buf.len(),
-        };
-
-        let mut filled = 0;
-        while filled < want {
-            match self.read_cluster(&mut buf[filled..want]) {
-                Ok(n) => filled += n,
-                Err(_) if filled > 0 => return Ok(filled),
-                Err(err) => {
-                    return Err(io::Error::new(
-                        ErrorKind::InvalidData,
-                        format!("Could not read QCOW disk: {err:?}"),
-                    ));
-                }
-            }
-        }
-
-        Ok(filled)
+        self.read_guest(buf)
+            .map_err(|err| io::Error::new(ErrorKind::InvalidData, err.to_string()))
     }
 }
 
