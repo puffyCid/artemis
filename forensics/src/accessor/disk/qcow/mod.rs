@@ -2,4 +2,5 @@ mod cluster;
 mod decompress;
 mod header;
 mod level;
-mod reader;
+pub(super) mod reader;
+pub(super) mod image;

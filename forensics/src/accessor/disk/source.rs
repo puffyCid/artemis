@@ -1224,6 +1224,17 @@ mod tests {
         jsonl
     }
 
+    fn qcow_image() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/disks/qcow/ntfs.qemu");
+
+        path
+    }
+
+    fn qcow_source() -> DiskSource {
+        DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, qcow_image()).unwrap()
+    }
+
     #[test]
     fn test_read_file_logical_ntfs() {
         let bytes = source(&test_image())
@@ -1685,5 +1696,39 @@ mod tests {
         assert_eq!(partition.filesystem, FilesystemKind::Ntfs);
         assert!(matches!(partition.partition.kind, PartitionKind::NtfsImage));
         assert_eq!(inspection.format, DiskFormat::Raw);
+    }
+
+     #[test]
+    fn test_read_file_qcow_ntfs() {
+        let bytes = qcow_source()
+            .read_file(&path("Partition0:hello\\hello world.txt"))
+            .unwrap();
+        assert_eq!(bytes, b"hello world\n");
+    }
+
+    #[test]
+    fn test_inspect_qcow_ntfs() {
+        let inspection = qcow_source().inspect().unwrap();
+        assert_eq!(inspection.format, DiskFormat::Qcow);
+        assert_eq!(inspection.layout.image_size, 8000000);
+        
+        assert!(matches!(inspection.layout.table, PartitionTableKind::None));
+        assert_eq!(inspection.partitions.len(), 1);
+        assert_eq!(inspection.partitions[0].filesystem, FilesystemKind::Ntfs);
+    }
+
+    #[test]
+    fn test_read_dir_qcow_display_path() {
+        let entries = qcow_source().read_dir(&path("")).unwrap();
+        assert_eq!(entries.len(), 1);
+        
+        let expected = format!("qcow:{}!Partition0", qcow_image().display());
+        assert_eq!(entries[0].meta.display_path, expected);
+    }
+
+    #[test]
+    fn test_open_qcow_rejects_raw_image() {
+        let result = DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, test_image());
+        assert!(matches!(result, Err(AccessorError::Volume { .. })));
     }
 }

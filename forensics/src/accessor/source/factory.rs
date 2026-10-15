@@ -78,18 +78,24 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                 .ok_or_else(|| AccessorError::location("", "zip location missing archive path"))?;
             Ok(SourceId::Zip(source.as_path().to_path_buf()))
         }
-        Scheme::Raw => {
-            let source = location
-                .source
-                .as_ref()
-                .ok_or_else(|| AccessorError::location("", "raw location missing image path"))?;
-
-            Ok(SourceId::Disk {
-                format: DiskFormat::Raw,
-                path: source.as_path().to_path_buf(),
-            })
-        }
+        Scheme::Raw => disk_source_id(location, DiskFormat::Raw),
+        Scheme::Qcow => disk_source_id(location, DiskFormat::Qcow),
     }
+}
+
+/// Return the `SourceId` from a disk image location
+fn disk_source_id(location: &Location, format: DiskFormat) -> AccessorResult<SourceId> {
+    let source = location.source.as_ref().ok_or_else(|| {
+        AccessorError::location(
+            "",
+            format!("{} location missing image path", format.as_str()),
+        )
+    })?;
+
+    Ok(SourceId::Disk {
+        format,
+        path: source.as_path().to_path_buf(),
+    })
 }
 
 /// Derive `SourceId` from a handle produced by listing or glob

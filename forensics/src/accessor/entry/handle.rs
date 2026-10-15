@@ -141,6 +141,7 @@ impl FileHandle {
             FileLocator::Zip { .. } => Scheme::Zip,
             FileLocator::Disk { format, .. } => match format {
                 DiskFormat::Raw => Scheme::Raw,
+                DiskFormat::Qcow => Scheme::Qcow,
             },
         }
     }
@@ -240,6 +241,7 @@ impl DirHandle {
             DirLocator::Zip { .. } => Scheme::Zip,
             DirLocator::Disk { format, .. } => match format {
                 DiskFormat::Raw => Scheme::Raw,
+                DiskFormat::Qcow => Scheme::Qcow,
             },
         }
     }

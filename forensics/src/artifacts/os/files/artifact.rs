@@ -24,6 +24,7 @@ pub(crate) fn files_output_name(source: &str) -> &'static str {
         Ok(Scheme::Zip) => "files_zip",
         Ok(Scheme::Host) => "files_host",
         Ok(Scheme::Raw) => "files_raw",
+        Ok(Scheme::Qcow) => "files_qcow",
         Err(_err) => "files",
     }
 }

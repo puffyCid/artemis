@@ -17,7 +17,7 @@ use tracing::warn;
 
 /// Reader for the guest OS inside a QCOW disk image
 #[derive(Debug)]
-pub(super) struct QcowReader<R> {
+pub(crate) struct QcowReader<R> {
     /// Reader for the disk file
     image: R,
     /// Offset of the guest OS
@@ -315,7 +315,7 @@ fn read_offset_bytes<R: Read + Seek>(
 ) -> AccessorResult<Vec<u8>> {
     let length_usize = usize::try_from(length).map_err(|_| {
         AccessorError::volume(format!(
-            "QCOW compressed cluster is {length} bytes and does not fit in memory"
+            "QCOW read of{length} bytes at offset {offset} and does not fit in memory"
         ))
     })?;
 
@@ -325,7 +325,7 @@ fn read_offset_bytes<R: Read + Seek>(
     match image.read_exact(&mut buf) {
         Ok(()) => Ok(buf),
         Err(err) if err.kind() == ErrorKind::UnexpectedEof => Err(AccessorError::volume(format!(
-            "QCOW compressed cluster at offset {offset} extends past the image"
+            "QCOW read of {length} at offset {offset} extends past the image"
         ))),
         Err(err) => Err(err.into()),
     }
