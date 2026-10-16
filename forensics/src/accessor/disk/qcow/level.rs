@@ -541,7 +541,7 @@ mod tests {
 
     #[test]
     fn test_map_version3_fixture() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
         let header_bytes =
             read(test_location.join("tests/test_data/disks/qcow/headers/header_version3.raw"))

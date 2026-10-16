@@ -1226,7 +1226,7 @@ mod tests {
 
     fn qcow_image() -> PathBuf {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("tests/test_data/disks/qcow/ntfs.qemu");
+        path.push("tests/test_data/disks/qcow/ntfs.qcow");
 
         path
     }

@@ -28,7 +28,7 @@ pub(super) enum DiskReader {
     /// We can just use a normal `BufReader` since raw disk files
     /// have no disk format
     Raw(BufReader<File>),
-    Qcow(QcowReader<File>),
+    Qcow(Box<QcowReader<File>>),
 }
 
 impl DiskFormat {
@@ -36,7 +36,9 @@ impl DiskFormat {
     pub(super) fn open_reader(self, path: &Path) -> AccessorResult<DiskReader> {
         match self {
             Self::Raw => Ok(DiskReader::Raw(RawDisk::new(path)?.open_reader()?)),
-            Self::Qcow => Ok(DiskReader::Qcow(QcowDisk::new(path)?.open_reader()?)),
+            Self::Qcow => Ok(DiskReader::Qcow(Box::new(
+                QcowDisk::new(path)?.open_reader()?,
+            ))),
         }
     }
 

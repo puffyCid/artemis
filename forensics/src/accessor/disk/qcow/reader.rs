@@ -317,7 +317,7 @@ fn read_offset_bytes<R: Read + Seek>(
 ) -> AccessorResult<Vec<u8>> {
     let length_usize = usize::try_from(length).map_err(|err| {
         AccessorError::volume(format!(
-            "QCOW read of{length} bytes at offset {offset} and does not fit in memory: {err:?}"
+            "QCOW read of {length} bytes at offset {offset} does not fit in memory: {err:?}"
         ))
     })?;
 
