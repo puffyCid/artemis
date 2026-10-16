@@ -75,6 +75,7 @@ pub(super) fn derive_cluster(header: &QcowHeader) -> AccessorResult<QcowCluster>
         )));
     }
 
+    // Calculate the cluster size
     let cluster_size = 1u64.checked_shl(header.cluster_bits).ok_or_else(|| {
         AccessorError::volume(format!(
             "QCOW cluster bit shift {} overflows",
@@ -144,21 +145,21 @@ pub(super) fn derive_cluster(header: &QcowHeader) -> AccessorResult<QcowCluster>
     }
 
     if header.l1_entries > 0 {
-        require_cluster_aligned(header.l1_offset, cluster_size, "L1 table")?;
-        require_outside_header_cluster(header.l1_offset, cluster_size, "L1 table")?;
+        validate_cluster_aligned(header.l1_offset, cluster_size, "L1 table")?;
+        validate_outside_header_cluster(header.l1_offset, cluster_size, "L1 table")?;
     }
 
     if header.refcount_offset != 0 || header.refcount_clusters > 0 {
-        require_cluster_aligned(header.refcount_offset, cluster_size, "refcount table")?;
+        validate_cluster_aligned(header.refcount_offset, cluster_size, "refcount table")?;
     }
 
     if header.refcount_clusters > 0 {
-        require_outside_header_cluster(header.refcount_offset, cluster_size, "refcount table")?;
+        validate_outside_header_cluster(header.refcount_offset, cluster_size, "refcount table")?;
     }
 
     if header.snapshot_count > 0 {
-        require_cluster_aligned(header.snapshot_offset, cluster_size, "snapshot table")?;
-        require_outside_header_cluster(header.snapshot_offset, cluster_size, "snapshot table")?;
+        validate_cluster_aligned(header.snapshot_offset, cluster_size, "snapshot table")?;
+        validate_outside_header_cluster(header.snapshot_offset, cluster_size, "snapshot table")?;
     }
 
     check_backing_file(header, cluster_size)?;
@@ -174,8 +175,8 @@ pub(super) fn derive_cluster(header: &QcowHeader) -> AccessorResult<QcowCluster>
     })
 }
 
-/// Require offset to start on a cluster boundary
-fn require_cluster_aligned(offset: u64, cluster_size: u64, table: &str) -> AccessorResult<()> {
+/// Validate the offset to start on a cluster boundary for a specific table
+fn validate_cluster_aligned(offset: u64, cluster_size: u64, table: &str) -> AccessorResult<()> {
     if offset & (cluster_size - 1) != 0 {
         return Err(AccessorError::volume(format!(
             "QCOW {table} offset {offset} is not aligned to the {cluster_size} byte cluster"
@@ -185,8 +186,8 @@ fn require_cluster_aligned(offset: u64, cluster_size: u64, table: &str) -> Acces
     Ok(())
 }
 
-/// Require a metadata table to start after the header cluster
-fn require_outside_header_cluster(
+/// Validate a metadata table to start after the header cluster for a specific table
+fn validate_outside_header_cluster(
     offset: u64,
     cluster_size: u64,
     table: &str,

@@ -735,7 +735,7 @@ mod tests {
     #[test]
     fn test_location_qcow_partition_path() {
         let result = Location::parse("qcow:/tmp/image.qcow!Partition0:hello\\file.txt").unwrap();
-        
+
         assert_eq!(result.scheme, Scheme::Qcow);
         assert_eq!(result.source.unwrap().display(), "/tmp/image.qcow");
         assert_eq!(result.inner_path.display(), "Partition0:hello\\file.txt");
@@ -744,7 +744,7 @@ mod tests {
     #[test]
     fn test_location_qcow2_alias() {
         let result = Location::parse("qcow2:/tmp/image.qcow2").unwrap();
-        
+
         assert_eq!(result.scheme, Scheme::Qcow);
         assert_eq!(result.source.unwrap().display(), "/tmp/image.qcow2");
         assert!(result.inner_path.is_empty());
@@ -754,7 +754,7 @@ mod tests {
     fn test_glob_qcow_partition_directory() {
         let (loc, pattern) =
             Location::split_glob_pattern("qcow:/tmp/image.qcow!hello/*.txt").unwrap();
-        
+
         assert_eq!(pattern, "*.txt");
         assert_eq!(loc.scheme, Scheme::Qcow);
         assert_eq!(loc.source.unwrap().display(), "/tmp/image.qcow");
@@ -764,7 +764,7 @@ mod tests {
     #[test]
     fn test_parse_source_qcow_relative_is_error() {
         let err = Location::parse_source("qcow:image.qcow").unwrap_err();
-        
+
         assert!(matches!(
             err,
             AccessorError::Location { reason, .. } if reason.contains("absolute")

@@ -179,7 +179,7 @@ impl<R: Read + Seek> QcowReader<R> {
                 reason: format!("QCOW read length does not fit in a guest offset: {err:?}"),
             })?)
             .ok_or_else(|| AccessorError::Volume {
-                reason: format!("QCOW position does not fit in a guest offset"),
+                reason: String::from("QCOW position does not fit in a guest offset"),
             })?;
 
         Ok(bytes)
@@ -215,8 +215,10 @@ impl<R: Read + Seek> QcowReader<R> {
             ));
         };
 
-        let start = usize::try_from(offset_in_cluster).map_err(|_| {
-            AccessorError::volume("QCOW offset inside the cluster does not fit in memory")
+        let start = usize::try_from(offset_in_cluster).map_err(|err| {
+            AccessorError::volume(format!(
+                "QCOW offset inside the cluster does not fit in memory: {err:?}"
+            ))
         })?;
 
         let end = start.checked_add(buf.len()).ok_or_else(|| {
@@ -313,9 +315,9 @@ fn read_offset_bytes<R: Read + Seek>(
     offset: u64,
     length: u64,
 ) -> AccessorResult<Vec<u8>> {
-    let length_usize = usize::try_from(length).map_err(|_| {
+    let length_usize = usize::try_from(length).map_err(|err| {
         AccessorError::volume(format!(
-            "QCOW read of{length} bytes at offset {offset} and does not fit in memory"
+            "QCOW read of{length} bytes at offset {offset} and does not fit in memory: {err:?}"
         ))
     })?;
 
@@ -335,7 +337,7 @@ fn read_offset_bytes<R: Read + Seek>(
 fn checked_seek(base: u64, delta: i64) -> AccessorResult<u64> {
     if delta >= 0 {
         let delta = u64::try_from(delta)
-            .map_err(|_| AccessorError::volume("QCOW seek offset overflows"))?;
+            .map_err(|err| AccessorError::volume(format!("QCOW seek offset overflows: {err:?}")))?;
         return base
             .checked_add(delta)
             .ok_or_else(|| AccessorError::volume("QCOW seek offset overflows"));
@@ -345,8 +347,8 @@ fn checked_seek(base: u64, delta: i64) -> AccessorResult<u64> {
         .checked_neg()
         .ok_or_else(|| AccessorError::volume("QCOW seek offset overflows"))?;
 
-    let backward =
-        u64::try_from(backward).map_err(|_| AccessorError::volume("QCOW seek offset overflows"))?;
+    let backward = u64::try_from(backward)
+        .map_err(|err| AccessorError::volume(format!("QCOW seek offset overflows: {err:?}")))?;
 
     base.checked_sub(backward).ok_or_else(|| {
         AccessorError::volume("QCOW seek offset is before the start of the virtual disk")

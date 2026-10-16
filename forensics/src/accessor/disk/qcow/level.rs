@@ -1,8 +1,3 @@
-use std::{
-    collections::VecDeque,
-    io::{ErrorKind, Read, Seek, SeekFrom},
-};
-
 use crate::{
     accessor::{
         disk::qcow::{
@@ -12,6 +7,10 @@ use crate::{
         error::{AccessorError, AccessorResult},
     },
     utils::nom_helper::nom_bu64,
+};
+use std::{
+    collections::VecDeque,
+    io::{ErrorKind, Read, Seek, SeekFrom},
 };
 
 /// Host mapping for a guest cluster
@@ -50,13 +49,13 @@ pub(super) struct Level2Cache {
 
 impl Level2Cache {
     /// Return a `Level2Cache` that can cache
-    /// up to 4 L2 tables
+    /// up to 4 Level 2 tables
     pub(super) fn new() -> Self {
         let max_cache_tables = 4;
         Self::with_capacity(max_cache_tables)
     }
 
-    /// Cache up to the provided `capacity` L2 tables
+    /// Cache up to the provided `capacity` Level 2 tables
     pub(super) fn with_capacity(capacity: usize) -> Self {
         Self {
             tables: VecDeque::new(),
@@ -87,7 +86,7 @@ impl Level2Cache {
         Ok(Some(level_entry(bytes, index)?))
     }
 
-    /// Store a level 2 table and drop the least recently used table if cache is full
+    /// Store a Level 2 table and drop the least recently used table if cache is full
     fn insert(&mut self, host_offset: u64, table: Vec<u8>) {
         if self.capacity == 0 {
             return;
@@ -165,8 +164,10 @@ impl QcowMap {
             )));
         }
 
-        let level1_entries = u64::try_from(self.level1.len()).map_err(|_| {
-            AccessorError::volume("QCOW Level 1 table does not fit in a 64-bit index")
+        let level1_entries = u64::try_from(self.level1.len()).map_err(|err| {
+            AccessorError::volume(format!(
+                "QCOW Level 1 table does not fit in a 64-bit index: {err:?}"
+            ))
         })?;
 
         let level1_index = self.cluster.level1_index(guest_offset);
@@ -174,9 +175,9 @@ impl QcowMap {
             return Ok(GuestMapping::Unallocated);
         }
 
-        let index = usize::try_from(level1_index).map_err(|_| {
+        let index = usize::try_from(level1_index).map_err(|err| {
             AccessorError::volume(format!(
-                "QCOW Level 1 index {level1_index} does not fit in memory"
+                "QCOW Level 1 index {level1_index} does not fit in memory: {err:?}"
             ))
         })?;
 
@@ -203,7 +204,7 @@ impl QcowMap {
             return Ok(None);
         }
 
-        self.require_cluster_offset(offset, "Level 2 table")?;
+        self.validate_cluster_offset(offset, "Level 2 table")?;
 
         Ok(Some(offset))
     }
@@ -227,9 +228,9 @@ impl QcowMap {
             return Ok(entry);
         }
 
-        let table_len = usize::try_from(self.cluster.cluster_size).map_err(|_| {
+        let table_len = usize::try_from(self.cluster.cluster_size).map_err(|err| {
             AccessorError::volume(format!(
-                "QCOW Level 2 table is {} bytes and does not fit in memory",
+                "QCOW Level 2 table is {} bytes and does not fit in memory: {err:?}",
                 self.cluster.cluster_size
             ))
         })?;
@@ -243,6 +244,7 @@ impl QcowMap {
         Ok(entry)
     }
 
+    /// Parse level 2 offset for guest OS
     fn decode_level2(&self, entry: u64) -> AccessorResult<GuestMapping> {
         let compressed_flag = 1 << 62;
 
@@ -274,10 +276,11 @@ impl QcowMap {
             return Ok(GuestMapping::Unallocated);
         }
 
-        self.require_cluster_offset(host_offset, "host cluster")?;
+        self.validate_cluster_offset(host_offset, "host cluster")?;
         Ok(GuestMapping::Data { host_offset })
     }
 
+    /// Calculate the compressed size and determine the offset for guest OS
     fn decode_compressed(&self, entry: u64) -> AccessorResult<GuestMapping> {
         let copied_flag = 1 << 63;
         if entry & copied_flag != 0 {
@@ -327,7 +330,7 @@ impl QcowMap {
             AccessorError::volume("QCOW compressed cluster byte length overflows")
         })?;
 
-        self.require_host_range(host_offset, compressed_size, "compressed cluster")?;
+        self.validate_host_range(host_offset, compressed_size, "compressed cluster")?;
 
         Ok(GuestMapping::Compressed {
             host_offset,
@@ -336,7 +339,7 @@ impl QcowMap {
     }
 
     /// Get the cluster aligned host range that is after the header cluster of the QCOW disk
-    fn require_cluster_offset(&self, offset: u64, kind: &str) -> AccessorResult<()> {
+    fn validate_cluster_offset(&self, offset: u64, kind: &str) -> AccessorResult<()> {
         if offset < self.cluster.cluster_size {
             return Err(AccessorError::volume(format!(
                 "QCOW {kind} offset {offset} overlaps the header cluster"
@@ -350,11 +353,11 @@ impl QcowMap {
             )));
         }
 
-        self.require_host_range(offset, self.cluster.cluster_size, kind)
+        self.validate_host_range(offset, self.cluster.cluster_size, kind)
     }
 
     /// Get the offset to start the of host cluster range
-    fn require_host_range(&self, offset: u64, length: u64, kind: &str) -> AccessorResult<()> {
+    fn validate_host_range(&self, offset: u64, length: u64, kind: &str) -> AccessorResult<()> {
         if offset < self.cluster.cluster_size {
             return Err(AccessorError::volume(format!(
                 "QCOW {kind} offset {offset} overlaps the header cluster"
@@ -400,9 +403,9 @@ fn read_level1<R: Read + Seek>(
         )));
     }
 
-    let table_len = usize::try_from(cluster.l1_bytes).map_err(|_| {
+    let table_len = usize::try_from(cluster.l1_bytes).map_err(|err| {
         AccessorError::volume(format!(
-            "QCOW Level 1 table is {} bytes and does not fit in memory",
+            "QCOW Level 1 table is {} bytes and does not fit in memory: {err:?}",
             cluster.l1_bytes
         ))
     })?;
@@ -424,8 +427,10 @@ fn level_entry(bytes: &[u8], index: u64) -> AccessorResult<u64> {
         .checked_mul(8)
         .ok_or_else(|| AccessorError::volume(format!("QCOW entry index {index} overflows")))?;
 
-    let start = usize::try_from(start).map_err(|_| {
-        AccessorError::volume(format!("QCOW entry offset {start} does not fit in memory"))
+    let start = usize::try_from(start).map_err(|err| {
+        AccessorError::volume(format!(
+            "QCOW entry offset {start} does not fit in memory: {err:?}"
+        ))
     })?;
 
     let end = start

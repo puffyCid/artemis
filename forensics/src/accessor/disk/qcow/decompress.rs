@@ -37,9 +37,9 @@ fn checked_cluster_size(cluster_size: u64) -> AccessorResult<usize> {
         )));
     }
 
-    usize::try_from(cluster_size).map_err(|_| {
+    usize::try_from(cluster_size).map_err(|err| {
         AccessorError::volume(format!(
-            "QCOW compressed cluster size {cluster_size} does not fit in memory"
+            "QCOW compressed cluster size {cluster_size} does not fit in memory: {err:?}"
         ))
     })
 }

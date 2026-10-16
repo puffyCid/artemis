@@ -147,9 +147,9 @@ impl QcowHeader {
         }
 
         if self.has_external_data() {
-            return Err(AccessorError::volume(format!(
-                "QCOW external data files are not supported"
-            )));
+            return Err(AccessorError::volume(
+                "QCOW external data files are not supported",
+            ));
         }
 
         if self.has_extended_l2() {

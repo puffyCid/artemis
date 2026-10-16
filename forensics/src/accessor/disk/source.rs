@@ -1698,7 +1698,7 @@ mod tests {
         assert_eq!(inspection.format, DiskFormat::Raw);
     }
 
-     #[test]
+    #[test]
     fn test_read_file_qcow_ntfs() {
         let bytes = qcow_source()
             .read_file(&path("Partition0:hello\\hello world.txt"))
@@ -1711,7 +1711,7 @@ mod tests {
         let inspection = qcow_source().inspect().unwrap();
         assert_eq!(inspection.format, DiskFormat::Qcow);
         assert_eq!(inspection.layout.image_size, 8000000);
-        
+
         assert!(matches!(inspection.layout.table, PartitionTableKind::None));
         assert_eq!(inspection.partitions.len(), 1);
         assert_eq!(inspection.partitions[0].filesystem, FilesystemKind::Ntfs);
@@ -1721,7 +1721,7 @@ mod tests {
     fn test_read_dir_qcow_display_path() {
         let entries = qcow_source().read_dir(&path("")).unwrap();
         assert_eq!(entries.len(), 1);
-        
+
         let expected = format!("qcow:{}!Partition0", qcow_image().display());
         assert_eq!(entries[0].meta.display_path, expected);
     }

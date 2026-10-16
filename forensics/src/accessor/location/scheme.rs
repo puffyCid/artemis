@@ -104,11 +104,10 @@ pub(crate) fn scheme_prefix(input: &str) -> Option<Scheme> {
     Scheme::parse(scheme).ok()
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::{Scheme, location_scheme, strip_scheme};
-    
+
     #[test]
     fn test_parse_qcow_aliases() {
         assert_eq!(Scheme::parse("qcow").unwrap(), Scheme::Qcow);
@@ -122,7 +121,7 @@ mod tests {
             location_scheme("qcow2:/images/disk.qcow2!Partition0:/test.txt"),
             Some(Scheme::Qcow)
         );
-        
+
         assert_eq!(location_scheme("qcow:disk.qcow!/test.txt"), None);
         assert_eq!(strip_scheme("qcow:/images/disk.qcow"), "/images/disk.qcow");
     }
