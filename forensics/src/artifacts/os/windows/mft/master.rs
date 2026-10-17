@@ -5,10 +5,11 @@ use super::{
 };
 use crate::{
     accessor::{access::Accessor, entry::handle::GlobMatch, io::reader::AccessorReader},
+    artifacts::os::windows::mft::fixup::apply_fixup,
     utils::time::filetime_to_iso,
 };
 use crate::{
-    artifacts::os::windows::mft::{fixup::Fixup, header::EntryFlags},
+    artifacts::os::windows::mft::header::EntryFlags,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::MftOptions,
     utils::nom_helper::nom_data,
@@ -140,6 +141,9 @@ fn read_mft(
             };
 
             let mut remaining = mft_bytes.as_slice();
+            // Current record offset
+            let mut record_offset = offset;
+
             // Parse MFT records entries
             while mft_bytes.len() >= header.total_size as usize && !remaining.is_empty() {
                 // Nom first FILE entry
@@ -157,10 +161,14 @@ fn read_mft(
                 if entry_bytes.is_empty() {
                     break;
                 }
+
                 // Remaining entries. 1000->999->998->etc
                 remaining = input;
+                let record_number = (record_offset / record_size) as u32;
+                record_offset += record_size;
+
                 let header_results = MftHeader::parse_header(entry_bytes);
-                let (entry_bytes, mft_header) = match header_results {
+                let (_, mut mft_header) = match header_results {
                     Ok(result) => result,
                     Err(err) => {
                         error!("Could not parse header: {err:?}");
@@ -172,7 +180,13 @@ fn read_mft(
                     continue;
                 }
 
-                let fixed_mft_bytes = apply_fixup(entry_bytes, mft_header.fix_up_count)?;
+                if mft_header.index == 0 {
+                    mft_header.index = record_number;
+                }
+
+                let Some(fixed_mft_bytes) = fixed_attributes(entry_bytes, &mft_header) else {
+                    continue;
+                };
                 let mut entry = match grab_attributes(
                     &fixed_mft_bytes,
                     reader,
@@ -366,7 +380,10 @@ pub(crate) fn lookup_parent(
     let empty = 0;
 
     if tracker.size == empty {
-        let header = determine_header_info(0, reader)?;
+        let mut header = determine_header_info(0, reader)?;
+        if header.index == 0 {
+            header.index = tracker.parent_index;
+        }
         tracker.size = header.total_size;
     }
 
@@ -457,10 +474,7 @@ pub(crate) fn lookup_parent(
         return Ok(String::from("$OrphanFiles"));
     }
 
-    let header_size = 48;
-    let remaining_size = header.total_size - header_size as u32;
-
-    let entry_bytes = match reader.read_bytes(header_size + offset, remaining_size as usize) {
+    let entry_bytes = match reader.read_bytes(offset, header.total_size as usize) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not read entry bytes: {err:?}");
@@ -468,7 +482,9 @@ pub(crate) fn lookup_parent(
         }
     };
 
-    let mft_bytes = apply_fixup(&entry_bytes, header.fix_up_count)?;
+    let Some(mft_bytes) = fixed_attributes(&entry_bytes, &header) else {
+        return Ok(String::from("$OrphanFiles"));
+    };
 
     let entry = match grab_attributes(&mft_bytes, reader, header.total_size, header.index) {
         Ok((_, result)) => result,
@@ -562,19 +578,23 @@ fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<Mft
 }
 
 /// Apply fixup values to the FILE entry to ensure accurate data
-fn apply_fixup(data: &[u8], count: u16) -> Result<Vec<u8>, MftError> {
-    let (entry_bytes, fixup) = match Fixup::get_fixup(data, count) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not parse mft fixup values: {err:?}");
-            return Err(MftError::EntrySize);
-        }
-    };
+pub(super) fn fixed_attributes(record: &[u8], header: &MftHeader) -> Option<Vec<u8>> {
+    let mut mft_bytes = record.to_vec();
+    if !apply_fixup(
+        &mut mft_bytes,
+        header.fix_up_value_offset,
+        header.fix_up_count,
+    ) {
+        return None;
+    }
 
-    let mut mft_bytes = entry_bytes.to_vec();
-    Fixup::apply_fixup(&mut mft_bytes, &fixup);
+    let attrib_offset = header.attrib_offset as usize;
+    if attrib_offset >= mft_bytes.len() {
+        error!("MFT attribute offset {attrib_offset} is outside the record");
+        return None;
+    }
 
-    Ok(mft_bytes)
+    Some(mft_bytes.split_off(attrib_offset))
 }
 
 /// Output MFT data. Due to size of $MFT we will output every 10k entries we parse
@@ -682,5 +702,54 @@ mod tests {
         let mut accessor = Accessor::with_defaults();
         let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
         parse_mft(paths, &mut output, &options, "").unwrap();
+    }
+
+    #[test]
+    fn test_parse_mft_qcow_user_files() {
+        let mut image = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        image.push("tests/test_data/disks/qcow/ntfs.qcow");
+
+        let name = "mft_qcow_test";
+        let output_dir = PathBuf::from("./tmp").join(name);
+        let _ = std::fs::remove_dir_all(&output_dir);
+
+        let mut output = output_options(name, "./tmp", false);
+        let options = MftOptions {
+            alt_drive: None,
+            alt_file: None,
+        };
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor
+            .globfs(&format!("qcow:{}!$MFT", image.display()))
+            .unwrap();
+        assert_eq!(paths.len(), 1);
+        parse_mft(paths, &mut output, &options, "").unwrap();
+
+        let mut full_paths = Vec::new();
+        for file in std::fs::read_dir(&output_dir).unwrap() {
+            let file = file.unwrap().path();
+            if file.extension().is_none_or(|ext| ext != "jsonl") {
+                continue;
+            }
+            for line in std::fs::read_to_string(&file).unwrap().lines() {
+                let value: serde_json::Value = serde_json::from_str(line).unwrap();
+                if let Some(path) = value["full_path"].as_str() {
+                    full_paths.push(path.to_string());
+                }
+            }
+        }
+
+        for expected in [
+            ".\\main.ts",
+            ".\\Cargo.toml",
+            ".\\README.md",
+            ".\\hello",
+            ".\\hello\\hello world.txt",
+        ] {
+            assert!(
+                full_paths.iter().any(|path| path == expected),
+                "missing {expected} in {full_paths:?}"
+            );
+        }
     }
 }
