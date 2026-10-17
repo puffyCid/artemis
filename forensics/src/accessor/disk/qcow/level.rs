@@ -326,9 +326,14 @@ impl QcowMap {
         })?;
 
         let sector_size = 512;
-        let compressed_size = sectors.checked_mul(sector_size).ok_or_else(|| {
-            AccessorError::volume("QCOW compressed cluster byte length overflows")
-        })?;
+        let sector_offset = host_offset & (sector_size - 1);
+
+        let compressed_size = sectors
+            .checked_mul(sector_size)
+            .and_then(|bytes| bytes.checked_sub(sector_offset))
+            .ok_or_else(|| {
+                AccessorError::volume("QCOW compressed cluster byte length overflows")
+            })?;
 
         self.validate_host_range(host_offset, compressed_size, "compressed cluster")?;
 
@@ -809,6 +814,22 @@ mod tests {
         assert_eq!(
             map.map_guest(&mut cursor, &mut cache, 0).unwrap(),
             GuestMapping::Unallocated
+        );
+    }
+
+    #[test]
+    fn test_map_compressed_cluster_unaligned_offset() {
+        let mut image = vec![0_u8; 2048];
+        write_header(&mut image, 3, 9, 32768, 1, 512);
+        put_u64(&mut image, 512, 1024);
+        put_u64(&mut image, 1024, 1636 | (1 << 62));
+
+        assert_eq!(
+            map_at(image, 0).unwrap(),
+            GuestMapping::Compressed {
+                host_offset: 1636,
+                compressed_size: 412
+            }
         );
     }
 }
