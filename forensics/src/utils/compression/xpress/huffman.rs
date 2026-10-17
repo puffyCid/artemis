@@ -39,7 +39,8 @@ fn decompress_chunk(
     out_buf: &mut Vec<u8>,
     chunk_size: usize,
 ) -> Result<(usize, usize), CompressionError> {
-    if in_index + 256 > in_buf.len() && out_buf.len() < out_buf.capacity() {
+    let table_size = 256;
+    if in_index + table_size > in_buf.len() && out_buf.len() < out_buf.capacity() {
         error!(
             "No more compressed data but decompressed size incomplete. Buf: {}. Capacity: {}",
             out_buf.len(),
@@ -48,12 +49,12 @@ fn decompress_chunk(
         return Err(CompressionError::XpressNoMoreData);
     }
 
-    if in_index + 256 > in_buf.len() {
-        return Ok((in_index + 256, 0));
+    if in_index + table_size > in_buf.len() {
+        return Ok((in_index + table_size, 0));
     }
 
     let root = prefix_code_tree_rebuild(&in_buf[in_index..])?;
-    let mut bstr = BitStream::new(in_buf, in_index + 256);
+    let mut bstr = BitStream::new(in_buf, in_index + table_size)?;
     let mut i = out_index;
 
     while i < out_index + chunk_size {
@@ -125,7 +126,15 @@ struct BitStream<'a> {
 }
 
 impl<'a> BitStream<'a> {
-    pub(crate) fn new(source: &'a [u8], in_pos: usize) -> Self {
+    pub(crate) fn new(source: &'a [u8], in_pos: usize) -> Result<Self, CompressionError> {
+        if in_pos + 4 >= source.len() {
+            error!(
+                "Compressed data smaller than current index: {in_pos}. Bytes: {}",
+                source.len()
+            );
+            return Err(CompressionError::XpressNoMoreData);
+        }
+
         let mask = ((u16::from_le_bytes(source[in_pos..in_pos + 2].try_into().unwrap_or_default())
             as u32)
             << 16)
@@ -134,12 +143,13 @@ impl<'a> BitStream<'a> {
                     .try_into()
                     .unwrap_or_default(),
             ) as u32);
-        Self {
+
+        Ok(Self {
             source,
             index: in_pos + 4,
             bits: 32,
             mask,
-        }
+        })
     }
 
     pub(crate) fn lookup(&self, n: u32) -> u32 {
@@ -148,22 +158,27 @@ impl<'a> BitStream<'a> {
         }
         self.mask >> (32 - n)
     }
+
     pub(crate) fn skip(&mut self, n: u32) -> Result<(), CompressionError> {
         self.mask <<= n;
         self.bits = self.bits.saturating_sub(n);
+
         if self.bits < 16 {
             if (self.index + 2) > self.source.len() {
                 return Err(CompressionError::XpressNoMoreData);
             }
+
             self.mask += (u16::from_le_bytes(
                 self.source[self.index..self.index + 2]
                     .try_into()
                     .unwrap_or_default(),
             ) as u32)
                 << (16 - self.bits);
+
             self.index += 2;
             self.bits += 16;
         }
+
         Ok(())
     }
 }
