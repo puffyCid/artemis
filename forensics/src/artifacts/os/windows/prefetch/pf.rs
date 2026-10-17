@@ -8,7 +8,7 @@ use super::{
 };
 use crate::utils::compression::decompress::{XpressType, decompress_xpress};
 use common::windows::Prefetch;
-use tracing::error;
+use tracing::{debug, error};
 
 /// Parse Prefetch files and return parsed data or error
 pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, PrefetchError> {
@@ -36,7 +36,10 @@ pub(crate) fn parse_prefetch(data: &[u8], path: &str) -> Result<Prefetch, Prefet
         return get_prefetch_data(data, path);
     };
 
+    debug!("Expected uncompressed size: {}", header.uncompressed_size);
     let pf_data = decompress_pf(&mut pf_data.to_vec(), header.uncompressed_size)?;
+    debug!("Uncompressed size: {}", pf_data.len());
+
     get_prefetch_data(&pf_data, path)
 }
 
@@ -154,6 +157,7 @@ fn decompress_pf(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, PrefetchEr
 mod tests {
     use crate::{
         artifacts::os::windows::prefetch::{
+            error::PrefetchError,
             header::CompressedHeader,
             pf::{decompress_pf, get_prefetch_data, parse_prefetch},
         },
@@ -307,6 +311,17 @@ mod tests {
     }
 
     #[test]
+    fn test_decompress_bad_pf() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location
+            .push("tests/test_data/windows/prefetch/corrupt/SEARCHPROTOCOLHOST.EXE-AFAD3EF9.pf");
+
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
+        let err = parse_prefetch(&buffer, &test_location.to_str().unwrap()).unwrap_err();
+        assert_eq!(err, PrefetchError::Decompress);
+    }
+
+    #[test]
     #[cfg(target_os = "windows")]
     fn test_decompress_win10() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -352,5 +367,15 @@ mod tests {
 
         let out = decompress_pf(&mut bytes, 153064).unwrap();
         assert_eq!(out.len(), 153064);
+    }
+
+    #[test]
+    fn test_corrupt_pf() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/compression/corrupt_huffman.raw");
+        let mut bytes = read_file(&test_location.display().to_string()).unwrap();
+        let err = decompress_pf(&mut bytes, 27436).unwrap_err();
+
+        assert_eq!(err, PrefetchError::Decompress);
     }
 }
