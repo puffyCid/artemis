@@ -327,7 +327,7 @@ fn read_offset_bytes<R: Read + Seek>(
     match image.read_exact(&mut buf) {
         Ok(()) => Ok(buf),
         Err(err) if err.kind() == ErrorKind::UnexpectedEof => Err(AccessorError::volume(format!(
-            "QCOW read of {length} at offset {offset} extends past the image"
+            "QCOW read of {length} bytes at offset {offset} extends past the image"
         ))),
         Err(err) => Err(err.into()),
     }

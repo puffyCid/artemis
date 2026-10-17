@@ -82,7 +82,7 @@ pub(crate) fn partition_info(source: &str, manager: &mut OutputManager) -> DiskR
         .collect::<Vec<_>>();
 
     let mut records = serialize_records_to_stream(rows)?;
-    manager.write_artifact("disk_info", &"", &mut records)?;
+    manager.write_artifact("disk_partition", &"", &mut records)?;
 
     Ok(())
 }

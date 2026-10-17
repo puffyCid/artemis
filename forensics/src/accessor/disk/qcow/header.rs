@@ -55,7 +55,7 @@ pub(super) struct QcowHeader {
 ///
 /// Backing file is not parsed when parsing the header
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub(super) struct BackingFile {
+pub(crate) struct BackingFile {
     /// Offset to the backing file name in disk
     pub(super) offset: u64,
     /// Length of the name in bytes
@@ -66,7 +66,7 @@ pub(super) struct BackingFile {
 
 /// QCOW disk version
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub(super) enum QcowVersion {
+pub(crate) enum QcowVersion {
     /// Version 2. 72 bytes
     V2,
     /// Version 3. At least 104 bytes
@@ -75,7 +75,7 @@ pub(super) enum QcowVersion {
 
 /// Encryption used by the QCOW disk
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub(super) enum Encryption {
+pub(crate) enum Encryption {
     /// Data is not encrypted
     None,
     /// Data is encrypted with AES
@@ -86,7 +86,7 @@ pub(super) enum Encryption {
 
 /// Compression used by the QCOW disk
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub(super) enum Compression {
+pub(crate) enum Compression {
     /// Data is compressed with zlib
     ///
     /// Also referred to as `Deflate`: <https://www.qemu.org/docs/master/interop/qcow2.html#additional-fields-version-3-and-higher> and
