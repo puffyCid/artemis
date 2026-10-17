@@ -68,7 +68,7 @@ impl MftHeader {
 
         let record_number_layout = 48;
         if fix_up_value_offset >= record_number_layout {
-            let (input, wfixup_patter) = nom_unsigned_two_bytes(input, Endian::Le)?;
+            let (input, wfixup_patter) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
             let (input, index) = nom_unsigned_four_bytes(input, Endian::Le)?;
 
             remaining = input;
