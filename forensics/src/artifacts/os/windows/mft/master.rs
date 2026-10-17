@@ -87,7 +87,7 @@ fn read_mft(
     let mut first_pass = 0;
 
     // We parse 1000 FILE entries at a time
-    let file_entries = 1000;
+    let file_entries = 1;
 
     // We parse the $MFT twice :(
     // First to only get $MFT entries that are extension entries. These entries contain attributes that are part of a real FILE entry but are too large to fit in a single FILE
@@ -127,6 +127,7 @@ fn read_mft(
                 };
 
             let mut remaining = mft_bytes.as_slice();
+            println!("mft bytes: {}", mft_bytes.len());
             // Parse 1000 entries
             while mft_bytes.len() >= header.total_size as usize && !remaining.is_empty() {
                 // Nom first FILE entry
@@ -323,6 +324,7 @@ fn read_mft(
     Ok(())
 }
 
+#[derive(Debug)]
 pub(crate) struct Lookups {
     pub(crate) parent_index: u32,
     pub(crate) parent_sequence: u16,
@@ -347,12 +349,13 @@ pub(crate) fn lookup_parent(
 
     // If size is zero get FILE entry size of first MFT entry
     let empty = 0;
+    let offset = (tracker.parent_index * tracker.size) as u64;
+
     if tracker.size == empty {
         let header = determine_header_info(0, reader)?;
         tracker.size = header.total_size;
     }
 
-    let offset = (tracker.parent_index * tracker.size) as u64;
     let header = determine_header_info(offset, reader)?;
 
     if (tracker.parent_sequence != header.sequence
@@ -505,6 +508,8 @@ pub(crate) fn lookup_parent(
 
 /// Try to determine FILE entry size by parsing first 48 bytes of the header
 fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<MftHeader, MftError> {
+    println!("offset: {offset}");
+
     let header_size = 48;
     let header_bytes_results = reader.read_bytes(offset, header_size);
     let header_bytes = match header_bytes_results {
