@@ -54,6 +54,7 @@ pub(crate) fn triage(
             return Err(TriageError::NoReader);
         }
     };
+
     // Loop through all triage targets
     for target in options {
         acquire_files(target, &mut report, &mut accessor, &source, &mut zip)?;

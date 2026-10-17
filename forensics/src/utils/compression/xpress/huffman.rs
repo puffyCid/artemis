@@ -13,9 +13,11 @@ pub(crate) fn decompress_xpress_huffman(
     let mut in_index = 0;
     let mut out_index = 0;
     let output_size = out_buf.capacity();
+
     loop {
         let chunk_size = (output_size - out_index).min(65536);
         (in_index, out_index) = decompress_chunk(in_index, in_buf, out_index, out_buf, chunk_size)?;
+
         if in_index >= in_buf.len() || out_index >= output_size {
             break;
         }
@@ -34,11 +36,13 @@ fn decompress_chunk(
     chunk_size: usize,
 ) -> Result<(usize, usize), CompressionError> {
     if in_index + 256 > in_buf.len() {
-        return Ok((0, 0));
+        return Ok((in_index + 256, 0));
     }
+
     let root = prefix_code_tree_rebuild(&in_buf[in_index..])?;
     let mut bstr = BitStream::new(in_buf, in_index + 256);
     let mut i = out_index;
+
     while i < out_index + chunk_size {
         let mut symbol = match prefix_code_tree_decode_symbol(&mut bstr, root.clone()) {
             Ok(v) => v,
@@ -47,6 +51,7 @@ fn decompress_chunk(
                 _ => return Err(e),
             },
         };
+
         if symbol < 256 {
             out_buf.push(symbol as u8);
             i += 1;
@@ -59,6 +64,7 @@ fn decompress_chunk(
             if symbol != 0 {
                 offset = bstr.lookup(symbol) as i32;
             }
+
             offset |= 1 << symbol;
             offset = -offset;
 
@@ -81,16 +87,20 @@ fn decompress_chunk(
                 if (i as i32 + offset) < 0 {
                     return Err(CompressionError::XpressBadOffset);
                 }
+
                 let position = (i as i32 + offset) as usize;
                 out_buf.push(out_buf[position]);
+
                 i += 1;
                 length -= 1;
+
                 if length == 0 {
                     break;
                 }
             }
         }
     }
+
     Ok((bstr.index, i))
 }
 
@@ -100,6 +110,7 @@ struct BitStream<'a> {
     pub(crate) mask: u32,
     pub(crate) bits: u32,
 }
+
 impl<'a> BitStream<'a> {
     pub(crate) fn new(source: &'a [u8], in_pos: usize) -> Self {
         let mask = ((u16::from_le_bytes(source[in_pos..in_pos + 2].try_into().unwrap_or_default())
@@ -202,16 +213,19 @@ fn prefix_code_tree_add_leaf(
             i_node.leaf = false;
             i += 1;
         }
+
         let new_node_opt = nt.child[child_index as usize].as_ref();
         let new_node = match new_node_opt {
             Some(result) => result.clone(),
             None => return Err(CompressionError::XpressNoChildNode),
         };
+
         drop(nt);
         node = new_node;
     }
     let mut nt = node.borrow_mut();
     nt.child[(mask & 1) as usize] = Some(tree_nodes[leaf_index].clone());
+
     Ok(i as u32)
 }
 
@@ -219,8 +233,10 @@ fn prefix_code_tree_rebuild(input: &[u8]) -> Result<Rc<RefCell<PrefixCodeNode>>,
     let mut tree_nodes: Vec<Rc<RefCell<PrefixCodeNode>>> = (0..1024)
         .map(|_| Rc::new(RefCell::new(PrefixCodeNode::default())))
         .collect();
+
     let mut symbol_info: Vec<PrefixCodeSymbol> =
         (0..512).map(|_| PrefixCodeSymbol::default()).collect();
+
     for i in 0..256 {
         let mut value = input[i] as usize;
 
@@ -237,6 +253,7 @@ fn prefix_code_tree_rebuild(input: &[u8]) -> Result<Rc<RefCell<PrefixCodeNode>>,
         if a.length < b.length {
             return Ordering::Less;
         }
+
         if a.length > b.length {
             return Ordering::Greater;
         }
@@ -244,11 +261,14 @@ fn prefix_code_tree_rebuild(input: &[u8]) -> Result<Rc<RefCell<PrefixCodeNode>>,
         if a.symbol < b.symbol {
             return Ordering::Less;
         }
+
         if a.symbol > b.symbol {
             return Ordering::Greater;
         }
+
         Ordering::Equal
     });
+
     let mut i = 0;
     while i < 512 && symbol_info[i].length == 0 {
         i += 1;
@@ -286,8 +306,10 @@ fn prefix_code_tree_decode_symbol(
             Some(v) => v.clone(),
             None => return Err(CompressionError::XpressNoChild),
         };
+
         drop(nt);
         node = new_node;
+
         if node.borrow().leaf {
             break;
         }
@@ -375,5 +397,17 @@ mod tests {
 
         decompress_xpress_huffman(&mut bytes, &mut out).unwrap();
         assert_eq!(out.len(), 153064);
+    }
+
+    #[test]
+    fn test_decompress_xpress_huffman_corrupt() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/windows/compression/corrupt_huffman.raw");
+        let mut bytes = read_file(&test_location.display().to_string()).unwrap();
+
+        let mut out: Vec<u8> = Vec::with_capacity(27436);
+
+        decompress_xpress_huffman(&mut bytes, &mut out).unwrap();
+        assert_eq!(out.len(), 15184);
     }
 }
