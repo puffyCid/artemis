@@ -127,7 +127,7 @@ struct BitStream<'a> {
 
 impl<'a> BitStream<'a> {
     pub(crate) fn new(source: &'a [u8], in_pos: usize) -> Result<Self, CompressionError> {
-        if in_pos + 4 >= source.len() {
+        if in_pos + 4 > source.len() {
             error!(
                 "Compressed data smaller than current index: {in_pos}. Bytes: {}",
                 source.len()
