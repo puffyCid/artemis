@@ -1,5 +1,7 @@
 // Full credit to: https://github.com/ForensicRS/frnsc-prefetch/blob/main/src/decompress/xpress_huff.rs - MIT License - 2024-03-07
 
+use tracing::error;
+
 use crate::utils::compression::error::CompressionError;
 use std::{cell::RefCell, cmp::Ordering, rc::Rc};
 
@@ -22,9 +24,11 @@ pub(crate) fn decompress_xpress_huffman(
             break;
         }
     }
+
     if output_size < out_buf.len() {
         out_buf.resize(output_size, 0);
     }
+
     Ok(())
 }
 
@@ -35,6 +39,15 @@ fn decompress_chunk(
     out_buf: &mut Vec<u8>,
     chunk_size: usize,
 ) -> Result<(usize, usize), CompressionError> {
+    if in_index + 256 > in_buf.len() && out_buf.len() < out_buf.capacity() {
+        error!(
+            "No more compressed data but decompressed size incomplete. Buf: {}. Capacity: {}",
+            out_buf.len(),
+            out_buf.capacity()
+        );
+        return Err(CompressionError::XpressNoMoreData);
+    }
+
     if in_index + 256 > in_buf.len() {
         return Ok((in_index + 256, 0));
     }
@@ -322,7 +335,7 @@ fn prefix_code_tree_decode_symbol(
 mod tests {
     use crate::{
         filesystem::files::read_file,
-        utils::compression::xpress::huffman::decompress_xpress_huffman,
+        utils::compression::{error::CompressionError, xpress::huffman::decompress_xpress_huffman},
     };
     use std::path::PathBuf;
 
@@ -407,7 +420,7 @@ mod tests {
 
         let mut out: Vec<u8> = Vec::with_capacity(27436);
 
-        decompress_xpress_huffman(&mut bytes, &mut out).unwrap();
-        assert_eq!(out.len(), 15184);
+        let err = decompress_xpress_huffman(&mut bytes, &mut out).unwrap_err();
+        assert_eq!(err, CompressionError::XpressNoMoreData);
     }
 }

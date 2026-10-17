@@ -157,6 +157,7 @@ fn decompress_pf(data: &mut [u8], decom_size: u32) -> Result<Vec<u8>, PrefetchEr
 mod tests {
     use crate::{
         artifacts::os::windows::prefetch::{
+            error::PrefetchError,
             header::CompressedHeader,
             pf::{decompress_pf, get_prefetch_data, parse_prefetch},
         },
@@ -310,6 +311,17 @@ mod tests {
     }
 
     #[test]
+    fn test_decompress_bad_pf() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location
+            .push("tests/test_data/windows/prefetch/corrupt/SEARCHPROTOCOLHOST.EXE-AFAD3EF9.pf");
+
+        let buffer = read_file(&test_location.to_str().unwrap()).unwrap();
+        let err = parse_prefetch(&buffer, &test_location.to_str().unwrap()).unwrap_err();
+        assert_eq!(err, PrefetchError::Decompress);
+    }
+
+    #[test]
     #[cfg(target_os = "windows")]
     fn test_decompress_win10() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -362,8 +374,8 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/compression/corrupt_huffman.raw");
         let mut bytes = read_file(&test_location.display().to_string()).unwrap();
-        let out = decompress_pf(&mut bytes, 27436).unwrap();
+        let err = decompress_pf(&mut bytes, 27436).unwrap_err();
 
-        assert_eq!(out.len(), 15184);
+        assert_eq!(err, PrefetchError::Decompress);
     }
 }

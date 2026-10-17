@@ -1,0 +1,3 @@
+kind: Fixed
+body: Infinte loop when decompressing corrupt prefetch on non-Windows platforms
+time: 2026-10-17T14:24:19.873731038-04:00
