@@ -2,7 +2,7 @@ use crate::{
     accessor::{
         disk::qcow::{
             decompress::decompress_cluster,
-            header::{QcowHeader, parse_header},
+            header::{BackingFile, Compression, Encryption, QcowHeader, QcowVersion, parse_header},
             level::{GuestMapping, Level2Cache, QcowMap},
         },
         error::{AccessorError, AccessorResult},
@@ -76,6 +76,37 @@ impl<R: Read + Seek> QcowReader<R> {
     /// Return the current position of the `QcowReader`
     pub(super) fn position(&self) -> u64 {
         self.position
+    }
+
+    /// Size of the QCOW file in bytes
+    pub(super) fn file_size(&self) -> u64 {
+        self.qcow.file_len
+    }
+
+    /// Return QCOW metadata
+    pub(super) fn image_metadata(&self) -> QcowImageMetadata {
+        let header = &self.qcow.header;
+
+        QcowImageMetadata {
+            version: header.version,
+            cluster_bits: header.cluster_bits,
+            cluster_size: self.qcow.cluster.cluster_size,
+            l1_entries: header.l1_entries,
+            l1_offset: header.l1_offset,
+            refcount_offset: header.refcount_offset,
+            refcount_clusters: header.refcount_clusters,
+            refcount_order: header.refcount_order,
+            snapshot_count: header.snapshot_count,
+            snapshot_offset: header.snapshot_offset,
+            encryption: header.encryption,
+            backing_file: header.backing_file,
+            compression: header.compression,
+            flags: QcowFeatureFlags::from_masks(
+                header.incompatible,
+                header.compatible,
+                header.autoclear,
+            ),
+        }
     }
 
     /// Read guest OS bytes in the QCOW disk image
@@ -355,15 +386,116 @@ fn checked_seek(base: u64, delta: i64) -> AccessorResult<u64> {
     })
 }
 
+/// Metadata for a QCOW image
+///
+/// Most data comes from the header
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct QcowImageMetadata {
+    /// QCOW version
+    pub(crate) version: QcowVersion,
+    /// Bits per cluster
+    pub(crate) cluster_bits: u32,
+    /// Size of the QCOW cluster
+    pub(crate) cluster_size: u64,
+    /// Number of entries in the active Level 1 table
+    pub(crate) l1_entries: u32,
+    /// File offset of the active Level 1 table
+    pub(crate) l1_offset: u64,
+    /// File offset of the refcount table
+    pub(crate) refcount_offset: u64,
+    /// Number of clusters occupied by the refcount table
+    pub(crate) refcount_clusters: u32,
+    /// Refcount table order
+    refcount_order: u32,
+    pub(crate) snapshot_count: u32,
+    /// File offset to the snapshot table
+    pub(crate) snapshot_offset: u64,
+    /// Encryption method used by the QCOW disk
+    pub(crate) encryption: Encryption,
+    /// Backing file name location. <https://www.bitosis.nl/posts/qemu-backing-files>
+    ///
+    /// None if there no backing file
+    pub(crate) backing_file: Option<BackingFile>,
+    /// Compression used by the QCOW disk
+    pub(crate) compression: Compression,
+    /// Flags associated with the QCOW disk
+    pub(crate) flags: QcowFeatureFlags,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct QcowFeatureFlags {
+    /// Incompatible feature bitmask.
+    pub(crate) incompatible: u64,
+    /// Compatible feature bitmask.
+    pub(crate) compatible: u64,
+    /// Autoclear feature bitmask.
+    pub(crate) autoclear: u64,
+    /// Incompatible bit 0.
+    pub(crate) dirty: bool,
+    /// Incompatible bit 1.
+    pub(crate) corrupt: bool,
+    /// Incompatible bit 2.
+    pub(crate) external_data: bool,
+    /// Incompatible bit 3.
+    pub(crate) compression_type: bool,
+    /// Incompatible bit 4.
+    pub(crate) extended_l2: bool,
+    /// Compatible bit 0.
+    pub(crate) lazy_refcounts: bool,
+    /// Autoclear bit 0.
+    pub(crate) bitmaps: bool,
+    /// Autoclear bit 1.
+    pub(crate) raw_external_data: bool,
+}
+
+/// QCOW header feature flags
+///
+/// <https://www.qemu.org/docs/master/interop/qcow2.html#header>
+impl QcowFeatureFlags {
+    /// Has `DIRTY` flag
+    const DIRTY: u64 = 1 << 0;
+    /// Has `CORRUPT` flag
+    const CORRUPT: u64 = 1 << 1;
+    /// Has `EXTERNAL_DATA` flag
+    const EXTERNAL_DATA: u64 = 1 << 2;
+    /// Has `COMPRESSION` flag
+    const COMPRESSION: u64 = 1 << 3;
+    /// Has `EXTENDED_L2` flag
+    const EXTENDED_L2: u64 = 1 << 4;
+    /// has `LAZY_REFCOUNTS` flag
+    const LAZY_REFCOUNTS: u64 = 1 << 0;
+    /// Has `BITMAPS` flag
+    const BITMAPS: u64 = 1 << 0;
+    /// Has `RAW_EXTERNAL_DATA` flag
+    const RAW_EXTERNAL_DATA: u64 = 1 << 1;
+
+    /// Determine the feature bits and preserve the original masks.
+    pub(crate) fn from_masks(incompatible: u64, compatible: u64, autoclear: u64) -> Self {
+        Self {
+            incompatible,
+            compatible,
+            autoclear,
+            dirty: incompatible & Self::DIRTY != 0,
+            corrupt: incompatible & Self::CORRUPT != 0,
+            external_data: incompatible & Self::EXTERNAL_DATA != 0,
+            compression_type: incompatible & Self::COMPRESSION != 0,
+            extended_l2: incompatible & Self::EXTENDED_L2 != 0,
+            lazy_refcounts: compatible & Self::LAZY_REFCOUNTS != 0,
+            bitmaps: autoclear & Self::BITMAPS != 0,
+            raw_external_data: autoclear & Self::RAW_EXTERNAL_DATA != 0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::QcowFeatureFlags;
+    use super::QcowReader;
+    use crate::accessor::error::{AccessorError, AccessorResult};
     use miniz_oxide::{
         DataFormat,
         deflate::core::{CompressionStrategy, CompressorOxide, TDEFLFlush, TDEFLStatus, compress},
     };
-
-    use super::QcowReader;
-    use crate::accessor::error::{AccessorError, AccessorResult};
     use std::io::{Cursor, ErrorKind, Read, Seek, SeekFrom};
 
     fn put_u32(bytes: &mut [u8], offset: usize, value: u32) {
@@ -650,5 +782,28 @@ mod tests {
         assert_eq!(&buf[..512], first.as_slice());
         assert_eq!(&buf[512..], second.as_slice());
         assert_eq!(reader.position(), 1024);
+    }
+
+    #[test]
+    fn test_feature_flags_name_known_bits_and_keep_unknown_bits() {
+        let incompatible = (1 << 0) | (1 << 4) | (1 << 10);
+        let compatible = 1 << 0;
+        let autoclear = (1 << 0) | (1 << 1);
+        let flags = QcowFeatureFlags::from_masks(incompatible, compatible, autoclear);
+
+        assert_eq!(flags.incompatible, incompatible);
+        assert_eq!(flags.compatible, compatible);
+        assert_eq!(flags.autoclear, autoclear);
+
+        assert!(flags.dirty);
+        assert!(!flags.corrupt);
+        assert!(!flags.external_data);
+
+        assert!(!flags.compression_type);
+        assert!(flags.extended_l2);
+
+        assert!(flags.lazy_refcounts);
+        assert!(flags.bitmaps);
+        assert!(flags.raw_external_data);
     }
 }

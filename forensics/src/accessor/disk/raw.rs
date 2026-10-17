@@ -5,7 +5,10 @@ use std::{
 };
 
 use crate::accessor::{
-    disk::format::{DiskFormat, DiskImage},
+    disk::{
+        format::{DiskFormat, DiskImage},
+        metadata::{DiskImageDetails, DiskImageMetadata},
+    },
     error::{AccessorError, AccessorResult},
     location::path::is_absolute_host_path,
 };
@@ -48,6 +51,20 @@ impl RawDisk {
     /// Format for this image
     pub(super) fn format(&self) -> DiskFormat {
         self.format
+    }
+
+    /// Disk image metadata for the raw disk
+    pub(super) fn image(&self) -> AccessorResult<DiskImageMetadata> {
+        let file_size = std::fs::metadata(&self.path)
+            .map_err(|err| AccessorError::io_path(&self.path, err))?
+            .len();
+
+        Ok(DiskImageMetadata {
+            format: self.format,
+            file_size,
+            virtual_size: file_size,
+            details: DiskImageDetails::Raw,
+        })
     }
 }
 

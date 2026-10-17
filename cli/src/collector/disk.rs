@@ -151,7 +151,7 @@ mod tests {
             run_disk(command, output());
         }
 
-        json_contains("disk_info_", "Partition0");
+        json_contains("disk_partition_", "Partition0");
         json_contains("disk_boot_", "\"boot_type\":\"none\"");
         json_contains("disk_filesystem_ntfs_", "\"volume_name\":\"test\"");
     }

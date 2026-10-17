@@ -1,5 +1,6 @@
 use crate::accessor::{
     disk::{
+        metadata::DiskImageMetadata,
         qcow::{image::QcowDisk, reader::QcowReader},
         raw::RawDisk,
     },
@@ -47,6 +48,14 @@ impl DiskFormat {
         match self {
             Self::Raw => "raw",
             Self::Qcow => "qcow",
+        }
+    }
+
+    /// Metadata for a disk image
+    pub(crate) fn image(self, path: &Path) -> AccessorResult<DiskImageMetadata> {
+        match self {
+            Self::Raw => RawDisk::new(path)?.image(),
+            Self::Qcow => QcowDisk::new(path)?.image(),
         }
     }
 }

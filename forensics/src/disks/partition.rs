@@ -154,17 +154,17 @@ mod tests {
     fn test_partition_info_logical_ntfs() {
         let image = test_image();
         let source = format!("raw:{}", image.display());
-        let mut manager = manager("disk_info_logical");
+        let mut manager = manager("disk_partition_logical");
         partition_info(&source, &mut manager).unwrap();
         manager.finalize().unwrap();
 
-        let output_dir = PathBuf::from("./tmp/disk_info_logical");
+        let output_dir = PathBuf::from("./tmp/disk_partition_logical");
         let mut jsonl = String::new();
 
         for entry in fs::read_dir(&output_dir).unwrap() {
             let file = entry.unwrap().path();
             let filename = file.file_name().unwrap().to_string_lossy();
-            if filename.starts_with("disk_info_") && filename.ends_with(".jsonl") {
+            if filename.starts_with("disk_partition_") && filename.ends_with(".jsonl") {
                 jsonl.push_str(&fs::read_to_string(&file).unwrap());
             }
         }
@@ -183,12 +183,15 @@ mod tests {
         assert_eq!(record["partition_id"], "Partition0");
         assert_eq!(record["byte_offset"], 0);
         assert_eq!(record["filesystem"], "ntfs");
-        assert_eq!(record["collection_metadata"]["artifact_name"], "disk_info");
+        assert_eq!(
+            record["collection_metadata"]["artifact_name"],
+            "disk_partition"
+        );
     }
 
     #[test]
     fn test_partition_info_relative_source_is_error() {
-        let mut manager = manager("disk_info_relative");
+        let mut manager = manager("disk_partition_relative");
         let err = partition_info("raw:image.raw", &mut manager).unwrap_err();
 
         assert!(matches!(

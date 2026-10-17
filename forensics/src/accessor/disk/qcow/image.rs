@@ -1,6 +1,7 @@
 use crate::accessor::{
     disk::{
         format::{DiskFormat, DiskImage},
+        metadata::{DiskImageDetails, DiskImageMetadata},
         qcow::reader::QcowReader,
     },
     error::{AccessorError, AccessorResult},
@@ -44,6 +45,17 @@ impl QcowDisk {
     /// `DiskFormat` value
     pub(crate) fn format(&self) -> DiskFormat {
         self.format
+    }
+
+    pub(crate) fn image(&self) -> AccessorResult<DiskImageMetadata> {
+        let reader = self.open_reader()?;
+
+        Ok(DiskImageMetadata {
+            format: self.format(),
+            file_size: reader.file_size(),
+            virtual_size: reader.virtual_size(),
+            details: DiskImageDetails::Qcow(reader.image_metadata()),
+        })
     }
 }
 

@@ -5,6 +5,7 @@ use crate::{
             format::{DiskFormat, DiskReader, disk_display_path, disk_root_display},
             identify::{FilesystemKind, IdentifiedPartition, identify_disk},
             inspect::{DiskLayout, DiskPartition, inspect_disk},
+            metadata::DiskImageMetadata,
         },
         entry::{
             handle::{
@@ -91,6 +92,11 @@ impl DiskSource {
             partitions,
             format: self.format,
         })
+    }
+
+    /// Metadata for the disk image
+    pub(crate) fn image(&self) -> AccessorResult<DiskImageMetadata> {
+        self.format.image(&self.path)
     }
 
     /// Read NTFS volume details for one partition
