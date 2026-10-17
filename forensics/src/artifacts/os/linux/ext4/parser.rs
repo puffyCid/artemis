@@ -11,10 +11,7 @@
  *  `https://github.com/Velocidex/velociraptor`
  */
 use crate::{
-    artifacts::os::{
-        linux::ext4::{disks::qcow_ext4, error::Ext4Error},
-        systeminfo::info::get_disks,
-    },
+    artifacts::os::{linux::ext4::error::Ext4Error, systeminfo::info::get_disks},
     filesystem::files::file_extension,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::linux::Ext4Options,
@@ -66,9 +63,7 @@ pub(crate) fn ext4_filelisting(
             filelist: Vec::new(),
             hashing,
         };
-        if options.device.starts_with("qcow://") {
-            return qcow_ext4(&mut options, manager, params);
-        }
+
         let reader = match File::open(&options.device) {
             Ok(result) => result,
             Err(err) => {
