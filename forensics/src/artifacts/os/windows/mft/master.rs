@@ -92,10 +92,20 @@ fn read_mft(
     // https://harelsegev.github.io/posts/resolving-file-paths-using-the-mft/#pitfall-3-extension-records-missing-attributes-and-orphaned-attributes
     while first_pass < 2 {
         while offset < args.size {
-            let header = determine_header_info(offset, reader)?;
             // If our offset is larger than the MFT size. Then we are done
             if offset >= args.size {
                 break;
+            }
+            let Ok(header) = determine_header_info(offset, reader) else {
+                warn!("Could not determine MFR header at offset {offset}");
+                break;
+            };
+
+            // MFT entry size is 0 bytes. Add 1024 to our offset and move on
+            if header.total_size == 0 {
+                let default_entry_size = 1024;
+                offset += default_entry_size;
+                continue;
             }
 
             let record_size = header.total_size as u64;
@@ -107,12 +117,6 @@ fn read_mft(
                 break;
             }
 
-            // MFT entry size is 0 bytes. Add 1024 to our offset and move on
-            if header.total_size == 0 {
-                let default_entry_size = 1024;
-                offset += default_entry_size;
-                continue;
-            }
             // Cache 1000 directories. We use this for quick lookups for FILE entries
             while cache.len() > cache_limit {
                 if let Some(key) = cache.keys().next() {
@@ -518,7 +522,7 @@ fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<Mft
     let header_bytes = match header_bytes_results {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read header bytes: {err:?}");
+            error!("Could not read header bytes at offset {offset}: {err:?}");
             return Err(MftError::EntrySize);
         }
     };
