@@ -1,6 +1,6 @@
 use clap::{Args, Subcommand};
 use forensics::{
-    disks::disk::{disk_boot, disk_filesystem, disk_partition},
+    disks::disk::{disk_boot, disk_filesystem, disk_image, disk_partition},
     structs::toml::{OutputConfig, OutputFormat},
 };
 use std::path::PathBuf;
@@ -45,6 +45,15 @@ pub(crate) enum DiskCommands {
         #[command(flatten)]
         output: DiskOutput,
     },
+    /// Disk image details
+    Image {
+        /// Disk image source. Example: raw:/absolute/path/image.raw
+        #[arg(long)]
+        source: String,
+        /// Flags for output
+        #[command(flatten)]
+        output: DiskOutput,
+    },
 }
 
 /// Run support disk commands
@@ -61,6 +70,10 @@ pub(crate) fn run_disk(command: &DiskCommands, mut config: OutputConfig) {
         DiskCommands::Filesystem { source, output } => {
             disk_output(&mut config, output);
             disk_filesystem(source, config)
+        }
+        DiskCommands::Image { source, output } => {
+            disk_output(&mut config, output);
+            disk_image(source, config)
         }
     };
 
@@ -139,6 +152,13 @@ mod tests {
                 },
             },
             DiskCommands::Filesystem {
+                source: source.clone(),
+                output: super::DiskOutput {
+                    output_dir: String::from("./tmp"),
+                    compress: false,
+                },
+            },
+            DiskCommands::Image {
                 source,
                 output: super::DiskOutput {
                     output_dir: String::from("./tmp"),
@@ -151,9 +171,10 @@ mod tests {
             run_disk(command, output());
         }
 
-        json_contains("disk_info_", "Partition0");
+        json_contains("disk_partition_", "Partition0");
         json_contains("disk_boot_", "\"boot_type\":\"none\"");
         json_contains("disk_filesystem_ntfs_", "\"volume_name\":\"test\"");
+        json_contains("disk_image_", "\"format\":\"Raw\"");
     }
 
     #[test]

@@ -160,6 +160,26 @@ pub(crate) fn nom_u64<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a 
     le_u64::<_, nom::error::Error<_>>(input).map_err(|_err| AccessorError::volume(reason))
 }
 
+/// Nom `be_u8` helper for the Accessor
+pub(crate) fn nom_bu8<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u8)> {
+    be_u8::<_, nom::error::Error<_>>(input).map_err(|_err| AccessorError::volume(reason))
+}
+
+/// Nom `be_u16` helper for the Accessor
+pub(crate) fn nom_bu16<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u16)> {
+    be_u16::<_, nom::error::Error<_>>(input).map_err(|_err| AccessorError::volume(reason))
+}
+
+/// Nom `be_u32` helper for the Accessor
+pub(crate) fn nom_bu32<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u32)> {
+    be_u32::<_, nom::error::Error<_>>(input).map_err(|_err| AccessorError::volume(reason))
+}
+
+/// Nom `be_u64` helper for the Accessor
+pub(crate) fn nom_bu64<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], u64)> {
+    be_u64::<_, nom::error::Error<_>>(input).map_err(|_err| AccessorError::volume(reason))
+}
+
 /// Nom GUID (LE) helper for the Accessor
 pub(crate) fn nom_guid<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], Uuid)> {
     let (input, guid_data) = nom_take(input, 16_u8, reason)?;

@@ -1,4 +1,11 @@
-use crate::accessor::{disk::raw::RawDisk, error::AccessorResult};
+use crate::accessor::{
+    disk::{
+        metadata::DiskImageMetadata,
+        qcow::{image::QcowDisk, reader::QcowReader},
+        raw::RawDisk,
+    },
+    error::AccessorResult,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
@@ -11,6 +18,8 @@ use std::{
 pub(crate) enum DiskFormat {
     /// Raw disk image
     Raw,
+    /// QCOW disk image
+    Qcow,
 }
 
 /// Reader for one logical disk. Each container format adds a variant.
@@ -20,6 +29,7 @@ pub(super) enum DiskReader {
     /// We can just use a normal `BufReader` since raw disk files
     /// have no disk format
     Raw(BufReader<File>),
+    Qcow(Box<QcowReader<File>>),
 }
 
 impl DiskFormat {
@@ -27,6 +37,9 @@ impl DiskFormat {
     pub(super) fn open_reader(self, path: &Path) -> AccessorResult<DiskReader> {
         match self {
             Self::Raw => Ok(DiskReader::Raw(RawDisk::new(path)?.open_reader()?)),
+            Self::Qcow => Ok(DiskReader::Qcow(Box::new(
+                QcowDisk::new(path)?.open_reader()?,
+            ))),
         }
     }
 
@@ -34,6 +47,15 @@ impl DiskFormat {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Raw => "raw",
+            Self::Qcow => "qcow",
+        }
+    }
+
+    /// Metadata for a disk image
+    pub(crate) fn image(self, path: &Path) -> AccessorResult<DiskImageMetadata> {
+        match self {
+            Self::Raw => RawDisk::new(path)?.image(),
+            Self::Qcow => QcowDisk::new(path)?.image(),
         }
     }
 }
@@ -53,6 +75,7 @@ impl Read for DiskReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             Self::Raw(reader) => reader.read(buf),
+            Self::Qcow(reader) => reader.read(buf),
         }
     }
 }
@@ -61,6 +84,7 @@ impl Seek for DiskReader {
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
         match self {
             Self::Raw(reader) => reader.seek(pos),
+            Self::Qcow(reader) => reader.seek(pos),
         }
     }
 }
