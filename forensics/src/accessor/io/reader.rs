@@ -251,7 +251,7 @@ impl AccessorReader {
         self.seek_from_start(offset)?;
 
         let mut buf = vec![0u8; length];
-        Read::read(self, &mut buf)?;
+        Read::read_exact(self, &mut buf)?;
 
         Ok(buf)
     }

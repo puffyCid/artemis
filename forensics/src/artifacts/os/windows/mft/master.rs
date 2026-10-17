@@ -86,18 +86,24 @@ fn read_mft(
     let mut extended_attribs = HashMap::new();
     let mut first_pass = 0;
 
-    // We parse 1000 FILE entries at a time
-    let file_entries = 1;
-
     // We parse the $MFT twice :(
     // First to only get $MFT entries that are extension entries. These entries contain attributes that are part of a real FILE entry but are too large to fit in a single FILE
     // The second pass we parse FILE entries and check our cached extension entries and combine both if there is a match
     // https://harelsegev.github.io/posts/resolving-file-paths-using-the-mft/#pitfall-3-extension-records-missing-attributes-and-orphaned-attributes
     while first_pass < 2 {
-        // Read through the MFT. We read 1000 entries at time
-        while let Ok(header) = determine_header_info(offset, reader) {
+        while offset < args.size {
+            let header = determine_header_info(offset, reader)?;
             // If our offset is larger than the MFT size. Then we are done
-            if offset > args.size {
+            if offset >= args.size {
+                break;
+            }
+
+            let record_size = header.total_size as u64;
+            let remaining = args.size - offset;
+            // Read available MFT records. Max records per read is 1000
+            let records = (remaining / record_size).min(1000);
+
+            if records == 0 {
                 break;
             }
 
@@ -116,19 +122,18 @@ fn read_mft(
                 }
             }
 
+            let read_size = records * record_size;
             // Read 1000 MFT FILE entries
-            let mft_bytes =
-                match reader.read_bytes(offset, file_entries * header.total_size as usize) {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!("Could not read entry bytes: {err:?}");
-                        break;
-                    }
-                };
+            let mft_bytes = match reader.read_bytes(offset, read_size as usize) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("Could not read entry bytes: {err:?}");
+                    break;
+                }
+            };
 
             let mut remaining = mft_bytes.as_slice();
-            println!("mft bytes: {}", mft_bytes.len());
-            // Parse 1000 entries
+            // Parse MFR records entries
             while mft_bytes.len() >= header.total_size as usize && !remaining.is_empty() {
                 // Nom first FILE entry
                 let (input, entry_bytes) = match nom_data(remaining, header.total_size as u64) {
@@ -310,7 +315,7 @@ fn read_mft(
                 }
             }
 
-            offset += file_entries as u64 * header.total_size as u64;
+            offset += read_size;
         }
 
         offset = 0;
@@ -349,13 +354,13 @@ pub(crate) fn lookup_parent(
 
     // If size is zero get FILE entry size of first MFT entry
     let empty = 0;
-    let offset = (tracker.parent_index * tracker.size) as u64;
 
     if tracker.size == empty {
         let header = determine_header_info(0, reader)?;
         tracker.size = header.total_size;
     }
 
+    let offset = (tracker.parent_index * tracker.size) as u64;
     let header = determine_header_info(offset, reader)?;
 
     if (tracker.parent_sequence != header.sequence
@@ -508,8 +513,6 @@ pub(crate) fn lookup_parent(
 
 /// Try to determine FILE entry size by parsing first 48 bytes of the header
 fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<MftHeader, MftError> {
-    println!("offset: {offset}");
-
     let header_size = 48;
     let header_bytes_results = reader.read_bytes(offset, header_size);
     let header_bytes = match header_bytes_results {
