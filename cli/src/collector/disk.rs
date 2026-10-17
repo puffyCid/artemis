@@ -45,6 +45,7 @@ pub(crate) enum DiskCommands {
         #[command(flatten)]
         output: DiskOutput,
     },
+    /// Disk image details
     Image {
         /// Disk image source. Example: raw:/absolute/path/image.raw
         #[arg(long)]
@@ -173,6 +174,7 @@ mod tests {
         json_contains("disk_partition_", "Partition0");
         json_contains("disk_boot_", "\"boot_type\":\"none\"");
         json_contains("disk_filesystem_ntfs_", "\"volume_name\":\"test\"");
+        json_contains("disk_image_", "\"format\":\"Raw\"");
     }
 
     #[test]
