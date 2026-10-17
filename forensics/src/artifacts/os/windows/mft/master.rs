@@ -15,7 +15,10 @@ use crate::{
 };
 use common::files::EntryKind;
 use common::windows::{AttributeFlags, MftEntry, Namespace};
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    io::{Seek, SeekFrom},
+};
 use tracing::{error, warn};
 
 /// Parse the provided $MFT file and try to re-create filelisting
@@ -97,7 +100,7 @@ fn read_mft(
                 break;
             }
             let Ok(header) = determine_header_info(offset, reader) else {
-                warn!("Could not determine MFR header at offset {offset}");
+                warn!("Could not determine MFT header at offset {offset}");
                 break;
             };
 
@@ -137,7 +140,7 @@ fn read_mft(
             };
 
             let mut remaining = mft_bytes.as_slice();
-            // Parse MFR records entries
+            // Parse MFT records entries
             while mft_bytes.len() >= header.total_size as usize && !remaining.is_empty() {
                 // Nom first FILE entry
                 let (input, entry_bytes) = match nom_data(remaining, header.total_size as u64) {
@@ -301,10 +304,12 @@ fn read_mft(
                         parent_index: value.parent_mft,
                         parent_sequence: value.parent_sequence,
                         size: mft_header.total_size,
+                        mft_size: args.size,
                         tracker: HashSet::new(),
                     };
 
-                    let path = lookup_parent(reader, &mut cache, &extended_attribs, &mut tracker)?;
+                    let path = lookup_parent(reader, &mut cache, &extended_attribs, &mut tracker)
+                        .unwrap_or(String::from("$OrphanFiles"));
 
                     mft_entry.full_path = format!("{path}\\{}", value.name);
                     mft_entry.directory = path;
@@ -338,6 +343,7 @@ pub(crate) struct Lookups {
     pub(crate) parent_index: u32,
     pub(crate) parent_sequence: u16,
     pub(crate) size: u32,
+    pub(crate) mft_size: u64,
     pub(crate) tracker: HashSet<String>,
 }
 
@@ -364,7 +370,23 @@ pub(crate) fn lookup_parent(
         tracker.size = header.total_size;
     }
 
+    if tracker.mft_size == 0
+        && let Ok(len) = reader.seek(SeekFrom::End(0))
+    {
+        tracker.mft_size = len;
+    }
+
     let offset = (tracker.parent_index * tracker.size) as u64;
+    let header_size = 48;
+    if tracker.mft_size != 0 && offset.saturating_add(header_size) > tracker.mft_size {
+        warn!(
+            "Parent entry {} is outside the MFT at offset {offset}",
+            tracker.parent_index
+        );
+
+        return Ok(String::from("$OrphanFiles"));
+    }
+
     let header = determine_header_info(offset, reader)?;
 
     if (tracker.parent_sequence != header.sequence
