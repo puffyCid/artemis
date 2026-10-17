@@ -659,11 +659,15 @@ mod tests {
         zip.finish().unwrap();
         let archive = ZipArchive::new(File::open(zip_path).unwrap()).unwrap();
         let name = archive.name_for_index(0).unwrap();
-        assert!(!name.contains(':'));
+        assert!(!name.as_ref().unwrap().contains(':'));
 
         assert!(
-            name.contains("C_\\Windows\\System32\\config\\SOFTWARE")
-                || name.contains("C_/Windows/System32/config/SOFTWARE")
+            name.as_ref()
+                .unwrap()
+                .contains("C_\\Windows\\System32\\config\\SOFTWARE")
+                || name
+                    .unwrap()
+                    .contains("C_/Windows/System32/config/SOFTWARE")
         );
     }
 
@@ -684,7 +688,7 @@ mod tests {
         let archive = ZipArchive::new(File::open(zip_path).unwrap()).unwrap();
         let name = archive.name_for_index(0).unwrap();
 
-        assert!(!name.contains(':'));
-        assert!(name.contains("$Secure_$SDS") || name.contains("$SDS"));
+        assert!(!name.as_ref().unwrap().contains(':'));
+        assert!(name.as_ref().unwrap().contains("$Secure_$SDS") || name.unwrap().contains("$SDS"));
     }
 }
