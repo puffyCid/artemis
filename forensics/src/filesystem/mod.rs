@@ -1,5 +1,4 @@
 pub(crate) mod directory;
-pub(crate) mod disks;
 mod error;
 pub(crate) mod ext4;
 pub(crate) mod files;

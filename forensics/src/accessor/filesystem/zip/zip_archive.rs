@@ -93,7 +93,20 @@ impl ZipIndex {
                 .by_index(index)
                 .map_err(|err| AccessorError::zip(archive_path.clone(), err.to_string()))?;
 
-            let path = ZipFs::normalize_zip_path(entry.name());
+            let name_entry = entry.enclosed_name();
+            if name_entry.is_none() {
+                return Err(AccessorError::zip(
+                    archive_path.clone(),
+                    "Got none name entry",
+                ));
+            }
+
+            let path = ZipFs::normalize_zip_path(
+                name_entry
+                    .unwrap_or(PathBuf::from("Unknown filename"))
+                    .to_str()
+                    .unwrap_or_default(),
+            );
 
             let is_dir = entry.is_dir();
             if !is_dir && !path.is_empty() {
