@@ -1,6 +1,7 @@
 use crate::accessor::disk::{format::DiskFormat, qcow::reader::QcowImageMetadata};
+use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct DiskImageMetadata {
     /// Disk image format
     pub(crate) format: DiskFormat,
@@ -13,7 +14,7 @@ pub(crate) struct DiskImageMetadata {
 }
 
 /// Metadata associated with each disk type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) enum DiskImageDetails {
     /// Raw disks have very minimal metadata
     Raw,

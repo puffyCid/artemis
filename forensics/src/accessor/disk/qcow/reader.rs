@@ -9,6 +9,7 @@ use crate::{
     },
     utils::nom_helper::nom_bu32,
 };
+use serde::Serialize;
 use std::{
     cmp::min,
     io::{self, ErrorKind, Read, Seek, SeekFrom},
@@ -389,7 +390,7 @@ fn checked_seek(base: u64, delta: i64) -> AccessorResult<u64> {
 /// Metadata for a QCOW image
 ///
 /// Most data comes from the header
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct QcowImageMetadata {
     /// QCOW version
     pub(crate) version: QcowVersion,
@@ -422,7 +423,7 @@ pub(crate) struct QcowImageMetadata {
     pub(crate) flags: QcowFeatureFlags,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) struct QcowFeatureFlags {
     /// Incompatible feature bitmask.
     pub(crate) incompatible: u64,

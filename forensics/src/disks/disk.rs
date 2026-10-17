@@ -3,6 +3,7 @@ use crate::{
         bootloader::boot_info,
         error::{DiskCommandError, DiskError},
         filesystem::filesystem_info,
+        image::image_info,
         partition::partition_info,
     },
     output::manager::OutputManager,
@@ -24,6 +25,11 @@ pub fn disk_filesystem(source: &str, output: OutputConfig) -> Result<(), DiskCom
     run(output, |manager| filesystem_info(source, manager))
 }
 
+/// View disk image details
+pub fn disk_image(source: &str, output: OutputConfig) -> Result<(), DiskCommandError> {
+    run(output, |manager| image_info(source, manager))
+}
+
 /// Execute the provided disk command
 fn run(
     output: OutputConfig,
@@ -40,7 +46,7 @@ fn run(
 #[cfg(test)]
 mod tests {
     use crate::{
-        disks::disk::{disk_boot, disk_filesystem, disk_partition},
+        disks::disk::{disk_boot, disk_filesystem, disk_image, disk_partition},
         structs::toml::{OutputConfig, OutputDestination, OutputFormat},
     };
     use std::path::PathBuf;
@@ -82,5 +88,12 @@ mod tests {
         let source = format!("raw:{}", test_image().display());
 
         disk_filesystem(&source, output()).unwrap();
+    }
+
+    #[test]
+    fn test_disk_image() {
+        let source = format!("raw:{}", test_image().display());
+
+        disk_image(&source, output()).unwrap();
     }
 }

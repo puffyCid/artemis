@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 use crate::{
     accessor::error::{AccessorError, AccessorResult},
     utils::nom_helper::{nom_bu8, nom_bu32, nom_bu64, nom_take},
@@ -54,7 +56,7 @@ pub(super) struct QcowHeader {
 /// Location of a backing file associated with the disk
 ///
 /// Backing file is not parsed when parsing the header
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize)]
 pub(crate) struct BackingFile {
     /// Offset to the backing file name in disk
     pub(super) offset: u64,
@@ -65,7 +67,7 @@ pub(crate) struct BackingFile {
 }
 
 /// QCOW disk version
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize)]
 pub(crate) enum QcowVersion {
     /// Version 2. 72 bytes
     V2,
@@ -74,7 +76,7 @@ pub(crate) enum QcowVersion {
 }
 
 /// Encryption used by the QCOW disk
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize)]
 pub(crate) enum Encryption {
     /// Data is not encrypted
     None,
@@ -85,7 +87,7 @@ pub(crate) enum Encryption {
 }
 
 /// Compression used by the QCOW disk
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize)]
 pub(crate) enum Compression {
     /// Data is compressed with zlib
     ///
