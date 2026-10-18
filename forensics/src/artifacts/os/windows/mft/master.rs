@@ -273,6 +273,13 @@ fn read_mft(
                     }
 
                     let root = 5;
+                    if value.parent_mft == root && mft_header.index == root {
+                        mft_entry.full_path = String::from(".");
+                        mft_entry.directory = String::from(".");
+                        entries.push(mft_entry);
+                        continue;
+                    }
+
                     if value.parent_mft == root && mft_header.index != root {
                         mft_entry.full_path = format!(".\\{}", value.name);
                         mft_entry.directory = String::from(".");
