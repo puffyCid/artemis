@@ -455,7 +455,7 @@ pub(crate) fn lookup_parent(
 
                 // Before we continue lookups. Add current parent to tracker
                 // Should help us avoid recursive lookups
-                let tracked = format!("{}_{}", tracker.parent_sequence, tracker.parent_sequence);
+                let tracked = format!("{}_{}", tracker.parent_index, tracker.parent_sequence);
                 tracker.tracker.insert(tracked);
                 tracker.parent_index = parent_filename.parent_mft;
                 tracker.parent_sequence = parent_filename.parent_sequence;
@@ -535,7 +535,7 @@ pub(crate) fn lookup_parent(
 
         // Before we continue lookups. Add current parent to tracker
         // Should help us avoid recursive lookups
-        let tracked = format!("{}_{}", tracker.parent_sequence, tracker.parent_sequence);
+        let tracked = format!("{}_{}", tracker.parent_index, tracker.parent_sequence);
         tracker.tracker.insert(tracked);
         tracker.parent_index = value.parent_mft;
         tracker.parent_sequence = value.parent_sequence;
@@ -552,7 +552,7 @@ pub(crate) fn lookup_parent(
         }
         tracker.tracker.remove(&format!(
             "{}_{}",
-            tracker.parent_sequence, tracker.parent_sequence
+            tracker.parent_index, tracker.parent_sequence
         ));
         return Ok(path);
     }
