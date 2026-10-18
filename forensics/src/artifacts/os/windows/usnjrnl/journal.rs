@@ -101,6 +101,7 @@ impl UsnJrnlFormat {
                     parent_index: parent_mft,
                     parent_sequence: parent_mft_seq,
                     size: 0,
+                    mft_size: 0,
                     tracker: HashSet::new(),
                 };
                 &lookup_parent(reader, &mut cache, &HashMap::new(), &mut tracker)
@@ -217,6 +218,7 @@ impl UsnJrnlFormat {
                         parent_index: parent_mft,
                         parent_sequence: parent_mft_seq,
                         size: 0,
+                        mft_size: 0,
                         tracker: HashSet::new(),
                     };
 

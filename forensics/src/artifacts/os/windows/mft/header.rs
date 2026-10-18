@@ -5,19 +5,19 @@ use crate::utils::nom_helper::{
 #[derive(Debug)]
 pub(crate) struct MftHeader {
     pub(crate) sig: u32,
-    pub(crate) _fix_up_value_offset: u16,
+    pub(crate) fix_up_value_offset: u16,
     pub(crate) fix_up_count: u16,
     pub(crate) _transaction_seq: u64,
     pub(crate) sequence: u16,
     pub(crate) _ref_count: u16,
-    _attrib_offset: u16,
+    pub(crate) attrib_offset: u16,
     pub(crate) entry_flags: Vec<EntryFlags>,
     pub(crate) _used_size: u32,
     pub(crate) total_size: u32,
     pub(crate) mft_base_index: u32,
     pub(crate) mft_base_seq: u16,
-    _first_attrib: u16,
-    _wfixup_patter: u16,
+    first_attrib: u16,
+    wfixup_patter: u16,
     pub(crate) index: u32,
 }
 
@@ -46,30 +46,38 @@ impl MftHeader {
         let (input, mft_base_index) = nom_unsigned_four_bytes(input, Endian::Le)?;
         let (input, _) = nom_unsigned_two_bytes(input, Endian::Le)?;
         let (input, mft_base_seq) = nom_unsigned_two_bytes(input, Endian::Le)?;
+        let (mut remaining, first_attrib) = nom_unsigned_two_bytes(input, Endian::Le)?;
 
-        let (input, first_attrib) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, wfixup_patter) = nom_unsigned_two_bytes(input, Endian::Le)?;
-        let (input, index) = nom_unsigned_four_bytes(input, Endian::Le)?;
-
-        let header = MftHeader {
+        let mut header = MftHeader {
             sig,
-            _fix_up_value_offset: fix_up_value_offset,
+            fix_up_value_offset,
             fix_up_count,
             _transaction_seq: transaction_seq,
             sequence,
             _ref_count: ref_count,
-            _attrib_offset: attrib_offset,
+            attrib_offset,
             entry_flags: MftHeader::get_flags(entry_data),
             _used_size: used_size,
             total_size,
             mft_base_index,
             mft_base_seq,
-            _first_attrib: first_attrib,
-            _wfixup_patter: wfixup_patter,
-            index,
+            first_attrib: 0,
+            wfixup_patter: 0,
+            index: 0,
         };
 
-        Ok((input, header))
+        let record_number_layout = 48;
+        if fix_up_value_offset >= record_number_layout {
+            let (input, wfixup_patter) = nom_unsigned_two_bytes(remaining, Endian::Le)?;
+            let (input, index) = nom_unsigned_four_bytes(input, Endian::Le)?;
+
+            remaining = input;
+            header.first_attrib = first_attrib;
+            header.wfixup_patter = wfixup_patter;
+            header.index = index;
+        }
+
+        Ok((remaining, header))
     }
 
     /// Determine entry flags
@@ -112,6 +120,10 @@ mod tests {
         assert_eq!(result._ref_count, 1);
         assert_eq!(result.mft_base_index, 0);
         assert_eq!(result.entry_flags, vec![EntryFlags::InUse]);
+        assert_eq!(result.fix_up_value_offset, 48);
+        assert_eq!(result.first_attrib, 23);
+        assert_eq!(result.index, 0);
+        assert_eq!(result.attrib_offset, 56);
     }
 
     #[test]
@@ -119,5 +131,19 @@ mod tests {
         let test = 8;
         let result = MftHeader::get_flags(test);
         assert_eq!(result, vec![EntryFlags::Index]);
+    }
+
+    #[test]
+    fn test_parse_header_fixup_offset_42() {
+        let test = [
+            70, 73, 76, 69, 42, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 48, 0, 1, 0, 152, 3,
+            0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 182, 3, 76, 105, 0, 0,
+        ];
+
+        let (_, result) = MftHeader::parse_header(&test).unwrap();
+        assert_eq!(result.fix_up_value_offset, 42);
+        assert_eq!(result.attrib_offset, 48);
+        assert_eq!(result.total_size, 1024);
+        assert_eq!(result.index, 0);
     }
 }

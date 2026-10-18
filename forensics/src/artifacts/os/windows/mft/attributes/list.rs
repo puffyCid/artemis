@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     accessor::io::reader::AccessorReader,
-    artifacts::os::windows::mft::{fixup::Fixup, header::MftHeader},
+    artifacts::os::windows::mft::{header::MftHeader, master::fixed_attributes},
     utils::{
         nom_helper::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,
@@ -99,13 +99,14 @@ impl AttributeList {
                 }
             };
 
-            list.attribute = match AttributeList::grab_list_data(&list_mft, reader) {
-                Ok((_, result)) => result,
-                Err(_err) => {
-                    error!("Failed to parse attribute list bytes");
-                    lists.push(list);
-                    continue;
-                }
+            list.attribute = if let Some(result) =
+                AttributeList::grab_list_data(&list_mft, reader, list.parent_mft)
+            {
+                result
+            } else {
+                error!("Failed to parse attribute list bytes");
+                lists.push(list);
+                continue;
             };
 
             lists.push(list);
@@ -115,20 +116,22 @@ impl AttributeList {
     }
 
     /// Parse each list entry
-    fn grab_list_data<'a>(
-        data: &'a [u8],
+    fn grab_list_data(
+        data: &[u8],
         reader: &mut AccessorReader,
-    ) -> nom::IResult<&'a [u8], EntryAttributes> {
-        let (remaining, header) = MftHeader::parse_header(data)?;
-        let (remaining, fixup) = Fixup::get_fixup(remaining, header.fix_up_count)?;
+        record_number: u32,
+    ) -> Option<EntryAttributes> {
+        let (_, mut header) = MftHeader::parse_header(data).ok()?;
+        if header.index == 0 {
+            header.index = record_number;
+        }
 
-        let mut mft_bytes = remaining.to_vec();
-        Fixup::apply_fixup(&mut mft_bytes, &fixup);
+        let mft_bytes = fixed_attributes(data, &header)?;
 
-        let (remaining, attribute) =
-            grab_attributes(remaining, reader, header.total_size, header.index)?;
+        let (_, attribute) =
+            grab_attributes(&mft_bytes, reader, header.total_size, header.index).ok()?;
 
-        Ok((remaining, attribute))
+        Some(attribute)
     }
 }
 
@@ -167,7 +170,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Eof")]
     fn test_grab_list_data() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/dfir/windows/mft/win11/MFT");
@@ -192,6 +194,6 @@ mod tests {
             .open_reader(test_location.to_str().unwrap())
             .unwrap();
 
-        let _ = AttributeList::grab_list_data(&test, &mut reader).unwrap();
+        assert!(AttributeList::grab_list_data(&test, &mut reader, 9).is_none())
     }
 }

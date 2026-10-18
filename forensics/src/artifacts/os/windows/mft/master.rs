@@ -5,17 +5,21 @@ use super::{
 };
 use crate::{
     accessor::{access::Accessor, entry::handle::GlobMatch, io::reader::AccessorReader},
+    artifacts::os::windows::mft::fixup::apply_fixup,
     utils::time::filetime_to_iso,
 };
 use crate::{
-    artifacts::os::windows::mft::{fixup::Fixup, header::EntryFlags},
+    artifacts::os::windows::mft::header::EntryFlags,
     output::{manager::OutputManager, record::serialize_records_to_stream},
     structs::artifacts::os::windows::MftOptions,
     utils::nom_helper::nom_data,
 };
 use common::files::EntryKind;
 use common::windows::{AttributeFlags, MftEntry, Namespace};
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    io::{Seek, SeekFrom},
+};
 use tracing::{error, warn};
 
 /// Parse the provided $MFT file and try to re-create filelisting
@@ -86,20 +90,20 @@ fn read_mft(
     let mut extended_attribs = HashMap::new();
     let mut first_pass = 0;
 
-    // We parse 1000 FILE entries at a time
-    let file_entries = 1000;
-
     // We parse the $MFT twice :(
     // First to only get $MFT entries that are extension entries. These entries contain attributes that are part of a real FILE entry but are too large to fit in a single FILE
     // The second pass we parse FILE entries and check our cached extension entries and combine both if there is a match
     // https://harelsegev.github.io/posts/resolving-file-paths-using-the-mft/#pitfall-3-extension-records-missing-attributes-and-orphaned-attributes
     while first_pass < 2 {
-        // Read through the MFT. We read 1000 entries at time
-        while let Ok(header) = determine_header_info(offset, reader) {
+        while offset < args.size {
             // If our offset is larger than the MFT size. Then we are done
-            if offset > args.size {
+            if offset >= args.size {
                 break;
             }
+            let Ok(header) = determine_header_info(offset, reader) else {
+                warn!("Could not determine MFT header at offset {offset}");
+                break;
+            };
 
             // MFT entry size is 0 bytes. Add 1024 to our offset and move on
             if header.total_size == 0 {
@@ -107,6 +111,16 @@ fn read_mft(
                 offset += default_entry_size;
                 continue;
             }
+
+            let record_size = header.total_size as u64;
+            let remaining = args.size - offset;
+            // Read available MFT records. Max records per read is 1000
+            let records = (remaining / record_size).min(1000);
+
+            if records == 0 {
+                break;
+            }
+
             // Cache 1000 directories. We use this for quick lookups for FILE entries
             while cache.len() > cache_limit {
                 if let Some(key) = cache.keys().next() {
@@ -116,18 +130,21 @@ fn read_mft(
                 }
             }
 
+            let read_size = records * record_size;
             // Read 1000 MFT FILE entries
-            let mft_bytes =
-                match reader.read_bytes(offset, file_entries * header.total_size as usize) {
-                    Ok(result) => result,
-                    Err(err) => {
-                        error!("Could not read entry bytes: {err:?}");
-                        break;
-                    }
-                };
+            let mft_bytes = match reader.read_bytes(offset, read_size as usize) {
+                Ok(result) => result,
+                Err(err) => {
+                    error!("Could not read entry bytes: {err:?}");
+                    break;
+                }
+            };
 
             let mut remaining = mft_bytes.as_slice();
-            // Parse 1000 entries
+            // Current record offset
+            let mut record_offset = offset;
+
+            // Parse MFT records entries
             while mft_bytes.len() >= header.total_size as usize && !remaining.is_empty() {
                 // Nom first FILE entry
                 let (input, entry_bytes) = match nom_data(remaining, header.total_size as u64) {
@@ -144,10 +161,14 @@ fn read_mft(
                 if entry_bytes.is_empty() {
                     break;
                 }
+
                 // Remaining entries. 1000->999->998->etc
                 remaining = input;
+                let record_number = (record_offset / record_size) as u32;
+                record_offset += record_size;
+
                 let header_results = MftHeader::parse_header(entry_bytes);
-                let (entry_bytes, mft_header) = match header_results {
+                let (_, mut mft_header) = match header_results {
                     Ok(result) => result,
                     Err(err) => {
                         error!("Could not parse header: {err:?}");
@@ -159,7 +180,13 @@ fn read_mft(
                     continue;
                 }
 
-                let fixed_mft_bytes = apply_fixup(entry_bytes, mft_header.fix_up_count)?;
+                if mft_header.index == 0 {
+                    mft_header.index = record_number;
+                }
+
+                let Some(fixed_mft_bytes) = fixed_attributes(entry_bytes, &mft_header) else {
+                    continue;
+                };
                 let mut entry = match grab_attributes(
                     &fixed_mft_bytes,
                     reader,
@@ -246,6 +273,13 @@ fn read_mft(
                     }
 
                     let root = 5;
+                    if value.parent_mft == root && mft_header.index == root {
+                        mft_entry.full_path = String::from(".");
+                        mft_entry.directory = String::from(".");
+                        entries.push(mft_entry);
+                        continue;
+                    }
+
                     if value.parent_mft == root && mft_header.index != root {
                         mft_entry.full_path = format!(".\\{}", value.name);
                         mft_entry.directory = String::from(".");
@@ -291,10 +325,12 @@ fn read_mft(
                         parent_index: value.parent_mft,
                         parent_sequence: value.parent_sequence,
                         size: mft_header.total_size,
+                        mft_size: args.size,
                         tracker: HashSet::new(),
                     };
 
-                    let path = lookup_parent(reader, &mut cache, &extended_attribs, &mut tracker)?;
+                    let path = lookup_parent(reader, &mut cache, &extended_attribs, &mut tracker)
+                        .unwrap_or(String::from("$OrphanFiles"));
 
                     mft_entry.full_path = format!("{path}\\{}", value.name);
                     mft_entry.directory = path;
@@ -309,7 +345,7 @@ fn read_mft(
                 }
             }
 
-            offset += file_entries as u64 * header.total_size as u64;
+            offset += read_size;
         }
 
         offset = 0;
@@ -323,10 +359,12 @@ fn read_mft(
     Ok(())
 }
 
+#[derive(Debug)]
 pub(crate) struct Lookups {
     pub(crate) parent_index: u32,
     pub(crate) parent_sequence: u16,
     pub(crate) size: u32,
+    pub(crate) mft_size: u64,
     pub(crate) tracker: HashSet<String>,
 }
 
@@ -347,13 +385,33 @@ pub(crate) fn lookup_parent(
 
     // If size is zero get FILE entry size of first MFT entry
     let empty = 0;
+
     if tracker.size == empty {
         let header = determine_header_info(0, reader)?;
         tracker.size = header.total_size;
     }
 
+    if tracker.mft_size == 0
+        && let Ok(len) = reader.seek(SeekFrom::End(0))
+    {
+        tracker.mft_size = len;
+    }
+
     let offset = (tracker.parent_index * tracker.size) as u64;
-    let header = determine_header_info(offset, reader)?;
+    let header_size = 48;
+    if tracker.mft_size != 0 && offset.saturating_add(header_size) > tracker.mft_size {
+        warn!(
+            "Parent entry {} is outside the MFT at offset {offset}",
+            tracker.parent_index
+        );
+
+        return Ok(String::from("$OrphanFiles"));
+    }
+
+    let mut header = determine_header_info(offset, reader)?;
+    if header.index == 0 {
+        header.index = tracker.parent_index;
+    }
 
     if (tracker.parent_sequence != header.sequence
         || !header.entry_flags.contains(&EntryFlags::InUse))
@@ -397,7 +455,7 @@ pub(crate) fn lookup_parent(
 
                 // Before we continue lookups. Add current parent to tracker
                 // Should help us avoid recursive lookups
-                let tracked = format!("{}_{}", tracker.parent_sequence, tracker.parent_sequence);
+                let tracked = format!("{}_{}", tracker.parent_index, tracker.parent_sequence);
                 tracker.tracker.insert(tracked);
                 tracker.parent_index = parent_filename.parent_mft;
                 tracker.parent_sequence = parent_filename.parent_sequence;
@@ -423,10 +481,7 @@ pub(crate) fn lookup_parent(
         return Ok(String::from("$OrphanFiles"));
     }
 
-    let header_size = 48;
-    let remaining_size = header.total_size - header_size as u32;
-
-    let entry_bytes = match reader.read_bytes(header_size + offset, remaining_size as usize) {
+    let entry_bytes = match reader.read_bytes(offset, header.total_size as usize) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not read entry bytes: {err:?}");
@@ -434,7 +489,9 @@ pub(crate) fn lookup_parent(
         }
     };
 
-    let mft_bytes = apply_fixup(&entry_bytes, header.fix_up_count)?;
+    let Some(mft_bytes) = fixed_attributes(&entry_bytes, &header) else {
+        return Ok(String::from("$OrphanFiles"));
+    };
 
     let entry = match grab_attributes(&mft_bytes, reader, header.total_size, header.index) {
         Ok((_, result)) => result,
@@ -453,6 +510,10 @@ pub(crate) fn lookup_parent(
         }
         let root = 5;
         if value.parent_mft == root && value.file_attributes.contains(&AttributeFlags::Directory) {
+            if tracker.parent_index == root {
+                return Ok(String::from("."));
+            }
+
             return Ok(format!(".\\{}", value.name));
         }
 
@@ -474,8 +535,8 @@ pub(crate) fn lookup_parent(
 
         // Before we continue lookups. Add current parent to tracker
         // Should help us avoid recursive lookups
-        let tracked = format!("{}_{}", tracker.parent_sequence, tracker.parent_sequence);
-        tracker.tracker.insert(tracked);
+        let tracked = format!("{}_{}", tracker.parent_index, tracker.parent_sequence);
+        tracker.tracker.insert(tracked.clone());
         tracker.parent_index = value.parent_mft;
         tracker.parent_sequence = value.parent_sequence;
 
@@ -489,10 +550,7 @@ pub(crate) fn lookup_parent(
                 path.clone(),
             );
         }
-        tracker.tracker.remove(&format!(
-            "{}_{}",
-            tracker.parent_sequence, tracker.parent_sequence
-        ));
+        tracker.tracker.remove(&tracked);
         return Ok(path);
     }
 
@@ -510,7 +568,7 @@ fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<Mft
     let header_bytes = match header_bytes_results {
         Ok(result) => result,
         Err(err) => {
-            error!("Could not read header bytes: {err:?}");
+            error!("Could not read header bytes at offset {offset}: {err:?}");
             return Err(MftError::EntrySize);
         }
     };
@@ -528,19 +586,23 @@ fn determine_header_info(offset: u64, reader: &mut AccessorReader) -> Result<Mft
 }
 
 /// Apply fixup values to the FILE entry to ensure accurate data
-fn apply_fixup(data: &[u8], count: u16) -> Result<Vec<u8>, MftError> {
-    let (entry_bytes, fixup) = match Fixup::get_fixup(data, count) {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not parse mft fixup values: {err:?}");
-            return Err(MftError::EntrySize);
-        }
-    };
+pub(super) fn fixed_attributes(record: &[u8], header: &MftHeader) -> Option<Vec<u8>> {
+    let mut mft_bytes = record.to_vec();
+    if !apply_fixup(
+        &mut mft_bytes,
+        header.fix_up_value_offset,
+        header.fix_up_count,
+    ) {
+        return None;
+    }
 
-    let mut mft_bytes = entry_bytes.to_vec();
-    Fixup::apply_fixup(&mut mft_bytes, &fixup);
+    let attrib_offset = header.attrib_offset as usize;
+    if attrib_offset >= mft_bytes.len() {
+        error!("MFT attribute offset {attrib_offset} is outside the record");
+        return None;
+    }
 
-    Ok(mft_bytes)
+    Some(mft_bytes.split_off(attrib_offset))
 }
 
 /// Output MFT data. Due to size of $MFT we will output every 10k entries we parse
@@ -648,5 +710,54 @@ mod tests {
         let mut accessor = Accessor::with_defaults();
         let paths = accessor.globfs(test_location.to_str().unwrap()).unwrap();
         parse_mft(paths, &mut output, &options, "").unwrap();
+    }
+
+    #[test]
+    fn test_parse_mft_qcow_user_files() {
+        let mut image = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        image.push("tests/test_data/disks/qcow/ntfs.qcow");
+
+        let name = "mft_qcow_test";
+        let output_dir = PathBuf::from("./tmp").join(name);
+        let _ = std::fs::remove_dir_all(&output_dir);
+
+        let mut output = output_options(name, "./tmp", false);
+        let options = MftOptions {
+            alt_drive: None,
+            alt_file: None,
+        };
+        let mut accessor = Accessor::with_defaults();
+        let paths = accessor
+            .globfs(&format!("qcow:{}!$MFT", image.display()))
+            .unwrap();
+        assert_eq!(paths.len(), 1);
+        parse_mft(paths, &mut output, &options, "").unwrap();
+
+        let mut full_paths = Vec::new();
+        for file in std::fs::read_dir(&output_dir).unwrap() {
+            let file = file.unwrap().path();
+            if file.extension().is_none_or(|ext| ext != "jsonl") {
+                continue;
+            }
+            for line in std::fs::read_to_string(&file).unwrap().lines() {
+                let value: serde_json::Value = serde_json::from_str(line).unwrap();
+                if let Some(path) = value["full_path"].as_str() {
+                    full_paths.push(path.to_string());
+                }
+            }
+        }
+
+        for expected in [
+            ".\\main.ts",
+            ".\\Cargo.toml",
+            ".\\README.md",
+            ".\\hello",
+            ".\\hello\\hello world.txt",
+        ] {
+            assert!(
+                full_paths.iter().any(|path| path == expected),
+                "missing {expected} in {full_paths:?}"
+            );
+        }
     }
 }
