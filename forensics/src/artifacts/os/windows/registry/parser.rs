@@ -154,6 +154,7 @@ fn alt_registry(
         let Some(handle) = reg_path.handle.as_file() else {
             continue;
         };
+        params.registry_path = handle.display_path();
 
         info!("Reading registry file '{}'", handle.display_path());
         let bytes = read_registry_handle(handle)?;
