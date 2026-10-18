@@ -387,7 +387,7 @@ pub(crate) fn lookup_parent(
     let empty = 0;
 
     if tracker.size == empty {
-        let mut header = determine_header_info(0, reader)?;
+        let header = determine_header_info(0, reader)?;
         tracker.size = header.total_size;
     }
 
