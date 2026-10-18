@@ -411,7 +411,10 @@ pub(crate) fn lookup_parent(
         return Ok(String::from("$OrphanFiles"));
     }
 
-    let header = determine_header_info(offset, reader)?;
+    let mut header = determine_header_info(offset, reader)?;
+    if header.index == 0 {
+        header.index = tracker.parent_index;
+    }
 
     if (tracker.parent_sequence != header.sequence
         || !header.entry_flags.contains(&EntryFlags::InUse))
