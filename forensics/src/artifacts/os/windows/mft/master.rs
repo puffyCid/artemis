@@ -536,7 +536,7 @@ pub(crate) fn lookup_parent(
         // Before we continue lookups. Add current parent to tracker
         // Should help us avoid recursive lookups
         let tracked = format!("{}_{}", tracker.parent_index, tracker.parent_sequence);
-        tracker.tracker.insert(tracked);
+        tracker.tracker.insert(tracked.clone());
         tracker.parent_index = value.parent_mft;
         tracker.parent_sequence = value.parent_sequence;
 
@@ -550,10 +550,7 @@ pub(crate) fn lookup_parent(
                 path.clone(),
             );
         }
-        tracker.tracker.remove(&format!(
-            "{}_{}",
-            tracker.parent_index, tracker.parent_sequence
-        ));
+        tracker.tracker.remove(&tracked);
         return Ok(path);
     }
 
