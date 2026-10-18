@@ -510,6 +510,10 @@ pub(crate) fn lookup_parent(
         }
         let root = 5;
         if value.parent_mft == root && value.file_attributes.contains(&AttributeFlags::Directory) {
+            if tracker.parent_index == root {
+                return Ok(String::from("."));
+            }
+
             return Ok(format!(".\\{}", value.name));
         }
 
