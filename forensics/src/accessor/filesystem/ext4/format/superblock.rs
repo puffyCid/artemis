@@ -15,218 +15,218 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SuperBlock {
     /// Total inode coount
-    pub(super) inodes_count: u32,
+    pub(crate) inodes_count: u32,
     /// Total block count
-    pub(super) blocks_count_low: u32,
+    pub(crate) blocks_count_low: u32,
     /// Number of blocks that can only be allocated by the superuser
-    pub(super) reserved_blocks_count_low: u32,
+    pub(crate) reserved_blocks_count_low: u32,
     /// Free blocks count
-    pub(super) free_blocks_count_low: u32,
+    pub(crate) free_blocks_count_low: u32,
     /// Free inods count
-    pub(super) free_inodes_count: u32,
+    pub(crate) free_inodes_count: u32,
     /// First data block. Must be at least 1 for 1k block filesystem
     ///
     /// Otherwise 0 for all other block sizes
-    pub(super) first_data_block: u32,
-    /// Log size
-    pub(super) log_block_size: u32,
-    /// Log size
-    pub(super) log_cluster_size: u32,
+    pub(crate) first_data_block: u32,
+    /// Log exponent size
+    pub(crate) log_block_size: u32,
+    /// Log exponent size
+    pub(crate) log_cluster_size: u32,
     /// Blocks per group
-    pub(super) blocks_per_group: u32,
+    pub(crate) blocks_per_group: u32,
     /// Clusters per group, if big alloc flag is enabled.
     ///
     /// Otherwise clusters_per_group must equal blocks_per_group.
-    pub(super) clusters_per_group: u32,
+    pub(crate) clusters_per_group: u32,
     /// Inodes per group
-    pub(super) inodes_per_group: u32,
+    pub(crate) inodes_per_group: u32,
     /// Last mount time in UNIXEPOCH seconds
-    pub(super) mount_time: u32,
+    pub(crate) mount_time: u32,
     /// Last write time in UNIXEPOCH seconds
-    pub(super) write_time: u32,
+    pub(crate) write_time: u32,
     /// Number of mounts since last fsck
-    pub(super) mount_count: u16,
+    pub(crate) mount_count: u16,
     /// Number of mounts beyond which a fsck is needed
-    pub(super) max_mount_count: u16,
+    pub(crate) max_mount_count: u16,
     /// EXT4 signature. 0xEF53
-    pub(super) magic: u16,
+    pub(crate) magic: u16,
     /// Filesystem state
-    pub(super) state: u16,
+    pub(crate) state: u16,
     /// Behavior when detecting errors
-    pub(super) errors: u16,
+    pub(crate) errors: u16,
     /// Minor revision level for the ext4 filesystem
-    pub(super) minor_revision: u16,
+    pub(crate) minor_revision: u16,
     /// Time since last check in UNIXEPOCH seconds
-    pub(super) last_check: u32,
+    pub(crate) last_check: u32,
     /// Maximum time between checks in seconds
-    pub(super) check_interval: u32,
+    pub(crate) check_interval: u32,
     /// OS associated with ext4 creation
-    pub(super) creator_os: u32,
+    pub(crate) creator_os: u32,
     /// Revision level for the ext4 filesystem
-    pub(super) revision: u32,
+    pub(crate) revision: u32,
     /// Default UID for reserved blocks
-    pub(super) default_reserved_uid: u16,
+    pub(crate) default_reserved_uid: u16,
     /// Default GID for reserved blocks
-    pub(super) default_reserved_gid: u16,
+    pub(crate) default_reserved_gid: u16,
     /// First non-reserved inode
-    pub(super) first_inode: u32,
+    pub(crate) first_inode: u32,
     /// Size of inode structure in bytes
-    pub(super) inode_size: u16,
+    pub(crate) inode_size: u16,
     /// Block group number of this superblock
-    pub(super) block_group_number: u16,
+    pub(crate) block_group_number: u16,
     /// Compatible feature set flags
-    pub(super) compatible_features: u32,
+    pub(crate) compatible_features: u32,
     /// Incompatible feature set flags
-    pub(super) incompatible_features: u32,
+    pub(crate) incompatible_features: u32,
     /// Readonly compatible freature set
-    pub(super) read_only_features: u32,
+    pub(crate) read_only_features: u32,
     /// UUID for the volume
-    pub(super) uuid: [u8; 16],
+    pub(crate) uuid: [u8; 16],
     /// Volume name
-    pub(super) volume_name_raw: [u8; 16],
+    pub(crate) volume_name_raw: [u8; 16],
     /// Directory where the filesystem was last mounted
-    pub(super) last_mounted_raw: [u8; 64],
+    pub(crate) last_mounted_raw: [u8; 64],
     /// Compression algorithm
-    pub(super) algorithm_usage_bitmap: u32,
+    pub(crate) algorithm_usage_bitmap: u32,
     /// Number of blocks to try to preallocate for files
-    pub(super) prealloc_blocks: u8,
+    pub(crate) prealloc_blocks: u8,
     /// Number of blocks to try to preallocated for directories
-    pub(super) prealloc_dir_blocks: u8,
+    pub(crate) prealloc_dir_blocks: u8,
     /// Number of reserved GDT entries for filesystem expansion
-    pub(super) reserved_gdt_blocks: u16,
+    pub(crate) reserved_gdt_blocks: u16,
     /// UUID of the journal superblock
-    pub(super) journal_uuid: [u8; 16],
+    pub(crate) journal_uuid: [u8; 16],
     /// Inode number of the journal file
-    pub(super) journal_inode: u32,
+    pub(crate) journal_inode: u32,
     /// Device number of the journal file
-    pub(super) journal_device: u32,
+    pub(crate) journal_device: u32,
     /// Start of list of orphaned inodes to delete
-    pub(super) last_orphan: u32,
+    pub(crate) last_orphan: u32,
     /// Hash tree seed
-    pub(super) hash_seed: [u32; 4],
+    pub(crate) hash_seed: [u32; 4],
     /// Hash algorithm to use for directory hashes
-    pub(super) default_hash_version: u8,
+    pub(crate) default_hash_version: u8,
     /// If this value is 0 or 1 then journal blocks contains
     /// duplicate copy of inode block and size
-    pub(super) journal_backup_type: u8,
+    pub(crate) journal_backup_type: u8,
     /// Size of group descriptors in bytes
-    pub(super) descriptor_size: u16,
+    pub(crate) descriptor_size: u16,
     /// Default mount options
-    pub(super) default_mount_options: u32,
+    pub(crate) default_mount_options: u32,
     /// First metablock block group
-    pub(super) first_meta_block_group: u32,
+    pub(crate) first_meta_block_group: u32,
     /// When filesystem was created in UNIXEPOCH seconds
-    pub(super) creation_time: u32,
+    pub(crate) creation_time: u32,
     /// Backup copy of the journal inode block array
-    pub(super) journal_blocks: [u32; 17],
+    pub(crate) journal_blocks: [u32; 17],
     /// High 32 bits of the block count
-    pub(super) blocks_count_high: u32,
+    pub(crate) blocks_count_high: u32,
     /// High 32 bits of the reserved block count
-    pub(super) reserved_blocks_count_high: u32,
+    pub(crate) reserved_blocks_count_high: u32,
     /// High 32 bits of the free block count
-    pub(super) free_blocks_count_high: u32,
+    pub(crate) free_blocks_count_high: u32,
     /// All inodes have least provided bytes
-    pub(super) min_extra_inode_size: u16,
+    pub(crate) min_extra_inode_size: u16,
     /// New inodes should reserve provide bytes
-    pub(super) wanted_extra_inode_size: u16,
+    pub(crate) wanted_extra_inode_size: u16,
     /// Misc flags
-    pub(super) flags: u32,
+    pub(crate) flags: u32,
     /// RAID stride
-    pub(super) raid_stride: u16,
+    pub(crate) raid_stride: u16,
     /// Number of seconds to wait in multi-mount prevention
-    pub(super) mmp_interval: u16,
+    pub(crate) mmp_interval: u16,
     /// Block number for multi-mount protection data
-    pub(super) mmp_block: u64,
+    pub(crate) mmp_block: u64,
     /// RAID stripe width
-    pub(super) raid_stripe_width: u32,
+    pub(crate) raid_stripe_width: u32,
     /// Size of a flexible block group
-    pub(super) log_groups_per_flex: u8,
+    pub(crate) log_groups_per_flex: u8,
     /// Metadata checksum algorithm
-    pub(super) checksum_type: u8,
+    pub(crate) checksum_type: u8,
     /// Versioning level for encryption
-    pub(super) encryption_level: u8,
+    pub(crate) encryption_level: u8,
     /// Padding to next 32 bits
-    pub(super) reserved_padding: u8,
+    pub(crate) reserved_padding: u8,
     /// Number of kilobytes written to this filesystem
     /// over its lifetime
-    pub(super) kilobytes_written: u64,
+    pub(crate) kilobytes_written: u64,
     /// Inode number of the active snapshot
-    pub(super) snapshot_inode: u32,
+    pub(crate) snapshot_inode: u32,
     /// Sequential ID of active snapshot
-    pub(super) snapshot_id: u32,
+    pub(crate) snapshot_id: u32,
     /// Number of blocks reserved for active snapshots future
     /// use
-    pub(super) snapshot_reserved_blocks: u64,
+    pub(crate) snapshot_reserved_blocks: u64,
     /// Inode number of the head of the on-disk snapshot list
-    pub(super) snapshot_list: u32,
+    pub(crate) snapshot_list: u32,
     /// Number of errors seen
-    pub(super) error_count: u32,
+    pub(crate) error_count: u32,
     /// First time an error happened in UNIXEPOCH seconds
-    pub(super) first_error_time: u32,
+    pub(crate) first_error_time: u32,
     /// Inode involved in the first error
-    pub(super) first_error_inode: u32,
+    pub(crate) first_error_inode: u32,
     // Number of block involved of first error
-    pub(super) first_error_block: u64,
+    pub(crate) first_error_block: u64,
     /// Name of function where error happened
-    pub(super) first_error_function: [u8; 32],
+    pub(crate) first_error_function: [u8; 32],
     /// Line number where error happened
-    pub(super) first_error_line: u32,
+    pub(crate) first_error_line: u32,
     /// Time of most recent error UNIXEPOCH seconds
-    pub(super) last_error_time: u32,
+    pub(crate) last_error_time: u32,
     /// Inode involved in most recent error
-    pub(super) last_error_inode: u32,
+    pub(crate) last_error_inode: u32,
     /// Line number where error happened
-    pub(super) last_error_line: u32,
+    pub(crate) last_error_line: u32,
     /// Number of block involved in most recent error
-    pub(super) last_error_block: u64,
+    pub(crate) last_error_block: u64,
     /// Name of function where error happened
-    pub(super) last_error_function: [u8; 32],
+    pub(crate) last_error_function: [u8; 32],
     /// ASCII string of mount options
-    pub(super) mount_options_raw: [u8; 64],
+    pub(crate) mount_options_raw: [u8; 64],
     /// Inode number of user quota file
-    pub(super) user_quota_inode: u32,
+    pub(crate) user_quota_inode: u32,
     /// Inode number of group quota file
-    pub(super) group_quota_inode: u32,
+    pub(crate) group_quota_inode: u32,
     /// Overhead blocks in filesystem
-    pub(super) overhead_blocks: u32,
+    pub(crate) overhead_blocks: u32,
     /// Block groups containing superblock backup
-    pub(super) backup_block_groups: [u32; 2],
+    pub(crate) backup_block_groups: [u32; 2],
     /// Encryption algorithm used
-    pub(super) encryption_algorithms: [u8; 4],
+    pub(crate) encryption_algorithms: [u8; 4],
     /// Salt for algorithm key
-    pub(super) encryption_password_salt: [u8; 16],
+    pub(crate) encryption_password_salt: [u8; 16],
     /// Inode number of lost+found
-    pub(super) lost_and_found_inode: u32,
+    pub(crate) lost_and_found_inode: u32,
     /// Inode that tracks project quotas
-    pub(super) project_quota_inode: u32,
+    pub(crate) project_quota_inode: u32,
     /// Checksum seed used for metadata CSUM calculations
-    pub(super) checksum_seed: u32,
+    pub(crate) checksum_seed: u32,
     /// Upper 8 bits of write time
-    pub(super) write_time_high: u8,
+    pub(crate) write_time_high: u8,
     /// Upper 8 bits of mount time
-    pub(super) mount_time_high: u8,
+    pub(crate) mount_time_high: u8,
     /// Upper 8 bits of creation time
-    pub(super) creation_time_high: u8,
+    pub(crate) creation_time_high: u8,
     /// Upper 8 bits of last check time
-    pub(super) last_check_high: u8,
+    pub(crate) last_check_high: u8,
     /// Upper 8 bits of first error time
-    pub(super) first_error_time_high: u8,
+    pub(crate) first_error_time_high: u8,
     /// Upper 8 bits of last error time
-    pub(super) last_error_time_high: u8,
+    pub(crate) last_error_time_high: u8,
     /// First error code
-    pub(super) first_error_code: u8,
+    pub(crate) first_error_code: u8,
     /// Last error code
-    pub(super) last_error_code: u8,
+    pub(crate) last_error_code: u8,
     /// Filename encoding
-    pub(super) encoding: u16,
+    pub(crate) encoding: u16,
     /// Filename encoding flags
-    pub(super) encoding_flags: u16,
+    pub(crate) encoding_flags: u16,
     /// Orphan file inode number
-    pub(super) orphan_file_inode: u32,
+    pub(crate) orphan_file_inode: u32,
     /// Padding to end of the block
     reserved: [u8; 376],
     /// Superblock checksum
-    pub(super) checksum: u32,
+    pub(crate) checksum: u32,
 }
 
 impl SuperBlock {
@@ -234,41 +234,41 @@ impl SuperBlock {
      * Superblock incompatible feature flags
      */
     /// Compression flag
-    pub(super) const COMPRESSION: u32 = 0x1;
+    pub(crate) const COMPRESSION: u32 = 0x1;
     /// Directory entries record the file type
-    pub(super) const FILETYPE: u32 = 0x2;
+    pub(crate) const FILETYPE: u32 = 0x2;
     /// Filesystem needs recovery
-    pub(super) const RECOVER: u32 = 0x4;
+    pub(crate) const RECOVER: u32 = 0x4;
     /// Filesystem has separate journal device
-    pub(super) const JOURNAL_DEV: u32 = 0x8;
+    pub(crate) const JOURNAL_DEV: u32 = 0x8;
     /// Meta block groups
-    pub(super) const META_BG: u32 = 0x10;
+    pub(crate) const META_BG: u32 = 0x10;
     /// Files in the filesystem use extents
-    pub(super) const EXTENTS: u32 = 0x40;
+    pub(crate) const EXTENTS: u32 = 0x40;
     /// Enable a filesystem size of 2^64 blocks
-    pub(super) const BIT64: u32 = 0x80;
+    pub(crate) const BIT64: u32 = 0x80;
     /// Multiple mount protection
-    pub(super) const MMP: u32 = 0x100;
+    pub(crate) const MMP: u32 = 0x100;
     /// Flexible block groups
-    pub(super) const FLEX_BG: u32 = 0x200;
+    pub(crate) const FLEX_BG: u32 = 0x200;
     /// Inodes can be used to store large extended
     /// attribute values
-    pub(super) const EA_INODE: u32 = 0x400;
+    pub(crate) const EA_INODE: u32 = 0x400;
     /// Data in directory entry
-    pub(super) const DIR_DATA: u32 = 0x1000;
+    pub(crate) const DIR_DATA: u32 = 0x1000;
     /// Metadata checksum seed is store in superblock
-    pub(super) const CSUM_SEED: u32 = 0x2000;
+    pub(crate) const CSUM_SEED: u32 = 0x2000;
     /// Large directory (larger than 2 GB)
-    pub(super) const LARGE_DIR: u32 = 0x4000;
+    pub(crate) const LARGE_DIR: u32 = 0x4000;
     /// Data in inode
-    pub(super) const INLINE_DATA: u32 = 0x8000;
+    pub(crate) const INLINE_DATA: u32 = 0x8000;
     /// Encrypted indoes can be present
-    pub(super) const ENCRYPT: u32 = 0x10000;
+    pub(crate) const ENCRYPT: u32 = 0x10000;
     /// Directories can be marked case insensitive
-    pub(super) const CASEFOLD: u32 = 0x20000;
+    pub(crate) const CASEFOLD: u32 = 0x20000;
 
     /// List of all known incompatible flags
-    pub(super) const KNOWN: u32 = Self::COMPRESSION
+    pub(crate) const KNOWN: u32 = Self::COMPRESSION
         | Self::FILETYPE
         | Self::RECOVER
         | Self::JOURNAL_DEV
@@ -289,70 +289,70 @@ impl SuperBlock {
      * Superblock compatible feature flags
      */
     /// Directory preallocation flag
-    pub(super) const DIR_PREALLOC: u32 = 0x1;
+    pub(crate) const DIR_PREALLOC: u32 = 0x1;
     /// Imagic Inodes flag
-    pub(super) const IMAGIC_INODES: u32 = 0x0002;
+    pub(crate) const IMAGIC_INODES: u32 = 0x0002;
     /// Has a journal flag
-    pub(super) const HAS_JOURNAL: u32 = 0x0004;
+    pub(crate) const HAS_JOURNAL: u32 = 0x0004;
     /// Supports extended attributes
-    pub(super) const EXT_ATTR: u32 = 0x0008;
+    pub(crate) const EXT_ATTR: u32 = 0x0008;
     /// Has reserved GDT blocks for filesystem expansion
-    pub(super) const RESIZE_INODE: u32 = 0x0010;
+    pub(crate) const RESIZE_INODE: u32 = 0x0010;
     /// Has directory indexes
-    pub(super) const DIR_INDEX: u32 = 0x0020;
+    pub(crate) const DIR_INDEX: u32 = 0x0020;
     /// Lazy BG flag
-    pub(super) const LAZY_BG: u32 = 0x0040;
+    pub(crate) const LAZY_BG: u32 = 0x0040;
     /// Exclude inode flag. Not used
-    pub(super) const EXCLUDE_INODE: u32 = 0x0080;
+    pub(crate) const EXCLUDE_INODE: u32 = 0x0080;
     /// Exclude bitmap flag
-    pub(super) const EXCLUDE_BITMAP: u32 = 0x0100;
+    pub(crate) const EXCLUDE_BITMAP: u32 = 0x0100;
     /// Sparse superblock version 2 flag
-    pub(super) const SPARSE_SUPER2: u32 = 0x0200;
+    pub(crate) const SPARSE_SUPER2: u32 = 0x0200;
     /// Fast commits supported
-    pub(super) const FAST_COMMIT: u32 = 0x0400;
+    pub(crate) const FAST_COMMIT: u32 = 0x0400;
     /// Stable inode numbers. Used for encryption
-    pub(super) const STABLE_INODES: u32 = 0x0800;
+    pub(crate) const STABLE_INODES: u32 = 0x0800;
     /// Orphan file allocated flag
-    pub(super) const ORPHAN_FILE: u32 = 0x1000;
+    pub(crate) const ORPHAN_FILE: u32 = 0x1000;
 
     /**
      * Superblock read-only feature flags
      */
     /// Sparse superblocks
-    pub(super) const SPARSE_SUPER: u32 = 0x0001;
+    pub(crate) const SPARSE_SUPER: u32 = 0x0001;
     /// Filesystem has been used to store a file greater than 2GB
-    pub(super) const LARGE_FILE: u32 = 0x0002;
+    pub(crate) const LARGE_FILE: u32 = 0x0002;
     /// Unused
-    pub(super) const BTREE_DIR: u32 = 0x0004;
+    pub(crate) const BTREE_DIR: u32 = 0x0004;
     /// Filesystem has files whose sizes are represented in units of
     /// logical blocks and not 512 byte sectors
-    pub(super) const HUGE_FILE: u32 = 0x0008;
+    pub(crate) const HUGE_FILE: u32 = 0x0008;
     /// Group descriptors have checksums
-    pub(super) const GDT_CSUM: u32 = 0x0010;
+    pub(crate) const GDT_CSUM: u32 = 0x0010;
     /// Old ext3 subdirectory no longer applies
-    pub(super) const DIR_NLINK: u32 = 0x0020;
+    pub(crate) const DIR_NLINK: u32 = 0x0020;
     /// Large inodes exist
-    pub(super) const EXTRA_ISIZE: u32 = 0x0040;
+    pub(crate) const EXTRA_ISIZE: u32 = 0x0040;
     /// Filesystem has a snapshot
-    pub(super) const HAS_SNAPSHOT: u32 = 0x0080;
+    pub(crate) const HAS_SNAPSHOT: u32 = 0x0080;
     /// Quota flag
-    pub(super) const QUOTA: u32 = 0x0100;
+    pub(crate) const QUOTA: u32 = 0x0100;
     /// Filesystem supports big alloc
-    pub(super) const BIGALLOC: u32 = 0x0200;
+    pub(crate) const BIGALLOC: u32 = 0x0200;
     /// Filesystem supports metadata checksumming
-    pub(super) const METADATA_CSUM: u32 = 0x0400;
+    pub(crate) const METADATA_CSUM: u32 = 0x0400;
     /// Filesystem supports replicas
-    pub(super) const REPLICA: u32 = 0x0800;
+    pub(crate) const REPLICA: u32 = 0x0800;
     /// Read only filesystem
-    pub(super) const READONLY: u32 = 0x1000;
+    pub(crate) const READONLY: u32 = 0x1000;
     /// Filesystem tracks project quotas
-    pub(super) const PROJECT: u32 = 0x2000;
+    pub(crate) const PROJECT: u32 = 0x2000;
     /// Used by Android ext4?
-    pub(super) const SHARED_BLOCKS: u32 = 0x4000;
+    pub(crate) const SHARED_BLOCKS: u32 = 0x4000;
     /// Verity inodes may be present
-    pub(super) const VERITY: u32 = 0x8000;
+    pub(crate) const VERITY: u32 = 0x8000;
     /// Indicates orphan file may have valid orphan entries
-    pub(super) const ORPHAN_PRESENT: u32 = 0x10000;
+    pub(crate) const ORPHAN_PRESENT: u32 = 0x10000;
 
     /// Return whether a compatible feature bit is set
     pub(crate) fn has_compatible(&self, feature: u32) -> bool {
