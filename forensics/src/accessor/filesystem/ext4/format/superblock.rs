@@ -28,7 +28,7 @@ pub(crate) struct SuperBlock {
     ///
     /// Otherwise 0 for all other block sizes
     first_data_block: u32,
-    /// Block size for log
+    /// Log size value
     log_block_size: u32,
     /// Cluster size for log
     log_cluster_size: u32,
@@ -213,9 +213,9 @@ pub(crate) struct SuperBlock {
     first_error_time_high: u8,
     /// Upper 8 bits of last error time
     last_error_time_high: u8,
-    /// Upper 8 bits of first error code
+    /// First error code
     first_error_code: u8,
-    /// Upper 8 bits of last error code
+    /// Last error code
     last_error_code: u8,
     /// Filename encoding
     encoding: u16,
@@ -435,8 +435,8 @@ impl SuperBlock {
     /// Combine low and high free block counts based on 64-bit feature flag
     pub(crate) fn free_blocks_count(&self) -> u64 {
         combine_u32(
-            self.reserved_blocks_count_low,
-            self.reserved_blocks_count_high,
+            self.free_blocks_count_low,
+            self.free_blocks_count_high,
             self.has_incompatible(Self::BIT64),
         )
     }
@@ -487,7 +487,7 @@ pub(crate) fn parse_superblock(data: &[u8]) -> AccessorResult<SuperBlock> {
     let (input, mount_time) = nom_u32(input, "superblock mount time is truncated")?;
     let (input, write_time) = nom_u32(input, "superblock write time is truncated")?;
 
-    let (input, mount_count) = nom_u16(input, "superblock max mount count is truncated")?;
+    let (input, mount_count) = nom_u16(input, "superblock mount count is truncated")?;
     let (input, max_mount_count) = nom_u16(input, "superblock maximum mount count is truncated")?;
     let (input, magic) = nom_u16(input, "superblock magic is truncated")?;
 
