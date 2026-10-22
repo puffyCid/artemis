@@ -28,12 +28,12 @@ pub(crate) struct SuperBlock {
     ///
     /// Otherwise 0 for all other block sizes
     first_data_block: u32,
-    /// Log size value
+    /// Log size
     log_block_size: u32,
-    /// Cluster size for log
+    /// Log size
     log_cluster_size: u32,
     /// Blocks per group
-    blocks_per_group: u32,
+    pub(super) blocks_per_group: u32,
     /// Clusters per group, if big alloc flag is enabled.
     ///
     /// Otherwise clusters_per_group must equal blocks_per_group.
@@ -71,7 +71,7 @@ pub(crate) struct SuperBlock {
     /// First non-reserved inode
     first_inode: u32,
     /// Size of inode structure in bytes
-    inode_size: u16,
+    pub(super) inode_size: u16,
     /// Block group number of this superblock
     block_group_number: u16,
     /// Compatible feature set flags
@@ -110,7 +110,7 @@ pub(crate) struct SuperBlock {
     /// duplicate copy of inode block and size
     journal_backup_type: u8,
     /// Size of group descriptors in bytes
-    descriptor_size: u16,
+    pub(super) descriptor_size: u16,
     /// Default mount options
     default_mount_options: u32,
     /// First metablock block group
@@ -244,7 +244,7 @@ impl SuperBlock {
     /// Meta block groups
     const META_BG: u32 = 0x10;
     /// Files in the filesystem use extents
-    const EXTENTS: u32 = 0x40;
+    pub(super) const EXTENTS: u32 = 0x40;
     /// Enable a filesystem size of 2^64 blocks
     const BIT64: u32 = 0x80;
     /// Multiple mount protection
