@@ -1,5 +1,8 @@
 use crate::{
-    accessor::error::{AccessorError, AccessorResult},
+    accessor::{
+        error::{AccessorError, AccessorResult},
+        filesystem::ext4::format::checksum::crc32c_check,
+    },
     utils::{
         nom_helper::{nom_take, nom_u8, nom_u16, nom_u32, nom_u64},
         strings::extract_utf8_string,
@@ -455,6 +458,51 @@ impl SuperBlock {
     pub(crate) fn last_mounted(&self) -> String {
         extract_utf8_string(&self.last_mounted_raw)
     }
+
+    /// Return the checksum seed value
+    pub(crate) fn checksum_seed(&self) -> Option<u32> {
+        if self.revision < 1 {
+            return None;
+        }
+
+        if self.has_incompatible(Self::CSUM_SEED) {
+            return Some(self.checksum_seed);
+        }
+
+        if self.has_read_only(Self::METADATA_CSUM) {
+            let initial = 0xffffffff;
+
+            return Some(crc32c_check(initial, &self.uuid));
+        }
+
+        None
+    }
+
+    /// Validate the `Superblock` checksum value
+    pub(crate) fn validate_superblock(&self, data: &[u8]) -> AccessorResult<()> {
+        if self.revision < 1 || !self.has_read_only(SuperBlock::METADATA_CSUM) {
+            return Ok(());
+        }
+
+        let checksum_offset = 1020;
+        if data.len() < checksum_offset {
+            return Err(ext4_error(format!(
+                "superblock checksum input is truncated: found {} bytes, need {checksum_offset}",
+                data.len()
+            )));
+        }
+
+        let initial = 0xffffffff;
+        let actual = crc32c_check(initial, &data[..checksum_offset]);
+        if actual != self.checksum {
+            return Err(ext4_error(format!(
+                "superblock checksum mismatch: found {actual:#x}, stored {:#x}",
+                self.checksum
+            )));
+        }
+
+        Ok(())
+    }
 }
 
 /// Parse the superblock metadata
@@ -816,7 +864,7 @@ fn combine_u32(low: u32, high: u32, include_high: bool) -> u64 {
 }
 
 /// Map parsing errors to `AccessorError`
-fn ext4_error(reason: impl Into<String>) -> AccessorError {
+pub(crate) fn ext4_error(reason: impl Into<String>) -> AccessorError {
     AccessorError::ext4(None, reason)
 }
 
@@ -940,5 +988,80 @@ mod tests {
         assert_eq!(result.journal_blocks.len(), 17);
         assert_eq!(result.encryption_algorithms.len(), 4);
         assert_eq!(result.reserved.len(), 376);
+    }
+
+    #[test]
+    fn test_superblock_checksum_matches() {
+        let data = fixture();
+        let superblock = parse_superblock(&data).unwrap();
+
+        superblock.validate_superblock(&data).unwrap();
+        assert_eq!(superblock.checksum, 1082325001);
+        assert_eq!(superblock.checksum_seed(), Some(3502656522));
+    }
+
+    #[test]
+    fn test_superblock_checksum_excludes_stored_field() {
+        let data = fixture();
+        let superblock = parse_superblock(&data).unwrap();
+        let mut zeroed = data;
+        zeroed[0x3fc..0x400].fill(0);
+
+        superblock.validate_superblock(&zeroed).unwrap();
+    }
+
+    #[test]
+    fn test_superblock_checksum_rejects_modified_bytes() {
+        let mut data = fixture();
+        data[0x10] ^= 0xff;
+        let superblock = parse_superblock(&data).unwrap();
+
+        let reason = ext4_reason(superblock.validate_superblock(&data));
+        assert!(reason.contains("checksum mismatch"));
+    }
+
+    #[test]
+    fn test_checksum_seed_uses_superblock_seed_when_csum_seed_is_set() {
+        let mut data = fixture();
+        let features =
+            u32::from_le_bytes(data[0x60..0x64].try_into().unwrap()) | SuperBlock::CSUM_SEED;
+
+        data[0x60..0x64].copy_from_slice(&features.to_le_bytes());
+        data[0x270..0x274].copy_from_slice(&0xabcdu32.to_le_bytes());
+        let superblock = parse_superblock(&data).unwrap();
+
+        assert_eq!(superblock.checksum_seed(), Some(0xabcd));
+    }
+
+    #[test]
+    fn test_revision_0_skips_checksum_and_seed() {
+        let mut data = fixture();
+        data[0x4c..0x50].copy_from_slice(&0_u32.to_le_bytes());
+        data[0x3fc] ^= 0xff;
+        let superblock = parse_superblock(&data).unwrap();
+
+        superblock.validate_superblock(&data).unwrap();
+        assert!(superblock.checksum_seed().is_none());
+    }
+
+    #[test]
+    fn test_checksum_is_skipped_without_metadata_csum() {
+        let mut data = fixture();
+        let features =
+            u32::from_le_bytes(data[0x64..0x68].try_into().unwrap()) & !SuperBlock::METADATA_CSUM;
+        data[0x64..0x68].copy_from_slice(&features.to_le_bytes());
+        data[0x3fc] ^= 0xff;
+        let superblock = parse_superblock(&data).unwrap();
+
+        superblock.validate_superblock(&data).unwrap();
+        assert!(superblock.checksum_seed().is_none());
+    }
+
+    #[test]
+    fn test_verify_superblock_rejects_truncated_input() {
+        let superblock = parse_superblock(&fixture()).unwrap();
+
+        let reason = ext4_reason(superblock.validate_superblock(&[0; 16]));
+        assert!(reason.contains("truncated"));
     }
 }
