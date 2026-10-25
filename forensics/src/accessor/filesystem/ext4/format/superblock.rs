@@ -853,14 +853,19 @@ pub(crate) fn parse_superblock(data: &[u8]) -> AccessorResult<SuperBlock> {
     })
 }
 
-/// Use upper 8 bits if required
-fn combine_u32(low: u32, high: u32, include_high: bool) -> u64 {
+/// Combine a 32-bit location with its high half
+pub(super) fn combine_u32(low: u32, high: u32, include_high: bool) -> u64 {
     u64::from(low)
         | if include_high {
             u64::from(high) << 32
         } else {
             0
         }
+}
+
+/// Combine a 16-bit count with its high half
+pub(super) fn combine_u16(low: u16, high: u16, wide: bool) -> u32 {
+    u32::from(low) | if wide { u32::from(high) << 16 } else { 0 }
 }
 
 /// Map parsing errors to `AccessorError`

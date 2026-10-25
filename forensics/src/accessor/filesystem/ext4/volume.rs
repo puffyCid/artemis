@@ -1,6 +1,10 @@
 use crate::accessor::{
     error::{AccessorError, AccessorResult},
     filesystem::ext4::format::{
+        group::{
+            GroupDescriptor, parse_group_descriptor, validate_group_descriptor,
+            verify_group_descriptor,
+        },
         layout::Ext4Layout,
         superblock::{SuperBlock, ext4_error, parse_superblock},
     },
@@ -21,11 +25,16 @@ pub(crate) struct Ext4Volume<R: Read + Seek + Send> {
     pub(crate) layout: Ext4Layout,
     /// Seed for the checksum metadata
     pub(crate) checksum_seed: Option<u32>,
+    /// Primary `Group Descriptor` table
+    pub(crate) groups: Vec<GroupDescriptor>,
     /// Reader for the ext4 filesystem
     pub(crate) reader: Mutex<R>,
 }
 
 impl<R: Read + Seek + Send> Ext4Volume<R> {
+    /// Largest range of a metadata can allocate
+    const MAX_READ_BYTES: u64 = 16 * 1024 * 1024;
+
     /// Use the provided reader to read and parse the `SuperBlock` bytes
     pub(crate) fn open(mut reader: R, label: impl Into<String>) -> AccessorResult<Self> {
         let target_path = label.into();
@@ -55,12 +64,91 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         reject_unsupported(&superblock)?;
         let checksum_seed = superblock.checksum_seed();
 
-        Ok(Self {
+        let mut volume = Self {
             target_path,
             superblock,
             layout,
             checksum_seed,
+            groups: Vec::new(),
             reader: Mutex::new(reader),
+        };
+        volume.groups = volume.read_group_descriptors()?;
+
+        Ok(volume)
+    }
+
+    pub(super) fn read_exact_at(&self, offset: u64, buf: &mut [u8]) -> AccessorResult<()> {
+        if buf.is_empty() {
+            return Ok(());
+        }
+
+        let end = offset.checked_add(buf.len() as u64).ok_or_else(|| {
+            ext4_error(format!("read at {offset} length {} overflows", buf.len()))
+        })?;
+        let filesystem_size = self.filesystem_size()?;
+
+        if end > filesystem_size {
+            return Err(ext4_error(format!(
+                "read at {offset} length {} exceeds the filesystem",
+                buf.len()
+            )));
+        }
+
+        self.with_reader(|reader| {
+            reader.seek(SeekFrom::Start(offset))?;
+            reader.read_exact(buf)?;
+
+            Ok(())
+        })
+    }
+
+    pub(super) fn read_block(&self, block: u64) -> AccessorResult<Vec<u8>> {
+        self.read_blocks(block, 1)
+    }
+
+    pub(super) fn read_blocks(&self, first: u64, count: u64) -> AccessorResult<Vec<u8>> {
+        if count == 0 {
+            return Ok(Vec::new());
+        }
+
+        let end = first
+            .checked_add(count)
+            .ok_or_else(|| ext4_error(format!("read of {count} blocks at {first} overflows")))?;
+
+        if end > self.layout.block_count {
+            return Err(ext4_error(format!(
+                "blocks {first}..{end} are outside the filesystem"
+            )));
+        }
+
+        let bytes = count
+            .checked_mul(u64::from(self.layout.block_size))
+            .ok_or_else(|| ext4_error(format!("read of {count} blocks overflows")))?;
+
+        if bytes > Self::MAX_READ_BYTES {
+            return Err(ext4_error(format!(
+                "read of {bytes} bytes exceeds the {} byte limit",
+                Self::MAX_READ_BYTES
+            )));
+        }
+
+        let offset = first
+            .checked_mul(u64::from(self.layout.block_size))
+            .ok_or_else(|| ext4_error(format!("block {first} offset overflows")))?;
+
+        let mut buf = vec![0_u8; bytes as usize];
+        self.read_exact_at(offset, &mut buf)?;
+
+        Ok(buf)
+    }
+
+    pub(super) fn group_descriptors(&self, group: u64) -> AccessorResult<&GroupDescriptor> {
+        let index = usize::try_from(group).unwrap_or(usize::MAX);
+        self.groups.get(index).ok_or_else(|| {
+            ext4_error(format!(
+                "block group {group} is outside 0..{}",
+                self.groups.len()
+            ))
         })
     }
 
@@ -93,7 +181,78 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         operation(&mut reader)
     }
 
-    /// Prevent multiple ext4 readers
+    fn filesystem_size(&self) -> AccessorResult<u64> {
+        self.layout
+            .block_count
+            .checked_mul(self.layout.block_size as u64)
+            .ok_or_else(|| ext4_error("filesystem size overflows"))
+    }
+
+    fn read_group_descriptors(&self) -> AccessorResult<Vec<GroupDescriptor>> {
+        let size = self.layout.descriptor_size as u64;
+        let byte_len = self
+            .layout
+            .group_count
+            .checked_mul(size)
+            .ok_or_else(|| ext4_error("group descriptor table size overflows"))?;
+
+        if byte_len == 0 {
+            return Err(ext4_error("group descriptor table is empty"));
+        }
+
+        if byte_len > Self::MAX_READ_BYTES {
+            return Err(ext4_error(format!(
+                "group descriptor table is {byte_len} bytes and exceeds the {} byte limit",
+                Self::MAX_READ_BYTES
+            )));
+        }
+
+        let offset = self
+            .layout
+            .descriptor_table_block
+            .checked_mul(self.layout.block_size as u64)
+            .ok_or_else(|| ext4_error("group descriptor table offset overflows"))?;
+
+        let mut table = vec![0_u8; byte_len as usize];
+        self.read_exact_at(offset, &mut table)?;
+
+        let mut groups = Vec::new();
+        let mut group = 0_u64;
+        while group < self.layout.group_count {
+            let start = group
+                .checked_mul(size)
+                .ok_or_else(|| ext4_error(format!("group {group} descriptor offset overflows")))?;
+
+            let start = usize::try_from(start).map_err(|_| {
+                ext4_error(format!(
+                    "group {group} descriptor offset does not fit in memory"
+                ))
+            })?;
+
+            let end = start + self.layout.descriptor_size as usize;
+            let bytes = &table[start..end];
+            let descriptor = parse_group_descriptor(bytes, self.layout.descriptor_size)?;
+
+            let group_number = u32::try_from(group)
+                .map_err(|_| ext4_error(format!("block group {group} does not fit in 32 bits")))?;
+
+            verify_group_descriptor(
+                &self.superblock,
+                self.checksum_seed,
+                group_number,
+                bytes,
+                &descriptor,
+            )?;
+
+            validate_group_descriptor(&self.layout, &self.superblock, group, &descriptor)?;
+            groups.push(descriptor);
+            group += 1;
+        }
+
+        Ok(groups)
+    }
+
+    /// Ensure our `EXT4` reader is properly locked. Should always be safe since artemis will always be single-threaded
     fn lock_reader(&self) -> AccessorResult<MutexGuard<'_, R>> {
         self.reader.lock().map_err(|err| {
             ext4_path_error(
@@ -165,7 +324,10 @@ mod tests {
     use super::Ext4Volume;
     use crate::accessor::{
         error::AccessorError,
-        filesystem::ext4::format::{checksum::crc32c_check, superblock::SuperBlock},
+        filesystem::ext4::format::{
+            checksum::{crc32c_check, group_descriptor_crc32c},
+            superblock::SuperBlock,
+        },
     };
     use std::{fs::read, io::Cursor, path::PathBuf};
 
@@ -186,23 +348,49 @@ mod tests {
         superblock[0x3fc..0x400].copy_from_slice(&sum.to_le_bytes());
     }
 
+    fn group0() -> Vec<u8> {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ext4/debian/bookworm/descriptor.raw");
+        read(path).unwrap()[..64].to_vec()
+    }
+
+    fn one_group_superblock() -> Vec<u8> {
+        let mut superblock = fixture();
+        superblock[0x00..0x04].copy_from_slice(&8160_u32.to_le_bytes());
+        superblock[0x04..0x08].copy_from_slice(&32768_u32.to_le_bytes());
+        restore_checksum(&mut superblock);
+        superblock
+    }
+
+    fn one_group_image(descriptor: &[u8]) -> Cursor<Vec<u8>> {
+        let superblock = one_group_superblock();
+        let mut image = vec![0_u8; 8192];
+        image[1024..2048].copy_from_slice(&superblock);
+        image[4096..4096 + descriptor.len()].copy_from_slice(descriptor);
+        Cursor::new(image)
+    }
+
     #[test]
     fn test_open_debian12() {
-        let volume = Ext4Volume::open(image_from(&fixture()), "bookworm").unwrap();
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
 
         assert_eq!(volume.target_path(), "bookworm");
         assert_eq!(volume.layout().block_size, 4096);
-        assert_eq!(volume.layout().group_count, 187);
-        assert_eq!(volume.checksum_seed(), Some(3_502_656_522));
+        assert_eq!(volume.layout().group_count, 1);
+        assert_eq!(volume.checksum_seed(), Some(3502656522));
+        assert_eq!(volume.groups.len(), 1);
+
+        assert_eq!(volume.group_descriptors(0).unwrap().block_bitmap, 1028);
+        assert_eq!(volume.group_descriptors(0).unwrap().inode_bitmap, 1044);
+        assert_eq!(volume.group_descriptors(0).unwrap().inode_table, 1060);
+        assert_eq!(volume.group_descriptors(0).unwrap().checksum, 61671);
 
         assert!(volume.superblock().has_incompatible(SuperBlock::RECOVER));
-        assert_eq!(volume.superblock().checksum, 1082325001);
     }
 
     #[test]
     fn test_open_keeps_the_reader_at_the_filesystem_start() {
-        let volume = Ext4Volume::open(image_from(&fixture()), "bookworm").unwrap();
-
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
         let magic = volume
             .with_reader(|reader| {
                 use std::io::{Read, Seek, SeekFrom};
@@ -302,5 +490,66 @@ mod tests {
         assert!(
             matches!(err, AccessorError::Ext4 { reason,.. } if reason == "unsupported read-only feature bigalloc")
         )
+    }
+
+    #[test]
+    fn test_open_rejects_descriptor_checksum() {
+        let mut descriptor = group0();
+        descriptor[0] ^= 0xff;
+
+        let err = Ext4Volume::open(one_group_image(&descriptor), "bookworm").unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. }
+                if reason == "group 0 descriptor checksum mismatch: found 0xe675, stored 0xf0e7"
+        ));
+    }
+
+    #[test]
+    fn test_open_rejects_bitmap_overlapping_superblock() {
+        let mut descriptor = group0();
+        descriptor[0..4].copy_from_slice(&0_u32.to_le_bytes());
+        let sum = group_descriptor_crc32c(3502656522, 0, &descriptor);
+        descriptor[0x1e..0x20].copy_from_slice(&(sum as u16).to_le_bytes());
+
+        let err = Ext4Volume::open(one_group_image(&descriptor), "bookworm").unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. }
+                if reason == "block bitmap for group 0 overlaps the superblock"
+        ));
+    }
+
+    #[test]
+    fn test_read_block_rejects_a_block_past_the_filesystem() {
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
+        let err = volume.read_block(32768).unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. }
+                if reason == "blocks 32768..32769 are outside the filesystem"
+        ));
+    }
+
+    #[test]
+    fn test_read_exact_at_rejects_a_range_past_the_filesystem() {
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
+        let err = volume.read_exact_at(32768 * 4096, &mut [0_u8]).unwrap_err();
+
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. }
+                if reason == "read at 134217728 length 1 exceeds the filesystem"
+        ));
+    }
+
+    #[test]
+    fn test_read_block_reads_the_group_descriptor() {
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
+        let block = volume.read_block(1).unwrap();
+
+        assert_eq!(block.len(), 4096);
+        assert_eq!(&block[..4], &1028_u32.to_le_bytes());
     }
 }
