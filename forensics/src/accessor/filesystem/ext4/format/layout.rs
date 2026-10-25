@@ -106,7 +106,14 @@ impl Ext4Layout {
         let group_count =
             (block_count - superblock.first_data_block as u64 - 1) / blocks_per_group as u64 + 1;
 
-        let inode_count = group_count * inodes_per_group as u64;
+        let inode_count = group_count
+            .checked_mul(inodes_per_group as u64)
+            .ok_or_else(|| {
+                ext4_error(format!(
+                    "inode count for {group_count} groups of {inodes_per_group} overflows"
+                ))
+            })?;
+
         if inode_count != superblock.inodes_count as u64 {
             return Err(ext4_error(format!(
                 "inode count {} does not match {group_count} groups of {inodes_per_group}",
