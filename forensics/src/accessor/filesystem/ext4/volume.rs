@@ -299,7 +299,6 @@ mod tests {
         restore_checksum(&mut superblock);
 
         let err = Ext4Volume::open(image_from(&superblock), "bookworm").unwrap_err();
-        println!("{err:?}");
         assert!(
             matches!(err, AccessorError::Ext4 { reason,.. } if reason == "unsupported read-only feature bigalloc")
         )

@@ -5,7 +5,7 @@ use crate::accessor::{
 
 /// Location where `Superblock` and group descriptors are stored
 #[derive(Debug, Clone, PartialEq)]
-enum SuperBlockCopies {
+pub(crate) enum SuperBlockCopies {
     /// Every group stores a copy
     EveryGroup,
     /// Group 0, 1, and groups that are powers of 3, 5, or 7
@@ -25,7 +25,7 @@ pub(crate) struct Ext4Layout {
     /// 64-bit mode is active
     pub(crate) block_count: u64,
     /// Number of block groups
-    pub(crate) group_count: u32,
+    pub(crate) group_count: u64,
     /// Blocks in a complete group
     pub(crate) blocks_per_group: u32,
     /// Inodes in every group
@@ -106,14 +106,8 @@ impl Ext4Layout {
         let group_count =
             (block_count - superblock.first_data_block as u64 - 1) / blocks_per_group as u64 + 1;
 
-        let group_count = u32::try_from(group_count).map_err(|_| {
-            ext4_error(format!(
-                "block group count {group_count} does not fit in 32 bits"
-            ))
-        })?;
-
-        let inode_count = group_count * inodes_per_group;
-        if inode_count != superblock.inodes_count {
+        let inode_count = group_count * inodes_per_group as u64;
+        if inode_count != superblock.inodes_count as u64 {
             return Err(ext4_error(format!(
                 "inode count {} does not match {group_count} groups of {inodes_per_group}",
                 superblock.inodes_count
@@ -127,14 +121,14 @@ impl Ext4Layout {
             )));
         }
 
-        let inode_bytes = inodes_per_group * inode_size as u32;
-        if inode_bytes % block_size != 0 {
+        let inode_bytes = inodes_per_group as u64 * inode_size as u64;
+        if inode_bytes % block_size as u64 != 0 {
             return Err(ext4_error(
                 "inode table does not occupy a whole number of blocks",
             ));
         }
 
-        let inode_table_blocks = u32::try_from(inode_bytes / block_size)
+        let inode_table_blocks = u32::try_from(inode_bytes / block_size as u64)
             .map_err(|_| ext4_error("inode table block count does not fit in 32 bits"))?;
         let bit64 = dynamic && superblock.has_incompatible(SuperBlock::BIT64);
         let descriptor_size = if bit64 {
@@ -154,8 +148,8 @@ impl Ext4Layout {
             )));
         }
 
-        let descriptor_bytes = group_count * descriptor_size as u32;
-        let descriptor_table_blocks = descriptor_bytes.div_ceil(block_size);
+        let descriptor_bytes = group_count * descriptor_size as u64;
+        let descriptor_table_blocks = descriptor_bytes.div_ceil(block_size as u64);
         let descriptor_table_blocks = u32::try_from(descriptor_table_blocks).map_err(|_| {
             ext4_error("group descriptor table block count does not fit in 32 bits")
         })?;
