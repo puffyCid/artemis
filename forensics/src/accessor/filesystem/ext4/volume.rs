@@ -77,6 +77,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         Ok(volume)
     }
 
+    /// Read bytes at the provided offset
     pub(super) fn read_exact_at(&self, offset: u64, buf: &mut [u8]) -> AccessorResult<()> {
         if buf.is_empty() {
             return Ok(());
@@ -102,10 +103,12 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         })
     }
 
+    /// Read a single ext4 block
     pub(super) fn read_block(&self, block: u64) -> AccessorResult<Vec<u8>> {
         self.read_blocks(block, 1)
     }
 
+    /// Read multiple continguous filesystem blocks
     pub(super) fn read_blocks(&self, first: u64, count: u64) -> AccessorResult<Vec<u8>> {
         if count == 0 {
             return Ok(Vec::new());
@@ -142,6 +145,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         Ok(buf)
     }
 
+    /// Return the parsed `GroupDescriptor`
     pub(super) fn group_descriptors(&self, group: u64) -> AccessorResult<&GroupDescriptor> {
         let index = usize::try_from(group).unwrap_or(usize::MAX);
         self.groups.get(index).ok_or_else(|| {
@@ -181,6 +185,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         operation(&mut reader)
     }
 
+    /// Size of the filesystem in bytes
     fn filesystem_size(&self) -> AccessorResult<u64> {
         self.layout
             .block_count
@@ -188,6 +193,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
             .ok_or_else(|| ext4_error("filesystem size overflows"))
     }
 
+    /// Parse the primary `GroupDescriptor` table
     fn read_group_descriptors(&self) -> AccessorResult<Vec<GroupDescriptor>> {
         let size = self.layout.descriptor_size as u64;
         let byte_len = self
@@ -325,8 +331,7 @@ mod tests {
     use crate::accessor::{
         error::AccessorError,
         filesystem::ext4::format::{
-            checksum::{crc32c_check, group_descriptor_crc32c},
-            superblock::SuperBlock,
+            checksum::crc32c_check, group::group_descriptor_crc32c, superblock::SuperBlock,
         },
     };
     use std::{fs::read, io::Cursor, path::PathBuf};

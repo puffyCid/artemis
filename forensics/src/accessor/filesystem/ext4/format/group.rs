@@ -2,7 +2,7 @@ use crate::{
     accessor::{
         error::AccessorResult,
         filesystem::ext4::format::{
-            checksum::{group_descriptor_crc16, group_descriptor_crc32c},
+            checksum::{crc16_check, crc32c_check},
             layout::Ext4Layout,
             superblock::{SuperBlock, combine_u16, combine_u32, ext4_error},
         },
@@ -10,28 +10,96 @@ use crate::{
     utils::nom_helper::{nom_u16, nom_u32},
 };
 
+/// Block `GroupDescriptor` value
+///
+/// Each block group on the filesystem should have a group descriptor structure
+///
+/// <https://docs.kernel.org/filesystems/ext4/group_descr.html#block-group-descriptors>
 #[derive(Debug)]
 pub(crate) struct GroupDescriptor {
+    /// Offset for of the block bitmap
+    ///
+    /// If 64 bit feature flag is enabled. Then this value is 8 bytes
     pub(crate) block_bitmap: u64,
+    /// Offset for of the inode bitmap
+    ///
+    /// If 64 bit feature flag is enabled. Then this value is 8 bytes
     pub(crate) inode_bitmap: u64,
+    /// Offset for of the inode tabe
+    ///
+    /// If 64 bit feature flag is enabled.
+    /// Then this value requires upper and lower 32 bit values
     pub(crate) inode_table: u64,
+    /// Free blocks count
+    ///
+    /// Requires lower and upper 16 bits counts
     pub(crate) free_blocks_count: u32,
+    /// Free inodes count
+    ///
+    /// Requires lower and upper 16 bits counts
     pub(crate) free_inodes_count: u32,
+    /// Directory count
+    ///
+    /// Requires lower and upper 16 bits counts
     pub(crate) used_dirs_count: u32,
+    /// Block group flags
+    ///
+    /// <https://docs.kernel.org/filesystems/ext4/group_descr.html#bgflags>
     pub(crate) flags: u16,
+    /// Location of the snapshot execlusion bitmap
+    ///
+    /// If 64 bit feature flag is enabled.
+    /// Then this value requires upper and lower 32 bit values
     pub(crate) exclude_bitmap: u64,
+    /// Block bitmap checksump.
+    /// Requires lower and upper 16 bit values
     pub(crate) block_bitmap_csum: u32,
+    /// Inode  bitmap checksump.
+    /// Requires lower and uppper 16 bit values
     pub(crate) inode_bitmap_csum: u32,
+    /// Unused inode count.
+    /// Requires lower and upper 16 bit values
     pub(crate) unused_inodes_count: u32,
+    /// `GroupDescriptor` CRC16 checksum
     pub(crate) checksum: u16,
 }
 
 impl GroupDescriptor {
+    /// Flag that inode and bitmap table are not initalized
     pub(crate) const INODE_UNINIT: u16 = 0x1;
+    /// Flag that block bitmap is not initialized
     pub(crate) const BLOCK_UNINIT: u16 = 0x2;
+    /// Flag that inode table is zeroed
     pub(crate) const INODE_ZEROED: u16 = 0x4;
 }
 
+/// Perform CRC32C checksum check against `GroupDescriptor`
+pub(crate) fn group_descriptor_crc32c(seed: u32, group: u32, data: &[u8]) -> u32 {
+    let mut crc = crc32c_check(seed, &group.to_le_bytes());
+    crc = crc32c_check(crc, &data[..30]);
+    crc = crc32c_check(crc, &0_u16.to_le_bytes());
+
+    if data.len() > 32 {
+        crc = crc32c_check(crc, &data[32..]);
+    }
+
+    crc
+}
+
+/// Perform CRC16 checksum check against `GroupDescriptor`
+pub(crate) fn group_descriptor_crc16(uuid: &[u8; 16], group: u32, data: &[u8]) -> u16 {
+    let mut crc = crc16_check(0xffff, uuid);
+    crc = crc16_check(crc, &group.to_le_bytes());
+    crc = crc16_check(crc, &data[..30]);
+
+    if data.len() > 32 {
+        crc = crc16_check(crc, &data[32..]);
+    }
+
+    crc
+}
+
+/// Parse the group descriptor associated with an ext4 block
 pub(crate) fn parse_group_descriptor(
     data: &[u8],
     descriptor_size: u16,
@@ -70,6 +138,8 @@ pub(crate) fn parse_group_descriptor(
         nom_u16(input, "group descriptor unused inode count is truncated")?;
     let (input, checksum) = nom_u16(input, "group descriptor checksum is truncated")?;
 
+    // If 64 bit feature flag is enabled
+    // Get het upper 32 bit data
     let (
         block_bitmap_hi,
         inode_bitmap_hi,
@@ -144,6 +214,7 @@ pub(crate) fn parse_group_descriptor(
     })
 }
 
+/// Verify block group checksum if metadata checksum or group descriptors table checksum is enabled
 pub(crate) fn verify_group_descriptor(
     superblock: &SuperBlock,
     checksum_seed: Option<u32>,
@@ -177,6 +248,7 @@ pub(crate) fn verify_group_descriptor(
     Ok(())
 }
 
+/// Validate `GroupDescriptor` values against the ext4 filesystem layout
 pub(crate) fn validate_group_descriptor(
     layout: &Ext4Layout,
     superblock: &SuperBlock,
@@ -227,6 +299,7 @@ pub(crate) fn validate_group_descriptor(
     Ok(())
 }
 
+/// Block layout range for a group
 fn allowed_range(
     layout: &Ext4Layout,
     superblock: &SuperBlock,
@@ -265,17 +338,30 @@ fn allowed_range(
     Ok((first, last))
 }
 
+/// Check span range for metadata blocks from the `GroupDescriptor`
 struct Span {
+    /// Metadata group
+    ///
+    /// Will be either `Block Bitmap`, `Inode Table`,
+    /// `Inode Bitmap`, or `Exclude Bitmap`
     group: u64,
+    /// Starting data block
     start: u64,
+    /// Block count
     count: u64,
+    /// First block
     first: u64,
+    /// Last block
     last: u64,
+    /// Superblock block number
     superblock_block: u64,
+    /// First Group Descriptor table block
     gdt_first: u64,
+    /// Last Group Descriptor table block
     gdt_last: u64,
 }
 
+/// Validate the location for metadata blocks
 fn check_span(name: &str, span: &Span) -> AccessorResult<()> {
     if span.count == 0 {
         return Err(ext4_error(format!(
@@ -319,7 +405,11 @@ fn check_span(name: &str, span: &Span) -> AccessorResult<()> {
 mod tests {
     use super::{GroupDescriptor, parse_group_descriptor, verify_group_descriptor};
     use crate::accessor::{
-        error::AccessorError, filesystem::ext4::format::superblock::parse_superblock,
+        error::AccessorError,
+        filesystem::ext4::format::{
+            group::{group_descriptor_crc16, group_descriptor_crc32c},
+            superblock::parse_superblock,
+        },
     };
     use std::{fs::read, path::PathBuf};
 
@@ -336,6 +426,22 @@ mod tests {
 
     fn superblock() -> crate::accessor::filesystem::ext4::format::superblock::SuperBlock {
         parse_superblock(&read_fixture("firstblock.raw")).unwrap()
+    }
+
+    fn descriptor_group0() -> Vec<u8> {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ext4/debian/bookworm/descriptor.raw");
+
+        let data = read(path).unwrap();
+        data[..64].to_vec()
+    }
+
+    fn bookwork_uuid() -> [u8; 16] {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/filesystems/ext4/debian/bookworm/firstblock.raw");
+
+        let data = read(path).unwrap();
+        data[0x68..0x78].try_into().unwrap()
     }
 
     #[test]
@@ -393,5 +499,17 @@ mod tests {
             AccessorError::Ext4 { reason, .. }
                 if reason == "group 0 descriptor checksum mismatch: found 0xe675, stored 0xf0e7"
         ));
+    }
+
+    #[test]
+    fn test_group_desc_crc32_debian() {
+        let checksum = group_descriptor_crc32c(3502656522, 0, &descriptor_group0());
+        assert_eq!(checksum & 0xffff, 61671);
+    }
+
+    #[test]
+    fn test_group_desc_crc16_debian() {
+        let checksum = group_descriptor_crc16(&bookwork_uuid(), 0, &descriptor_group0());
+        assert_eq!(checksum, 41103);
     }
 }
