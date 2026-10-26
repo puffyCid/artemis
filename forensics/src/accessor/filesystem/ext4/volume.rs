@@ -5,6 +5,7 @@ use crate::accessor::{
             GroupDescriptor, parse_group_descriptor, validate_group_descriptor,
             verify_group_descriptor,
         },
+        inode::{Inode, parse_inode, verify_inode},
         layout::Ext4Layout,
         superblock::{SuperBlock, ext4_error, parse_superblock},
     },
@@ -13,6 +14,12 @@ use std::{
     io::{Read, Seek, SeekFrom},
     sync::{Mutex, MutexGuard},
 };
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct Ext4EntryRef {
+    pub(crate) inode: u64,
+    pub(crate) generation: u32,
+}
 
 /// Open EXT4 filesystem
 #[derive(Debug)]
@@ -179,6 +186,82 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         self.checksum_seed
     }
 
+    pub(crate) fn inode_offset(&self, inode: u64) -> AccessorResult<u64> {
+        let count = self.superblock.inodes_count as u64;
+        if inode == 0 || inode > count {
+            return Err(ext4_error(format!("inode {inode} is outside 1..={count}")));
+        }
+
+        let per_group = self.layout.inodes_per_group as u64;
+        let group = (inode - 1) / per_group;
+        let index = (inode - 1) % per_group;
+
+        let table = self.group_descriptors(group)?.inode_table;
+        let inode_size = self.layout.inode_size as u64;
+
+        let record = index
+            .checked_mul(inode_size)
+            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))?;
+
+        let table_bytes = (self.layout.inode_table_blocks as u64)
+            .checked_mul(self.layout.block_size as u64)
+            .ok_or_else(|| ext4_error("inode table size overflows"))?;
+
+        let record_end = record
+            .checked_add(inode_size)
+            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))?;
+
+        if record_end > table_bytes {
+            return Err(ext4_error(format!(
+                "inode {inode} extends past the inode table"
+            )));
+        }
+
+        let start = table
+            .checked_mul(self.layout.block_size as u64)
+            .ok_or_else(|| ext4_error(format!("inode table block {table} offset overflows")))?;
+
+        start
+            .checked_add(record)
+            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))
+    }
+
+    pub(super) fn read_inode(&self, inode: u64) -> AccessorResult<Inode> {
+        if self.superblock.creator_os != 0 {
+            return Err(ext4_error(format!(
+                "inode {inode} requires the Linux creator OS, found {}",
+                self.superblock.creator()
+            )));
+        }
+
+        let offset = self.inode_offset(inode)?;
+        let mut data = vec![0_u8; self.layout.inode_size as usize];
+        self.read_exact_at(offset, &mut data)?;
+
+        let value = parse_inode(&data, self.layout.inode_size)?;
+        let inode_number = u32::try_from(inode)
+            .map_err(|_| ext4_error(format!("inode {inode} does not fit in 32 bits")))?;
+
+        verify_inode(
+            &self.superblock,
+            self.checksum_seed,
+            inode_number,
+            &data,
+            &value,
+        )?;
+
+        Ok(value)
+    }
+
+    pub(super) fn entry_ref(&self, inode: u64, value: &Inode) -> AccessorResult<Ext4EntryRef> {
+        self.inode_offset(inode)?;
+
+        Ok(Ext4EntryRef {
+            inode,
+            generation: value.generation,
+        })
+    }
+
     /// Return the ext4 filesystem reader
     pub(super) fn with_reader<F, T>(&self, operation: F) -> AccessorResult<T>
     where
@@ -340,9 +423,13 @@ mod tests {
     use crate::accessor::{
         error::AccessorError,
         filesystem::ext4::format::{
-            checksum::crc32c_check, group::group_descriptor_crc32c, superblock::SuperBlock,
+            checksum::crc32c_check,
+            group::group_descriptor_crc32c,
+            inode::{Inode, inode_crc32c},
+            superblock::SuperBlock,
         },
     };
+    use common::files::EntryKind;
     use std::{fs::read, io::Cursor, path::PathBuf};
 
     fn fixture() -> Vec<u8> {
@@ -379,8 +466,39 @@ mod tests {
     fn one_group_image(descriptor: &[u8]) -> Cursor<Vec<u8>> {
         let superblock = one_group_superblock();
         let mut image = vec![0_u8; 8192];
+
         image[1024..2048].copy_from_slice(&superblock);
         image[4096..4096 + descriptor.len()].copy_from_slice(descriptor);
+        Cursor::new(image)
+    }
+
+    fn sealed_inode() -> Vec<u8> {
+        let mut data = vec![0_u8; 256];
+        data[0..2].copy_from_slice(&0x81a4_u16.to_le_bytes());
+        data[0x04..0x08].copy_from_slice(&0x100_u32.to_le_bytes());
+
+        data[0x1a..0x1c].copy_from_slice(&1_u16.to_le_bytes());
+        data[0x20..0x24].copy_from_slice(&Inode::EXTENTS.to_le_bytes());
+        data[0x64..0x68].copy_from_slice(&0xabcd_u32.to_le_bytes());
+        data[0x80..0x82].copy_from_slice(&32_u16.to_le_bytes());
+
+        let sum = inode_crc32c(3502656522, 1, &data, 32);
+        data[0x7c..0x7e].copy_from_slice(&(sum as u16).to_le_bytes());
+        data[0x82..0x84].copy_from_slice(&((sum >> 16) as u16).to_le_bytes());
+        data
+    }
+
+    fn image_with_inode(inode: &[u8]) -> Cursor<Vec<u8>> {
+        let mut descriptor = group0();
+        descriptor[8..12].copy_from_slice(&2_u32.to_le_bytes());
+        let sum = group_descriptor_crc32c(3502656522, 0, &descriptor);
+        descriptor[0x1e..0x20].copy_from_slice(&(sum as u16).to_le_bytes());
+
+        let mut image = vec![0_u8; 8192 + inode.len()];
+        let superblock = one_group_superblock();
+        image[1024..2048].copy_from_slice(&superblock);
+        image[4096..4096 + descriptor.len()].copy_from_slice(&descriptor);
+        image[8192..8192 + inode.len()].copy_from_slice(inode);
         Cursor::new(image)
     }
 
@@ -565,5 +683,81 @@ mod tests {
 
         assert_eq!(block.len(), 4096);
         assert_eq!(&block[..4], &1028_u32.to_le_bytes());
+    }
+
+    #[test]
+    fn test_inode_offset_uses_the_group_inode_table() {
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
+
+        assert_eq!(volume.inode_offset(1).unwrap(), 1060 * 4096);
+        assert_eq!(volume.inode_offset(2).unwrap(), 1060 * 4096 + 256);
+        assert_eq!(volume.inode_offset(8160).unwrap(), 1060 * 4096 + 8159 * 256);
+    }
+
+    #[test]
+    fn test_read_inode_rejects_numbers_outside_the_filesystem() {
+        let volume = Ext4Volume::open(one_group_image(&group0()), "bookworm").unwrap();
+
+        let err = volume.read_inode(0).unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. } if reason == "inode 0 is outside 1..=8160"
+        ));
+
+        let err = volume.read_inode(8161).unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. } if reason == "inode 8161 is outside 1..=8160"
+        ));
+    }
+
+    #[test]
+    fn test_read_inode_reads_the_record_at_the_table_offset() {
+        let volume = Ext4Volume::open(image_with_inode(&sealed_inode()), "bookworm").unwrap();
+        let inode = volume.read_inode(1).unwrap();
+
+        assert_eq!(inode.kind(), EntryKind::File);
+        assert_eq!(inode.size, 0x100);
+        assert_eq!(inode.hardlinks, 1);
+        assert_eq!(inode.flags, Inode::EXTENTS);
+        assert_eq!(inode.generation, 0xabcd);
+        assert_eq!(inode.extra_inode_size, 32);
+
+        let reference = volume.entry_ref(1, &inode).unwrap();
+        assert_eq!(reference.inode, 1);
+        assert_eq!(reference.generation, 0xabcd);
+    }
+
+    #[test]
+    fn test_read_inode_rejects_a_bad_checksum() {
+        let mut inode = sealed_inode();
+        inode[0x10] ^= 0xff;
+
+        let volume = Ext4Volume::open(image_with_inode(&inode), "bookworm").unwrap();
+        let err = volume.read_inode(1).unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. } if reason.contains("checksum mismatch")
+        ));
+    }
+
+    #[test]
+    fn test_read_inode_rejects_a_non_linux_creator() {
+        let mut superblock = one_group_superblock();
+        superblock[0x48..0x4c].copy_from_slice(&1_u32.to_le_bytes());
+        restore_checksum(&mut superblock);
+
+        let mut image = vec![0_u8; 8192];
+        image[1024..2048].copy_from_slice(&superblock);
+        let descriptor = group0();
+        image[4096..4096 + descriptor.len()].copy_from_slice(&descriptor);
+
+        let volume = Ext4Volume::open(Cursor::new(image), "bookworm").unwrap();
+        let err = volume.read_inode(1).unwrap_err();
+        assert!(matches!(
+            err,
+            AccessorError::Ext4 { reason, .. }
+                if reason == "inode 1 requires the Linux creator OS, found Hurd"
+        ));
     }
 }

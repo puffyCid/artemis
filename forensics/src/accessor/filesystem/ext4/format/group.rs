@@ -342,7 +342,7 @@ struct Span {
     /// Metadata group
     ///
     /// Will be either `Block Bitmap`, `Inode Table`,
-    /// `Inode Bitmap`, or `Exclude Bitmap`
+    /// `Inode Bitmap`, or `Exclude Bitmap` group number
     group: u64,
     /// Starting data block
     start: u64,
