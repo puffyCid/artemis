@@ -17,15 +17,15 @@ use crate::{
 /// <https://docs.kernel.org/filesystems/ext4/group_descr.html#block-group-descriptors>
 #[derive(Debug)]
 pub(crate) struct GroupDescriptor {
-    /// Offset for of the block bitmap
+    /// Block number for of the block bitmap
     ///
     /// If 64 bit feature flag is enabled. Then this value is 8 bytes
     pub(crate) block_bitmap: u64,
-    /// Offset for of the inode bitmap
+    /// Block number for of the inode bitmap
     ///
     /// If 64 bit feature flag is enabled. Then this value is 8 bytes
     pub(crate) inode_bitmap: u64,
-    /// Offset for of the inode tabe
+    /// Block number for of the inode tabe
     ///
     /// If 64 bit feature flag is enabled.
     /// Then this value requires upper and lower 32 bit values

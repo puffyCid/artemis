@@ -32,7 +32,9 @@ pub(crate) struct Ext4Volume<R: Read + Seek + Send> {
 }
 
 impl<R: Read + Seek + Send> Ext4Volume<R> {
-    /// Largest range of a metadata can allocate
+    /// Largest byte range `read_blocks` or `read_group_descriptors` can allocate
+    ///
+    /// Prevents large allocations from a corrupted `SuperBlock`
     const MAX_READ_BYTES: u64 = 16 * 1024 * 1024;
 
     /// Use the provided reader to read and parse the `SuperBlock` bytes
@@ -124,6 +126,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
             )));
         }
 
+        // Size of the blocks
         let bytes = count
             .checked_mul(u64::from(self.layout.block_size))
             .ok_or_else(|| ext4_error(format!("read of {count} blocks overflows")))?;
@@ -194,8 +197,11 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
     }
 
     /// Parse the primary `GroupDescriptor` table
+    ///
+    /// And then parse each `GroupDescriptor` for all block groups
     fn read_group_descriptors(&self) -> AccessorResult<Vec<GroupDescriptor>> {
         let size = self.layout.descriptor_size as u64;
+        // Total bytes for the `GroupDescriptor` table
         let byte_len = self
             .layout
             .group_count
@@ -224,6 +230,8 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
 
         let mut groups = Vec::new();
         let mut group = 0_u64;
+
+        // Get the rest of the `GroupDescriptor` values
         while group < self.layout.group_count {
             let start = group
                 .checked_mul(size)
