@@ -386,21 +386,27 @@ pub(crate) fn verify_inode(
 pub(crate) fn inode_crc32c(seed: u32, inode: u32, data: &[u8], extra_inode_size: u16) -> u32 {
     let mut crc = crc32c_check(seed, &inode.to_le_bytes());
 
-    crc = crc32c_check(crc, &data[100..104]);
-    crc = crc32c_check(crc, &data[..124]);
-    crc = crc32c_check(crc, &0_u16.to_le_bytes());
-    crc = crc32c_check(crc, &data[126..128]);
+    let gen_offset = 100;
+    crc = crc32c_check(crc, &data[gen_offset..gen_offset + 4]);
 
-    if data.len() == 128 {
+    let checksum_lo = 124;
+    crc = crc32c_check(crc, &data[..checksum_lo]);
+    crc = crc32c_check(crc, &0_u16.to_le_bytes());
+
+    let inode_size = 128;
+    crc = crc32c_check(crc, &data[checksum_lo + 2..inode_size]);
+
+    if data.len() == inode_size {
         return crc;
     }
 
-    crc = crc32c_check(crc, &data[128..130]);
+    let checksum_hi = 130;
+    crc = crc32c_check(crc, &data[inode_size..checksum_hi]);
     if checksum_hi_fits(extra_inode_size) {
         crc = crc32c_check(crc, &0_u16.to_le_bytes());
-        crc = crc32c_check(crc, &data[132..]);
+        crc = crc32c_check(crc, &data[checksum_hi + 2..]);
     } else {
-        crc = crc32c_check(crc, &data[130..]);
+        crc = crc32c_check(crc, &data[checksum_hi..]);
     }
 
     crc
@@ -441,12 +447,12 @@ fn parse_extra_fields(mut input: &[u8]) -> AccessorResult<ExtraFields> {
 /// Construct `InodeTime` value
 fn inode_time(seconds: u32, extra: Option<u32>) -> InodeTime {
     let mut time = InodeTime {
-        seconds: seconds as i64,
+        seconds: i64::from(seconds as i32),
         nanoseconds: 0,
     };
 
     if let Some(value) = extra {
-        time.seconds += (value as i64 & 0x3) << 32;
+        time.seconds += i64::from(value & 0x3) << 32;
         time.nanoseconds = value >> 2;
     }
 
@@ -455,7 +461,8 @@ fn inode_time(seconds: u32, extra: Option<u32>) -> InodeTime {
 
 /// Check for high bit value for checksum
 fn checksum_hi_fits(size: u16) -> bool {
-    extra_field_fits(size, 128, 2)
+    let checksum_hi = 130;
+    extra_field_fits(size, checksum_hi, 2)
 }
 
 /// Check if we have extra bytes
