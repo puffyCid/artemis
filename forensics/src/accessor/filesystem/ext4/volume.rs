@@ -15,9 +15,12 @@ use std::{
     sync::{Mutex, MutexGuard},
 };
 
+/// Unique Inode and generation for a filesystem entry
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Ext4EntryRef {
+    /// Inode value
     pub(crate) inode: u64,
+    //// Generation value for the inode
     pub(crate) generation: u32,
 }
 
@@ -84,6 +87,47 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         volume.groups = volume.read_group_descriptors()?;
 
         Ok(volume)
+    }
+
+    /// Absolute byte offset for a inode value
+    pub(crate) fn inode_offset(&self, inode: u64) -> AccessorResult<u64> {
+        let count = self.superblock.inodes_count as u64;
+        if inode == 0 || inode > count {
+            return Err(ext4_error(format!("inode {inode} is outside 1..={count}")));
+        }
+
+        let per_group = self.layout.inodes_per_group as u64;
+        let group = (inode - 1) / per_group;
+        let index = (inode - 1) % per_group;
+
+        let table = self.group_descriptors(group)?.inode_table;
+        let inode_size = self.layout.inode_size as u64;
+
+        let record = index
+            .checked_mul(inode_size)
+            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))?;
+
+        let table_bytes = (self.layout.inode_table_blocks as u64)
+            .checked_mul(self.layout.block_size as u64)
+            .ok_or_else(|| ext4_error("inode table size overflows"))?;
+
+        let record_end = record
+            .checked_add(inode_size)
+            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))?;
+
+        if record_end > table_bytes {
+            return Err(ext4_error(format!(
+                "inode {inode} extends past the inode table"
+            )));
+        }
+
+        let start = table
+            .checked_mul(self.layout.block_size as u64)
+            .ok_or_else(|| ext4_error(format!("inode table block {table} offset overflows")))?;
+
+        start
+            .checked_add(record)
+            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))
     }
 
     /// Read bytes at the provided offset
@@ -186,46 +230,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         self.checksum_seed
     }
 
-    pub(crate) fn inode_offset(&self, inode: u64) -> AccessorResult<u64> {
-        let count = self.superblock.inodes_count as u64;
-        if inode == 0 || inode > count {
-            return Err(ext4_error(format!("inode {inode} is outside 1..={count}")));
-        }
-
-        let per_group = self.layout.inodes_per_group as u64;
-        let group = (inode - 1) / per_group;
-        let index = (inode - 1) % per_group;
-
-        let table = self.group_descriptors(group)?.inode_table;
-        let inode_size = self.layout.inode_size as u64;
-
-        let record = index
-            .checked_mul(inode_size)
-            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))?;
-
-        let table_bytes = (self.layout.inode_table_blocks as u64)
-            .checked_mul(self.layout.block_size as u64)
-            .ok_or_else(|| ext4_error("inode table size overflows"))?;
-
-        let record_end = record
-            .checked_add(inode_size)
-            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))?;
-
-        if record_end > table_bytes {
-            return Err(ext4_error(format!(
-                "inode {inode} extends past the inode table"
-            )));
-        }
-
-        let start = table
-            .checked_mul(self.layout.block_size as u64)
-            .ok_or_else(|| ext4_error(format!("inode table block {table} offset overflows")))?;
-
-        start
-            .checked_add(record)
-            .ok_or_else(|| ext4_error(format!("inode {inode} offset overflows")))
-    }
-
+    /// Read one inode value
     pub(super) fn read_inode(&self, inode: u64) -> AccessorResult<Inode> {
         if self.superblock.creator_os != 0 {
             return Err(ext4_error(format!(
@@ -253,6 +258,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         Ok(value)
     }
 
+    /// Return a `Ext4EntryRef` for an inode
     pub(super) fn entry_ref(&self, inode: u64, value: &Inode) -> AccessorResult<Ext4EntryRef> {
         self.inode_offset(inode)?;
 

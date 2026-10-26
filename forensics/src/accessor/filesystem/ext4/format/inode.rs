@@ -11,57 +11,163 @@ use crate::{
     utils::nom_helper::{nom_take, nom_u16, nom_u32},
 };
 
+/// Time to calculate inode timestamp
+/// Nanoseconds since UNIXEPOCH
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct InodeTime {
+    /// Seconds since UNIXEPOCH
     pub(crate) seconds: i64,
+    /// Nanosecond precision
     pub(crate) nanoseconds: u32,
 }
 
+/// Major and minor version from a device block
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct DeviceNumber {
+    /// Major version number
     pub(crate) major: u32,
+    /// Minor version number
     pub(crate) minor: u32,
 }
 
+/// Parsed Index Node (`inode`) data
+///
+/// <https://docs.kernel.org/filesystems/ext4/inodes.html>
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Inode {
+    /// Raw mode value
     pub(crate) mode: u16,
+    /// User ID value
     pub(crate) uid: u32,
+    /// Group ID value
     pub(crate) gid: u32,
+    /// Size of file in bytes
     pub(crate) size: u64,
+    /// Accessed timestamp
     pub(crate) accessed: InodeTime,
+    /// Changed timestamp
     pub(crate) changed: InodeTime,
+    /// Modified timestamp
     pub(crate) modified: InodeTime,
+    /// Deleted timestamp.
+    /// This value is usually never set
     pub(crate) deleted: InodeTime,
+    /// Created timestamp
     pub(crate) created: Option<InodeTime>,
+    /// Number of hardlinks to the inode
     pub(crate) hardlinks: u16,
+    /// Allocated block count
     pub(crate) blocks: u64,
+    /// Inode flags
     pub(crate) flags: u32,
+    /// Inode version value
     pub(crate) version: u64,
+    /// Raw 60 byte block area
     pub(crate) block_map: [u8; 60],
+    /// Inode generation number
     pub(crate) generation: u32,
+    /// Block number for external extended attributes
     pub(crate) file_acl: u64,
+    /// Number of extra bytes after original 128 byte inode data
     pub(crate) extra_inode_size: u16,
+    /// Low 16 bit value for checksum
     pub(crate) checksum_lo: u16,
+    /// High 16 bit value for checksum
     pub(crate) checksum_hi: u16,
+    /// Inode project ID
+    ///
+    /// Associated with potential directory quotas
     pub(crate) project_id: Option<u32>,
+    /// Raw inline extended attribute bytes
     pub(crate) inline_xattr: Vec<u8>,
 }
 
+/// High bit values
 struct ExtraFields {
+    /// 16 bit high value for checksum
     checksum_hi: u16,
+    /// Nanoseconds modified
     modified_extra: Option<u32>,
+    /// Nanoseconds accessed
     accessed_extra: Option<u32>,
+    /// Nanoseconds changed
     changed_extra: Option<u32>,
+    /// Seconds created
     created: Option<u32>,
+    /// Nanoseconds created
     created_extra: Option<u32>,
+    /// 32 bit high value for version
     version_hi: Option<u32>,
+    /// Project ID for inode
     project_id: Option<u32>,
 }
 
 impl Inode {
+    /// File requires securee deletion (Not used)
+    pub(crate) const SECURE_DELETE: u32 = 0x1;
+    /// File should be able to be "undeleted" (Not used)
+    pub(crate) const UNDO_DELETE: u32 = 0x2;
+    /// File is compressed (Not used)
+    pub(crate) const COMPRESSED: u32 = 0x4;
+    /// File writes must be synchronous
+    pub(crate) const SYNC_WRITES: u32 = 0x8;
+    /// File is immutable
+    pub(crate) const IMMUTABLE: u32 = 0x10;
+    /// File can only be appended
+    pub(crate) const APPEND: u32 = 0x20;
+    /// Dump tools should ignore this file
+    pub(crate) const NO_DUMP: u32 = 0x40;
+    /// Do not update the access timestamp
+    pub(crate) const NO_ACCESS_TIME: u32 = 0x80;
+    // Compression is dirty (Not used)
+    pub(crate) const DIRTY_COMPRESSED: u32 = 0x100;
+    /// File has compressed clusters (Not used)
+    pub(crate) const COMPRESSED_CLUSTERS: u32 = 0x200;
+    /// Do not compress this file (Not used)
+    pub(crate) const DONT_COMPRESS: u32 = 0x400;
+    /// File is encrypted
+    pub(crate) const ENCRYPTED: u32 = 0x800;
+    /// Directory has hashed indexes
+    pub(crate) const DIRECTORY_INDEXES: u32 = 0x1000;
+    /// Legacy flag for the "Andrew File System"
+    pub(crate) const AFS_MAGIC: u32 = 0x2000;
+    /// File data must be written through the journal
+    pub(crate) const JOURNAL_DATA: u32 = 0x4000;
+    /// File tail should not be merged
+    pub(crate) const NO_TAIL: u32 = 0x8000;
+    /// All directory data should be written synchronously
+    pub(crate) const DIRECTORY_SYNC: u32 = 0x10000;
+    pub(crate) const TOP_DIRECTORY: u32 = 0x20000;
+    /// Has `HUGE_FILE` flag. `blocks` uses ext4 blocks instead of 512 byte sectors
     pub(crate) const HUGE_FILE: u32 = 0x40000;
+    /// Has `EXTENTS`. Inode uses extents data
     pub(crate) const EXTENTS: u32 = 0x80000;
+    /// Verity protected file
+    pub(crate) const VERITY: u32 = 0x100000;
+    /// Inode stores large extended attributes in its data block
+    pub(crate) const HAS_INODE_EXTENDED_ATTRIBUTE: u32 = 0x200000;
+    /// File has blocks allocated past EOF
+    pub(crate) const BLOCKS_EOF: u32 = 0x400000;
+    /// Inode is a snapshot
+    pub(crate) const SNAPSHOT: u32 = 0x1000000;
+    /// Snapshot is being deleted
+    pub(crate) const SNAPSHOT_DELETED: u32 = 0x4000000;
+    /// Snapshot shrink is completed
+    pub(crate) const SNAPSHOT_SHRUNK: u32 = 0x8000000;
+    /// Inode has inline data
+    pub(crate) const INLINE_DATA: u32 = 0x10000000;
+    /// Create children with same project ID
+    pub(crate) const PROJECT_INHERIT: u32 = 0x20000000;
+    /// Use case insenstive lookups for directory contents
+    pub(crate) const CASEFOLD: u32 = 0x40000000;
+    /// Reserved flag
+    pub(crate) const RESERVED: u32 = 0x80000000;
+    /// User visible flags
+    pub(crate) const USER_VISIBLE: u32 = 0x705BDFFF;
+    /// User modifiable flags
+    ///
+    /// JOURNAL and EXTENTS flags cannot be changed
+    pub(crate) const USER_MODIFIABLE: u32 = 0x604BC0FF;
 
     /// Return file type based on `mode`
     pub(crate) fn kind(&self) -> EntryKind {
@@ -103,6 +209,12 @@ impl Inode {
     }
 }
 
+/// Parse inode data
+///
+/// Currently only Linux created ext4 filesystems are supported.
+/// GNU Hurd and other types are not supported yet:
+///
+/// <https://docs.kernel.org/filesystems/ext4/inodes.html#i-osd1>
 pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode> {
     let inode_len = inode_size as usize;
     if data.len() < inode_len {
@@ -176,6 +288,9 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
         }
 
         extra_inode_size = extra_inode_value;
+
+        // Check if we have additional bytes
+        // We can get additional timestamp precision and created timestamp
         if extra_inode_size == 0 {
             inline_xattr = tail.to_vec();
         } else {
@@ -221,6 +336,7 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
     })
 }
 
+/// Validate the inode checksum
 pub(crate) fn verify_inode(
     superblock: &SuperBlock,
     checksum_seed: Option<u32>,
@@ -266,6 +382,7 @@ pub(crate) fn verify_inode(
     Ok(())
 }
 
+/// Check inode against CRC32C checksum
 pub(crate) fn inode_crc32c(seed: u32, inode: u32, data: &[u8], extra_inode_size: u16) -> u32 {
     let mut crc = crc32c_check(seed, &inode.to_le_bytes());
 
@@ -289,6 +406,7 @@ pub(crate) fn inode_crc32c(seed: u32, inode: u32, data: &[u8], extra_inode_size:
     crc
 }
 
+/// Parse the extra data that might exist for an inode value
 fn parse_extra_fields(mut input: &[u8]) -> AccessorResult<ExtraFields> {
     let checksum_hi = if input.len() >= 2 {
         let (rest, value) = nom_u16(input, "inode checksum high is truncated")?;
@@ -320,6 +438,7 @@ fn parse_extra_fields(mut input: &[u8]) -> AccessorResult<ExtraFields> {
     })
 }
 
+/// Construct `InodeTime` value
 fn inode_time(seconds: u32, extra: Option<u32>) -> InodeTime {
     let mut time = InodeTime {
         seconds: seconds as i64,
@@ -334,14 +453,17 @@ fn inode_time(seconds: u32, extra: Option<u32>) -> InodeTime {
     time
 }
 
+/// Check for high bit value for checksum
 fn checksum_hi_fits(size: u16) -> bool {
     extra_field_fits(size, 128, 2)
 }
 
+/// Check if we have extra bytes
 fn extra_field_fits(extra_inode_size: u16, offset: u16, size: u16) -> bool {
     offset as u32 + size as u32 <= 128 + extra_inode_size as u32
 }
 
+/// Check for the device number for block devices
 fn device_number(block_map: &[u8; 60]) -> AccessorResult<DeviceNumber> {
     let (input, first) = nom_u32(block_map, "inode first device number is truncated")?;
     if first != 0 {
@@ -352,6 +474,7 @@ fn device_number(block_map: &[u8; 60]) -> AccessorResult<DeviceNumber> {
     }
 }
 
+/// Get the old device number version
 fn decode_old_device(value: u32) -> DeviceNumber {
     DeviceNumber {
         major: (value >> 8) & 0xff,
@@ -359,6 +482,7 @@ fn decode_old_device(value: u32) -> DeviceNumber {
     }
 }
 
+/// Get the new dervice number version
 fn decode_new_device(value: u32) -> DeviceNumber {
     DeviceNumber {
         major: (value & 0xfff00) >> 8,
@@ -366,6 +490,7 @@ fn decode_new_device(value: u32) -> DeviceNumber {
     }
 }
 
+/// Return 4 byte value if available
 fn optional_u32<'a>(input: &'a [u8], reason: &str) -> AccessorResult<(&'a [u8], Option<u32>)> {
     if input.len() < 4 {
         return Ok((input, None));
