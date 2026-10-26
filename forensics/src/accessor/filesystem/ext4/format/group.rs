@@ -19,16 +19,15 @@ use crate::{
 pub(crate) struct GroupDescriptor {
     /// Block number for of the block bitmap
     ///
-    /// If 64 bit feature flag is enabled. Then this value is 8 bytes
+    /// May require lower and upper 32 bits values if 64 bit feature flag is enabled
     pub(crate) block_bitmap: u64,
     /// Block number for of the inode bitmap
     ///
-    /// If 64 bit feature flag is enabled. Then this value is 8 bytes
+    /// May require lower and upper 32 bits values if 64 bit feature flag is enabled
     pub(crate) inode_bitmap: u64,
     /// Block number for of the inode tabe
     ///
-    /// If 64 bit feature flag is enabled.
-    /// Then this value requires upper and lower 32 bit values
+    /// May require lower and upper 32 bits values if 64 bit feature flag is enabled
     pub(crate) inode_table: u64,
     /// Free blocks count
     ///

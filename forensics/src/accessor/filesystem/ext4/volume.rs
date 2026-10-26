@@ -126,7 +126,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
             )));
         }
 
-        // Size of the blocks
+        // Size of the blocks in bytes
         let bytes = count
             .checked_mul(u64::from(self.layout.block_size))
             .ok_or_else(|| ext4_error(format!("read of {count} blocks overflows")))?;
@@ -226,12 +226,13 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
             .ok_or_else(|| ext4_error("group descriptor table offset overflows"))?;
 
         let mut table = vec![0_u8; byte_len as usize];
+        // Read the `GroupDescriptor` table
         self.read_exact_at(offset, &mut table)?;
 
         let mut groups = Vec::new();
         let mut group = 0_u64;
 
-        // Get the rest of the `GroupDescriptor` values
+        // Get all of the `GroupDescriptor` values
         while group < self.layout.group_count {
             let start = group
                 .checked_mul(size)
