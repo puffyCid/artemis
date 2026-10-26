@@ -224,7 +224,8 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
         )));
     }
 
-    let input = &data[..inode_len];
+    let inode_data = &data[..inode_len];
+    let input = inode_data;
     let (input, mode) = nom_u16(input, "inode mode is truncated")?;
     let (input, uid_lo) = nom_u16(input, "inode uid is truncated")?;
 
@@ -272,7 +273,7 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
 
     let inode_min_size = 128;
     if inode_size > inode_min_size {
-        let tail = &data[inode_min_size as usize..];
+        let tail = &inode_data[inode_min_size as usize..];
         let (_rest, extra_inode_value) = nom_u16(tail, "inode extra size is truncated")?;
 
         if extra_inode_value % 4 != 0 {
