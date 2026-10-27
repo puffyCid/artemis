@@ -388,10 +388,10 @@ fn reject_unsupported(superblock: &SuperBlock) -> AccessorResult<()> {
     // Current unsupported flags
     /*
      * <https://docs.kernel.org/filesystems/ext4/super.html>
-     * Meta block groups (META_BG) <https://origin.kernel.org/doc/html/latest/filesystems/ext4/blockgroup.html#meta-block-groups>
+     * Meta block groups (META_BG) <https://kernel.org/doc/html/latest/filesystems/ext4/blockgroup.html#meta-block-groups>
      * Encryption
      * Inline data <https://docs.kernel.org/filesystems/ext4/inlinedata.html>
-     * Extended Attributes Inode <https://origin.kernel.org/doc/html/latest/filesystems/ext4/eainode.html>
+     * Extended Attributes Inode <https://kernel.org/doc/html/latest/filesystems/ext4/eainode.html>
      * Case insensitive filenames
      * Compression - Legacy flag
      * Directory data - Never implemented?

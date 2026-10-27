@@ -24,7 +24,7 @@ pub(crate) struct ExtentLimits {
 
 /// Parsed `Extent` header data
 ///
-/// <https://origin.kernel.org/doc/html/latest/filesystems/ext4/ifork.html#extent-tree>
+/// <https://kernel.org/doc/html/latest/filesystems/ext4/ifork.html#extent-tree>
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct ExtentHeader {
     /// Number of valid entries following the extent header
@@ -50,13 +50,17 @@ pub(crate) struct Extent {
     pub(crate) unwritten: bool,
 }
 
+/// Parsed `Extent` index entry
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct ExtentIndex {
     pub(crate) logical_block: u32,
     pub(crate) physical_block: u64,
 }
 
-/// Parsed `Extent` index entry
+/// `Extent` value
+/// 
+/// Leaf points to file data
+/// Index points to more extents
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ExtentNode {
     /// Leaf entries point to file data
