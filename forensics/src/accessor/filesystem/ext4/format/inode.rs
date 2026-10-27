@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Time to calculate inode timestamp
-/// Nanoseconds since UNIXEPOCH
+/// Has nanosecond precision
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct InodeTime {
     /// Seconds since UNIXEPOCH
@@ -21,7 +21,7 @@ pub(crate) struct InodeTime {
     pub(crate) nanoseconds: u32,
 }
 
-/// Major and minor version from a device block
+/// Major and minor number from a device block
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct DeviceNumber {
     /// Major version number
@@ -50,7 +50,6 @@ pub(crate) struct Inode {
     /// Modified timestamp
     pub(crate) modified: InodeTime,
     /// Deleted timestamp.
-    /// This value is usually never set
     pub(crate) deleted: InodeTime,
     /// Created timestamp
     pub(crate) created: Option<InodeTime>,
@@ -103,7 +102,7 @@ struct ExtraFields {
 }
 
 impl Inode {
-    /// File requires securee deletion (Not used)
+    /// File requires secure deletion (Not used)
     pub(crate) const SECURE_DELETE: u32 = 0x1;
     /// File should be able to be "undeleted" (Not used)
     pub(crate) const UNDO_DELETE: u32 = 0x2;
@@ -119,7 +118,7 @@ impl Inode {
     pub(crate) const NO_DUMP: u32 = 0x40;
     /// Do not update the access timestamp
     pub(crate) const NO_ACCESS_TIME: u32 = 0x80;
-    // Compression is dirty (Not used)
+    /// Compression is dirty (Not used)
     pub(crate) const DIRTY_COMPRESSED: u32 = 0x100;
     /// File has compressed clusters (Not used)
     pub(crate) const COMPRESSED_CLUSTERS: u32 = 0x200;
@@ -137,6 +136,7 @@ impl Inode {
     pub(crate) const NO_TAIL: u32 = 0x8000;
     /// All directory data should be written synchronously
     pub(crate) const DIRECTORY_SYNC: u32 = 0x10000;
+    /// Top directory hierarchy
     pub(crate) const TOP_DIRECTORY: u32 = 0x20000;
     /// Has `HUGE_FILE` flag. `blocks` uses ext4 blocks instead of 512 byte sectors
     pub(crate) const HUGE_FILE: u32 = 0x40000;
@@ -144,7 +144,7 @@ impl Inode {
     pub(crate) const EXTENTS: u32 = 0x80000;
     /// Verity protected file
     pub(crate) const VERITY: u32 = 0x100000;
-    /// Inode stores large extended attributes in its data block
+    /// Inode stores large extended attributes
     pub(crate) const HAS_INODE_EXTENDED_ATTRIBUTE: u32 = 0x200000;
     /// File has blocks allocated past EOF
     pub(crate) const BLOCKS_EOF: u32 = 0x400000;
@@ -158,7 +158,7 @@ impl Inode {
     pub(crate) const INLINE_DATA: u32 = 0x10000000;
     /// Create children with same project ID
     pub(crate) const PROJECT_INHERIT: u32 = 0x20000000;
-    /// Use case insenstive lookups for directory contents
+    /// Use case insensitive lookups for directory contents
     pub(crate) const CASEFOLD: u32 = 0x40000000;
     /// Reserved flag
     pub(crate) const RESERVED: u32 = 0x80000000;
@@ -210,11 +210,6 @@ impl Inode {
 }
 
 /// Parse inode data
-///
-/// Currently only Linux created ext4 filesystems are supported.
-/// GNU Hurd and other types are not supported yet:
-///
-/// <https://docs.kernel.org/filesystems/ext4/inodes.html#i-osd1>
 pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode> {
     let inode_len = inode_size as usize;
     if data.len() < inode_len {
@@ -383,7 +378,7 @@ pub(crate) fn verify_inode(
     Ok(())
 }
 
-/// Check inode against CRC32C checksum
+/// Calculate inode checksum
 pub(crate) fn inode_crc32c(seed: u32, inode: u32, data: &[u8], extra_inode_size: u16) -> u32 {
     let mut crc = crc32c_check(seed, &inode.to_le_bytes());
 
@@ -490,7 +485,7 @@ fn decode_old_device(value: u32) -> DeviceNumber {
     }
 }
 
-/// Get the new dervice number version
+/// Get the new device number version
 fn decode_new_device(value: u32) -> DeviceNumber {
     DeviceNumber {
         major: (value & 0xfff00) >> 8,

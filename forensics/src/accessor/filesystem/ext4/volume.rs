@@ -20,7 +20,7 @@ use std::{
 pub(crate) struct Ext4EntryRef {
     /// Inode value
     pub(crate) inode: u64,
-    //// Generation value for the inode
+    /// Generation value for the inode
     pub(crate) generation: u32,
 }
 
@@ -89,7 +89,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         Ok(volume)
     }
 
-    /// Absolute byte offset for a inode value
+    /// Absolute byte offset for an inode value
     pub(crate) fn inode_offset(&self, inode: u64) -> AccessorResult<u64> {
         let count = self.superblock.inodes_count as u64;
         if inode == 0 || inode > count {
@@ -231,6 +231,11 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
     }
 
     /// Read one inode value
+    ///
+    /// Currently only Linux created ext4 filesystems are supported.
+    /// GNU Hurd and other types are not supported yet:
+    ///
+    /// <https://docs.kernel.org/filesystems/ext4/inodes.html#i-osd1>
     pub(super) fn read_inode(&self, inode: u64) -> AccessorResult<Inode> {
         if self.superblock.creator_os != 0 {
             return Err(ext4_error(format!(
@@ -258,7 +263,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         Ok(value)
     }
 
-    /// Return a `Ext4EntryRef` for an inode
+    /// Return an `Ext4EntryRef` for an inode
     pub(super) fn entry_ref(&self, inode: u64, value: &Inode) -> AccessorResult<Ext4EntryRef> {
         self.inode_offset(inode)?;
 
