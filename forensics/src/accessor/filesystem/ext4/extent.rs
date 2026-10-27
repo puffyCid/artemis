@@ -44,7 +44,7 @@ pub(crate) enum ExtentRun {
 /// Map the logical blocks through the `Extent` tree in the `Inode`
 ///
 /// Requires `EXTENTS` flag and the `INLINE_DATA` flag must not be set
-/// 
+///
 /// Searches the `Extent` data until it encounters a leaf value
 pub(crate) fn map_extent<R>(
     volume: &Ext4Volume<R>,
@@ -150,7 +150,7 @@ where
 }
 
 /// Return the `ExtentRun` for files
-/// 
+///
 /// Get the logical and physical blocks for the `Extent` leaf
 fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
     let Some(slot) = find_extent(extents.len(), |index| {
@@ -200,7 +200,7 @@ fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
 }
 
 /// Entry where the key is less than or equal to provided value
-/// 
+///
 /// Searches the `Extent` array for the last entry associated within the provided array length
 fn find_extent(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<usize> {
     let mut low = 0;
@@ -218,9 +218,9 @@ fn find_extent(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<us
     low.checked_sub(1)
 }
 
-/// Calculates holes in blocks. Typically associated with sparse data
-/// 
-/// If the current block is 1 and the next block is 10. Then 9 blocks are related to sparse data
+/// Calculates holes in blocks
+///
+/// If the current block is 1 and the next block is 10. Then 9 blocks are related to unallocated data
 fn hole_run(logical: u32, next: Option<u32>) -> AccessorResult<ExtentRun> {
     let length = match next {
         Some(start) if start > logical => u64::from(start - logical),

@@ -58,7 +58,7 @@ pub(crate) struct ExtentIndex {
 }
 
 /// `Extent` value
-/// 
+///
 /// Leaf points to file data
 /// Index points to more extents
 #[derive(Debug, Clone, PartialEq)]
