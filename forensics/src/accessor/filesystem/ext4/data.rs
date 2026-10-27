@@ -48,8 +48,8 @@ where
     let mut bytes = 0_usize;
 
     while bytes < want {
-        let filled_bytes =
-            u64::try_from(bytes).map_err(|_| ext4_error("file read length does not fit"))?;
+        let filled_bytes = u64::try_from(bytes)
+            .map_err(|err| ext4_error(format!("file read length does not fit: {err:?}")))?;
         let file_offset = offset
             .checked_add(filled_bytes)
             .ok_or_else(|| ext4_error(format!("file offset {offset} length {bytes} overflows")))?;
@@ -57,9 +57,9 @@ where
         // Determine logical block number
         // Ex: 4100 (offset) / 4096 = 1 (logical block 1)
         let logical = file_offset / block_size;
-        let logical_block = u32::try_from(logical).map_err(|_| {
+        let logical_block = u32::try_from(logical).map_err(|err| {
             ext4_error(format!(
-                "inode {inode_number} logical block {logical} does not fit in 32 bits"
+                "inode {inode_number} logical block {logical} does not fit in 32 bits: {err:?}"
             ))
         })?;
 
@@ -89,10 +89,11 @@ where
             ))
         })?;
 
-        let remaining =
-            u64::try_from(want - bytes).map_err(|_| ext4_error("file read length does not fit"))?;
-        let take = usize::try_from(in_run.min(remaining))
-            .map_err(|_| ext4_error("file read length does not fit in memory"))?;
+        let remaining = u64::try_from(want - bytes)
+            .map_err(|err| ext4_error(format!("file read length does not fit: {err:?}")))?;
+        let take = usize::try_from(in_run.min(remaining)).map_err(|err| {
+            ext4_error(format!("file read length does not fit in memory: {err:?}"))
+        })?;
 
         if take == 0 {
             return Err(ext4_error(format!(
@@ -103,7 +104,7 @@ where
         match run {
             // If unallocated, fill with 0 (common with sparse files)
             ExtentRun::Hole { .. } | ExtentRun::Unwritten { .. } => {
-                buf[bytes..bytes + take].fill(0)
+                buf[bytes..bytes + take].fill(0);
             }
             ExtentRun::Data { physical, .. } => {
                 let disk = physical

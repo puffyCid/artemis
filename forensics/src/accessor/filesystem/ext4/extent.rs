@@ -67,8 +67,11 @@ where
         )));
     }
 
-    let inode_number_u32 = u32::try_from(inode_number)
-        .map_err(|_| ext4_error(format!("inode {inode_number} does not fit in 32 bits")))?;
+    let inode_number_u32 = u32::try_from(inode_number).map_err(|err| {
+        ext4_error(format!(
+            "inode {inode_number} does not fit in 32 bits: {err:?}"
+        ))
+    })?;
 
     let limit = ExtentLimits {
         block_count: volume.layout().block_count,
@@ -165,9 +168,9 @@ fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
 
     // Leaf `Extent` has data
     if (logical as u64) < extent_end {
-        let skip = u16::try_from(logical - extent.logical_block).map_err(|_| {
+        let skip = u16::try_from(logical - extent.logical_block).map_err(|err| {
             ext4_error(format!(
-                "extent offset at logical block {logical} does not fit"
+                "extent offset at logical block {logical} does not fit: {err:?}"
             ))
         })?;
 

@@ -274,7 +274,7 @@ fn parse_leaves(mut input: &[u8], block_count: u64) -> AccessorResult<Vec<Extent
             length,
             physical_block,
             unwritten,
-        })
+        });
     }
 
     Ok(extents)
@@ -307,7 +307,7 @@ fn parse_indexes(mut input: &[u8], block_count: u64) -> AccessorResult<Vec<Exten
         indexes.push(ExtentIndex {
             logical_block,
             physical_block,
-        })
+        });
     }
 
     Ok(indexes)

@@ -250,7 +250,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
 
         let value = parse_inode(&data, self.layout.inode_size)?;
         let inode_number = u32::try_from(inode)
-            .map_err(|_| ext4_error(format!("inode {inode} does not fit in 32 bits")))?;
+            .map_err(|err| ext4_error(format!("inode {inode} does not fit in 32 bits: {err:?}")))?;
 
         verify_inode(
             &self.superblock,
@@ -332,9 +332,9 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
                 .checked_mul(size)
                 .ok_or_else(|| ext4_error(format!("group {group} descriptor offset overflows")))?;
 
-            let start = usize::try_from(start).map_err(|_| {
+            let start = usize::try_from(start).map_err(|err| {
                 ext4_error(format!(
-                    "group {group} descriptor offset does not fit in memory"
+                    "group {group} descriptor offset does not fit in memory: {err:?}"
                 ))
             })?;
 
@@ -342,8 +342,11 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
             let bytes = &table[start..end];
             let descriptor = parse_group_descriptor(bytes, self.layout.descriptor_size)?;
 
-            let group_number = u32::try_from(group)
-                .map_err(|_| ext4_error(format!("block group {group} does not fit in 32 bits")))?;
+            let group_number = u32::try_from(group).map_err(|err| {
+                ext4_error(format!(
+                    "block group {group} does not fit in 32 bits: {err:?}"
+                ))
+            })?;
 
             verify_group_descriptor(
                 &self.superblock,
@@ -365,7 +368,7 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
     fn lock_reader(&self) -> AccessorResult<MutexGuard<'_, R>> {
         self.reader.lock().map_err(|err| {
             ext4_path_error(
-                &self.target_path(),
+                self.target_path(),
                 format!("ext4 volume reader lock poisoned: {err:?}"),
             )
         })

@@ -81,14 +81,14 @@ impl Ext4Layout {
             )));
         }
 
-        if dynamic && !superblock.has_read_only(SuperBlock::BIGALLOC) {
-            if superblock.log_cluster_size != superblock.log_block_size
-                || superblock.clusters_per_group != blocks_per_group
-            {
-                return Err(ext4_error(
-                    "cluster size differs from block size without bigalloc",
-                ));
-            }
+        if dynamic
+            && !superblock.has_read_only(SuperBlock::BIGALLOC)
+            && (superblock.log_cluster_size != superblock.log_block_size
+                || superblock.clusters_per_group != blocks_per_group)
+        {
+            return Err(ext4_error(
+                "cluster size differs from block size without bigalloc",
+            ));
         }
 
         let block_count = if dynamic {
@@ -129,14 +129,17 @@ impl Ext4Layout {
         }
 
         let inode_bytes = inodes_per_group as u64 * inode_size as u64;
-        if inode_bytes % block_size as u64 != 0 {
+        if !inode_bytes.is_multiple_of(block_size as u64) {
             return Err(ext4_error(
                 "inode table does not occupy a whole number of blocks",
             ));
         }
 
-        let inode_table_blocks = u32::try_from(inode_bytes / block_size as u64)
-            .map_err(|_| ext4_error("inode table block count does not fit in 32 bits"))?;
+        let inode_table_blocks = u32::try_from(inode_bytes / block_size as u64).map_err(|err| {
+            ext4_error(format!(
+                "inode table block count does not fit in 32 bits: {err:?}"
+            ))
+        })?;
         let bit64 = dynamic && superblock.has_incompatible(SuperBlock::BIT64);
         let descriptor_size = if bit64 {
             superblock.descriptor_size
@@ -157,8 +160,10 @@ impl Ext4Layout {
 
         let descriptor_bytes = group_count * descriptor_size as u64;
         let descriptor_table_blocks = descriptor_bytes.div_ceil(block_size as u64);
-        let descriptor_table_blocks = u32::try_from(descriptor_table_blocks).map_err(|_| {
-            ext4_error("group descriptor table block count does not fit in 32 bits")
+        let descriptor_table_blocks = u32::try_from(descriptor_table_blocks).map_err(|err| {
+            ext4_error(format!(
+                "group descriptor table block count does not fit in 32 bits: {err:?}"
+            ))
         })?;
 
         let groups_per_flex = if dynamic && superblock.has_incompatible(SuperBlock::FLEX_BG) {
@@ -253,7 +258,7 @@ fn is_power(mut group: u32, base: u32) -> bool {
     }
 
     while group > base {
-        if group % base != 0 {
+        if !group.is_multiple_of(base) {
             return false;
         }
 

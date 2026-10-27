@@ -39,7 +39,7 @@ pub(crate) struct SuperBlock {
     pub(crate) blocks_per_group: u32,
     /// Clusters per group, if big alloc flag is enabled.
     ///
-    /// Otherwise clusters_per_group must equal blocks_per_group.
+    /// Otherwise `clusters_per_group` must equal `blocks_per_group`
     pub(crate) clusters_per_group: u32,
     /// Inodes per group
     pub(crate) inodes_per_group: u32,
