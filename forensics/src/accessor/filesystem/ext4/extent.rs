@@ -44,6 +44,8 @@ pub(crate) enum ExtentRun {
 /// Map the logical blocks through the `Extent` tree in the `Inode
 ///
 /// Requires `EXTENTS` flag and the `INLINE_DATA` flag must not be set
+/// 
+/// Searches the `Extent` data until it encounters a leaf value
 pub(crate) fn map_extent<R>(
     volume: &Ext4Volume<R>,
     inode_number: u64,
@@ -76,13 +78,15 @@ where
     };
 
     let mut node = parse_extent_node(&inode.block_map, &limit)?;
+    // Track child extents. Also has a max depth of 32 child extents
     let mut seen = Vec::new();
 
     loop {
         match node {
+            // File data found
             ExtentNode::Leaf { extents, .. } => return map_leaf(&extents, logical),
             ExtentNode::Index { header, indexes } => {
-                let Some(slot) = rightmost(indexes.len(), |index| {
+                let Some(slot) = find_extent(indexes.len(), |index| {
                     indexes[index].logical_block <= logical
                 }) else {
                     let next = indexes.first().map(|index| index.logical_block);
@@ -90,6 +94,8 @@ where
                 };
 
                 let child = indexes[slot].physical_block;
+                // Check for recursive child extents (child points back to the paretn)
+                // Max array size is 32
                 if seen.contains(&child) {
                     return Err(ext4_error(format!(
                         "inode {inode_number} extent block {child} repeats in the tree"
@@ -144,8 +150,10 @@ where
 }
 
 /// Return the `ExtentRun` for files
+/// 
+/// Get the logical and physical blocks for the `Extent` leaf
 fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
-    let Some(slot) = rightmost(extents.len(), |index| {
+    let Some(slot) = find_extent(extents.len(), |index| {
         extents[index].logical_block <= logical
     }) else {
         let next = extents.first().map(|extent| extent.logical_block);
@@ -155,6 +163,7 @@ fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
     let extent = &extents[slot];
     let extent_end = extent.logical_block as u64 + extent.length as u64;
 
+    // Leaf `Extent` has data
     if (logical as u64) < extent_end {
         let skip = u16::try_from(logical - extent.logical_block).map_err(|_| {
             ext4_error(format!(
@@ -185,12 +194,15 @@ fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
         return Ok(run);
     }
 
+    // Possible sparse data encountered
     let next = extents.get(slot + 1).map(|extent| extent.logical_block);
     hole_run(logical, next)
 }
 
 /// Entry where the key is less than or equal to provided target
-fn rightmost(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<usize> {
+/// 
+/// Searches the `Extent` array for the last entry associated with the provided length
+fn find_extent(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<usize> {
     let mut low = 0;
     let mut high = length;
 
@@ -206,7 +218,7 @@ fn rightmost(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<usiz
     low.checked_sub(1)
 }
 
-/// Hole at the logical block
+/// Sparse data.  Track the blocks associated with the sparse data
 fn hole_run(logical: u32, next: Option<u32>) -> AccessorResult<ExtentRun> {
     let length = match next {
         Some(start) if start > logical => u64::from(start - logical),
