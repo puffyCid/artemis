@@ -62,6 +62,8 @@ pub(crate) struct Inode {
     /// Inode version value
     pub(crate) version: u64,
     /// Raw 60 byte block area
+    ///
+    /// <https://origin.kernel.org/doc/html/latest/filesystems/ext4/ifork.html#the-contents-of-inode-i-block>
     pub(crate) block_map: [u8; 60],
     /// Inode generation number
     pub(crate) generation: u32,

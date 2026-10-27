@@ -9,27 +9,44 @@ use crate::{
     utils::nom_helper::{nom_u16, nom_u32},
 };
 
+/// Limts for one `Extent` node
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ExtentLimits {
+    /// Largest physical block number plus one
     pub(crate) block_count: u64,
+    /// Bytes available to this node
     pub(crate) capacity: usize,
+    /// extent header slots should have a checksum tail
     pub(crate) checksum_tail: bool,
+    /// Depth the parent extent expects
     pub(crate) expected_depth: Option<u16>,
 }
 
+/// Parsed `Extent` header data
+///
+/// <https://origin.kernel.org/doc/html/latest/filesystems/ext4/ifork.html#extent-tree>
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct ExtentHeader {
+    /// Number of valid entries following the extent header
     pub(crate) entries: u16,
+    /// Max entries that are allowed to follow the extent header
     pub(crate) max_entries: u16,
+    /// Depth of the extent node
     pub(crate) depth: u16,
+    /// Generation of the extent tree (not used by ext4)
     pub(crate) generation: u32,
 }
 
+/// Parsed `Extent` entry
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Extent {
+    /// First logical block for the `Extent` entry
     pub(crate) logical_block: u32,
+    /// Blocks covered by the `Extent` entry
     pub(crate) length: u16,
+    /// First physical block for the `Extent` entry
     pub(crate) physical_block: u64,
+    /// `Extent` is allocated but its bytes are uninitialized
     pub(crate) unwritten: bool,
 }
 
@@ -39,19 +56,27 @@ pub(crate) struct ExtentIndex {
     pub(crate) physical_block: u64,
 }
 
+/// Parsed `Extent` index entry
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ExtentNode {
+    /// Leaf entries point to file data
     Leaf {
+        /// `Extent` header value
         header: ExtentHeader,
+        /// Array of leaf extents in logical order
         extents: Vec<Extent>,
     },
+    /// Index entries point to child nodes
     Index {
+        /// `Extent` header value
         header: ExtentHeader,
+        /// Array of index extents in logical order
         indexes: Vec<ExtentIndex>,
     },
 }
 
 impl ExtentNode {
+    /// Return the parsed `ExtentHeader`
     pub(crate) fn header(&self) -> &ExtentHeader {
         match self {
             Self::Leaf { header, .. } | Self::Index { header, .. } => header,
@@ -59,6 +84,7 @@ impl ExtentNode {
     }
 }
 
+/// Parse an `Extent` node
 pub(crate) fn parse_extent_node(data: &[u8], limits: &ExtentLimits) -> AccessorResult<ExtentNode> {
     let header_size = 12;
     if data.len() < header_size || limits.capacity < header_size {
@@ -69,6 +95,7 @@ pub(crate) fn parse_extent_node(data: &[u8], limits: &ExtentLimits) -> AccessorR
         )));
     }
 
+    // Grab the header value
     let header = parse_header(data)?;
     if header.max_entries == 0 {
         return Err(ext4_error("extent max entries is 0"));
@@ -100,7 +127,7 @@ pub(crate) fn parse_extent_node(data: &[u8], limits: &ExtentLimits) -> AccessorR
     }
 
     let entry_size = 12;
-    let slots_end = header_size + usize::from(header.max_entries) * entry_size;
+    let slots_end = header_size + header.max_entries as usize * entry_size;
     if slots_end > limits.capacity || data.len() < slots_end {
         return Err(ext4_error(format!(
             "extent node needs {slots_end} bytes, found {} in a {} byte node",
@@ -128,6 +155,7 @@ pub(crate) fn parse_extent_node(data: &[u8], limits: &ExtentLimits) -> AccessorR
     }
 }
 
+/// Validate the checksum value of an `Extent`
 pub(crate) fn verify_extent_block(
     superblock: &SuperBlock,
     checksum_seed: Option<u32>,
@@ -145,7 +173,7 @@ pub(crate) fn verify_extent_block(
     let entry_size = 12;
     let tail_size = 4;
 
-    let tail = header_size + usize::from(header.max_entries) * entry_size;
+    let tail = header_size + header.max_entries as usize * entry_size;
     if data.len() < tail + tail_size {
         return Err(ext4_error(format!(
             "inode {inode} extent checksum is outside the node"
@@ -166,6 +194,7 @@ pub(crate) fn verify_extent_block(
     Ok(())
 }
 
+/// Calculate the CRC32C checksum of an `Extent`
 pub(crate) fn extent_crc32c(
     seed: u32,
     inode: u32,
@@ -183,6 +212,7 @@ pub(crate) fn extent_crc32c(
     crc32c_check(crc, &data[..covered])
 }
 
+/// Parse the `Extent` header data
 fn parse_header(data: &[u8]) -> AccessorResult<ExtentHeader> {
     let (input, magic) = nom_u16(data, "extent magic is truncated")?;
 
@@ -206,6 +236,7 @@ fn parse_header(data: &[u8]) -> AccessorResult<ExtentHeader> {
     })
 }
 
+/// Parse the `Extent` leaf data. Points to file data
 fn parse_leaves(mut input: &[u8], block_count: u64) -> AccessorResult<Vec<Extent>> {
     let mut extents = Vec::new();
     let mut previous_end = None;
@@ -245,6 +276,7 @@ fn parse_leaves(mut input: &[u8], block_count: u64) -> AccessorResult<Vec<Extent
     Ok(extents)
 }
 
+/// Parse the `Extent` index data. Points to children `Extents`
 fn parse_indexes(mut input: &[u8], block_count: u64) -> AccessorResult<Vec<ExtentIndex>> {
     let mut indexes = Vec::new();
     let mut previous = None;
@@ -277,6 +309,7 @@ fn parse_indexes(mut input: &[u8], block_count: u64) -> AccessorResult<Vec<Exten
     Ok(indexes)
 }
 
+/// Validate `Extent` length values
 fn extent_length(raw: u16) -> AccessorResult<(u16, bool)> {
     if raw == 0 {
         return Err(ext4_error("extent length is 0"));
@@ -290,6 +323,7 @@ fn extent_length(raw: u16) -> AccessorResult<(u16, bool)> {
     }
 }
 
+/// Logical extent end should be a 32-bit block number
 fn check_logical_range(logical: u32, length: u16) -> AccessorResult<()> {
     let end = logical as u64 + length as u64;
 
@@ -302,6 +336,7 @@ fn check_logical_range(logical: u32, length: u16) -> AccessorResult<()> {
     Ok(())
 }
 
+/// `Extent` leaf range should start after block 0 and be within the filesystem
 fn check_physical_range(physical: u64, length: u64, block_count: u64) -> AccessorResult<()> {
     if physical == 0 {
         return Err(ext4_error("extent physical block is 0"));
@@ -320,6 +355,7 @@ fn check_physical_range(physical: u64, length: u64, block_count: u64) -> Accesso
     Ok(())
 }
 
+/// Validate the `Extent` index is within the fileystem
 fn check_physical_block(physical: u64, block_count: u64) -> AccessorResult<()> {
     if physical == 0 || physical >= block_count {
         return Err(ext4_error(format!(

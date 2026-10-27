@@ -11,24 +11,39 @@ use crate::accessor::{
 };
 use std::io::{Read, Seek};
 
+/// Mapping for one logical block lookup
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum ExtentRun {
+    /// No allocated blocks within the `ExtentRun` range
     Hole {
+        /// First logical block of the hole
         logical: u32,
+        /// Logical blocks until the next `Extent`
         length: u64,
     },
+    /// Initialized file data
     Data {
+        /// First logical block of the data
         logical: u32,
+        /// Physical block location of the data
         physical: u64,
+        /// Blocks remaining in the `Extent`
         length: u16,
     },
+    /// Allocated `Extent` but uninitialized blocks
     Unwritten {
+        /// First logical block of value
         logical: u32,
+        /// Physical block location of the data
         physical: u64,
+        /// Blocks remaining in the `Extent`
         length: u16,
     },
 }
 
+/// Map the logical blocks through the `Extent` tree in the `Inode
+///
+/// Requires `EXTENTS` flag and the `INLINE_DATA` flag must not be set
 pub(crate) fn map_extent<R>(
     volume: &Ext4Volume<R>,
     inode_number: u64,
@@ -94,6 +109,7 @@ where
     }
 }
 
+/// Read the child `Extent` block
 fn read_extent_block<R>(
     volume: &Ext4Volume<R>,
     inode_number: u32,
@@ -127,6 +143,7 @@ where
     Ok(node)
 }
 
+/// Return the `ExtentRun` for files
 fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
     let Some(slot) = rightmost(extents.len(), |index| {
         extents[index].logical_block <= logical
@@ -172,6 +189,7 @@ fn map_leaf(extents: &[Extent], logical: u32) -> AccessorResult<ExtentRun> {
     hole_run(logical, next)
 }
 
+/// Entry where the key is less than or equal to provided target
 fn rightmost(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<usize> {
     let mut low = 0;
     let mut high = length;
@@ -188,6 +206,7 @@ fn rightmost(length: usize, is_candidate: impl Fn(usize) -> bool) -> Option<usiz
     low.checked_sub(1)
 }
 
+/// Hole at the logical block
 fn hole_run(logical: u32, next: Option<u32>) -> AccessorResult<ExtentRun> {
     let length = match next {
         Some(start) if start > logical => u64::from(start - logical),
