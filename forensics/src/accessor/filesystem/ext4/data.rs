@@ -22,7 +22,7 @@ pub(crate) fn read_file_at<R>(
 where
     R: Read + Seek + Send,
 {
-    // Encrypted data not support yet
+    // Encrypted data not supported yet
     if inode.flags & Inode::ENCRYPTED != 0 {
         return Err(ext4_error(format!("inode {inode_number} is encrypted")));
     }
@@ -63,7 +63,7 @@ where
             ))
         })?;
 
-        // Read the bytes associated with each extent
+        // Attempt to get the extent leaf for the data
         let run = map_extent(volume, inode_number, inode, logical_block)?;
         let blocks = match run {
             ExtentRun::Hole { length, .. } => length,
@@ -81,7 +81,7 @@ where
             .ok_or_else(|| ext4_error("extent run size overflows"))?;
 
         // Determine offset within the logical block
-        // Ex: 4100 (offset) % 4096 = 4 (offset 4 insidte logical block 1)
+        // Ex: 4100 (offset) % 4096 = 4 (offset 4 inside logical block 1)
         let within = file_offset % block_size;
         let in_run = run_bytes.checked_sub(within).ok_or_else(|| {
             ext4_error(format!(

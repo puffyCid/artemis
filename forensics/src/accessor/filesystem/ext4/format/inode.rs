@@ -271,7 +271,7 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
     let inode_min_size = 128;
     if inode_size > inode_min_size {
         let tail = &inode_data[inode_min_size as usize..];
-        let (_rest, extra_inode_value) = nom_u16(tail, "inode extra size is truncated")?;
+        let (remaining, extra_inode_value) = nom_u16(tail, "inode extra size is truncated")?;
 
         if extra_inode_value % 4 != 0 {
             return Err(ext4_error(format!(
@@ -293,7 +293,8 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
             inline_xattr = tail.to_vec();
         } else {
             let extra_len = extra_inode_size as usize;
-            let fields = parse_extra_fields(&tail[2..extra_len])?;
+            // We nom the first 2 bytes to determine the inode extra size
+            let fields = parse_extra_fields(&remaining[..extra_len - 2])?;
 
             checksum_hi = fields.checksum_hi;
             ctime_extra = fields.changed_extra;
