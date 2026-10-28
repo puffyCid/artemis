@@ -14,6 +14,7 @@ use crate::accessor::{
 };
 use std::io::{Read, Seek};
 
+/// Read and parse `Directory` entries from provided `Inode` number
 pub(crate) fn read_directory<R>(
     volume: &Ext4Volume<R>,
     inode_number: u64,
@@ -34,6 +35,7 @@ where
     Ok(entries)
 }
 
+/// Find a `Directory` entry by name and return its `Inode` number
 pub(crate) fn lookup_name<R>(
     volume: &Ext4Volume<R>,
     inode_number: u64,
@@ -55,6 +57,7 @@ where
     Ok(found)
 }
 
+/// Return the `Inode` number and `Inode` data for a provided path
 pub(crate) fn resolve_path<R>(volume: &Ext4Volume<R>, path: &str) -> AccessorResult<(u64, Inode)>
 where
     R: Read + Seek + Send,
@@ -79,6 +82,8 @@ where
     Ok((inode_number, inode))
 }
 
+/// Read the symbolic path (it does not follow the link!)
+/// It just reads the path it points to (not the data)
 pub(crate) fn read_symlink<R>(
     volume: &Ext4Volume<R>,
     inode_number: u64,
@@ -127,6 +132,9 @@ where
     Ok(inode.block_map[..size].to_vec())
 }
 
+/// Loop through each `Directory` entry
+/// 
+/// `visit` returns true to break the loop
 fn visit_directory<R>(
     volume: &Ext4Volume<R>,
     inode_number: u64,
