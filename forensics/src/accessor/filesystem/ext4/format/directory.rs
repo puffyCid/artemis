@@ -9,13 +9,22 @@ use crate::{
     utils::nom_helper::{nom_u8, nom_u16, nom_u32},
 };
 
+/// Parsed `Directory` values
+///
+/// <https://kernel.org/doc/html/latest/filesystems/ext4/directory.html>
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct DirectoryEntry {
+    /// Inode number for entry
     pub(crate) inode: u32,
+    /// Entry name in bytes
     pub(crate) name: Vec<u8>,
+    /// Entry filetype
+    ///
+    /// Can be File, Directory, Char device, Block device, Pipe, Socket, Symoblic link
     pub(crate) file_type: u8,
 }
 
+/// Parse a `Directory` entries
 pub(crate) fn parse_directory_block(
     data: &[u8],
     block_size: u32,
@@ -53,6 +62,8 @@ pub(crate) fn parse_directory_block(
             (name_length as usize, 0)
         };
 
+        // Determine the length of the directory entry
+        // Commonly a multiple of 4 (but not always)
         let record_length = record_length(raw_length, block_size);
         if record_length < 8
             || !record_length.is_multiple_of(4)
@@ -90,6 +101,7 @@ pub(crate) fn parse_directory_block(
             )));
         }
 
+        // Inode value of 0 means the entry is unused
         if inode != 0 {
             entries.push(DirectoryEntry {
                 inode,
@@ -110,6 +122,7 @@ pub(crate) fn parse_directory_block(
     Ok(entries)
 }
 
+/// Check the `DirectoryEntry` checksum value
 pub(crate) fn verify_directory_block(
     superblock: &SuperBlock,
     checksum_seed: Option<u32>,
@@ -125,6 +138,9 @@ pub(crate) fn verify_directory_block(
         checksum_seed.ok_or_else(|| ext4_error("metadata checksum seed is missing"))?;
     let seed = inode_checksum_seed(volume_seed, inode, generation);
 
+    // Check if we are parsing hash tree directory
+    // <https://kernel.org/doc/html/latest/filesystems/ext4/directory.html#hash-tree-directories>
+    // Find the offset to the count value
     if let Some(count_offset) = directory_index_count_offset(data) {
         return verify_directory_index_checksum(inode, seed, data, count_offset);
     }
@@ -132,12 +148,14 @@ pub(crate) fn verify_directory_block(
     verify_leaf_checksum(inode, seed, data)
 }
 
+/// Checked the CRC32C value for the `Directory` inode
 fn inode_checksum_seed(seed: u32, inode: u32, generation: u32) -> u32 {
     let crc = crc32c_check(seed, &inode.to_le_bytes());
 
     crc32c_check(crc, &generation.to_le_bytes())
 }
 
+/// Check the leaf `Directory` checksum value
 fn verify_leaf_checksum(inode: u32, seed: u32, data: &[u8]) -> AccessorResult<()> {
     let tail_size = 12;
     let length = data.len();
@@ -177,6 +195,7 @@ fn verify_leaf_checksum(inode: u32, seed: u32, data: &[u8]) -> AccessorResult<()
     Ok(())
 }
 
+/// Check the leaf `Directory` checksum value for hash tree directories
 fn verify_directory_index_checksum(
     inode: u32,
     seed: u32,
@@ -247,6 +266,7 @@ fn verify_directory_index_checksum(
     Ok(())
 }
 
+/// Check if the directory entry is a hash tree
 fn directory_index_count_offset(data: &[u8]) -> Option<usize> {
     let block_size = data.len();
 
@@ -269,7 +289,6 @@ fn directory_index_count_offset(data: &[u8]) -> Option<usize> {
     }
 
     let reserved = u32::from_le_bytes([data[24], data[25], data[26], data[27]]);
-
     if reserved != 0 || data[29] != 8 {
         return None;
     }
@@ -277,6 +296,7 @@ fn directory_index_count_offset(data: &[u8]) -> Option<usize> {
     Some(32)
 }
 
+/// Determine the record length of a `Directory`
 fn record_length(raw: u16, block_size: usize) -> usize {
     if block_size < 65536 {
         return raw as usize;
@@ -286,7 +306,11 @@ fn record_length(raw: u16, block_size: usize) -> usize {
         return block_size;
     }
 
-    raw as usize & 65532 | (raw as usize & 3) << 16
+    // For large 64kb block sizes
+    // The max u16 size is "65535" which not a multiple of 4
+    // We have to get the lower bits
+    // https://lists.openwall.net/linux-ext4/2009/02/12/2
+    raw as usize & 65532 | ((raw as usize & 3) << 16)
 }
 
 #[cfg(test)]

@@ -446,7 +446,7 @@ mod tests {
         path.push("tests/test_data/filesystems/ext4/debian/bookworm/root.raw");
         let block = read(path).unwrap();
         let entries = parse_directory_block(&block, 4096, true).unwrap();
-        
+
         assert!(entries.iter().any(|entry| entry.name == b"lost+found"));
         assert!(entries.iter().any(|entry| entry.name == b"."));
     }
