@@ -20,7 +20,7 @@ pub(crate) struct DirectoryEntry {
     pub(crate) name: Vec<u8>,
     /// Entry filetype
     ///
-    /// Can be File, Directory, Char device, Block device, Pipe, Socket, Symoblic link
+    /// Can be File, Directory, Char device, Block device, Pipe, Socket, Symbolic link
     pub(crate) file_type: u8,
 }
 
@@ -63,7 +63,7 @@ pub(crate) fn parse_directory_block(
         };
 
         // Determine the length of the directory entry
-        // Commonly a multiple of 4 (but not always)
+        // Commonly a multiple of 4
         let record_length = record_length(raw_length, block_size);
         if record_length < 8
             || !record_length.is_multiple_of(4)
@@ -89,7 +89,7 @@ pub(crate) fn parse_directory_block(
         let max_name_size = 255;
         if name_length > max_name_size || name_length + 8 > record_length {
             return Err(ext4_error(format!(
-                "directory entry at {offset} has name length {name_length}. Should be smaller than {max_name_size}"
+                "directory entry at {offset} has name length {name_length}. Should be smaller than {max_name_size} bytes"
             )));
         }
 
@@ -162,7 +162,7 @@ fn verify_leaf_checksum(inode: u32, seed: u32, data: &[u8]) -> AccessorResult<()
 
     if length < tail_size {
         return Err(ext4_error(format!(
-            "inode {inode} directory block is too small for a checksum. Got {length} needs to be at lease {tail_size}"
+            "inode {inode} directory block is too small for a checksum. Got {length} needs to be at least {tail_size}"
         )));
     }
 
@@ -208,14 +208,11 @@ fn verify_directory_index_checksum(
         )));
     }
 
-    let (_, limit) = nom_u16(
+    let (remaining, limit) = nom_u16(
         &data[count_offset..],
         "directory hash tree limit is truncated",
     )?;
-    let (_, count) = nom_u16(
-        &data[count_offset + 2..],
-        "directory hash tree count is truncated",
-    )?;
+    let (_, count) = nom_u16(remaining, "directory hash tree count is truncated")?;
 
     if limit == 0 || count == 0 || count > limit {
         return Err(ext4_error(format!(

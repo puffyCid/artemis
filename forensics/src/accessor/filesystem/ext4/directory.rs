@@ -1,5 +1,3 @@
-use common::files::EntryKind;
-
 use crate::accessor::{
     error::{AccessorError, AccessorResult},
     filesystem::ext4::{
@@ -12,6 +10,7 @@ use crate::accessor::{
         volume::Ext4Volume,
     },
 };
+use common::files::EntryKind;
 use std::io::{Read, Seek};
 
 /// Read and parse `Directory` entries from provided `Inode` number
@@ -133,7 +132,7 @@ where
 }
 
 /// Loop through each `Directory` entry
-/// 
+///
 /// `visit` returns true to break the loop
 fn visit_directory<R>(
     volume: &Ext4Volume<R>,
