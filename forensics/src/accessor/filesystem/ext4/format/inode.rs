@@ -315,9 +315,10 @@ pub(crate) fn parse_inode(
     }
 
     let file_type = mode & 0xf000;
-    // Handle both 32 bit and 64 bit systems
-    // 64 bit systems use upper size bits
-    let use_size_high = large_dir || file_type == 0x8000;
+    let regular_file = 0x8000;
+    // If large directory flag is set. Then all filetypes have high upper bit size
+    // Regardless if the flag is set, regular files always have high upper bit size
+    let use_size_high = large_dir || file_type == regular_file;
     Ok(Inode {
         mode,
         uid: uid_lo as u32 | (uid_hi as u32) << 16,
