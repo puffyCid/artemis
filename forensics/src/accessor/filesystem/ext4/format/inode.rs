@@ -212,7 +212,7 @@ impl Inode {
 }
 
 /// Parse inode data
-pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode> {
+pub(crate) fn parse_inode(data: &[u8], inode_size: u16, bit64: bool) -> AccessorResult<Inode> {
     let inode_len = inode_size as usize;
     if data.len() < inode_len {
         return Err(ext4_error(format!(
@@ -289,9 +289,7 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
 
         // Check if we have additional bytes
         // We can get additional timestamp precision and created timestamp
-        if extra_inode_size == 0 {
-            inline_xattr = tail.to_vec();
-        } else {
+        if extra_inode_size > 0 {
             let extra_len = extra_inode_size as usize;
             // We nom the first 2 bytes to determine the inode extra size
             let fields = parse_extra_fields(&remaining[..extra_len - 2])?;
@@ -326,7 +324,7 @@ pub(crate) fn parse_inode(data: &[u8], inode_size: u16) -> AccessorResult<Inode>
         version: version_lo as u64 | (version_hi.unwrap_or(0) as u64) << 32,
         block_map,
         generation,
-        file_acl: file_acl_lo as u64 | (file_acl_hi as u64) << 32,
+        file_acl: file_acl_lo as u64 | if bit64 { (file_acl_hi as u64) << 32 } else { 0 },
         extra_inode_size,
         checksum_lo,
         checksum_hi,
@@ -581,12 +579,12 @@ mod tests {
     fn inode_with_mode(mode: u16) -> Inode {
         let mut data = vec![0_u8; 128];
         put_u16(&mut data, 0, mode);
-        parse_inode(&data, 128).unwrap()
+        parse_inode(&data, 128, true).unwrap()
     }
 
     #[test]
     fn test_parse_inode_reads_base_and_extra_fields() {
-        let inode = parse_inode(&sample_inode(), 256).unwrap();
+        let inode = parse_inode(&sample_inode(), 256, true).unwrap();
 
         assert_eq!(inode.mode, 0x81a4);
         assert_eq!(inode.kind(), EntryKind::File);
@@ -653,28 +651,28 @@ mod tests {
         put_u16(&mut old, 0, 0x6000);
         put_u32(&mut old, 0x28, 0x801);
 
-        let device = parse_inode(&old, 128).unwrap().device().unwrap();
+        let device = parse_inode(&old, 128, true).unwrap().device().unwrap();
         assert_eq!(device.major, 8);
         assert_eq!(device.minor, 1);
 
         let mut new = vec![0_u8; 128];
         put_u16(&mut new, 0, 0x2000);
         put_u32(&mut new, 0x2c, 0x100800);
-        let device = parse_inode(&new, 128).unwrap().device().unwrap();
+        let device = parse_inode(&new, 128, true).unwrap().device().unwrap();
         assert_eq!(device.major, 8);
         assert_eq!(device.minor, 256);
     }
 
     #[test]
     fn test_huge_file_counts_filesystem_blocks() {
-        let mut inode = parse_inode(&sample_inode(), 256).unwrap();
+        let mut inode = parse_inode(&sample_inode(), 256, true).unwrap();
         inode.flags |= Inode::HUGE_FILE;
         assert_eq!(inode.allocated_bytes(4096).unwrap(), 8 * 4096);
     }
 
     #[test]
     fn test_parse_inode_rejects_a_short_record() {
-        let reason = match parse_inode(&[0_u8; 16], 256) {
+        let reason = match parse_inode(&[0_u8; 16], 256, true) {
             Err(AccessorError::Ext4 { reason, .. }) => reason,
             other => panic!("expected an ext4 error, got {other:?}"),
         };
@@ -685,7 +683,7 @@ mod tests {
     fn test_parse_inode_rejects_an_unaligned_extra_size() {
         let mut data = vec![0_u8; 256];
         put_u16(&mut data, 0x80, 2);
-        let reason = match parse_inode(&data, 256) {
+        let reason = match parse_inode(&data, 256, true) {
             Err(AccessorError::Ext4 { reason, .. }) => reason,
             other => panic!("expected an ext4 error, got {other:?}"),
         };
@@ -696,7 +694,7 @@ mod tests {
     fn test_parse_inode_rejects_an_extra_size_past_the_record() {
         let mut data = vec![0_u8; 256];
         put_u16(&mut data, 0x80, 132);
-        let reason = match parse_inode(&data, 256) {
+        let reason = match parse_inode(&data, 256, true) {
             Err(AccessorError::Ext4 { reason, .. }) => reason,
             other => panic!("expected an ext4 error, got {other:?}"),
         };
@@ -713,11 +711,11 @@ mod tests {
         put_u16(&mut data, 0x7c, sum as u16);
         put_u16(&mut data, 0x82, (sum >> 16) as u16);
 
-        let parsed = parse_inode(&data, 256).unwrap();
+        let parsed = parse_inode(&data, 256, true).unwrap();
         verify_inode(&superblock, seed, 11, &data, &parsed).unwrap();
 
         data[0x10] ^= 0xff;
-        let parsed = parse_inode(&data, 256).unwrap();
+        let parsed = parse_inode(&data, 256, true).unwrap();
         let err = verify_inode(&superblock, seed, 11, &data, &parsed).unwrap_err();
         assert!(matches!(
             err,
@@ -736,7 +734,7 @@ mod tests {
         assert_ne!(sum >> 16, 0);
         put_u16(&mut data, 0x7c, sum as u16);
 
-        let parsed = parse_inode(&data, 128).unwrap();
+        let parsed = parse_inode(&data, 128, true).unwrap();
         assert!(parsed.created.is_none());
         assert!(parsed.inline_xattr.is_empty());
         verify_inode(&superblock, Some(seed), 2, &data, &parsed).unwrap();
@@ -749,10 +747,11 @@ mod tests {
         let sum = inode_crc32c(superblock.checksum_seed().unwrap(), 1, &data, 0);
         assert_ne!(sum & 0xffff, 0);
 
-        let parsed = parse_inode(&data, 256).unwrap();
-        assert_eq!(parsed.extra_inode_size, 0);
-        assert_eq!(parsed.inline_xattr.len(), 128);
+        let parsed = parse_inode(&data, 256, false).unwrap();
         assert!(parsed.created.is_none());
+        assert_eq!(parsed.extra_inode_size, 0);
+        assert!(parsed.inline_xattr.is_empty());
+
         verify_inode(&superblock, superblock.checksum_seed(), 1, &data, &parsed).unwrap();
     }
 
@@ -764,7 +763,7 @@ mod tests {
 
         put_u16(&mut data, 0x7c, 0);
         put_u16(&mut data, 0x82, 0);
-        let parsed = parse_inode(&data, 256).unwrap();
+        let parsed = parse_inode(&data, 256, true).unwrap();
 
         verify_inode(&superblock, None, 11, &data, &parsed).unwrap();
     }

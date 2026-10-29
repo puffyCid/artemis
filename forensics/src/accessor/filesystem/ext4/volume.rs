@@ -248,7 +248,11 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
         let mut data = vec![0_u8; self.layout.inode_size as usize];
         self.read_exact_at(offset, &mut data)?;
 
-        let value = parse_inode(&data, self.layout.inode_size)?;
+        let value = parse_inode(
+            &data,
+            self.layout.inode_size,
+            self.superblock.has_incompatible(SuperBlock::BIT64),
+        )?;
         let inode_number = u32::try_from(inode)
             .map_err(|err| ext4_error(format!("inode {inode} does not fit in 32 bits: {err:?}")))?;
 

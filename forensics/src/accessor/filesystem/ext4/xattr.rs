@@ -169,7 +169,7 @@ mod tests {
         let block = external_block(seed, 50);
         let volume = plant(50, &block);
 
-        let mut inode = parse_inode(&[0_u8; 256], 256).unwrap();
+        let mut inode = parse_inode(&[0_u8; 256], 256, true).unwrap();
         inode.inline_xattr.clear();
         inode.file_acl = 50;
 

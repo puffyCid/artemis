@@ -266,6 +266,7 @@ fn parse_attributes(
     Ok(attributes)
 }
 
+/// Get the attribute name based on index value
 fn full_name(index: u8, name: &[u8]) -> Vec<u8> {
     let prefix: &[u8] = match index {
         1 => b"user.",
