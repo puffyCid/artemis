@@ -37,20 +37,18 @@ where
     let mut attributes = parse_inline_attributes(inode_u32, &inode.inline_xattr)?;
 
     // If zero then we do not have block attributes
-    if inode.file_acl == 0 {
-        return Ok(attributes);
+    if inode.file_acl != 0 {
+        let block = volume.read_block(inode.file_acl)?;
+        verify_attribute_block(
+            volume.superblock(),
+            volume.checksum_seed(),
+            inode_u32,
+            inode.file_acl,
+            &block,
+        )?;
+
+        attributes.extend(parse_attribute_block(inode_u32, &block)?);
     }
-
-    let block = volume.read_block(inode.file_acl)?;
-    verify_attribute_block(
-        volume.superblock(),
-        volume.checksum_seed(),
-        inode_u32,
-        inode.file_acl,
-        &block,
-    )?;
-
-    attributes.extend(parse_attribute_block(inode_u32, &block)?);
 
     // Now check for attributes that exist in a different inode
     for entry in &mut attributes {

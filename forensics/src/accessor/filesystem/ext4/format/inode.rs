@@ -314,11 +314,18 @@ pub(crate) fn parse_inode(
         }
     }
 
+    let file_type = mode & 0xf000;
+    let use_size_high = file_type == 0x8000 || (file_type == 0x4000 && large_dir);
     Ok(Inode {
         mode,
         uid: uid_lo as u32 | (uid_hi as u32) << 16,
         gid: gid_lo as u32 | (gid_hi as u32) << 16,
-        size: size_lo as u64 | if large_dir { (size_hi as u64) << 32 } else { 0 },
+        size: size_lo as u64
+            | if use_size_high {
+                (size_hi as u64) << 32
+            } else {
+                0
+            },
         accessed: inode_time(atime, atime_extra),
         changed: inode_time(ctime, ctime_extra),
         modified: inode_time(mtime, mtime_extra),
@@ -595,7 +602,7 @@ mod tests {
 
     #[test]
     fn test_parse_inode_reads_base_and_extra_fields() {
-        let inode = parse_inode(&sample_inode(), 256, true, true, true).unwrap();
+        let inode = parse_inode(&sample_inode(), 256, true, false, true).unwrap();
 
         assert_eq!(inode.mode, 0x81a4);
         assert_eq!(inode.kind(), EntryKind::File);
@@ -672,6 +679,7 @@ mod tests {
         let mut new = vec![0_u8; 128];
         put_u16(&mut new, 0, 0x2000);
         put_u32(&mut new, 0x2c, 0x100800);
+
         let device = parse_inode(&new, 128, true, true, true)
             .unwrap()
             .device()
