@@ -243,7 +243,7 @@ fn parse_attributes(
             )));
         }
 
-        value_at.push((value_start, value_end));
+        value_at.push((value_start, value_size));
         attributes.push(ExtendedAttribute {
             name: full_name(name_index, name_bytes),
             value: data[value_start..value_end].to_vec(),
@@ -271,7 +271,7 @@ fn full_name(index: u8, name: &[u8]) -> Vec<u8> {
         1 => b"user.",
         2 => b"system.posix_acl_access",
         3 => b"system.posix_acl_default",
-        4 => b"truted.",
+        4 => b"trusted.",
         6 => b"security.",
         7 => b"system.",
         8 => b"system.richacl",
