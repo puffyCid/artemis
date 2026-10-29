@@ -225,7 +225,7 @@ mod tests {
 
         data[0x28..0x28 + tree.len()].copy_from_slice(tree);
         data[0x64..0x68].copy_from_slice(&0xabcd_u32.to_le_bytes());
-        parse_inode(&data, 256, true).unwrap()
+        parse_inode(&data, 256, true, true, true).unwrap()
     }
 
     fn file_inode(tree: &[u8], size: u64) -> Inode {

@@ -252,6 +252,8 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
             &data,
             self.layout.inode_size,
             self.superblock.has_incompatible(SuperBlock::BIT64),
+            self.superblock.has_incompatible(SuperBlock::LARGE_DIR),
+            self.superblock.has_read_only(SuperBlock::HUGE_FILE),
         )?;
         let inode_number = u32::try_from(inode)
             .map_err(|err| ext4_error(format!("inode {inode} does not fit in 32 bits: {err:?}")))?;

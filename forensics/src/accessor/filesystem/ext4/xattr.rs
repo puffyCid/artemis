@@ -1,6 +1,9 @@
+use tracing::warn;
+
 use crate::accessor::{
     error::AccessorResult,
     filesystem::ext4::{
+        data::read_file_at,
         format::{
             inode::Inode,
             superblock::ext4_error,
@@ -49,7 +52,62 @@ where
 
     attributes.extend(parse_attribute_block(inode_u32, &block)?);
 
+    // Now check for attributes that exist in a different inode
+    for entry in &mut attributes {
+        if entry.value_inode == 0 {
+            continue;
+        }
+
+        let value = match read_attribute_value(volume, entry.value_inode, entry.value_size) {
+            Ok(result) => result,
+            Err(err) => {
+                warn!(
+                    "inode {inode_u32} attribute value inode {} was not read: {err:?}",
+                    entry.value_inode
+                );
+                continue;
+            }
+        };
+
+        entry.value = value;
+    }
+
     Ok(attributes)
+}
+
+/// Read attributes that exist on a separate inode number
+fn read_attribute_value<R>(
+    volume: &Ext4Volume<R>,
+    value_inode: u32,
+    value_size: u32,
+) -> AccessorResult<Vec<u8>>
+where
+    R: Read + Seek + Send,
+{
+    let inode = volume.read_inode(value_inode as u64)?;
+    if inode.size != value_size as u64 {
+        warn!(
+            "inode {value_inode} attribute value is {value_size} bytes, inode size is {}",
+            inode.size
+        );
+    }
+
+    let buf_size = usize::try_from(value_size).map_err(|err| {
+        ext4_error(format!(
+            "inode {value_inode} attribute value size does not fit in memory: {err:?}"
+        ))
+    })?;
+
+    let mut buf = vec![0_u8; buf_size];
+
+    let read = read_file_at(volume, value_inode as u64, &inode, 0, &mut buf)?;
+    if read != buf_size {
+        warn!("inode {value_inode} attribute value read {read} of {buf_size} bytes");
+    }
+
+    buf.truncate(read);
+
+    Ok(buf)
 }
 
 #[cfg(test)]
@@ -169,7 +227,7 @@ mod tests {
         let block = external_block(seed, 50);
         let volume = plant(50, &block);
 
-        let mut inode = parse_inode(&[0_u8; 256], 256, true).unwrap();
+        let mut inode = parse_inode(&[0_u8; 256], 256, true, true, true).unwrap();
         inode.inline_xattr.clear();
         inode.file_acl = 50;
 

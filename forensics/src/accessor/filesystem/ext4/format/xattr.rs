@@ -21,6 +21,10 @@ pub(crate) struct ExtendedAttribute {
     pub(crate) name: Vec<u8>,
     /// Value associated with the attribute name
     pub(crate) value: Vec<u8>,
+    /// Inode that contains the attribute data
+    pub(crate) value_inode: u32,
+    /// Size of the attribute value
+    pub(crate) value_size: u32,
 }
 
 /// Get extended attributes that exist the inline data
@@ -172,12 +176,6 @@ fn parse_attributes(
         let (remaining, value_size) = nom_u32(remaining, "attribute value size is truncated")?;
         let (_, _hash) = nom_u32(remaining, "attribute hash is truncated")?;
 
-        if value_inode != 0 {
-            return Err(ext4_error(format!(
-                "inode {inode} attribute value is stored in inode {value_inode}"
-            )));
-        }
-
         if name_len > name_size {
             return Err(ext4_error(format!(
                 "inode {inode} attribute name length is {name_len}"
@@ -223,30 +221,37 @@ fn parse_attributes(
         }
         previous = Some((name_index, name_len, name_bytes.to_vec()));
 
-        let value_size = usize::try_from(value_size).map_err(|err| {
-            ext4_error(format!(
-                "inode {inode} attribute value size does not fit in memory: {err:?}"
-            ))
-        })?;
+        let value = if value_inode == 0 {
+            let value_size = usize::try_from(value_size).map_err(|err| {
+                ext4_error(format!(
+                    "inode {inode} attribute value size does not fit in memory: {err:?}"
+                ))
+            })?;
 
-        let value_start = base
-            .checked_add(value_off as usize)
-            .ok_or_else(|| ext4_error(format!("inode {inode} attribute value offset overflows")))?;
+            let value_start = base.checked_add(value_off as usize).ok_or_else(|| {
+                ext4_error(format!("inode {inode} attribute value offset overflows"))
+            })?;
 
-        let value_end = value_start
-            .checked_add(value_size)
-            .ok_or_else(|| ext4_error(format!("inode {inode} attribute value offset overflows")))?;
+            let value_end = value_start.checked_add(value_size).ok_or_else(|| {
+                ext4_error(format!("inode {inode} attribute value offset overflows"))
+            })?;
 
-        if value_end > data.len() {
-            return Err(ext4_error(format!(
-                "inode {inode} attribute value at {value_start} extends past the buffer"
-            )));
-        }
+            if value_end > data.len() {
+                return Err(ext4_error(format!(
+                    "inode {inode} attribute value at {value_start} extends past the buffer"
+                )));
+            }
+            value_at.push((value_start, value_size));
+            data[value_start..value_end].to_vec()
+        } else {
+            Vec::new()
+        };
 
-        value_at.push((value_start, value_size));
         attributes.push(ExtendedAttribute {
             name: full_name(name_index, name_bytes),
-            value: data[value_start..value_end].to_vec(),
+            value,
+            value_inode,
+            value_size,
         });
 
         offset = next;
@@ -355,6 +360,8 @@ mod tests {
             vec![ExtendedAttribute {
                 name: b"user.small".to_vec(),
                 value: b"hello".to_vec(),
+                value_inode: 0,
+                value_size: 5,
             }]
         );
     }
@@ -377,8 +384,12 @@ mod tests {
     fn test_parse_inline_attributes_rejects_a_value_inode() {
         let mut data = inline_user_small();
         put_u32(&mut data, 8, 99);
-        let reason = ext4_reason(parse_inline_attributes(12, &data));
-        assert!(reason.contains("stored in inode"), "{reason}");
+        let value = parse_inline_attributes(12, &data).unwrap();
+
+        assert_eq!(value[0].name, b"user.small");
+        assert!(value[0].value.is_empty());
+        assert_eq!(value[0].value_inode, 99);
+        assert_eq!(value[0].value_size, 5);
     }
 
     #[test]
@@ -401,10 +412,14 @@ mod tests {
                 ExtendedAttribute {
                     name: b"user.b".to_vec(),
                     value: b"beta".to_vec(),
+                    value_inode: 0,
+                    value_size: 4,
                 },
                 ExtendedAttribute {
                     name: b"user.a".to_vec(),
                     value: b"able".to_vec(),
+                    value_inode: 0,
+                    value_size: 4,
                 },
             ]
         );
@@ -439,10 +454,14 @@ mod tests {
                 ExtendedAttribute {
                     name: b"user.a".to_vec(),
                     value: b"able".to_vec(),
+                    value_inode: 0,
+                    value_size: 4,
                 },
                 ExtendedAttribute {
                     name: b"user.b".to_vec(),
                     value: b"beta".to_vec(),
+                    value_inode: 0,
+                    value_size: 4,
                 },
             ]
         );
