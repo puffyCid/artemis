@@ -175,8 +175,9 @@ fn parse_attributes(
         let (remaining, value_inode) = nom_u32(remaining, "attribute value inode is truncated")?;
         let (remaining, value_size) = nom_u32(remaining, "attribute value size is truncated")?;
         let (_, hash) = nom_u32(remaining, "attribute hash is truncated")?;
-        if hash != 0 {
-            warn!("Attribute hash is non-zero value: {hash}. For inode: {inode}");
+
+        if !sorted && hash != 0 {
+            warn!("inode {inode} inline attribute hash is {hash:#x}");
         }
 
         if name_len > name_size {
