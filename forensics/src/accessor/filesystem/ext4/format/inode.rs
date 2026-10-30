@@ -1,5 +1,3 @@
-use common::files::EntryKind;
-
 use crate::{
     accessor::{
         error::AccessorResult,
@@ -10,6 +8,7 @@ use crate::{
     },
     utils::nom_helper::{nom_take, nom_u16, nom_u32},
 };
+use common::files::EntryKind;
 
 /// Time to calculate inode timestamp
 /// Has nanosecond precision
@@ -195,8 +194,13 @@ impl Inode {
     }
 
     /// Byte size represented by `blocks`
-    pub(crate) fn allocated_bytes(&self, block_size: u32) -> AccessorResult<u64> {
-        let unit = if self.flags & Self::HUGE_FILE != 0 {
+    pub(crate) fn allocated_bytes(
+        &self,
+        block_size: u32,
+        has_huge_file: bool,
+    ) -> AccessorResult<u64> {
+        // Make sure inode flag `HUGE_FILE` is set AND the `SuperBlock HUGE_FILE` flag is set
+        let unit = if has_huge_file && self.flags & Self::HUGE_FILE != 0 {
             block_size as u64
         } else {
             512
@@ -615,7 +619,7 @@ mod tests {
         assert_eq!(inode.hardlinks, 3);
 
         assert_eq!(inode.blocks, 8);
-        assert_eq!(inode.allocated_bytes(4096).unwrap(), 8 * 512);
+        assert_eq!(inode.allocated_bytes(4096, true).unwrap(), 8 * 512);
         assert_eq!(inode.flags, Inode::EXTENTS);
         assert_eq!(inode.version, (9_u64 << 32) | 7);
 
@@ -695,7 +699,7 @@ mod tests {
     fn test_huge_file_counts_filesystem_blocks() {
         let mut inode = parse_inode(&sample_inode(), 256, true, true, true).unwrap();
         inode.flags |= Inode::HUGE_FILE;
-        assert_eq!(inode.allocated_bytes(4096).unwrap(), 8 * 4096);
+        assert_eq!(inode.allocated_bytes(4096, true).unwrap(), 8 * 4096);
     }
 
     #[test]
@@ -794,5 +798,48 @@ mod tests {
         let parsed = parse_inode(&data, 256, true, true, true).unwrap();
 
         verify_inode(&superblock, None, 11, &data, &parsed).unwrap();
+    }
+
+    #[test]
+    fn test_parse_inode_ignores_file_acl_hi_without_bit64() {
+        let inode = parse_inode(&sample_inode(), 256, false, false, true).unwrap();
+        assert_eq!(inode.file_acl, 50);
+    }
+
+    #[test]
+    fn test_parse_inode_merges_blocks_hi_only_when_huge_file_is_set() {
+        let mut data = sample_inode();
+        put_u16(&mut data, 0x74, 1);
+
+        let enabled = parse_inode(&data, 256, true, false, true).unwrap();
+        assert_eq!(enabled.blocks, (1_u64 << 32) | 8);
+
+        let disabled = parse_inode(&data, 256, true, false, false).unwrap();
+        assert_eq!(disabled.blocks, 8);
+    }
+
+    #[test]
+    fn test_size_hi_follows_file_type_and_large_dir() {
+        let mut data = sample_inode();
+        put_u16(&mut data, 0x00, 0xa000);
+
+        let symlink = parse_inode(&data, 256, true, false, true).unwrap();
+        assert_eq!(symlink.size, 0x100);
+
+        let large_dir = parse_inode(&data, 256, true, true, true).unwrap();
+        assert_eq!(large_dir.size, (2_u64 << 32) | 0x100);
+
+        put_u16(&mut data, 0x00, 0x81a4);
+        let regular = parse_inode(&data, 256, true, false, true).unwrap();
+        assert_eq!(regular.size, (2_u64 << 32) | 0x100);
+    }
+
+    #[test]
+    fn test_allocated_bytes_ignores_the_inode_flag_without_the_feature() {
+        let mut inode = parse_inode(&sample_inode(), 256, true, false, false).unwrap();
+        inode.flags |= Inode::HUGE_FILE;
+
+        assert_eq!(inode.allocated_bytes(4096, false).unwrap(), 8 * 512);
+        assert_eq!(inode.allocated_bytes(4096, true).unwrap(), 8 * 4096);
     }
 }

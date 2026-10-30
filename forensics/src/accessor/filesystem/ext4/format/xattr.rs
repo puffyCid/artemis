@@ -8,7 +8,7 @@ use crate::{
     },
     utils::nom_helper::{nom_u8, nom_u16, nom_u32},
 };
-use tracing::warn;
+use tracing::{debug, warn};
 
 /// Extracted Extended Attribute values
 ///
@@ -174,7 +174,10 @@ fn parse_attributes(
         let (remaining, value_off) = nom_u16(remaining, "attribute value offset is truncated")?;
         let (remaining, value_inode) = nom_u32(remaining, "attribute value inode is truncated")?;
         let (remaining, value_size) = nom_u32(remaining, "attribute value size is truncated")?;
-        let (_, _hash) = nom_u32(remaining, "attribute hash is truncated")?;
+        let (_, hash) = nom_u32(remaining, "attribute hash is truncated")?;
+        if hash != 0 {
+            warn!("Attribute hash is non-zero value: {hash}. For inode: {inode}");
+        }
 
         if name_len > name_size {
             return Err(ext4_error(format!(
@@ -274,6 +277,7 @@ fn parse_attributes(
 /// Get the attribute name based on index value
 fn full_name(index: u8, name: &[u8]) -> Vec<u8> {
     let prefix: &[u8] = match index {
+        0 => b"",
         1 => b"user.",
         2 => b"system.posix_acl_access",
         3 => b"system.posix_acl_default",
@@ -281,7 +285,10 @@ fn full_name(index: u8, name: &[u8]) -> Vec<u8> {
         6 => b"security.",
         7 => b"system.",
         8 => b"system.richacl",
-        _ => b"",
+        _ => {
+            debug!("Unknown index: {index} with name size {}", name.len());
+            b""
+        }
     };
 
     let mut attr_name = Vec::with_capacity(prefix.len() + name.len());
@@ -484,5 +491,47 @@ mod tests {
         let data = vec![0_u8; 32];
 
         verify_attribute_block(&superblock, None, 1, 50, &data).unwrap();
+    }
+
+    #[test]
+    fn test_parse_inline_attributes_uses_the_name_index() {
+        let cases: [(u8, &[u8], &[u8]); 8] = [
+            (0, b"small", b"small"),
+            (1, b"small", b"user.small"),
+            (2, b"", b"system.posix_acl_access"),
+            (3, b"", b"system.posix_acl_default"),
+            (4, b"small", b"trusted.small"),
+            (6, b"small", b"security.small"),
+            (7, b"small", b"system.small"),
+            (8, b"", b"system.richacl"),
+        ];
+
+        for (index, name, full) in cases {
+            let mut data = vec![0_u8; 64];
+            put_u32(&mut data, 0, 0xea020000);
+            write_entry(&mut data, 4, index, 52, 5, name);
+            data[56..61].copy_from_slice(b"hello");
+
+            let attributes = parse_inline_attributes(12, &data).unwrap();
+            assert_eq!(attributes[0].name, full);
+        }
+    }
+
+    #[test]
+    fn test_parse_inline_attributes_keeps_an_unknown_index() {
+        let mut data = inline_user_small();
+        data[5] = 5;
+
+        let attributes = parse_inline_attributes(12, &data).unwrap();
+        assert_eq!(attributes[0].name, b"small");
+    }
+
+    #[test]
+    fn test_parse_inline_attributes_keeps_a_nonzero_hash() {
+        let mut data = inline_user_small();
+        put_u32(&mut data, 16, 0x1111);
+
+        let attributes = parse_inline_attributes(12, &data).unwrap();
+        assert_eq!(attributes[0].value, b"hello");
     }
 }

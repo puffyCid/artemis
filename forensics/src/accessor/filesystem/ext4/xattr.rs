@@ -1,12 +1,10 @@
-use tracing::warn;
-
 use crate::accessor::{
     error::AccessorResult,
     filesystem::ext4::{
         data::read_file_at,
         format::{
             inode::Inode,
-            superblock::ext4_error,
+            superblock::{SuperBlock, ext4_error},
             xattr::{
                 ExtendedAttribute, parse_attribute_block, parse_inline_attributes,
                 verify_attribute_block,
@@ -16,6 +14,7 @@ use crate::accessor::{
     },
 };
 use std::io::{Read, Seek};
+use tracing::warn;
 
 /// Read bytes associated with the extended attributes
 ///
@@ -52,6 +51,14 @@ where
     // Now check for attributes that exist in a different inode
     for entry in &mut attributes {
         if entry.value_inode == 0 {
+            continue;
+        }
+
+        if entry.value_inode & SuperBlock::EA_INODE != 0 {
+            warn!(
+                "Missing Extended Attribute flag in Superblock. Not reading attribute inode {}",
+                entry.value_inode
+            );
             continue;
         }
 
