@@ -61,9 +61,7 @@ impl<R: Read + Seek + Send + 'static> Ext4Fs<R> {
         self.read_inode_bytes(&path, inode_number, &inode, max_read_size)
     }
 
-    /// Read a file or symlink from a `FileHandle`
-    ///
-    /// It will not follow the symlink. It just returns the symlink bytes
+    /// Read a file from a `FileHandle`
     pub(crate) fn read_handle(
         &self,
         handle: &FileHandle,
@@ -216,8 +214,12 @@ impl<R: Read + Seek + Send + 'static> Ext4Fs<R> {
         Ok(stat_from_inode(entry.inode, &inode, display_path))
     }
 
+    pub(super) fn volume(&self) -> &Ext4Volume<R> {
+        &self.volume
+    }
+
     /// Open the `Inode` value from a `Ext4EntryRef`
-    fn open_inode(&self, label: &str, entry: Ext4EntryRef) -> AccessorResult<Inode> {
+    pub(super) fn open_inode(&self, label: &str, entry: Ext4EntryRef) -> AccessorResult<Inode> {
         if label != self.volume.target_path() {
             return Err(AccessorError::invalid_handle(format!(
                 "ext4 handle label {label} does not match {}",

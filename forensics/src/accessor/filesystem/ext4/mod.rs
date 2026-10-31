@@ -3,6 +3,8 @@ mod directory;
 mod extent;
 mod format;
 pub(crate) mod fs;
+mod glob;
 mod reader;
 mod volume;
+mod walk;
 mod xattr;

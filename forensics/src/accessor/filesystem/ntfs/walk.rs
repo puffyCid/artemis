@@ -6,7 +6,7 @@ use crate::{
         },
         error::{AccessorError, AccessorResult},
         filesystem::{
-            helper::attributes::windows_attributes,
+            helper::{attributes::windows_attributes, label::PathLabel},
             ntfs::{
                 attributes::{
                     get_reparse_type, list_ads_names, read_named_data, read_reparse_data,
@@ -19,9 +19,7 @@ use crate::{
                 wof::{decompress_wof, is_wof_file},
             },
         },
-        io::reader::{
-            AccessorReader, ReaderLocation, directory_from_display, extension_from_filename,
-        },
+        io::reader::{AccessorReader, ReaderLocation, extension_from_filename},
         location::path::InnerPath,
     },
     artifacts::os::{files::artifact::files_output_name, windows::pe::parser::parse_pe_reader},
@@ -56,55 +54,6 @@ use tracing::{error, info, warn};
 
 /// Max size of file we read into memory if we need to parse PE or scan with Yara
 const YARA_MAX_SIZE: u64 = 50 * 1024 * 1024;
-
-/// Paths for a single filelisting record
-pub(crate) struct LabeledPath {
-    /// Full path to the entry
-    pub(crate) full_path: String,
-    /// Full path to the entry
-    /// With the accessor prefix
-    pub(crate) display_path: String,
-    /// Parent folder of the entry
-    pub(crate) directory: String,
-    /// Drive associated with the entry
-    pub(crate) drive: String,
-}
-
-/// Turn a NTFS path into `LabeledPath`
-pub(crate) struct PathLabel {
-    /// Return a `LabeledPath` from a string
-    render: Box<dyn Fn(&str) -> LabeledPath>,
-}
-
-impl PathLabel {
-    /// Return a `LabeledPath` from a driver letter
-    pub(crate) fn drive(drive: char) -> Self {
-        Self::custom(move |ntfs_display| {
-            let scheme_path = format!("ntfs:{ntfs_display}");
-
-            LabeledPath {
-                full_path: ntfs_display.to_string(),
-                display_path: scheme_path.clone(),
-                directory: directory_from_display(&scheme_path),
-                drive: format!("{drive}:"),
-            }
-        })
-    }
-
-    /// Return a `PathLabel` from a custom input string
-    pub(crate) fn custom(render: impl Fn(&str) -> LabeledPath + 'static) -> Self {
-        Self {
-            render: Box::new(render),
-        }
-    }
-
-    /// Render the input as a `LabeledPath`
-    pub(crate) fn render(&self, ntfs_display: &str) -> LabeledPath {
-        // Call the function for the `PathLabel` render field
-        // <https://doc.rust-lang.org/reference/expressions/field-expr.html#field-access-expressions>
-        (self.render)(ntfs_display)
-    }
-}
 
 /// Requirements for walking the NTFS filesystem
 pub(crate) struct NtfsWalk<'a> {

@@ -263,3 +263,38 @@ pub struct FilesZipInfo {
     pub display_path: String,
     pub evidence: String,
 }
+
+/// File listing for an ext4 filesystem
+#[derive(Debug, Serialize, Default)]
+pub struct FileExt4Info {
+    pub full_path: String,
+    pub directory: String,
+    pub filename: String,
+    pub extension: String,
+    pub created: String,
+    pub modified: String,
+    pub changed: String,
+    pub accessed: String,
+    pub uid: String,
+    pub gid: String,
+    pub inode: u64,
+    pub generation: u32,
+    pub links: u16,
+    pub mode: u16,
+    pub flags: u32,
+    pub major: u32,
+    pub minor: u32,
+    pub symlink: String,
+    pub attributes: Vec<Attributes>,
+    pub size: u64,
+    pub md5: String,
+    pub sha1: String,
+    pub sha256: String,
+    pub kind: EntryKind,
+    pub depth: usize,
+    pub yara_hits: Vec<String>,
+    pub binary_info: Value,
+    pub display_path: String,
+    pub label: String,
+    pub evidence: String,
+}

@@ -6,13 +6,13 @@ use crate::{
         },
         error::{AccessorError, AccessorResult},
         filesystem::{
-            helper::err::accessor_to_io,
+            helper::{err::accessor_to_io, label::PathLabel},
             ntfs::{
                 attributes::read_named_data,
                 volume::NtfsVolume,
                 walk::{
-                    NtfsWalk, PathLabel, get_file_size, list_children, list_children_handle,
-                    ntfs_err, open_by_ref, resolve_entry, resolve_file, walk_ntfs,
+                    NtfsWalk, get_file_size, list_children, list_children_handle, ntfs_err,
+                    open_by_ref, resolve_entry, resolve_file, walk_ntfs,
                 },
                 wof::{decompress_wof, is_wof_file},
             },

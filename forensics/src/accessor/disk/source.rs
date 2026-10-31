@@ -15,10 +15,12 @@ use crate::{
             locator::{DirLocator, DiskEntryRef, FileLocator},
         },
         error::{AccessorError, AccessorResult},
-        filesystem::ntfs::{
-            data::NtfsFs,
-            volume::{NtfsDetails, NtfsVolume},
-            walk::{LabeledPath, PathLabel},
+        filesystem::{
+            helper::label::{LabeledPath, PathLabel},
+            ntfs::{
+                data::NtfsFs,
+                volume::{NtfsDetails, NtfsVolume},
+            },
         },
         io::{
             partition::PartitionReader,
