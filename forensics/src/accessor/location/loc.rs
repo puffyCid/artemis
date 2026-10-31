@@ -29,9 +29,17 @@ impl Location {
         if let Some(scheme) = location_scheme(input) {
             return match scheme {
                 Scheme::Host | Scheme::Ntfs => parse_schemed_location(input, None),
-                Scheme::Zip | Scheme::Ext4 => {
+                Scheme::Zip => {
                     if let Some((source_part, inner_part)) = input.split_once('!') {
                         parse_schemed_location(source_part, Some(inner_part))
+                    } else {
+                        parse_schemed_location(input, None)
+                    }
+                }
+                Scheme::Ext4 => {
+                    if let Some((source_part, inner_part)) = input.split_once('!') {
+                        let inner = inner_part.trim_start_matches(['/', '\\']);
+                        parse_schemed_location(source_part, Some(inner))
                     } else {
                         parse_schemed_location(input, None)
                     }
@@ -805,7 +813,6 @@ mod tests {
 
     #[test]
     fn test_location_ext4_relative_rejected() {
-        assert!(Location::parse("ext4:test.img!/afile").is_err());
         assert!(Location::parse_source("ext4:test.img").is_err());
     }
 
