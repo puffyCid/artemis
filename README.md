@@ -87,7 +87,6 @@ Commands:
   sudologs-linux       linux: Grab Sudo logs
   journals             linux: Parse systemd Journal files
   logons               linux: Parse Logon files
-  rawfilelisting-ext4  linux: Parse the raw ext4 filesystem
   help                 Print this message or the help of the given subcommand(s)
 
 Options:
