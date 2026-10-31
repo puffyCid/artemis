@@ -73,14 +73,16 @@ impl<R: Read + Seek + Send> Seek for Ext4FileReader<R> {
         let inode = self.current_inode()?;
 
         let size = i64::try_from(inode.size)
-            .map_err(|_| io::Error::other("inode size exceeds seek range"))?;
+            .map_err(|err| io::Error::other(format!("inode size exceeds seek range: {err:?}")))?;
 
-        let position = i64::try_from(self.position)
-            .map_err(|_| io::Error::other("reader position exceeds seek range"))?;
+        let position = i64::try_from(self.position).map_err(|err| {
+            io::Error::other(format!("reader position exceeds seek range: {err:?}"))
+        })?;
 
         let next = match pos {
-            SeekFrom::Start(offset) => i64::try_from(offset)
-                .map_err(|_| io::Error::other("seek offset exceeds seek range"))?,
+            SeekFrom::Start(offset) => i64::try_from(offset).map_err(|err| {
+                io::Error::other(format!("seek offset exceeds seek range: {err:?}"))
+            })?,
             SeekFrom::Current(offset) => position
                 .checked_add(offset)
                 .ok_or_else(|| io::Error::other("seek offset overflows"))?,
@@ -96,8 +98,8 @@ impl<R: Read + Seek + Send> Seek for Ext4FileReader<R> {
             ));
         }
 
-        self.position =
-            u64::try_from(next).map_err(|_| io::Error::other("seek offset exceeds seek range"))?;
+        self.position = u64::try_from(next)
+            .map_err(|err| io::Error::other(format!("seek offset exceeds seek range: {err:?}")))?;
 
         Ok(self.position)
     }

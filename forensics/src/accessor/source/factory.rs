@@ -71,6 +71,7 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                 })?;
             Ok(SourceId::Ntfs(drive))
         }
+        Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
         Scheme::Zip => {
             let source = location
                 .source
@@ -106,6 +107,7 @@ pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResu
     match locator {
         FileLocator::Host { .. } => Ok(SourceId::Host),
         FileLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
+        FileLocator::Ext4 { .. } => todo!("todo"),
         FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
         FileLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
             format: *format,
@@ -276,6 +278,7 @@ pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult
     match locator {
         DirLocator::Host { .. } => Ok(SourceId::Host),
         DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
+        DirLocator::Ext4 { .. } => todo!("todo"),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
         DirLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
             format: *format,

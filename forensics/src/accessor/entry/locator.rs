@@ -52,6 +52,15 @@ pub(crate) enum DiskEntryRef {
     PartitionRoot,
 }
 
+/// Unique Inode and generation for a filesystem entry
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub(crate) struct Ext4EntryRef {
+    /// Inode value
+    pub(crate) inode: u64,
+    /// Generation value for the inode
+    pub(crate) generation: u32,
+}
+
 impl NtfsEntryRef {
     /// Create a `NtfsEntryRef` from `NtfsFileReference`
     pub(crate) fn from_reference(reference: NtfsFileReference) -> Self {
@@ -76,6 +85,15 @@ pub(crate) enum FileLocator {
         drive: char,
         /// NTFS file reference we to the file
         file_ref: NtfsEntryRef,
+        /// Human readable path
+        display_path: String,
+    },
+    /// EXT4 file access requires a device label, `Ext4EntryRef`, human readable string
+    Ext4 {
+        /// Target of the ext4 volume. Ex: `/dev/sda2`
+        label: String,
+        /// Inode number and generation value
+        entry: Ext4EntryRef,
         /// Human readable path
         display_path: String,
     },
@@ -116,6 +134,15 @@ pub(crate) enum DirLocator {
         drive: char,
         /// NTFS file reference we to the file
         dir_ref: NtfsEntryRef,
+        /// Human readable path
+        display_path: String,
+    },
+    /// EXT4 file access requires a device label, `Ext4EntryRef`, human readable string
+    Ext4 {
+        /// Target of the ext4 volume. Ex: `/dev/sda2`
+        label: String,
+        /// Inode number and generation value
+        entry: Ext4EntryRef,
         /// Human readable path
         display_path: String,
     },

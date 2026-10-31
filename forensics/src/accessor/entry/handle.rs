@@ -81,7 +81,9 @@ impl FileHandle {
     pub(crate) fn full_path(&self) -> String {
         match &self.locator {
             FileLocator::Host { path } => path.display().to_string(),
-            FileLocator::Ntfs { display_path, .. } => display_path.clone(),
+            FileLocator::Ntfs { display_path, .. } | FileLocator::Ext4 { display_path, .. } => {
+                display_path.clone()
+            }
             FileLocator::Zip { archive, entry, .. } => {
                 format!("{}!{entry}", archive.display())
             }
@@ -120,6 +122,7 @@ impl FileHandle {
         match &self.locator {
             FileLocator::Host { path } => format!("host:{}", path.display()),
             FileLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
+            FileLocator::Ext4 { display_path, .. } => format!("ext4:{}", display_path),
             FileLocator::Zip { archive, entry, .. } => {
                 format!("zip:{}!{entry}", archive.display())
             }
@@ -138,6 +141,7 @@ impl FileHandle {
         match &self.locator {
             FileLocator::Host { .. } => Scheme::Host,
             FileLocator::Ntfs { .. } => Scheme::Ntfs,
+            FileLocator::Ext4 { .. } => Scheme::Ext4,
             FileLocator::Zip { .. } => Scheme::Zip,
             FileLocator::Disk { format, .. } => match format {
                 DiskFormat::Raw => Scheme::Raw,
@@ -170,6 +174,7 @@ impl DirHandle {
         match &self.locator {
             DirLocator::Host { path } => format!("host:{}", path.display()),
             DirLocator::Ntfs { display_path, .. } => format!("ntfs:{}", display_path),
+            DirLocator::Ext4 { display_path, .. } => format!("ext4:{}", display_path),
             DirLocator::Zip {
                 archive, prefix, ..
             } => {
@@ -195,7 +200,9 @@ impl DirHandle {
     pub(crate) fn full_path(&self) -> String {
         match &self.locator {
             DirLocator::Host { path } => path.display().to_string(),
-            DirLocator::Ntfs { display_path, .. } => display_path.clone(),
+            DirLocator::Ntfs { display_path, .. } | DirLocator::Ext4 { display_path, .. } => {
+                display_path.clone()
+            }
             DirLocator::Zip {
                 archive, prefix, ..
             } => {
@@ -238,6 +245,7 @@ impl DirHandle {
         match &self.locator {
             DirLocator::Host { .. } => Scheme::Host,
             DirLocator::Ntfs { .. } => Scheme::Ntfs,
+            DirLocator::Ext4 { .. } => Scheme::Ext4,
             DirLocator::Zip { .. } => Scheme::Zip,
             DirLocator::Disk { format, .. } => match format {
                 DiskFormat::Raw => Scheme::Raw,

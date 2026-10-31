@@ -36,6 +36,7 @@ impl Location {
                         parse_schemed_location(input, None)
                     }
                 }
+                Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
                 Scheme::Raw | Scheme::Qcow => parse_disk_location(input),
             };
         }
@@ -227,6 +228,7 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
     match scheme {
         Scheme::Host => Ok(None),
         Scheme::Ntfs => parse_raw_source(remainder, RawFileSystem::Ntfs),
+        Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
         Scheme::Zip => {
             if remainder.is_empty() {
                 return Err(AccessorError::location(
@@ -329,6 +331,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
+        Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
         Scheme::Zip | Scheme::Raw | Scheme::Qcow => Ok(InnerPath::empty()),
     }
 }

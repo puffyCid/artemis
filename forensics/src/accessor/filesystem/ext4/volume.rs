@@ -1,4 +1,5 @@
 use crate::accessor::{
+    entry::locator::Ext4EntryRef,
     error::{AccessorError, AccessorResult},
     filesystem::ext4::format::{
         group::{
@@ -14,15 +15,6 @@ use std::{
     io::{Read, Seek, SeekFrom},
     sync::{Mutex, MutexGuard},
 };
-
-/// Unique Inode and generation for a filesystem entry
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct Ext4EntryRef {
-    /// Inode value
-    pub(crate) inode: u64,
-    /// Generation value for the inode
-    pub(crate) generation: u32,
-}
 
 /// Open EXT4 filesystem
 #[derive(Debug)]
