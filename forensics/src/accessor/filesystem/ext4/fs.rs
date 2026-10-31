@@ -221,7 +221,7 @@ impl<R: Read + Seek + Send + 'static> Ext4Fs<R> {
         inode_number: u64,
         inode: &Inode,
     ) -> AccessorResult<Vec<Ext4Attribute>> {
-        let attributes = read_extended_attribute(&self.volume(), inode_number, inode)?;
+        let attributes = read_extended_attribute(self.volume(), inode_number, inode)?;
 
         Ok(attribute_list(attributes))
     }

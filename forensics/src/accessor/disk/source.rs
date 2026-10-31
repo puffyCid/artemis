@@ -1739,4 +1739,29 @@ mod tests {
         let result = DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, test_image());
         assert!(matches!(result, Err(AccessorError::Volume { .. })));
     }
+
+    #[test]
+    fn test_inspect_logical_ext4() {
+        let mut image = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        image.push("tests/test_data/images/ext4/test.img");
+
+        let inspection = source(&image).inspect().unwrap();
+        let file_size = std::fs::metadata(&image).unwrap().len();
+
+        assert_eq!(inspection.layout.image_size, file_size);
+        assert_eq!(inspection.layout.logical_sector_size, 512);
+
+        assert!(matches!(inspection.layout.table, PartitionTableKind::None));
+        assert_eq!(inspection.layout.partitions.len(), 1);
+        assert_eq!(inspection.partitions.len(), 1);
+
+        let partition = &inspection.partitions[0];
+        assert_eq!(partition.partition.id, "Partition0");
+        assert_eq!(partition.partition.byte_offset, 0);
+        assert_eq!(partition.partition.byte_length, file_size);
+
+        assert_eq!(partition.filesystem, FilesystemKind::Ext4);
+        assert!(matches!(partition.partition.kind, PartitionKind::Ext4Image));
+        assert_eq!(inspection.format, DiskFormat::Raw);
+    }
 }

@@ -275,8 +275,7 @@ fn fill_ext4(
 ) -> FileExt4Info {
     let (major, minor) = inode
         .device()
-        .map(|device| (device.major, device.minor))
-        .unwrap_or((0, 0));
+        .map_or((0, 0), |device| (device.major, device.minor));
 
     FileExt4Info {
         full_path: labeled.full_path.clone(),

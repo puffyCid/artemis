@@ -146,7 +146,7 @@ fn boot_columns(table: &PartitionTableKind, kind: &PartitionKind) -> BootColumns
             partition_name: Some(name.clone()),
             attributes: Some(*attributes),
         },
-        PartitionKind::NtfsImage => BootColumns {
+        PartitionKind::NtfsImage | PartitionKind::Ext4Image => BootColumns {
             disk_id: None,
             bootable: None,
             partition_type: None,
@@ -414,5 +414,25 @@ mod tests {
             err,
             DiskError::Source(AccessorError::Location { reason, .. }) if reason.contains("absolute")
         ));
+    }
+
+    #[test]
+    fn test_boot_info_logical_ext4() {
+        let mut image = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        image.push("tests/test_data/images/ext4/test.img");
+
+        let source = format!("raw:{}", image.display());
+        let mut manager = manager("disk_boot_logical_ext4");
+        boot_info(&source, &mut manager).unwrap();
+        manager.finalize().unwrap();
+
+        let record = output_record("disk_boot_logical_ext4");
+
+        assert_eq!(record["source"], source);
+        assert_eq!(record["partition_id"], "Partition0");
+        assert_eq!(record["boot_type"], "none");
+
+        assert_mbr_columns_empty(&record);
+        assert_gpt_columns_empty(&record);
     }
 }
