@@ -11,6 +11,8 @@ pub enum SourceId {
     Host,
     /// Raw NTFS filesystem
     Ntfs(char),
+    /// Raw EXT4 filesystem
+    Ext4(PathBuf),
     /// A zip file
     Zip(PathBuf),
     /// Disk Image
@@ -28,6 +30,7 @@ impl SourceId {
         match self {
             SourceId::Host => String::from("host"),
             SourceId::Ntfs(drive) => format!("ntfs:{drive}:"),
+            SourceId::Ext4(path) => format!("ext4:{}", path.display()),
             SourceId::Zip(path) => format!("zip:{}", path.display()),
             SourceId::Disk { format, path } => format!("{}:{}", format.as_str(), path.display()),
         }
@@ -48,8 +51,19 @@ pub(crate) struct NtfsEntryRef {
 pub(crate) enum DiskEntryRef {
     /// NTFS filesystem reference
     Ntfs(NtfsEntryRef),
+    /// EXT4 filesystem reference
+    Ext4(Ext4EntryRef),
     /// Reference to root partition
     PartitionRoot,
+}
+
+/// Unique Inode and generation for a filesystem entry
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub(crate) struct Ext4EntryRef {
+    /// Inode value
+    pub(crate) inode: u64,
+    /// Generation value for the inode
+    pub(crate) generation: u32,
 }
 
 impl NtfsEntryRef {
@@ -76,6 +90,15 @@ pub(crate) enum FileLocator {
         drive: char,
         /// NTFS file reference we to the file
         file_ref: NtfsEntryRef,
+        /// Human readable path
+        display_path: String,
+    },
+    /// EXT4 file access requires a device label, `Ext4EntryRef`, human readable string
+    Ext4 {
+        /// Target of the ext4 volume. Ex: `/dev/sda2`
+        label: String,
+        /// Inode number and generation value
+        entry: Ext4EntryRef,
         /// Human readable path
         display_path: String,
     },
@@ -116,6 +139,15 @@ pub(crate) enum DirLocator {
         drive: char,
         /// NTFS file reference we to the file
         dir_ref: NtfsEntryRef,
+        /// Human readable path
+        display_path: String,
+    },
+    /// EXT4 file access requires a device label, `Ext4EntryRef`, human readable string
+    Ext4 {
+        /// Target of the ext4 volume. Ex: `/dev/sda2`
+        label: String,
+        /// Inode number and generation value
+        entry: Ext4EntryRef,
         /// Human readable path
         display_path: String,
     },

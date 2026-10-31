@@ -52,6 +52,12 @@ pub(crate) fn get_filelist(
                 error!("NTFS filelisting failed: {err:?}");
                 FileError::Filelisting
             }),
+        SourceId::Ext4(_) => accessor
+            .source_walk_ext4(&source, options, manager, &rule)
+            .map_err(|err| {
+                error!("EXT4 filelisting failed: {err:?}");
+                FileError::Filelisting
+            }),
         SourceId::Host => accessor
             .source_walk_host(&source, options, manager, &rule)
             .map_err(|err| {
@@ -141,6 +147,22 @@ mod tests {
 
         let mut output = output_options("raw_oot", "./tmp", false);
 
+        get_filelist(&options, &mut output).unwrap();
+    }
+
+    #[test]
+    fn test_get_filelist_ext4() {
+        let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        dir.push("tests/test_data/images/ext4/test.img");
+
+        let options = FileOptions {
+            start_path: String::from("/"),
+            source: format!("ext4:{}", dir.display()),
+            depth: Some(1),
+            ..Default::default()
+        };
+
+        let mut output = output_options("ext4_root", "./tmp", false);
         get_filelist(&options, &mut output).unwrap();
     }
 

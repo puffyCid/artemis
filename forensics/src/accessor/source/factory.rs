@@ -9,9 +9,11 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
     location::{loc::Location, path::InnerPath, scheme::Scheme},
-    source::{dispatch::Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+    source::{
+        dispatch::Source, ext4::Ext4Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource,
+    },
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Resolve a parsed location to a [`SourceId`] and ensure the backend is cached
 ///
@@ -41,6 +43,7 @@ pub(crate) fn ensure_source(
     let source = match source_id {
         SourceId::Host => Source::Host(HostSource::new(config)),
         SourceId::Ntfs(drive) => Source::Ntfs(NtfsSource::new(config, *drive)?),
+        SourceId::Ext4(path) => Source::Ext4(Ext4Source::new(config, path.clone())?),
         SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
         SourceId::Disk { format, path } => {
             Source::Disk(DiskSource::open(config, *format, path.clone())?)
@@ -70,6 +73,13 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                     AccessorError::location("", "ntfs source missing drive letter")
                 })?;
             Ok(SourceId::Ntfs(drive))
+        }
+        Scheme::Ext4 => {
+            let source = location
+                .source
+                .as_ref()
+                .ok_or_else(|| AccessorError::location("", "ext4 location missing device path"))?;
+            Ok(SourceId::Ext4(source.as_path().to_path_buf()))
         }
         Scheme::Zip => {
             let source = location
@@ -106,6 +116,7 @@ pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResu
     match locator {
         FileLocator::Host { .. } => Ok(SourceId::Host),
         FileLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
+        FileLocator::Ext4 { label, .. } => Ok(SourceId::Ext4(PathBuf::from(label))),
         FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
         FileLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
             format: *format,
@@ -264,6 +275,11 @@ pub(crate) fn validate_file_handle_for_source(
                 ..
             },
         ) if format == handle_format && path == image => Ok(()),
+        (SourceId::Ext4(path), FileLocator::Ext4 { label, .. })
+            if path.as_path() == Path::new(label) =>
+        {
+            Ok(())
+        }
         _ => Err(AccessorError::invalid_handle(format!(
             "file handle does not belong to open source {}",
             source_id.display()
@@ -276,6 +292,7 @@ pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult
     match locator {
         DirLocator::Host { .. } => Ok(SourceId::Host),
         DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
+        DirLocator::Ext4 { label, .. } => Ok(SourceId::Ext4(PathBuf::from(label))),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
         DirLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
             format: *format,
@@ -316,6 +333,11 @@ pub(crate) fn validate_dir_handle_for_source(
                 ..
             },
         ) if format == handle_format && path == image => Ok(()),
+        (SourceId::Ext4(path), DirLocator::Ext4 { label, .. })
+            if path.as_path() == Path::new(label) =>
+        {
+            Ok(())
+        }
         _ => Err(AccessorError::invalid_handle(format!(
             "directory handle does not belong to open source {}",
             source_id.display()

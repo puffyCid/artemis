@@ -86,6 +86,13 @@ pub(crate) enum AccessorError {
         /// Human explanation of error
         reason: String,
     },
+    /// Ext4 parsing or raw read failure
+    Ext4 {
+        /// Path if known
+        path: Option<String>,
+        /// Human explanation of error
+        reason: String,
+    },
     /// Disk image failure. Example: EWF, QCOW2, raw
     Volume {
         /// Human explanation of error
@@ -167,6 +174,13 @@ impl fmt::Display for AccessorError {
                     write!(f, "zip error: {reason}")
                 }
             }
+            AccessorError::Ext4 { path, reason } => {
+                if let Some(ext4_path) = path {
+                    write!(f, "ext4 error for {ext4_path}: {reason}")
+                } else {
+                    write!(f, "ext4 error: {reason}")
+                }
+            }
             AccessorError::Volume { reason } => {
                 write!(f, "volume error: {reason}")
             }
@@ -240,6 +254,13 @@ impl AccessorError {
     pub(super) fn zip(archive: PathBuf, reason: impl Into<String>) -> Self {
         Self::Zip {
             archive: Some(archive),
+            reason: reason.into(),
+        }
+    }
+
+    pub(super) fn ext4(path: Option<String>, reason: impl Into<String>) -> Self {
+        Self::Ext4 {
+            path,
             reason: reason.into(),
         }
     }

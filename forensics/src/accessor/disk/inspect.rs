@@ -89,6 +89,8 @@ pub(crate) enum PartitionKind {
     },
     /// Logical NTFS image
     NtfsImage,
+    /// Logical EXT4 image
+    Ext4Image,
 }
 
 /// Parse the disk partition and determine the layout
@@ -103,6 +105,16 @@ pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<Dis
             table: PartitionTableKind::None,
             image_size,
             partitions: vec![logic_partition(image_size, PartitionKind::NtfsImage)],
+        });
+    }
+
+    // Ext4 filesystem first 1024 bytes will either be boot sector or zeros (logical image)
+    if missing_boot_sig(&sector) && is_logical_ext4(reader, 0, image_size)? {
+        return Ok(DiskLayout {
+            logical_sector_size: LOGIC_SECTOR_SIZE,
+            table: PartitionTableKind::None,
+            image_size,
+            partitions: vec![logic_partition(image_size, PartitionKind::Ext4Image)],
         });
     }
 
@@ -241,6 +253,34 @@ pub(super) fn is_logical_ntfs(sector: &[u8]) -> bool {
         && u16::from_le_bytes([sector[510], sector[511]]) == 0xaa55
 }
 
+/// Check for logical EXT4 disk
+pub(super) fn is_logical_ext4<R: Read + Seek>(
+    reader: &mut R,
+    offset: u64,
+    length: u64,
+) -> AccessorResult<bool> {
+    // Ext4 has 1024 bytes for bootloader
+    let skip_boot = 1024;
+    let probe = 58;
+    if length < skip_boot + probe {
+        return Ok(false);
+    }
+    let bytes = read_at(reader, offset + skip_boot, probe as usize)?;
+
+    // Offset to ext4 sig
+    // will also match ext2 and ext3 :/
+    let sig = 56;
+    let is_ext4 =
+        bytes.len() >= probe as usize && u16::from_le_bytes([bytes[sig], bytes[sig + 1]]) == 0xEF53;
+
+    Ok(is_ext4)
+}
+
+/// Check for MBR signature
+fn missing_boot_sig(sector: &[u8]) -> bool {
+    sector.len() < 512 || u16::from_le_bytes([sector[510], sector[511]]) != 0xaa55
+}
+
 /// Create human readable partition name
 fn partition_id(slot: u32) -> String {
     format!("Partition{slot}")
@@ -280,7 +320,7 @@ mod tests {
         disk::inspect::{PartitionKind, PartitionTableKind, inspect_disk},
         error::AccessorError,
     };
-    use std::io::Cursor;
+    use std::{fs::File, io::Cursor, path::PathBuf};
     use uuid::Uuid;
 
     fn mbr_sector(entries: &[(u8, u8, u32, u32)]) -> Vec<u8> {
@@ -462,6 +502,55 @@ mod tests {
     #[test]
     fn test_inspect_missing_boot_signature() {
         let error = inspect_disk(&mut Cursor::new(vec![0u8; 512])).unwrap_err();
+        assert!(matches!(
+            error,
+            AccessorError::Volume { reason } if reason.contains("Invalid MBR sig")
+        ));
+    }
+
+    #[test]
+    fn test_inspect_logic_ext4() {
+        let mut disk = vec![0u8; 2048];
+        disk[1024 + 56..1024 + 58].copy_from_slice(&0xef53u16.to_le_bytes());
+        let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
+
+        assert_eq!(layout.table, PartitionTableKind::None);
+        assert_eq!(layout.partitions.len(), 1);
+        assert_eq!(layout.partitions[0].id, "Partition0");
+        assert_eq!(layout.partitions[0].byte_offset, 0);
+        assert_eq!(layout.partitions[0].byte_length, 2048);
+        assert!(matches!(
+            layout.partitions[0].kind,
+            PartitionKind::Ext4Image
+        ));
+        assert_eq!(layout.image_size, 2048);
+    }
+
+    #[test]
+    fn test_inspect_logic_ext4_image() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/images/ext4/test.img");
+
+        let mut file = File::open(&path).unwrap();
+        let size = file.metadata().unwrap().len();
+        let layout = inspect_disk(&mut file).unwrap();
+
+        assert_eq!(layout.table, PartitionTableKind::None);
+        assert_eq!(layout.image_size, size);
+        assert_eq!(layout.partitions.len(), 1);
+        assert_eq!(layout.partitions[0].id, "Partition0");
+
+        assert_eq!(layout.partitions[0].byte_offset, 0);
+        assert_eq!(layout.partitions[0].byte_length, size);
+        assert!(matches!(
+            layout.partitions[0].kind,
+            PartitionKind::Ext4Image
+        ));
+    }
+
+    #[test]
+    fn test_inspect_zeros_past_superblock_offset_is_invalid_mbr() {
+        let error = inspect_disk(&mut Cursor::new(vec![0u8; 2048])).unwrap_err();
         assert!(matches!(
             error,
             AccessorError::Volume { reason } if reason.contains("Invalid MBR sig")

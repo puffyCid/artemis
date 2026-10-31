@@ -5,7 +5,10 @@ use crate::{
         error::{AccessorError, AccessorResult},
         io::reader::AccessorReader,
         location::path::InnerPath,
-        source::{backend::SourceBackend, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+        source::{
+            backend::SourceBackend, ext4::Ext4Source, host::HostSource, ntfs::NtfsSource,
+            zip::ZipSource,
+        },
     },
     output::manager::OutputManager,
     structs::artifacts::os::files::FileOptions,
@@ -23,6 +26,8 @@ pub(crate) enum Source {
     Zip(ZipSource),
     /// Use raw NTFS Windows drive as the source
     Ntfs(NtfsSource),
+    /// Use raw EXT4 device as the source
+    Ext4(Ext4Source),
     /// Use a raw disk image as the source
     Disk(DiskSource),
 }
@@ -34,6 +39,7 @@ impl Source {
             Self::Host(source) => source.read_file(inner),
             Self::Zip(source) => source.read_file(inner),
             Self::Ntfs(source) => source.read_file(inner),
+            Self::Ext4(source) => source.read_file(inner),
             Self::Disk(source) => source.read_file(inner),
         }
     }
@@ -44,6 +50,7 @@ impl Source {
             Self::Host(source) => source.read_dir(inner),
             Self::Zip(source) => source.read_dir(inner),
             Self::Ntfs(source) => source.read_dir(inner),
+            Self::Ext4(source) => source.read_dir(inner),
             Self::Disk(source) => source.read_dir(inner),
         }
     }
@@ -53,6 +60,7 @@ impl Source {
             Self::Host(source) => source.read_dir_handle(handle),
             Self::Zip(source) => source.read_dir_handle(handle),
             Self::Ntfs(source) => source.read_dir_handle(handle),
+            Self::Ext4(source) => source.read_dir_handle(handle),
             Self::Disk(source) => source.read_dir_handle(handle),
         }
     }
@@ -63,6 +71,7 @@ impl Source {
             Self::Host(source) => source.globfs(dir, pattern),
             Self::Zip(source) => source.globfs(dir, pattern),
             Self::Ntfs(source) => source.globfs(dir, pattern),
+            Self::Ext4(source) => source.globfs(dir, pattern),
             Self::Disk(source) => source.globfs(dir, pattern),
         }
     }
@@ -73,6 +82,7 @@ impl Source {
             Self::Host(source) => source.read_file_handle(handle),
             Self::Zip(source) => source.read_file_handle(handle),
             Self::Ntfs(source) => source.read_file_handle(handle),
+            Self::Ext4(source) => source.read_file_handle(handle),
             Self::Disk(source) => source.read_file_handle(handle),
         }
     }
@@ -83,6 +93,7 @@ impl Source {
             Self::Host(source) => source.open_reader_handle(handle),
             Self::Zip(source) => source.open_reader_handle(handle),
             Self::Ntfs(source) => source.open_reader_handle(handle),
+            Self::Ext4(source) => source.open_reader_handle(handle),
             Self::Disk(source) => source.open_reader_handle(handle),
         }
     }
@@ -93,6 +104,7 @@ impl Source {
             Self::Host(source) => source.open_reader(inner),
             Self::Zip(source) => source.open_reader(inner),
             Self::Ntfs(source) => source.open_reader(inner),
+            Self::Ext4(source) => source.open_reader(inner),
             Self::Disk(source) => source.open_reader(inner),
         }
     }
@@ -100,30 +112,33 @@ impl Source {
     /// Stat and return metadata and timestamps for provided path
     pub(crate) fn stat(&self, inner: &InnerPath) -> AccessorResult<EntryStat> {
         match self {
-            Source::Host(source) => source.stat(inner),
-            Source::Zip(source) => source.stat(inner),
-            Source::Ntfs(source) => source.stat(inner),
-            Source::Disk(source) => source.stat(inner),
+            Self::Host(source) => source.stat(inner),
+            Self::Zip(source) => source.stat(inner),
+            Self::Ntfs(source) => source.stat(inner),
+            Self::Ext4(source) => source.stat(inner),
+            Self::Disk(source) => source.stat(inner),
         }
     }
 
     /// Stat and return metadata and timestamps for provided `FileHandle`
     pub(crate) fn stat_handle(&self, handle: &FileHandle) -> AccessorResult<EntryStat> {
         match self {
-            Source::Host(source) => source.stat_handle(handle),
-            Source::Zip(source) => source.stat_handle(handle),
-            Source::Ntfs(source) => source.stat_handle(handle),
-            Source::Disk(source) => source.stat_handle(handle),
+            Self::Host(source) => source.stat_handle(handle),
+            Self::Zip(source) => source.stat_handle(handle),
+            Self::Ntfs(source) => source.stat_handle(handle),
+            Self::Ext4(source) => source.stat_handle(handle),
+            Self::Disk(source) => source.stat_handle(handle),
         }
     }
 
     /// Stat and return metadata and timestamps for provided `DirHandle`
     pub(crate) fn stat_dir_handle(&self, handle: &DirHandle) -> AccessorResult<EntryStat> {
         match self {
-            Source::Host(source) => source.stat_dir_handle(handle),
-            Source::Zip(source) => source.stat_dir_handle(handle),
-            Source::Ntfs(source) => source.stat_dir_handle(handle),
-            Source::Disk(source) => source.stat_dir_handle(handle),
+            Self::Host(source) => source.stat_dir_handle(handle),
+            Self::Zip(source) => source.stat_dir_handle(handle),
+            Self::Ntfs(source) => source.stat_dir_handle(handle),
+            Self::Ext4(source) => source.stat_dir_handle(handle),
+            Self::Disk(source) => source.stat_dir_handle(handle),
         }
     }
 
@@ -141,6 +156,24 @@ impl Source {
             _ => Err(AccessorError::location(
                 inner.display(),
                 "walk_ntfs requires a ntfs source",
+            )),
+        }
+    }
+
+    /// Expose generating a EXT4 filelisting to the `Accessor`
+    pub(crate) fn walk_ext4(
+        &self,
+        inner: &InnerPath,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+        evidence: &str,
+    ) -> AccessorResult<()> {
+        match self {
+            Source::Ext4(source) => source.walk(inner, options, manager, rule, evidence),
+            _ => Err(AccessorError::location(
+                inner.display(),
+                "walk_ext4 requires a ext4 source",
             )),
         }
     }

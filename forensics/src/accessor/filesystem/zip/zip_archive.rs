@@ -168,6 +168,7 @@ impl ZipIndex {
 pub(crate) struct ZipFs {
     /// Index of the file we want to access
     pub(super) index: ZipIndex,
+    /// Archive reader
     archive: Mutex<ZipArchive<File>>,
 }
 
@@ -180,8 +181,10 @@ impl ZipFs {
         let index = ZipIndex::open(archive_path.clone())?;
         let file =
             File::open(&archive_path).map_err(|err| AccessorError::io_path(&archive_path, err))?;
+
         let archive = ZipArchive::new(file)
             .map_err(|err| AccessorError::zip(archive_path.clone(), err.to_string()))?;
+
         Ok(Self {
             index,
             archive: Mutex::new(archive),

@@ -10,6 +10,8 @@ pub(crate) enum Scheme {
     Host,
     /// Access the data using raw NTFS disk access
     Ntfs,
+    /// Access the data using raw ext4 disk access,
+    Ext4,
     /// Access the data inside a zip file
     Zip,
     /// Raw disk image
@@ -24,6 +26,7 @@ impl Scheme {
         match self {
             Self::Host => "host",
             Self::Ntfs => "ntfs",
+            Self::Ext4 => "ext4",
             Self::Zip => "zip",
             Self::Raw => "raw",
             Self::Qcow => "qcow",
@@ -35,6 +38,7 @@ impl Scheme {
         match value.to_ascii_lowercase().as_str() {
             "host" => Ok(Self::Host),
             "ntfs" => Ok(Self::Ntfs),
+            "ext4" => Ok(Self::Ext4),
             "zip" => Ok(Self::Zip),
             "raw" => Ok(Self::Raw),
             "qcow" | "qcow2" => Ok(Self::Qcow),
@@ -62,7 +66,7 @@ pub(crate) fn location_scheme(input: &str) -> Option<Scheme> {
 
     match scheme {
         Scheme::Host | Scheme::Ntfs => is_absolute_host_path(remainder).then_some(scheme),
-        Scheme::Zip | Scheme::Raw | Scheme::Qcow => {
+        Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 => {
             let archive = remainder
                 .split_once('!')
                 .map_or(remainder, |(archive, _)| archive);

@@ -1,5 +1,5 @@
 use crate::accessor::{
-    disk::inspect::{DiskLayout, DiskPartition, is_logical_ntfs, read_at},
+    disk::inspect::{DiskLayout, DiskPartition, is_logical_ext4, is_logical_ntfs, read_at},
     error::AccessorResult,
 };
 use std::io::{Read, Seek};
@@ -73,30 +73,32 @@ fn check_filesystem<R: Read + Seek>(
     partition: &DiskPartition,
 ) -> AccessorResult<Option<FilesystemKind>> {
     let boot_size = 512;
-    if partition.byte_length < boot_size {
-        return Ok(None);
+    if partition.byte_length >= boot_size {
+        let sector = read_at(reader, partition.byte_offset, boot_size as usize)?;
+        if is_logical_ntfs(&sector) {
+            return Ok(Some(FilesystemKind::Ntfs));
+        }
     }
 
-    let sector = read_at(reader, partition.byte_offset, boot_size as usize)?;
+    if is_logical_ext4(reader, partition.byte_offset, partition.byte_length)? {
+        return Ok(Some(FilesystemKind::Ext4));
+    }
 
-    let kind = if is_logical_ntfs(&sector) {
-        FilesystemKind::Ntfs
-    } else {
-        return Ok(None);
-    };
-
-    Ok(Some(kind))
+    Ok(None)
 }
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
-
     use crate::accessor::disk::{
         identify::{FilesystemKind, check_filesystem, identify_disk, identify_partition},
         inspect::{DiskLayout, DiskPartition, PartitionKind, PartitionTableKind, inspect_disk},
     };
-    use std::io::Cursor;
+    use std::{
+        fs::File,
+        io::{Cursor, Seek, SeekFrom},
+        path::PathBuf,
+    };
+    use uuid::Uuid;
 
     fn boot_sector(oem: &[u8], extra: &[(usize, &[u8])]) -> Vec<u8> {
         let mut sector = vec![0u8; 512];
@@ -237,5 +239,61 @@ mod tests {
         let kind =
             identify_partition(&mut Cursor::new(vec![0u8; 512]), &gpt_partition(0, 100)).unwrap();
         assert_eq!(kind, FilesystemKind::Unknown);
+    }
+
+    #[test]
+    fn test_identify_ext4_magic_without_extents() {
+        let start_lba = 8u32;
+        let sector_count = 4u32;
+        let mut disk = vec![0u8; (start_lba + sector_count) as usize * 512];
+        disk[510] = 0x55;
+        disk[511] = 0xAA;
+        write_mbr_entry(&mut disk, 0, 0x83, start_lba, sector_count);
+
+        let magic_at = start_lba as usize * 512 + 1024 + 56;
+        disk[magic_at..magic_at + 2].copy_from_slice(&0xef53u16.to_le_bytes());
+
+        let layout = inspect_disk(&mut Cursor::new(disk.clone())).unwrap();
+        let found = identify_disk(&mut Cursor::new(disk), &layout).unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].filesystem, FilesystemKind::Ext4);
+        assert_eq!(found[0].partition.byte_offset, u64::from(start_lba) * 512);
+        assert_eq!(
+            found[0].partition.byte_length,
+            u64::from(sector_count) * 512
+        );
+    }
+
+    #[test]
+    fn test_identify_missing_ext4_magic_is_unknown() {
+        let kind =
+            identify_partition(&mut Cursor::new(vec![0u8; 2048]), &gpt_partition(0, 2048)).unwrap();
+        assert_eq!(kind, FilesystemKind::Unknown);
+    }
+
+    #[test]
+    fn test_identify_ext4_short_partition_is_unknown() {
+        let mut disk = vec![0u8; 2048];
+        disk[1024 + 56..1024 + 58].copy_from_slice(&0xef53u16.to_le_bytes());
+        let kind = identify_partition(&mut Cursor::new(disk), &gpt_partition(0, 1024)).unwrap();
+
+        assert_eq!(kind, FilesystemKind::Unknown);
+    }
+
+    #[test]
+    fn test_identify_logical_ext4_image() {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/images/ext4/test.img");
+
+        let mut file = File::open(&path).unwrap();
+        let layout = inspect_disk(&mut file).unwrap();
+        file.seek(SeekFrom::Start(0)).unwrap();
+        let found = identify_disk(&mut file, &layout).unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].filesystem, FilesystemKind::Ext4);
+        assert!(matches!(found[0].partition.kind, PartitionKind::Ext4Image));
+        assert_eq!(found[0].partition.byte_offset, 0);
     }
 }
