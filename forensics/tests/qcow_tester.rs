@@ -21,7 +21,7 @@ fn test_qcow_parser() {
     let options = FileOptions {
         start_path: String::from("/"),
         depth: Some(99),
-        source: format!("qcow://{}", test_location.to_str().unwrap()).into(),
+        source: format!("qcow:{}", test_location.to_str().unwrap()).into(),
         md5: true,
         sha1: false,
         sha256: false,
