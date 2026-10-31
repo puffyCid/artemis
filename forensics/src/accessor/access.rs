@@ -392,6 +392,36 @@ impl Accessor {
         )
     }
 
+    /// Generate a EXT4 filelisting from an opened source
+    pub(crate) fn source_walk_ext4(
+        &self,
+        source: &SourceHandle,
+        options: &FileOptions,
+        manager: &mut OutputManager,
+        rule: &str,
+    ) -> AccessorResult<()> {
+        info!(
+            "Walk EXT4 {} with source {}",
+            options.start_path,
+            source.display()
+        );
+
+        let Some(backend) = self.cache.get(source.id()) else {
+            return Err(AccessorError::location(
+                &options.start_path,
+                "EXT4 source is not open",
+            ));
+        };
+
+        backend.walk_ext4(
+            &parse_inner_path(&options.start_path)?,
+            options,
+            manager,
+            rule,
+            &source.display(),
+        )
+    }
+
     /// Generate a ZIP filelisting from an opened source
     pub(crate) fn source_walk_zip(
         &self,

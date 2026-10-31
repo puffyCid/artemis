@@ -1301,15 +1301,13 @@ fn ntfs_filesystem_path(display_path: &str) -> String {
     path.trim_start_matches(['\\', '/']).to_string()
 }
 
-/// Trim any leading backslashes
+/// Trim any leading forward slashes
 fn ext4_filesystem_path(display_path: &str) -> String {
     display_path.trim_start_matches('/').to_string()
 }
 
 #[cfg(test)]
 mod tests {
-    use common::files::EntryKind;
-
     use super::DiskSource;
     use crate::{
         accessor::{
@@ -1332,6 +1330,7 @@ mod tests {
             toml::{OutputConfig, OutputDestination, OutputFormat},
         },
     };
+    use common::files::EntryKind;
     use std::path::PathBuf;
 
     fn test_image() -> PathBuf {

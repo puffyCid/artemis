@@ -32,6 +32,7 @@ use std::{
     sync::Arc,
 };
 
+#[derive(Debug)]
 /// Filesystem operations for an opened ext4 filesystem
 pub(crate) struct Ext4Fs<R: Read + Seek + Send> {
     /// Reader that points to an ext4 volume

@@ -9,7 +9,9 @@ use crate::accessor::{
     error::{AccessorError, AccessorResult},
     io::reader::AccessorReader,
     location::{loc::Location, path::InnerPath, scheme::Scheme},
-    source::{dispatch::Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource},
+    source::{
+        dispatch::Source, ext4::Ext4Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource,
+    },
 };
 use std::path::PathBuf;
 
@@ -41,6 +43,7 @@ pub(crate) fn ensure_source(
     let source = match source_id {
         SourceId::Host => Source::Host(HostSource::new(config)),
         SourceId::Ntfs(drive) => Source::Ntfs(NtfsSource::new(config, *drive)?),
+        SourceId::Ext4(path) => Source::Ext4(Ext4Source::new(config, path.clone())?),
         SourceId::Zip(path) => Source::Zip(ZipSource::new(config, path.clone())?),
         SourceId::Disk { format, path } => {
             Source::Disk(DiskSource::open(config, *format, path.clone())?)
@@ -71,7 +74,13 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
                 })?;
             Ok(SourceId::Ntfs(drive))
         }
-        Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
+        Scheme::Ext4 => {
+            let source = location
+                .source
+                .as_ref()
+                .ok_or_else(|| AccessorError::location("", "ext4 location missing device path"))?;
+            Ok(SourceId::Ext4(source.as_path().to_path_buf()))
+        }
         Scheme::Zip => {
             let source = location
                 .source
@@ -107,7 +116,7 @@ pub(crate) fn source_id_from_file_locator(locator: &FileLocator) -> AccessorResu
     match locator {
         FileLocator::Host { .. } => Ok(SourceId::Host),
         FileLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
-        FileLocator::Ext4 { .. } => todo!("todo"),
+        FileLocator::Ext4 { label, .. } => Ok(SourceId::Ext4(PathBuf::from(label))),
         FileLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
         FileLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
             format: *format,
@@ -278,7 +287,7 @@ pub(crate) fn source_id_from_dir_locator(locator: &DirLocator) -> AccessorResult
     match locator {
         DirLocator::Host { .. } => Ok(SourceId::Host),
         DirLocator::Ntfs { drive, .. } => Ok(SourceId::Ntfs(*drive)),
-        DirLocator::Ext4 { .. } => todo!("todo"),
+        DirLocator::Ext4 { label, .. } => Ok(SourceId::Ext4(PathBuf::from(label))),
         DirLocator::Zip { archive, .. } => Ok(SourceId::Zip(archive.clone())),
         DirLocator::Disk { image, format, .. } => Ok(SourceId::Disk {
             format: *format,

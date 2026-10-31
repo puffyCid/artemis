@@ -29,14 +29,13 @@ impl Location {
         if let Some(scheme) = location_scheme(input) {
             return match scheme {
                 Scheme::Host | Scheme::Ntfs => parse_schemed_location(input, None),
-                Scheme::Zip => {
+                Scheme::Zip | Scheme::Ext4 => {
                     if let Some((source_part, inner_part)) = input.split_once('!') {
                         parse_schemed_location(source_part, Some(inner_part))
                     } else {
                         parse_schemed_location(input, None)
                     }
                 }
-                Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
                 Scheme::Raw | Scheme::Qcow => parse_disk_location(input),
             };
         }
@@ -95,7 +94,7 @@ impl Location {
         // 'zip:test.zip!*' or in future 'raw:image.raw!/users/*/*.txt'
         if matches!(
             location_scheme(input),
-            Some(Scheme::Zip | Scheme::Raw | Scheme::Qcow)
+            Some(Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4)
         ) && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
@@ -228,7 +227,21 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
     match scheme {
         Scheme::Host => Ok(None),
         Scheme::Ntfs => parse_raw_source(remainder, RawFileSystem::Ntfs),
-        Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
+        Scheme::Ext4 => {
+            if remainder.is_empty() {
+                return Err(AccessorError::location(
+                    remainder,
+                    "ext4 source requires an device path",
+                ));
+            }
+            if !is_absolute_host_path(remainder) {
+                return Err(AccessorError::location(
+                    remainder,
+                    "ext4 device must be absolute host paths",
+                ));
+            }
+            Ok(Some(SourcePath::new(PathBuf::from(remainder))))
+        }
         Scheme::Zip => {
             if remainder.is_empty() {
                 return Err(AccessorError::location(
@@ -331,8 +344,7 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
-        Scheme::Ext4 => Err(AccessorError::unsupported_scheme("ext4")),
-        Scheme::Zip | Scheme::Raw | Scheme::Qcow => Ok(InnerPath::empty()),
+        Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 => Ok(InnerPath::empty()),
     }
 }
 
@@ -772,5 +784,42 @@ mod tests {
             err,
             AccessorError::Location { reason, .. } if reason.contains("absolute")
         ));
+    }
+
+    #[test]
+    fn test_location_ext4() {
+        let test = "ext4:/data/test.img!/test/hello.txt";
+        let result = Location::parse(test).unwrap();
+        assert_eq!(result.scheme, Scheme::Ext4);
+        assert_eq!(result.inner_path.display(), "test/hello.txt");
+        assert_eq!(result.source.unwrap().display(), "/data/test.img");
+
+        let root = Location::parse("ext4:/data/test.img").unwrap();
+        assert!(root.inner_path.is_empty());
+
+        let source = Location::parse_source("ext4:/data/test.img").unwrap();
+        assert_eq!(source.scheme, Scheme::Ext4);
+        assert!(source.inner_path.is_empty());
+        assert_eq!(source.source.unwrap().display(), "/data/test.img");
+    }
+
+    #[test]
+    fn test_location_ext4_relative_rejected() {
+        assert!(Location::parse("ext4:test.img!/afile").is_err());
+        assert!(Location::parse_source("ext4:test.img").is_err());
+    }
+
+    #[test]
+    fn test_ext4_glob_splits_at_the_bang() {
+        let (location, pattern) =
+            Location::split_glob_pattern("ext4:/data/test.img!/test/*").unwrap();
+
+        assert_eq!(location.scheme, Scheme::Ext4);
+        assert_eq!(location.inner_path.display(), "test");
+        assert_eq!(pattern, "*");
+
+        let (root, pattern) = Location::split_glob_pattern("ext4:/data/test.img!/*").unwrap();
+        assert!(root.inner_path.is_empty());
+        assert_eq!(pattern, "*");
     }
 }

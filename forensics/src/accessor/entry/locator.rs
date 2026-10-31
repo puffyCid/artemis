@@ -11,6 +11,8 @@ pub enum SourceId {
     Host,
     /// Raw NTFS filesystem
     Ntfs(char),
+    /// Raw EXT4 filesystem
+    Ext4(PathBuf),
     /// A zip file
     Zip(PathBuf),
     /// Disk Image
@@ -28,6 +30,7 @@ impl SourceId {
         match self {
             SourceId::Host => String::from("host"),
             SourceId::Ntfs(drive) => format!("ntfs:{drive}:"),
+            SourceId::Ext4(path) => format!("ext4:{}", path.display()),
             SourceId::Zip(path) => format!("zip:{}", path.display()),
             SourceId::Disk { format, path } => format!("{}:{}", format.as_str(), path.display()),
         }
