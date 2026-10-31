@@ -3,7 +3,10 @@ use crate::accessor::{
     filesystem::ext4::{
         data::read_file_at,
         format::{
-            directory::{DirectoryEntry, parse_directory_block, verify_directory_block},
+            directory::{
+                DirectoryEntry, is_directory_index_block, parse_directory_block,
+                verify_directory_block,
+            },
             inode::Inode,
             superblock::{SuperBlock, ext4_error},
         },
@@ -189,6 +192,14 @@ where
             inode.generation,
             &block,
         )?;
+
+        if inode.flags & Inode::DIRECTORY_INDEXES != 0
+            && volume.superblock().has_compatible(SuperBlock::DIR_INDEX)
+            && is_directory_index_block(&block)
+        {
+            index += 1;
+            continue;
+        }
 
         for entry in parse_directory_block(&block, volume.layout().block_size, filetype)? {
             if visit(entry)? {
@@ -407,8 +418,8 @@ mod tests {
     fn test_resolve_path_on_a_real_image_follows_dotdot_without_listing_it() {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/images/ext4/test.img");
-        let volume = Ext4Volume::open(File::open(path).unwrap(), "test.img").unwrap();
 
+        let volume = Ext4Volume::open(File::open(path).unwrap(), "test.img").unwrap();
         let root = volume.read_inode(2).unwrap();
         assert_eq!(
             names(&read_directory(&volume, 2, &root).unwrap()),
@@ -456,5 +467,48 @@ mod tests {
 
         assert!(entries.iter().any(|entry| entry.name == b"lost+found"));
         assert!(entries.iter().any(|entry| entry.name == b"."));
+    }
+
+    #[test]
+    fn test_indexed_directory_reads_the_leaf_and_skips_the_root() {
+        let volume = plant(&[]);
+        let seed = volume.checksum_seed().unwrap();
+
+        let mut root = vec![0_u8; BLOCK];
+        write_entry(&mut root, 0, 2, 12, 2, b".");
+        put_u32(&mut root, 12, 2);
+        put_u16(&mut root, 16, (BLOCK - 12) as u16);
+        root[18] = 4;
+        root[19] = 2;
+        root[20] = b'.';
+        root[21] = b'.';
+        root[29] = 8;
+        put_u16(&mut root, 32, 2);
+        put_u16(&mut root, 34, 2);
+        put_u32(&mut root, 40, 0);
+        put_u32(&mut root, 44, 1);
+
+        let mut checksum = crc32c_check(seed, &12_u32.to_le_bytes());
+        checksum = crc32c_check(checksum, &0xabcd_u32.to_le_bytes());
+        checksum = crc32c_check(checksum, &root[..48]);
+        checksum = crc32c_check(checksum, &root[48..52]);
+        checksum = crc32c_check(checksum, &0_u32.to_le_bytes());
+
+        put_u32(&mut root, 52, checksum);
+
+        let mut leaf = vec![0_u8; BLOCK];
+        write_entry(&mut leaf, 0, 15, (BLOCK - 12) as u16, 1, b"kept");
+        seal_leaf(&mut leaf, seed, 12, 0xabcd);
+
+        let volume = plant(&[(50, &root), (51, &leaf)]);
+        let mut inode = directory_inode(&leaf_root(0, 2, 50), (BLOCK * 2) as u64);
+        inode.flags |= Inode::DIRECTORY_INDEXES;
+
+        assert_eq!(
+            names(&read_directory(&volume, 12, &inode).unwrap()),
+            [b"kept".as_slice()]
+        );
+        assert_eq!(lookup_name(&volume, 12, &inode, b"kept").unwrap(), Some(15));
+        assert_eq!(lookup_name(&volume, 12, &inode, b"missing").unwrap(), None);
     }
 }

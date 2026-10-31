@@ -148,6 +148,11 @@ pub(crate) fn verify_directory_block(
     verify_leaf_checksum(inode, seed, data)
 }
 
+/// Return if this block is a hash tree or interior index node
+pub(crate) fn is_directory_index_block(data: &[u8]) -> bool {
+    directory_index_count_offset(data).is_some()
+}
+
 /// Checked the CRC32C value for the `Directory` inode
 fn inode_checksum_seed(seed: u32, inode: u32, generation: u32) -> u32 {
     let crc = crc32c_check(seed, &inode.to_le_bytes());
@@ -271,8 +276,12 @@ fn directory_index_count_offset(data: &[u8]) -> Option<usize> {
         return None;
     }
 
+    // All safe since we check above
+    let inode = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
     let first = record_length(u16::from_le_bytes([data[4], data[5]]), block_size);
-    if first == block_size {
+    let name_length = data[6];
+
+    if inode == 0 && name_length == 0 && first == block_size {
         return Some(8);
     }
 
@@ -318,7 +327,10 @@ mod tests {
     };
     use crate::accessor::{
         error::AccessorError,
-        filesystem::ext4::format::superblock::{SuperBlock, parse_superblock},
+        filesystem::ext4::format::{
+            directory::is_directory_index_block,
+            superblock::{SuperBlock, parse_superblock},
+        },
     };
     use std::{fs::read, path::PathBuf};
 
@@ -491,5 +503,22 @@ mod tests {
         let data = vec![0_u8; 32];
 
         verify_directory_block(&superblock, None, 1, 0, &data).unwrap();
+    }
+
+    #[test]
+    fn test_directory_index_block_requires_the_fake_entry() {
+        let mut leaf = vec![0_u8; 128];
+        write_entry(&mut leaf, 0, 15, 128, 1, b"only");
+        assert!(!is_directory_index_block(&leaf));
+
+        let mut interior = vec![0_u8; 128];
+        write_entry(&mut interior, 0, 0, 128, 0, b"");
+        assert!(is_directory_index_block(&interior));
+
+        let mut root = vec![0_u8; 128];
+        write_entry(&mut root, 0, 2, 12, 2, b".");
+        write_entry(&mut root, 12, 2, 116, 2, b"..");
+        root[29] = 8;
+        assert!(is_directory_index_block(&root));
     }
 }
