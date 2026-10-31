@@ -56,7 +56,7 @@ where
 
         if !volume.superblock().has_incompatible(SuperBlock::EA_INODE) {
             warn!(
-                "Missing Extended Attribute flag in Superblock. Not reading attribute inode {}",
+                "inode {inode_u32} attribute value inode {} is set without EA_INODE flag",
                 entry.value_inode
             );
             continue;

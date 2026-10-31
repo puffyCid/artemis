@@ -731,7 +731,7 @@ fn read_data_attribute_bytes<T: Read + Seek>(
 }
 
 /// Handle `AccessorError` errors to `io::Error`
-fn accessor_to_io(err: AccessorError) -> io::Error {
+pub(crate) fn accessor_to_io(err: AccessorError) -> io::Error {
     io::Error::other(err.to_string())
 }
 
