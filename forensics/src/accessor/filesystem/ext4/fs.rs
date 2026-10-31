@@ -17,6 +17,7 @@ use crate::{
                 },
                 reader::Ext4FileReader,
                 volume::Ext4Volume,
+                xattr::{attribute_list, read_extended_attribute},
             },
             helper::attributes::unix_attributes,
         },
@@ -25,7 +26,7 @@ use crate::{
     },
     utils::{strings::extract_utf8_string_lossy, time::unixepoch_to_iso_with_nano},
 };
-use common::files::EntryKind;
+use common::files::{EntryKind, Ext4Attribute};
 use std::{
     io::{Read, Seek},
     sync::Arc,
@@ -212,6 +213,17 @@ impl<R: Read + Seek + Send + 'static> Ext4Fs<R> {
             return Err(AccessorError::not_a_directory(display_path.clone()));
         }
         Ok(stat_from_inode(entry.inode, &inode, display_path))
+    }
+
+    /// Return extended attributes if any for the inode
+    pub(super) fn inode_attributes(
+        &self,
+        inode_number: u64,
+        inode: &Inode,
+    ) -> AccessorResult<Vec<Ext4Attribute>> {
+        let attributes = read_extended_attribute(&self.volume(), inode_number, inode)?;
+
+        Ok(attribute_list(attributes))
     }
 
     pub(super) fn volume(&self) -> &Ext4Volume<R> {

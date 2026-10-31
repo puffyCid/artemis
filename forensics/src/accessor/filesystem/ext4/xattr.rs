@@ -1,18 +1,22 @@
-use crate::accessor::{
-    error::AccessorResult,
-    filesystem::ext4::{
-        data::read_file_at,
-        format::{
-            inode::Inode,
-            superblock::{SuperBlock, ext4_error},
-            xattr::{
-                ExtendedAttribute, parse_attribute_block, parse_inline_attributes,
-                verify_attribute_block,
+use crate::{
+    accessor::{
+        error::AccessorResult,
+        filesystem::ext4::{
+            data::read_file_at,
+            format::{
+                inode::Inode,
+                superblock::{SuperBlock, ext4_error},
+                xattr::{
+                    ExtendedAttribute, parse_attribute_block, parse_inline_attributes,
+                    verify_attribute_block,
+                },
             },
+            volume::Ext4Volume,
         },
-        volume::Ext4Volume,
     },
+    utils::{encoding::base64_encode_standard, strings::extract_utf8_string_lossy},
 };
+use common::files::Ext4Attribute;
 use std::io::{Read, Seek};
 use tracing::warn;
 
@@ -79,6 +83,24 @@ where
     Ok(attributes)
 }
 
+/// Convert extended attribute bytes to string values
+pub(crate) fn attribute_list(attributes: Vec<ExtendedAttribute>) -> Vec<Ext4Attribute> {
+    attributes
+        .into_iter()
+        .map(|attribute| Ext4Attribute {
+            name: extract_utf8_string_lossy(&attribute.name),
+            value: attribute_value(&attribute.value),
+        })
+        .collect()
+}
+
+/// Extract extended attribute value (if text). Otherwise return base64 blob
+fn attribute_value(bytes: &[u8]) -> String {
+    // Try to the null end of string character
+    let text = bytes.strip_suffix(&[0]).unwrap_or(bytes);
+    String::from_utf8(text.to_vec()).unwrap_or_else(|_| base64_encode_standard(bytes))
+}
+
 /// Read attributes that exist on a separate inode number
 fn read_attribute_value<R>(
     volume: &Ext4Volume<R>,
@@ -118,8 +140,13 @@ where
 mod tests {
     use super::read_extended_attribute;
     use crate::accessor::filesystem::ext4::{
-        format::{checksum::crc32c_check, inode::parse_inode, xattr::parse_inline_attributes},
+        format::{
+            checksum::crc32c_check,
+            inode::parse_inode,
+            xattr::{ExtendedAttribute, parse_inline_attributes},
+        },
         volume::Ext4Volume,
+        xattr::attribute_list,
     };
     use std::{
         fs::{File, read},
@@ -245,5 +272,27 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn test_attribute_list_keeps_text_and_encodes_binary() {
+        let attributes = attribute_list(vec![
+            ExtendedAttribute {
+                name: b"security.selinux".to_vec(),
+                value: b"unconfined_u:object_r:unlabeled_t:s0\0".to_vec(),
+                value_inode: 0,
+                value_size: 36,
+            },
+            ExtendedAttribute {
+                name: b"security.capability".to_vec(),
+                value: vec![0xff, 0xfe],
+                value_inode: 0,
+                value_size: 2,
+            },
+        ]);
+
+        assert_eq!(attributes[0].name, "security.selinux");
+        assert_eq!(attributes[0].value, "unconfined_u:object_r:unlabeled_t:s0");
+        assert_eq!(attributes[1].value, "//4=");
     }
 }

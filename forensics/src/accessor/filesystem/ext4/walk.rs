@@ -194,6 +194,17 @@ fn walk_entries<R: Read + Seek + Send + 'static>(
             info.symlink = symlink_target(listing.fs, reference.inode, &inode, &info.full_path);
         }
 
+        info.extended_attributes = match listing.fs.inode_attributes(reference.inode, &inode) {
+            Ok(results) => results,
+            Err(err) => {
+                warn!(
+                    "Could not read extended attributes for {}: {err:?}",
+                    info.full_path
+                );
+                Vec::new()
+            }
+        };
+
         if row_matches(listing, &info) {
             let emit = if info.kind == EntryKind::File {
                 match entry.handle.as_file() {
@@ -586,6 +597,11 @@ mod tests {
         assert_eq!(afile["flags"].as_u64(), Some(u64::from(inode.flags)));
 
         assert!(rows.iter().all(|row| row["filename"] != "hello.txt"));
+        assert_eq!(afile["extended_attributes"][0]["name"], "security.selinux");
+        assert_eq!(
+            afile["extended_attributes"][0]["value"],
+            "unconfined_u:object_r:unlabeled_t:s0"
+        );
     }
 
     #[test]

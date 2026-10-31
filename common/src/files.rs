@@ -285,6 +285,7 @@ pub struct FileExt4Info {
     pub major: u32,
     pub minor: u32,
     pub symlink: String,
+    pub extended_attributes: Vec<Ext4Attribute>,
     pub attributes: Vec<Attributes>,
     pub size: u64,
     pub md5: String,
@@ -297,4 +298,11 @@ pub struct FileExt4Info {
     pub display_path: String,
     pub label: String,
     pub evidence: String,
+}
+
+/// Ext4 extended attributes
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
+pub struct Ext4Attribute {
+    pub name: String,
+    pub value: String,
 }
