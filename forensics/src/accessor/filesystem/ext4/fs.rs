@@ -23,7 +23,6 @@ use crate::{
 use common::files::EntryKind;
 use std::{
     io::{Read, Seek},
-    path::PathBuf,
     sync::Arc,
 };
 

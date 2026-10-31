@@ -5,14 +5,17 @@ use crate::{
             locator::{DirLocator, FileLocator},
         },
         error::{AccessorError, AccessorResult},
-        filesystem::ntfs::{
-            attributes::read_named_data,
-            volume::NtfsVolume,
-            walk::{
-                NtfsWalk, PathLabel, get_file_size, list_children, list_children_handle, ntfs_err,
-                open_by_ref, resolve_entry, resolve_file, walk_ntfs,
+        filesystem::{
+            helper::err::accessor_to_io,
+            ntfs::{
+                attributes::read_named_data,
+                volume::NtfsVolume,
+                walk::{
+                    NtfsWalk, PathLabel, get_file_size, list_children, list_children_handle,
+                    ntfs_err, open_by_ref, resolve_entry, resolve_file, walk_ntfs,
+                },
+                wof::{decompress_wof, is_wof_file},
             },
-            wof::{decompress_wof, is_wof_file},
         },
         io::reader::{AccessorReader, ReaderLocation},
         location::{path::InnerPath, scheme::Scheme},
@@ -728,11 +731,6 @@ fn read_data_attribute_bytes<T: Read + Seek>(
         .map_err(ntfs_err)?;
 
     value.read(reader, buf).map_err(ntfs_err)
-}
-
-/// Handle `AccessorError` errors to `io::Error`
-pub(crate) fn accessor_to_io(err: AccessorError) -> io::Error {
-    io::Error::other(err.to_string())
 }
 
 /// Read the entire file into memory. Handles WOF compression
