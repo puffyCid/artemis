@@ -243,11 +243,14 @@ mod tests {
 
     #[test]
     fn test_identify_ext4_magic_without_extents() {
-        let start_lba = 2u32;
+        let start_lba = 8u32;
         let sector_count = 4u32;
         let mut disk = vec![0u8; (start_lba + sector_count) as usize * 512];
+        disk[510] = 0x55;
+        disk[511] = 0xAA;
+        write_mbr_entry(&mut disk, 0, 0x83, start_lba, sector_count);
 
-        let magic_at = 1024 + 56;
+        let magic_at = start_lba as usize * 512 + 1024 + 56;
         disk[magic_at..magic_at + 2].copy_from_slice(&0xef53u16.to_le_bytes());
 
         let layout = inspect_disk(&mut Cursor::new(disk.clone())).unwrap();
@@ -255,6 +258,11 @@ mod tests {
 
         assert_eq!(found.len(), 1);
         assert_eq!(found[0].filesystem, FilesystemKind::Ext4);
+        assert_eq!(found[0].partition.byte_offset, u64::from(start_lba) * 512);
+        assert_eq!(
+            found[0].partition.byte_length,
+            u64::from(sector_count) * 512
+        );
     }
 
     #[test]
@@ -267,7 +275,7 @@ mod tests {
     #[test]
     fn test_identify_ext4_short_partition_is_unknown() {
         let mut disk = vec![0u8; 2048];
-        disk[1024 + 54..1024 + 56].copy_from_slice(&0xef53u16.to_le_bytes());
+        disk[1024 + 56..1024 + 58].copy_from_slice(&0xef53u16.to_le_bytes());
         let kind = identify_partition(&mut Cursor::new(disk), &gpt_partition(0, 1024)).unwrap();
 
         assert_eq!(kind, FilesystemKind::Unknown);

@@ -261,16 +261,17 @@ pub(super) fn is_logical_ext4<R: Read + Seek>(
 ) -> AccessorResult<bool> {
     // Ext4 has 1024 bytes for bootloader
     let skip_boot = 1024;
-    let size = offset + skip_boot;
-    if length < size {
+    let probe = 58;
+    if length < skip_boot + probe {
         return Ok(false);
     }
-    let bytes = read_at(reader, offset + skip_boot, 58)?;
+    let bytes = read_at(reader, offset + skip_boot, probe as usize)?;
 
     // Offset to ext4 sig
     // will also match ext2 and ext3 :/
     let sig = 56;
-    let is_ext4 = bytes.len() >= 58 && u16::from_le_bytes([bytes[sig], bytes[sig + 1]]) == 0xEF53;
+    let is_ext4 =
+        bytes.len() >= probe as usize && u16::from_le_bytes([bytes[sig], bytes[sig + 1]]) == 0xEF53;
 
     Ok(is_ext4)
 }
