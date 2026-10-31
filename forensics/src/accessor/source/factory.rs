@@ -13,7 +13,7 @@ use crate::accessor::{
         dispatch::Source, ext4::Ext4Source, host::HostSource, ntfs::NtfsSource, zip::ZipSource,
     },
 };
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Resolve a parsed location to a [`SourceId`] and ensure the backend is cached
 ///
@@ -275,6 +275,11 @@ pub(crate) fn validate_file_handle_for_source(
                 ..
             },
         ) if format == handle_format && path == image => Ok(()),
+        (SourceId::Ext4(path), FileLocator::Ext4 { label, .. })
+            if path.as_path() == Path::new(label) =>
+        {
+            Ok(())
+        }
         _ => Err(AccessorError::invalid_handle(format!(
             "file handle does not belong to open source {}",
             source_id.display()
@@ -328,6 +333,11 @@ pub(crate) fn validate_dir_handle_for_source(
                 ..
             },
         ) if format == handle_format && path == image => Ok(()),
+        (SourceId::Ext4(path), DirLocator::Ext4 { label, .. })
+            if path.as_path() == Path::new(label) =>
+        {
+            Ok(())
+        }
         _ => Err(AccessorError::invalid_handle(format!(
             "directory handle does not belong to open source {}",
             source_id.display()
