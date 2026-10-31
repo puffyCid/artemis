@@ -23,7 +23,7 @@ use crate::{
         io::reader::{AccessorReader, ReaderLocation},
         location::path::InnerPath,
     },
-    utils::{strings::extract_utf8_string, time::unixepoch_to_iso_with_nano},
+    utils::{strings::extract_utf8_string_lossy, time::unixepoch_to_iso_with_nano},
 };
 use common::files::EntryKind;
 use std::{
@@ -192,10 +192,6 @@ impl<R: Read + Seek + Send + 'static> Ext4Fs<R> {
         };
 
         let inode = self.open_inode(label, *entry)?;
-        if inode.kind() != EntryKind::File {
-            return Err(AccessorError::not_a_file(display_path.clone()));
-        }
-
         Ok(stat_from_inode(entry.inode, &inode, display_path))
     }
 
@@ -298,7 +294,7 @@ impl<R: Read + Seek + Send + 'static> Ext4Fs<R> {
             let child_number = entry.inode as u64;
             let child = self.volume.read_inode(child_number)?;
 
-            let name = extract_utf8_string(&entry.name);
+            let name = extract_utf8_string_lossy(&entry.name);
             let display_path = child_path(parent, &name);
             let reference = self.volume.entry_ref(child_number, &child)?;
             let handle = item_handle(child.kind(), label, reference, display_path.clone());
