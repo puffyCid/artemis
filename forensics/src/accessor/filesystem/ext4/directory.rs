@@ -113,7 +113,13 @@ where
     let size = usize::try_from(inode.size)
         .map_err(|err| ext4_error(format!("symlink target does not fit in memory: {err:?}")))?;
 
-    if inode.flags & Inode::EXTENTS != 0 {
+    let fast = fast_symlink(
+        inode,
+        volume.layout().block_size,
+        volume.superblock().has_read_only(SuperBlock::HUGE_FILE),
+    );
+
+    if !fast {
         let mut buf = vec![0_u8; size];
         let bytes = read_file_at(volume, inode_number, inode, 0, &mut buf)?;
         if bytes != size {
@@ -132,6 +138,21 @@ where
     }
 
     Ok(inode.block_map[..size].to_vec())
+}
+
+fn fast_symlink(inode: &Inode, block_size: u32, huge_file: bool) -> bool {
+    let mut blocks = inode.blocks;
+    if inode.file_acl != 0 {
+        let attr_blocks = if huge_file && inode.flags & Inode::HUGE_FILE != 0 {
+            1
+        } else {
+            block_size as u64 / 512
+        };
+
+        blocks = blocks.saturating_sub(attr_blocks);
+    }
+
+    blocks == 0
 }
 
 /// Loop through each `Directory` entry
@@ -233,8 +254,6 @@ mod tests {
         path::PathBuf,
     };
 
-    const BLOCK: usize = 4096;
-
     fn fixture() -> Vec<u8> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("tests/test_data/filesystems/ext4/debian/bookworm/firstblock.raw");
@@ -271,7 +290,7 @@ mod tests {
     fn plant(blocks: &[(u64, &[u8])]) -> Ext4Volume<Cursor<Vec<u8>>> {
         let mut image = one_group_image(&group0()).into_inner();
         for (block, contents) in blocks {
-            let offset = usize::try_from(*block).unwrap() * BLOCK;
+            let offset = usize::try_from(*block).unwrap() * 4096;
             let end = offset + contents.len();
             if image.len() < end {
                 image.resize(end, 0);
@@ -280,7 +299,7 @@ mod tests {
         }
 
         let volume = Ext4Volume::open(Cursor::new(image), "bookworm").unwrap();
-        assert_eq!(volume.layout().block_size, BLOCK as u32);
+        assert_eq!(volume.layout().block_size, 4096 as u32);
         volume
     }
 
@@ -368,14 +387,14 @@ mod tests {
     fn test_read_directory_omits_dot_entries_and_lookup_keeps_them() {
         let volume = plant(&[]);
         let seed = volume.checksum_seed().unwrap();
-        let mut block = vec![0_u8; BLOCK];
+        let mut block = vec![0_u8; 4096];
         write_entry(&mut block, 0, 12, 12, 2, b".");
         write_entry(&mut block, 12, 2, 12, 2, b"..");
-        write_entry(&mut block, 24, 15, BLOCK as u16 - 24 - 12, 1, b"hello");
+        write_entry(&mut block, 24, 15, 4096 as u16 - 24 - 12, 1, b"hello");
 
         seal_leaf(&mut block, seed, 12, 0xabcd);
         let volume = plant(&[(50, &block)]);
-        let inode = directory_inode(&leaf_root(0, 1, 50), BLOCK as u64);
+        let inode = directory_inode(&leaf_root(0, 1, 50), 4096 as u64);
 
         assert_eq!(
             names(&read_directory(&volume, 12, &inode).unwrap()),
@@ -394,15 +413,21 @@ mod tests {
         let volume = plant(&[]);
         let mut fast = directory_inode(&leaf_root(0, 1, 50), 4);
         fast.mode = 0xa000;
-        fast.flags = 0;
+        fast.blocks = 0;
         fast.block_map[..4].copy_from_slice(b"test");
         assert_eq!(read_symlink(&volume, 4, &fast).unwrap(), b"test");
 
-        let mut block = vec![0_u8; BLOCK];
+        fast.file_acl = 80;
+        fast.blocks = (4096 as u64) / 512;
+        assert_eq!(read_symlink(&volume, 4, &fast).unwrap(), b"test");
+
+        let mut block = vec![0_u8; 4096];
         block[..13].copy_from_slice(b"../etc/passwd");
         let volume = plant(&[(50, &block)]);
         let mut long = directory_inode(&leaf_root(0, 1, 50), 13);
+
         long.mode = 0xa000;
+        long.blocks = (4096 as u64) / 512;
         assert_eq!(read_symlink(&volume, 4, &long).unwrap(), b"../etc/passwd");
     }
 
@@ -474,10 +499,10 @@ mod tests {
         let volume = plant(&[]);
         let seed = volume.checksum_seed().unwrap();
 
-        let mut root = vec![0_u8; BLOCK];
+        let mut root = vec![0_u8; 4096];
         write_entry(&mut root, 0, 2, 12, 2, b".");
         put_u32(&mut root, 12, 2);
-        put_u16(&mut root, 16, (BLOCK - 12) as u16);
+        put_u16(&mut root, 16, (4096 - 12) as u16);
         root[18] = 4;
         root[19] = 2;
         root[20] = b'.';
@@ -496,12 +521,12 @@ mod tests {
 
         put_u32(&mut root, 52, checksum);
 
-        let mut leaf = vec![0_u8; BLOCK];
-        write_entry(&mut leaf, 0, 15, (BLOCK - 12) as u16, 1, b"kept");
+        let mut leaf = vec![0_u8; 4096];
+        write_entry(&mut leaf, 0, 15, (4096 - 12) as u16, 1, b"kept");
         seal_leaf(&mut leaf, seed, 12, 0xabcd);
 
         let volume = plant(&[(50, &root), (51, &leaf)]);
-        let mut inode = directory_inode(&leaf_root(0, 2, 50), (BLOCK * 2) as u64);
+        let mut inode = directory_inode(&leaf_root(0, 2, 50), (4096 * 2) as u64);
         inode.flags |= Inode::DIRECTORY_INDEXES;
 
         assert_eq!(
