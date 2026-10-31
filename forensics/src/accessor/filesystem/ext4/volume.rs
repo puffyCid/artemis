@@ -10,6 +10,7 @@ use crate::accessor::{
         layout::Ext4Layout,
         superblock::{SuperBlock, ext4_error, parse_superblock},
     },
+    io::partition::PartitionReader,
 };
 use std::{
     io::{Read, Seek, SeekFrom},
@@ -370,6 +371,24 @@ impl<R: Read + Seek + Send> Ext4Volume<R> {
                 format!("ext4 volume reader lock poisoned: {err:?}"),
             )
         })
+    }
+}
+
+impl<R: Read + Seek + Send> Ext4Volume<PartitionReader<R>> {
+    /// Open the ext4 filesystem at a provided disk image partition
+    pub(crate) fn open_partition(
+        reader: R,
+        byte_offset: u64,
+        byte_length: u64,
+        label: impl Into<String>,
+    ) -> AccessorResult<Self> {
+        let partition = PartitionReader::new(reader, byte_offset, byte_length).map_err(|err| {
+            AccessorError::volume(format!(
+                "Failed to limit partition at byte {byte_offset} length {byte_length}: {err:?}"
+            ))
+        })?;
+
+        Self::open(partition, label)
     }
 }
 

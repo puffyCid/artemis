@@ -5,6 +5,6 @@ mod format;
 pub(crate) mod fs;
 mod glob;
 mod reader;
-mod volume;
+pub(crate) mod volume;
 mod walk;
 mod xattr;

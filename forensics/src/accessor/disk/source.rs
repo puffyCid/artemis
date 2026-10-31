@@ -16,6 +16,7 @@ use crate::{
         },
         error::{AccessorError, AccessorResult},
         filesystem::{
+            ext4::{fs::Ext4Fs, volume::Ext4Volume},
             helper::label::{LabeledPath, PathLabel},
             ntfs::{
                 data::NtfsFs,
@@ -491,9 +492,30 @@ impl DiskSource {
                 // Use our NTFS accessor to walk the filesystem
                 filesystem.walk_labeled(inner, options, manager, rule, evidence, paths)
             }
-            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
-                Err(unsupported(partition))
+            FilesystemKind::Ext4 => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+                let image = self.path.clone();
+                let format = self.format;
+                let partition_id = partition.partition.id.clone();
+
+                let paths = PathLabel::custom(move |filesystem_path| {
+                    let filesystem_path = ext4_filesystem_path(filesystem_path);
+                    LabeledPath {
+                        display_path: disk_display_path(
+                            &image,
+                            format,
+                            &partition_id,
+                            &filesystem_path,
+                        ),
+                        directory: parent_path(&filesystem_path),
+                        full_path: filesystem_path,
+                        drive: format!("{partition_id}:"),
+                    }
+                });
+
+                filesystem.walk_labeled(inner, options, manager, rule, evidence, paths)
             }
+            FilesystemKind::Bitlocker | FilesystemKind::Unknown => Err(unsupported(partition)),
         }
     }
 
@@ -513,9 +535,11 @@ impl DiskSource {
                 let filesystem = open_ntfs(self.open_disk()?, &partition.partition)?;
                 filesystem.read_file(inner, self.max_read_size)
             }
-            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
-                Err(unsupported(partition))
+            FilesystemKind::Ext4 => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+                filesystem.read_file(inner, self.max_read_size)
             }
+            FilesystemKind::Bitlocker | FilesystemKind::Unknown => Err(unsupported(partition)),
         }
     }
 
@@ -535,9 +559,16 @@ impl DiskSource {
                     .map(|entry| self.map_dir_entry(&partition.partition.id, entry))
                     .collect()
             }
-            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
-                Err(unsupported(partition))
+            FilesystemKind::Ext4 => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+                let entries = filesystem.read_dir(inner)?;
+
+                entries
+                    .into_iter()
+                    .map(|entry| self.map_dir_entry(&partition.partition.id, entry))
+                    .collect()
             }
+            FilesystemKind::Bitlocker | FilesystemKind::Unknown => Err(unsupported(partition)),
         }
     }
 
@@ -565,9 +596,24 @@ impl DiskSource {
                     times: stat.times,
                 })
             }
-            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
-                Err(unsupported(partition))
+            FilesystemKind::Ext4 => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+                let stat = filesystem.stat(inner)?;
+                let filesystem_path = ext4_filesystem_path(&stat.meta.full_path);
+
+                let display_path = disk_display_path(
+                    &self.path,
+                    self.format,
+                    &partition.partition.id,
+                    &filesystem_path,
+                );
+
+                Ok(EntryStat {
+                    meta: rewrite_meta(stat.meta, filesystem_path, display_path),
+                    times: stat.times,
+                })
             }
+            FilesystemKind::Bitlocker | FilesystemKind::Unknown => Err(unsupported(partition)),
         }
     }
 
@@ -588,9 +634,16 @@ impl DiskSource {
                     .map(|item| self.map_glob(&partition.partition.id, item))
                     .collect()
             }
-            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
-                Err(unsupported(partition))
+            FilesystemKind::Ext4 => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+                let found = filesystem.globfs(inner, pattern)?;
+
+                found
+                    .into_iter()
+                    .map(|item| self.map_glob(&partition.partition.id, item))
+                    .collect()
             }
+            FilesystemKind::Bitlocker | FilesystemKind::Unknown => Err(unsupported(partition)),
         }
     }
 
@@ -707,6 +760,22 @@ impl DiskSource {
 
                 Ok((FileHandle::new(locator), filesystem_path))
             }
+            FileLocator::Ext4 {
+                entry,
+                display_path,
+                ..
+            } => {
+                let filesystem_path = ext4_filesystem_path(&display_path);
+                let locater = FileLocator::Disk {
+                    image: self.path.clone(),
+                    format: self.format,
+                    partition_id: partition_id.to_string(),
+                    filesystem_path: filesystem_path.clone(),
+                    entry: DiskEntryRef::Ext4(entry),
+                };
+
+                Ok((FileHandle::new(locater), filesystem_path))
+            }
             _ => Err(AccessorError::invalid_handle(
                 "Filesystem listing returned an unexpected file handle",
             )),
@@ -738,6 +807,22 @@ impl DiskSource {
                 };
 
                 Ok((DirHandle::new(locator), filesystem_path))
+            }
+            DirLocator::Ext4 {
+                entry,
+                display_path,
+                ..
+            } => {
+                let filesystem_path = ext4_filesystem_path(&display_path);
+                let locater = DirLocator::Disk {
+                    image: self.path.clone(),
+                    format: self.format,
+                    partition_id: partition_id.to_string(),
+                    filesystem_path: filesystem_path.clone(),
+                    entry: DiskEntryRef::Ext4(entry),
+                };
+
+                Ok((DirHandle::new(locater), filesystem_path))
             }
             _ => Err(AccessorError::invalid_handle(
                 "Filesystem listing returned an unexpected directory handle",
@@ -797,7 +882,19 @@ impl DiskSource {
 
                 filesystem.stat_handle(&handle)?
             }
-            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
+            (FilesystemKind::Ext4, DiskEntryRef::Ext4(entry)) => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+
+                // Construct the EXT4 `FileHandle` via the `entry` value
+                let handle = FileHandle::new(FileLocator::Ext4 {
+                    label: partition.partition.id.clone(),
+                    entry: *entry,
+                    display_path: filesystem_path.to_string(),
+                });
+
+                filesystem.stat_handle(&handle)?
+            }
+            (FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
                 return Err(unsupported(partition));
             }
             _ => {
@@ -853,9 +950,19 @@ impl DiskSource {
 
                 filesystem.read_handle(&handle, self.max_read_size)
             }
-            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
-                Err(unsupported(partition))
+            (FilesystemKind::Ext4, DiskEntryRef::Ext4(entry)) => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+
+                // Construct the EXT4 `FileHandle` via the `entry` value
+                let handle = FileHandle::new(FileLocator::Ext4 {
+                    label: partition.partition.id.clone(),
+                    entry: *entry,
+                    display_path: filesystem_path.to_string(),
+                });
+
+                filesystem.read_handle(&handle, self.max_read_size)
             }
+            (FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => Err(unsupported(partition)),
             _ => Err(AccessorError::invalid_handle(format!(
                 "{} entry reference does not match {:?} filesystem",
                 partition.partition.id, partition.filesystem
@@ -893,9 +1000,23 @@ impl DiskSource {
                     .map(|child| self.map_dir_entry(&partition.partition.id, child))
                     .collect()
             }
-            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
-                Err(unsupported(partition))
+            (FilesystemKind::Ext4, DiskEntryRef::Ext4(entry)) => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+
+                // Construct the EXT4 `DirHandle` via the `entry` value
+                let handle = DirHandle::new(DirLocator::Ext4 {
+                    label: partition.partition.id.clone(),
+                    entry: *entry,
+                    display_path: filesystem_path.to_string(),
+                });
+
+                filesystem
+                    .read_dir_handle(&handle)?
+                    .into_iter()
+                    .map(|child| self.map_dir_entry(&partition.partition.id, child))
+                    .collect()
             }
+            (FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => Err(unsupported(partition)),
             _ => Err(AccessorError::invalid_handle(format!(
                 "{} entry reference does not match {:?} filesystem",
                 partition.partition.id, partition.filesystem
@@ -916,9 +1037,13 @@ impl DiskSource {
 
                 Ok(self.with_disk_location(reader, &partition.partition.id, &inner.display()))
             }
-            FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown => {
-                Err(unsupported(partition))
+            FilesystemKind::Ext4 => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+                let reader = filesystem.reader(inner)?;
+
+                Ok(self.with_disk_location(reader, &partition.partition.id, &inner.display()))
             }
+            FilesystemKind::Bitlocker | FilesystemKind::Unknown => Err(unsupported(partition)),
         }
     }
 
@@ -956,9 +1081,20 @@ impl DiskSource {
 
                 Ok(self.with_disk_location(reader, &partition.partition.id, filesystem_path))
             }
-            (FilesystemKind::Ext4 | FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => {
-                Err(unsupported(partition))
+            (FilesystemKind::Ext4, DiskEntryRef::Ext4(entry)) => {
+                let filesystem = open_ext4(self.open_disk()?, &partition.partition)?;
+
+                // Construct the EXT4 `FileHandle` via the `entry` value
+                let handle = FileHandle::new(FileLocator::Ext4 {
+                    label: partition.partition.id.clone(),
+                    entry: *entry,
+                    display_path: filesystem_path.to_string(),
+                });
+
+                let reader = filesystem.reader_handle(&handle)?;
+                Ok(self.with_disk_location(reader, &partition.partition.id, filesystem_path))
             }
+            (FilesystemKind::Bitlocker | FilesystemKind::Unknown, _) => Err(unsupported(partition)),
             _ => Err(AccessorError::invalid_handle(format!(
                 "{} entry reference does not match {:?} filesystem",
                 partition.partition.id, partition.filesystem
@@ -1033,6 +1169,21 @@ fn open_ntfs<R: Read + Seek + Send + 'static>(
     Ok(NtfsFs::new(volume, NTFS_DRIVE))
 }
 
+/// Open the EXT4 filesystem
+fn open_ext4<R: Read + Seek + Send + 'static>(
+    reader: R,
+    partition: &DiskPartition,
+) -> AccessorResult<Ext4Fs<PartitionReader<R>>> {
+    let volume = Ext4Volume::open_partition(
+        reader,
+        partition.byte_offset,
+        partition.byte_length,
+        partition.id.clone(),
+    )?;
+
+    Ok(Ext4Fs::new(volume))
+}
+
 /// Check to make sure we support the selected partition
 fn require_supported(partition: &IdentifiedPartition) -> AccessorResult<&IdentifiedPartition> {
     if is_supported(partition.filesystem) {
@@ -1053,8 +1204,8 @@ fn unsupported(partition: &IdentifiedPartition) -> AccessorError {
 /// Filesystems we current support on partitions
 fn is_supported(kind: FilesystemKind) -> bool {
     match kind {
-        FilesystemKind::Ntfs => true,
-        FilesystemKind::Bitlocker | FilesystemKind::Ext4 | FilesystemKind::Unknown => false,
+        FilesystemKind::Ntfs | FilesystemKind::Ext4 => true,
+        FilesystemKind::Bitlocker | FilesystemKind::Unknown => false,
     }
 }
 
@@ -1146,11 +1297,19 @@ fn ntfs_filesystem_path(display_path: &str) -> String {
     let path = display_path.strip_prefix("ntfs:").unwrap_or(display_path);
     let drive = format!("{NTFS_DRIVE}:");
     let path = path.strip_prefix(&drive).unwrap_or(path);
+
     path.trim_start_matches(['\\', '/']).to_string()
+}
+
+/// Trim any leading backslashes
+fn ext4_filesystem_path(display_path: &str) -> String {
+    display_path.trim_start_matches('/').to_string()
 }
 
 #[cfg(test)]
 mod tests {
+    use common::files::EntryKind;
+
     use super::DiskSource;
     use crate::{
         accessor::{
@@ -1241,6 +1400,12 @@ mod tests {
 
     fn qcow_source() -> DiskSource {
         DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, qcow_image()).unwrap()
+    }
+
+    fn ext4_image() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/images/ext4/test.img");
+        path
     }
 
     #[test]
@@ -1763,5 +1928,141 @@ mod tests {
         assert_eq!(partition.filesystem, FilesystemKind::Ext4);
         assert!(matches!(partition.partition.kind, PartitionKind::Ext4Image));
         assert_eq!(inspection.format, DiskFormat::Raw);
+    }
+
+    #[test]
+    fn test_read_dir_logical_ext4_lists_partition() {
+        let image = ext4_image();
+        let entries = source(&image).read_dir(&path("")).unwrap();
+
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name, "Partition0");
+        assert_eq!(
+            entries[0].meta.display_path,
+            format!("raw:{}!Partition0", image.display())
+        );
+    }
+
+    #[test]
+    fn test_read_file_logical_ext4() {
+        let image = ext4_image();
+        let disk = source(&image);
+
+        assert_eq!(
+            disk.read_file(&path("Partition0:afile")).unwrap(),
+            b"I like Rust!\n"
+        );
+        assert_eq!(
+            disk.read_file(&path("Partition0:test/hello.txt")).unwrap(),
+            b"Hello world!\n"
+        );
+
+        let stat = disk.stat(&path("Partition0:afile")).unwrap();
+        assert_eq!(stat.meta.kind, EntryKind::File);
+        assert_eq!(stat.meta.inode, 18);
+        assert_eq!(stat.meta.size, 13);
+
+        assert_eq!(stat.meta.full_path, "afile");
+        assert_eq!(stat.meta.filename, "afile");
+        assert_eq!(
+            stat.meta.display_path,
+            format!("raw:{}!Partition0:afile", image.display())
+        );
+    }
+
+    #[test]
+    fn test_read_dir_logical_ext4_reads_afile_by_handle() {
+        let disk = source(&ext4_image());
+        let root = disk.read_dir(&path("Partition0:")).unwrap();
+        assert_eq!(
+            root.iter()
+                .map(|entry| entry.name.as_str())
+                .collect::<Vec<_>>(),
+            ["lost+found", "test", "afile"]
+        );
+
+        let afile = root.iter().find(|entry| entry.name == "afile").unwrap();
+        let handle = afile.handle.as_file().unwrap();
+        assert_eq!(disk.read_file_handle(handle).unwrap(), b"I like Rust!\n");
+        assert_eq!(disk.stat_handle(handle).unwrap().meta.inode, 18);
+
+        let mut reader = disk.open_reader(&path("Partition0:afile")).unwrap();
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf).unwrap();
+        assert_eq!(buf, b"I like Rust!\n");
+        assert!(
+            reader
+                .location
+                .display_path()
+                .ends_with("!Partition0:afile")
+        );
+    }
+
+    #[test]
+    fn test_glob_logical_ext4_afile() {
+        let found = source(&ext4_image())
+            .globfs(&path("Partition0:"), "afile")
+            .unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].meta.full_path, "afile");
+        assert_eq!(found[0].meta.filename, "afile");
+    }
+
+    #[test]
+    fn test_walk_logical_ext4() {
+        let image = ext4_image();
+        let options = FileOptions {
+            start_path: String::from("Partition0:"),
+            depth: Some(2),
+            source: format!("raw:{}", image.display()),
+            ..Default::default()
+        };
+
+        let output_dir = PathBuf::from("./tmp").join("disk_walk_logical_ext4");
+        let _ = std::fs::remove_dir_all(&output_dir);
+        let mut manager = OutputManager::new(OutputConfig {
+            name: String::from("disk_walk_logical_ext4"),
+            endpoint_id: String::from("test"),
+            directory: PathBuf::from("./tmp"),
+            destination: OutputDestination::Local,
+            format: OutputFormat::Jsonl,
+            compress: false,
+            ..Default::default()
+        })
+        .unwrap();
+
+        source(&image)
+            .walk(&path("Partition0:"), &options, &mut manager, "", "raw:test")
+            .unwrap();
+
+        let mut jsonl = String::new();
+        for entry in std::fs::read_dir(&output_dir).unwrap() {
+            let file = entry.unwrap().path();
+            let filename = file.file_name().unwrap().to_string_lossy();
+            if filename.starts_with("files_raw_") && filename.ends_with(".jsonl") {
+                jsonl.push_str(&std::fs::read_to_string(&file).unwrap());
+            }
+        }
+
+        let rows: Vec<serde_json::Value> = jsonl
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        let afile = rows.iter().find(|row| row["filename"] == "afile").unwrap();
+
+        assert_eq!(afile["full_path"], "afile");
+        assert_eq!(afile["label"], "Partition0:");
+        assert_eq!(
+            afile["display_path"],
+            format!("raw:{}!Partition0:afile", image.display())
+        );
+
+        assert_eq!(afile["extended_attributes"][0]["name"], "security.selinux");
+        assert_eq!(
+            afile["extended_attributes"][0]["value"],
+            "unconfined_u:object_r:unlabeled_t:s0"
+        );
+        assert!(rows.iter().any(|row| row["full_path"] == "test/hello.txt"));
     }
 }

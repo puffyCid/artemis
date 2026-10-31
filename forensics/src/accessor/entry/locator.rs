@@ -48,6 +48,8 @@ pub(crate) struct NtfsEntryRef {
 pub(crate) enum DiskEntryRef {
     /// NTFS filesystem reference
     Ntfs(NtfsEntryRef),
+    /// EXT4 filesystem reference
+    Ext4(Ext4EntryRef),
     /// Reference to root partition
     PartitionRoot,
 }
