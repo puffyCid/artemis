@@ -936,9 +936,12 @@ mod tests {
     use super::walk_ntfs;
     use crate::{
         accessor::{
-            filesystem::ntfs::{
-                volume::NtfsVolume,
-                walk::{NtfsWalk, PathLabel, list_children},
+            filesystem::{
+                helper::label::PathLabel,
+                ntfs::{
+                    volume::NtfsVolume,
+                    walk::{NtfsWalk, list_children},
+                },
             },
             io::partition::PartitionReader,
             location::path::InnerPath,
