@@ -799,7 +799,10 @@ mod tests {
         let test = "ext4:/data/test.img!/test/hello.txt";
         let result = Location::parse(test).unwrap();
         assert_eq!(result.scheme, Scheme::Ext4);
-        assert_eq!(result.inner_path.display(), "test/hello.txt");
+        assert_eq!(
+            result.inner_path.display().to_string().replace("\\", "/"),
+            "test/hello.txt"
+        );
         assert_eq!(result.source.unwrap().display(), "/data/test.img");
 
         let root = Location::parse("ext4:/data/test.img").unwrap();
