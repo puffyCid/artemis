@@ -1,4 +1,3 @@
-use ext4_fs::structs::{FileType, InodePermissions, InodeType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -95,32 +94,6 @@ pub enum Facility {
     Local7,
     #[default]
     None,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Ext4Filelist {
-    pub full_path: String,
-    pub directory: String,
-    pub filename: String,
-    pub extension: String,
-    pub created: String,
-    pub modified: String,
-    pub changed: String,
-    pub accessed: String,
-    pub size: u64,
-    pub inode: u64,
-    pub file_type: FileType,
-    pub uid: u16,
-    pub gid: u16,
-    pub is_sparse: bool,
-    pub permissions: Vec<InodePermissions>,
-    pub hard_links: u16,
-    pub extended_attributes: HashMap<String, String>,
-    pub inode_type: InodeType,
-    pub md5: String,
-    pub sha1: String,
-    pub sha256: String,
-    pub evidence: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

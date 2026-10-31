@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct SystemInfo {
     pub boot_time: String,
     pub hostname: String,
@@ -64,7 +64,7 @@ pub struct DiskDrives {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct Memory {
     pub available_memory: u64,
     pub free_memory: u64,
@@ -75,7 +75,7 @@ pub struct Memory {
     pub used_swap: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 pub struct LoadPerformance {
     pub avg_one_min: f64,
     pub avg_five_min: f64,

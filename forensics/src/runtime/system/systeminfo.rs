@@ -1,5 +1,5 @@
 use crate::artifacts::os::systeminfo::info::{get_info, hostname};
-use boa_engine::{Context, JsBigInt, JsResult, JsValue, js_string};
+use boa_engine::{Context, JsBigInt, JsError, JsResult, JsValue, js_string};
 
 /// Expose pulling systeminfo to `BoaJS`
 pub(crate) fn js_get_systeminfo(
@@ -7,7 +7,14 @@ pub(crate) fn js_get_systeminfo(
     _args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let info = get_info();
+    let info = match get_info() {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get systeminfo: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
     let results = serde_json::to_value(&info).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
 
@@ -20,7 +27,9 @@ pub(crate) fn js_uptime(
     _args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    Ok(JsValue::new::<JsBigInt>(sysinfo::System::uptime().into()))
+    Ok(JsValue::new::<JsBigInt>(
+        sysinfo::System::uptime().unwrap_or_default().into(),
+    ))
 }
 
 /// Return hostname of the system
@@ -38,10 +47,10 @@ pub(crate) fn js_os_version(
     _args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    Ok(js_string!(
-        sysinfo::System::os_version().unwrap_or_else(|| String::from("Unknown OS version"))
+    Ok(
+        js_string!(sysinfo::System::os_version().unwrap_or(String::from("Unknown OS version")))
+            .into(),
     )
-    .into())
 }
 
 /// Returns kernel version of the system
@@ -51,7 +60,7 @@ pub(crate) fn js_kernel_version(
     _context: &mut Context,
 ) -> JsResult<JsValue> {
     Ok(js_string!(
-        sysinfo::System::kernel_version().unwrap_or_else(|| String::from("Unknown Kernel version"))
+        sysinfo::System::kernel_version().unwrap_or(String::from("Unknown Kernel version"))
     )
     .into())
 }
@@ -62,10 +71,7 @@ pub(crate) fn js_platform(
     _args: &[JsValue],
     _context: &mut Context,
 ) -> JsResult<JsValue> {
-    Ok(
-        js_string!(sysinfo::System::name().unwrap_or_else(|| String::from("Unknown platform")))
-            .into(),
-    )
+    Ok(js_string!(sysinfo::System::name().unwrap_or(String::from("Unknown platform"))).into())
 }
 
 #[cfg(test)]

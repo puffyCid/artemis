@@ -5,7 +5,6 @@ pub(crate) enum LinuxArtifactError {
     Serialize,
     Journal,
     SudoLog,
-    Ext4,
     Output,
 }
 
@@ -17,7 +16,6 @@ impl fmt::Display for LinuxArtifactError {
             LinuxArtifactError::Serialize => write!(f, "Artemis failed serialize artifact data"),
             LinuxArtifactError::Journal => write!(f, "Failed to parse Journals"),
             LinuxArtifactError::SudoLog => write!(f, "Failed to parse sudo logs"),
-            LinuxArtifactError::Ext4 => write!(f, "Failed to parse ext4 filesystem"),
             LinuxArtifactError::Output => write!(f, "Failed to write linux artifact"),
         }
     }

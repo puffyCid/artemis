@@ -5,7 +5,6 @@ use super::artifacts::os::macos::{
 };
 use super::artifacts::os::windows::{MftOptions, OutlookOptions};
 use crate::output::marker::MarkerTracker;
-use crate::structs::artifacts::os::linux::Ext4Options;
 use crate::structs::artifacts::os::windows::{
     AmcacheOptions, BitsOptions, EventLogsOptions, JumplistsOptions, PrefetchOptions,
     RecycleBinOptions, RegistryOptions, SearchOptions, ServicesOptions, ShellbagsOptions,
@@ -120,7 +119,6 @@ pub struct Artifacts {
     pub journal: Option<JournalOptions>,
     pub sudologs_linux: Option<LinuxSudoOptions>,
     pub logons: Option<LogonOptions>,
-    pub rawfiles_ext4: Option<Ext4Options>,
     pub eventlogs: Option<EventLogsOptions>,
     pub prefetch: Option<PrefetchOptions>,
     pub shimdb: Option<ShimdbOptions>,

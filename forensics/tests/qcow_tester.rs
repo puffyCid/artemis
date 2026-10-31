@@ -1,8 +1,8 @@
-use common::linux::Ext4Filelist;
+use common::files::FileExt4Info;
 use forensics::{
     core::artemis_collection,
     structs::{
-        artifacts::os::linux::Ext4Options,
+        artifacts::os::files::FileOptions,
         toml::{ArtemisToml, Artifacts, OutputConfig, OutputDestination, OutputFormat},
     },
 };
@@ -13,20 +13,24 @@ use std::{
     path::PathBuf,
 };
 
-//#[test]
+#[test]
 fn test_qcow_parser() {
     let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_location.push("tests/test_data/disks/qcow/test.qcow");
 
-    let options = Ext4Options {
+    let options = FileOptions {
         start_path: String::from("/"),
-        depth: 99,
-        device: format!("qcow://{}", test_location.to_str().unwrap()).into(),
-        md5: Some(true),
-        sha1: None,
-        sha256: None,
+        depth: Some(99),
+        source: format!("qcow://{}", test_location.to_str().unwrap()).into(),
+        md5: true,
+        sha1: false,
+        sha256: false,
         path_regex: None,
         filename_regex: None,
+        metadata: false,
+        yara: None,
+        exclude_directories: None,
+        verbose: false,
     };
 
     let out = OutputConfig {
@@ -43,8 +47,8 @@ fn test_qcow_parser() {
     let data = ArtemisToml {
         output: out,
         artifacts: vec![Artifacts {
-            artifact_name: String::from("rawfiles-ext4"),
-            rawfiles_ext4: Some(options),
+            artifact_name: String::from("files"),
+            files: Some(options),
             ..Default::default()
         }],
         marker: None,
@@ -68,7 +72,7 @@ fn test_qcow_parser() {
         }
         let output_file = value.to_str().unwrap();
 
-        if output_file.contains("ext4files_")
+        if output_file.contains("files_qcow")
             && output_file.ends_with(".jsonl")
             && !output_file.contains("/artemis_")
         {
@@ -86,12 +90,11 @@ fn validate_output(output: &PathBuf) {
     let reader = BufReader::new(file);
     for (_, line) in reader.lines().enumerate() {
         let value = line.unwrap();
-        let info: Ext4Filelist = serde_json::from_str(&value).unwrap();
+        let info: FileExt4Info = serde_json::from_str(&value).unwrap();
         if info.full_path.is_empty() {
             println!("{value}");
             panic!("no path?")
         }
-        assert!(info.full_path.starts_with("/mnt/vda1/"));
         assert_ne!(info.modified, "1970-01-01T00:00:00.000Z");
     }
 }

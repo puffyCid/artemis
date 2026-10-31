@@ -7,6 +7,8 @@ pub(crate) enum SystemInfoError {
     Serialize(String),
     /// Could output system info data
     Output(String),
+    /// Could not initialize systeminfo
+    Info,
 }
 
 impl std::error::Error for SystemInfoError {}
@@ -20,6 +22,7 @@ impl fmt::Display for SystemInfoError {
             SystemInfoError::Output(message) => {
                 write!(f, "Failed to output system info: {message}")
             }
+            SystemInfoError::Info => write!(f, "Failed to initialize systeminfo"),
         }
     }
 }

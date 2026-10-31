@@ -1,5 +1,5 @@
 use crate::artifacts::os::systeminfo::info::get_memory;
-use boa_engine::{Context, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use sysinfo::System;
 
 /// Return memory info about the system
@@ -8,7 +8,14 @@ pub(crate) fn js_memory(
     _args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let mut info = System::new();
+    let mut info = match System::new() {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get memory: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
     let mem = get_memory(&mut info);
     let results = serde_json::to_value(&mem).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;

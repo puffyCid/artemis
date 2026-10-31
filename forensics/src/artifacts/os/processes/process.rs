@@ -19,14 +19,20 @@ use common::system::Processes;
 use serde_json::Value;
 use std::ffi::OsStr;
 use sysinfo::{Process, ProcessRefreshKind, ProcessesToUpdate, System};
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 /// Get process listing.
 pub(crate) fn proc_list(
     manager: &mut OutputManager,
     options: &ProcessOptions,
 ) -> Result<(), ProcessError> {
-    let mut proc = System::new();
+    let mut proc = match System::new() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not start process listing: {err:?}");
+            return Err(ProcessError::Info);
+        }
+    };
     let mut processes_list: Vec<Processes> = Vec::new();
 
     proc.refresh_processes_specifics(
@@ -67,7 +73,14 @@ pub(crate) fn proc_list(
 
 /// Pull a process listing and return the results. If we parse binary data for all processes. Expect a lot of data
 pub(crate) fn proc_list_entries(options: &ProcessOptions) -> Result<Vec<Processes>, ProcessError> {
-    let mut proc = System::new();
+    let mut proc = match System::new() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not start process listing: {err:?}");
+            return Err(ProcessError::Info);
+        }
+    };
+
     let mut processes_list: Vec<Processes> = Vec::new();
     proc.refresh_processes_specifics(
         ProcessesToUpdate::All,
@@ -271,7 +284,7 @@ mod tests {
             sha256: true,
             metadata: false,
         };
-        let mut proc = System::new();
+        let mut proc = System::new().unwrap();
         let mut processes_list: Vec<Processes> = Vec::new();
 
         proc.refresh_processes(ProcessesToUpdate::All, false);

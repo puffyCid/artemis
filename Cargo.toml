@@ -29,7 +29,7 @@ tracing = "0.1.44"
 serde_json = "1.0.154"
 toml = "1.1.8"
 base64 = "0.23.1"
-tokio = { version = "1.53.3", features = ["full"] }
+tokio = { version = "1.54.1", features = ["full"] }
 flate2 = "1.1.10"
 glob = "0.3.4"
 reqwest = { version = "0.13.5", features = [
@@ -38,9 +38,9 @@ reqwest = { version = "0.13.5", features = [
     "multipart",
     "form",
 ] }
-sysinfo = "0.39.6"
-uuid = { version = "1.28.0", features = ["v4"] }
-rusqlite = { version = "0.40.2", features = [
+sysinfo = "0.40.1"
+uuid = { version = "1.29.0", features = ["v4"] }
+rusqlite = { version = "0.41.1", features = [
     "bundled",
     "serde_json",
     "serialize",

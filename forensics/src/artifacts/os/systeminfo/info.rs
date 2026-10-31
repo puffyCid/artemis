@@ -1,31 +1,37 @@
-use crate::utils::time::unixepoch_to_iso;
+use crate::{artifacts::os::systeminfo::error::SystemInfoError, utils::time::unixepoch_to_iso};
 use common::system::{
     Cpus, DiskDrives, LoadPerformance, Memory, NetworkInterface, SystemInfo, SystemInfoMetadata,
 };
 use std::env;
 use sysinfo::{Disks, Networks, Product, System};
+use tracing::error;
 
 /// Get Disk, CPU, Memory, and Performance info from system
-pub(crate) fn get_info() -> SystemInfo {
-    let mut system = System::new();
+pub(crate) fn get_info() -> Result<SystemInfo, SystemInfoError> {
+    let mut system = match System::new() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not get system info: {err:?}");
+            return Err(SystemInfoError::Info);
+        }
+    };
     let args: Vec<String> = env::args().collect();
     let artemis_features: Vec<String> = env!("ENABLED_FEATURES")
         .split(",")
         .map(|s| s.to_string())
         .collect();
-    SystemInfo {
-        boot_time: unixepoch_to_iso(sysinfo::System::boot_time() as i64),
+    let info = SystemInfo {
+        boot_time: unixepoch_to_iso(sysinfo::System::boot_time().unwrap_or_default() as i64),
         hostname: hostname(),
-        os_version: sysinfo::System::os_version()
-            .unwrap_or_else(|| String::from("Unknown OS version")),
-        uptime: sysinfo::System::uptime(),
+        os_version: sysinfo::System::os_version().unwrap_or(String::from("Unknown OS version")),
+        uptime: sysinfo::System::uptime().unwrap_or_default(),
         kernel_version: sysinfo::System::kernel_version()
-            .unwrap_or_else(|| String::from("Unknown kernel version")),
-        platform: sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name")),
+            .unwrap_or(String::from("Unknown kernel version")),
+        platform: sysinfo::System::name().unwrap_or(String::from("Unknown system name")),
         cpu: get_cpu(&mut system),
-        disks: get_disks(),
+        disks: get_disks().unwrap_or_default(),
         memory: get_memory(&mut system),
-        interfaces: get_network_interfaces(),
+        interfaces: get_network_interfaces().unwrap_or_default(),
         performance: get_performance(),
         artemis_args: args.join(" "),
         artemis_version: env!("CARGO_PKG_VERSION").to_string(),
@@ -41,20 +47,21 @@ pub(crate) fn get_info() -> SystemInfo {
         product_uuid: Product::uuid().unwrap_or_default(),
         product_version: Product::version().unwrap_or_default(),
         vendor: Product::vendor_name().unwrap_or_default(),
-    }
+    };
+
+    Ok(info)
 }
 
 /// Get some system info
 pub(crate) fn get_info_metadata() -> SystemInfoMetadata {
     SystemInfoMetadata {
         hostname: hostname(),
-        os_version: sysinfo::System::os_version()
-            .unwrap_or_else(|| String::from("Unknown OS Version")),
-        platform: sysinfo::System::name().unwrap_or_else(|| String::from("Unknown platform")),
+        os_version: sysinfo::System::os_version().unwrap_or(String::from("Unknown OS Version")),
+        platform: sysinfo::System::name().unwrap_or(String::from("Unknown platform")),
         kernel_version: sysinfo::System::kernel_version()
-            .unwrap_or_else(|| String::from("Unknown Kernel Version")),
+            .unwrap_or(String::from("Unknown Kernel Version")),
         performance: get_performance(),
-        interfaces: get_network_interfaces(),
+        interfaces: get_network_interfaces().unwrap_or_default(),
         artemis_version: env!("CARGO_PKG_VERSION").to_string(),
         rust_version: env!("VERGEN_RUSTC_SEMVER").to_string(),
         build_date: env!("VERGEN_BUILD_DATE").to_string(),
@@ -63,7 +70,7 @@ pub(crate) fn get_info_metadata() -> SystemInfoMetadata {
 
 /// Get endpoint platform type. Supports more options than `get_platform_enum`
 pub(crate) fn get_platform() -> String {
-    sysinfo::System::name().unwrap_or_else(|| String::from("Unknown system name"))
+    sysinfo::System::name().unwrap_or(String::from("Unknown system name"))
 }
 
 #[derive(PartialEq, Debug)]
@@ -75,8 +82,7 @@ pub(crate) enum PlatformType {
 }
 /// Get endpoint platform type enum. Use `get_platform` if you want a string.
 pub(crate) fn get_platform_enum() -> PlatformType {
-    let plat =
-        sysinfo::System::long_os_version().unwrap_or_else(|| String::from("Unknown system name"));
+    let plat = sysinfo::System::long_os_version().unwrap_or(String::from("Unknown system name"));
     if plat.to_lowercase().contains("windows") {
         return PlatformType::Windows;
     } else if plat.to_lowercase().contains("macos") {
@@ -89,8 +95,14 @@ pub(crate) fn get_platform_enum() -> PlatformType {
 }
 
 /// Get Disk info from system
-pub(crate) fn get_disks() -> Vec<DiskDrives> {
-    let mut disks = Disks::new_with_refreshed_list();
+pub(crate) fn get_disks() -> Result<Vec<DiskDrives>, SystemInfoError> {
+    let mut disks = match Disks::new_with_refreshed_list() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not initialize disks: {err:?}");
+            return Err(SystemInfoError::Info);
+        }
+    };
 
     let mut disk_vec = Vec::new();
     for disk in &mut disks {
@@ -107,7 +119,8 @@ pub(crate) fn get_disks() -> Vec<DiskDrives> {
         };
         disk_vec.push(disk_data);
     }
-    disk_vec
+
+    Ok(disk_vec)
 }
 
 /// Get CPU info from system
@@ -118,7 +131,7 @@ pub(crate) fn get_cpu(system: &mut System) -> Vec<Cpus> {
     for cpu in system.cpus() {
         let cpu = Cpus {
             frequency: cpu.frequency(),
-            cpu_usage: cpu.cpu_usage(),
+            cpu_usage: cpu.usage(),
             name: cpu.name().to_string(),
             vendor_id: cpu.vendor_id().to_string(),
             brand: cpu.brand().to_string(),
@@ -145,7 +158,7 @@ pub(crate) fn get_memory(system: &mut System) -> Memory {
 
 /// Get Load Average Performance from system
 fn get_performance() -> LoadPerformance {
-    let load = System::load_average();
+    let load = System::load_average().unwrap_or_default();
     LoadPerformance {
         avg_one_min: load.one,
         avg_five_min: load.five,
@@ -154,8 +167,14 @@ fn get_performance() -> LoadPerformance {
 }
 
 /// Get network interface cards and IPs
-pub(crate) fn get_network_interfaces() -> Vec<NetworkInterface> {
-    let net = Networks::new_with_refreshed_list();
+pub(crate) fn get_network_interfaces() -> Result<Vec<NetworkInterface>, SystemInfoError> {
+    let net = match Networks::new_with_refreshed_list() {
+        Ok(result) => result,
+        Err(err) => {
+            error!("Could not initialize network interfaces: {err:?}");
+            return Err(SystemInfoError::Info);
+        }
+    };
 
     let mut interfaces = Vec::new();
     for (key, network) in &net {
@@ -163,17 +182,17 @@ pub(crate) fn get_network_interfaces() -> Vec<NetworkInterface> {
             let interface = NetworkInterface {
                 ip: ip.addr.to_string(),
                 mac: network.mac_address().to_string(),
-                name: key.clone(),
+                name: key.to_str().unwrap_or_default().to_string(),
             };
             interfaces.push(interface);
         }
     }
 
-    interfaces
+    Ok(interfaces)
 }
 
 pub(crate) fn hostname() -> String {
-    sysinfo::System::host_name().unwrap_or_else(|| String::from("Unknown hostname"))
+    sysinfo::System::host_name().unwrap_or(String::from("Unknown hostname"))
 }
 
 #[cfg(test)]
@@ -186,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_get_info() {
-        let system_info = get_info();
+        let system_info = get_info().unwrap();
         assert_eq!(system_info.platform.is_empty(), false);
         assert!(system_info.cpu.len() > 1);
     }
@@ -194,7 +213,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "macos")]
     fn test_get_macos_disks() {
-        let system_info = get_disks();
+        let system_info = get_disks().unwrap();
         assert!(!system_info.is_empty());
         assert_eq!(system_info[0].disk_type.is_empty(), false);
         assert_eq!(system_info[1].disk_type.is_empty(), false);
@@ -209,7 +228,7 @@ mod tests {
     #[test]
     #[cfg(target_os = "windows")]
     fn test_get_windows_disks() {
-        let system_info = get_disks();
+        let system_info = get_disks().unwrap();
         assert!(system_info.len() >= 1);
         assert_eq!(system_info[0].disk_type.is_empty(), false);
         assert_eq!(system_info[0].mount_point.contains(":\\"), true);
@@ -219,13 +238,13 @@ mod tests {
     #[test]
     #[cfg(target_os = "linux")]
     fn test_get_linux_disks() {
-        let system_info = get_disks();
+        let system_info = get_disks().unwrap();
         assert!(system_info.len() >= 1);
     }
 
     #[test]
     fn test_get_cpu() {
-        let mut system = System::new();
+        let mut system = System::new().unwrap();
 
         let system_info = get_cpu(&mut system);
         assert!(system_info.len() > 1);
@@ -233,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_get_memory() {
-        let mut system = System::new();
+        let mut system = System::new().unwrap();
 
         let system_info = get_memory(&mut system);
         assert!(system_info.free_memory > 1);
@@ -252,7 +271,7 @@ mod tests {
 
     #[test]
     fn test_get_network_interfaces() {
-        let system_info = get_network_interfaces();
+        let system_info = get_network_interfaces().unwrap();
         assert!(system_info[0].ip.len() > 1);
     }
 

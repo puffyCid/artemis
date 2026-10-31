@@ -1,5 +1,5 @@
 use crate::artifacts::os::systeminfo::info::get_disks;
-use boa_engine::{Context, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 
 /// Return disk info about the system
 pub(crate) fn js_disks(
@@ -7,7 +7,14 @@ pub(crate) fn js_disks(
     _args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let disks = get_disks();
+    let disks = match get_disks() {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get disks: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
     let results = serde_json::to_value(&disks).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
     Ok(value)

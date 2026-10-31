@@ -265,7 +265,7 @@ pub struct FilesZipInfo {
 }
 
 /// File listing for an ext4 filesystem
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct FileExt4Info {
     pub full_path: String,
     pub directory: String,
@@ -301,7 +301,7 @@ pub struct FileExt4Info {
 }
 
 /// Ext4 extended attributes
-#[derive(Debug, Clone, PartialEq, Serialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Ext4Attribute {
     pub name: String,
     pub value: String,
