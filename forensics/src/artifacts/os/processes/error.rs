@@ -15,6 +15,8 @@ pub enum ProcessError {
     Serialize(String),
     /// Could output process data
     Output(String),
+    /// Failed to start systeminfo crate
+    Info,
 }
 
 impl std::error::Error for ProcessError {}
@@ -30,6 +32,9 @@ impl fmt::Display for ProcessError {
             }
             ProcessError::Output(message) => {
                 write!(f, "Failed to output process listing: {message}")
+            }
+            ProcessError::Info => {
+                write!(f, "Failed to start systeminfo crate")
             }
         }
     }

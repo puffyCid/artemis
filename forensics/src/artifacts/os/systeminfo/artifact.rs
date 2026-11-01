@@ -9,7 +9,7 @@ use crate::{
 
 /// Get basic sysinfo for a system
 pub(crate) fn systeminfo(manager: &mut OutputManager) -> Result<(), SystemInfoError> {
-    let entries = get_info();
+    let entries = get_info()?;
     let records = serialize_to_record(entries).map_err(SystemInfoError::serialize_failed)?;
 
     let artifact_name = "systeminfo";

@@ -3,7 +3,7 @@ use super::{
     os::{
         connections::artifact::list_connections,
         files::artifact::filelisting,
-        linux::artifacts::{ext4_filelist, journals, logons, sudo_logs_linux},
+        linux::artifacts::{journals, logons, sudo_logs_linux},
         macos::artifacts::{
             fseventsd, groups_macos, launchd, loginitems, spotlight, sudo_logs_macos, unifiedlogs,
             users_macos,
@@ -263,21 +263,6 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                     Ok(_) => info!("Collected Linux sudo logs"),
                     Err(err) => {
                         error!("Failed to parse Linux sudo log data: {err:?}");
-                        manager.write_failed_artifact(artifact, options);
-                    }
-                }
-            }
-            "rawfiles-ext4" if !skip(&artifacts.rawfiles_ext4, &collector.marker, artifact) => {
-                let options = match &artifacts.rawfiles_ext4 {
-                    Some(result_data) => result_data,
-                    _ => continue,
-                };
-
-                let results = ext4_filelist(&mut manager, options);
-                match results {
-                    Ok(_) => info!("Collected Linux raw ext4 file listing"),
-                    Err(err) => {
-                        error!("Failed to parse Linux ext4 filesystem: {err:?}");
                         manager.write_failed_artifact(artifact, options);
                     }
                 }
@@ -594,7 +579,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 };
                 let results = triage(&mut manager, options);
                 match results {
-                    Ok(_) => info!("Collected connections"),
+                    Ok(_) => info!("Collected triage"),
                     Err(err) => {
                         error!("Failed to collect triage: {err:?}");
                         manager.write_failed_artifact(artifact, options);

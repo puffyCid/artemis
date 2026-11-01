@@ -135,7 +135,7 @@ impl CollectionReport {
             log_file: context.log_file.display().to_string(),
             output_format: config.format,
             destination: config.destination,
-            system: get_info(),
+            system: get_info().unwrap_or_default(),
             artifact_runs,
         }
     }

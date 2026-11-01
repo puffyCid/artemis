@@ -1,5 +1,5 @@
 use crate::artifacts::os::systeminfo::info::get_cpu;
-use boa_engine::{Context, JsResult, JsValue};
+use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use sysinfo::System;
 
 /// Return cpu info about the system
@@ -8,10 +8,17 @@ pub(crate) fn js_cpu(
     _args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let mut info = System::new();
+    let mut info = match System::new() {
+        Ok(result) => result,
+        Err(err) => {
+            let issue = format!("Could not get CPUs: {err:?}");
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
     let cpu = get_cpu(&mut info);
     let results = serde_json::to_value(&cpu).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
+
     Ok(value)
 }
 

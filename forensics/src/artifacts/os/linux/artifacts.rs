@@ -1,10 +1,7 @@
 use crate::artifacts::os::linux::error::LinuxArtifactError;
-use crate::artifacts::os::linux::ext4::parser::ext4_filelisting;
 use crate::output::manager::OutputManager;
 use crate::output::record::serialize_records_to_stream;
-use crate::structs::artifacts::os::linux::{
-    Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
-};
+use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
 use tracing::{error, warn};
 
 use super::sudo::logs::grab_sudo_logs;
@@ -84,30 +81,13 @@ pub(crate) fn sudo_logs_linux(
     Ok(())
 }
 
-/// Parse the ext4 filesystem
-pub(crate) fn ext4_filelist(
-    manager: &mut OutputManager,
-    options: &Ext4Options,
-) -> Result<(), LinuxArtifactError> {
-    if let Err(err) = ext4_filelisting(options, manager) {
-        error!("Failed to get ext4 filelisting: {err:?}");
-        return Err(LinuxArtifactError::Ext4);
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 mod tests {
-    use crate::artifacts::os::linux::artifacts::{
-        ext4_filelist, journals, logons, sudo_logs_linux,
-    };
+    use crate::artifacts::os::linux::artifacts::{journals, logons, sudo_logs_linux};
     use crate::artifacts::os::systeminfo::info::get_info_metadata;
     use crate::output::manager::OutputManager;
-    use crate::structs::artifacts::os::linux::{
-        Ext4Options, JournalOptions, LinuxSudoOptions, LogonOptions,
-    };
+    use crate::structs::artifacts::os::linux::{JournalOptions, LinuxSudoOptions, LogonOptions};
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use std::path::PathBuf;
 
@@ -164,28 +144,5 @@ mod tests {
         )
         .unwrap();
         assert_eq!(status, ());
-    }
-
-    #[test]
-    fn test_ext4_filelist() {
-        // Run test only in Github CI. Parsing the ext4 filesystem requires root
-        if !get_info_metadata().kernel_version.contains("azure") {
-            return;
-        }
-        let mut output = output_options("ext4", "./tmp", false);
-        ext4_filelist(
-            &mut output,
-            &Ext4Options {
-                start_path: String::from("/"),
-                depth: 99,
-                device: None,
-                md5: None,
-                sha1: None,
-                sha256: None,
-                path_regex: None,
-                filename_regex: None,
-            },
-        )
-        .unwrap();
     }
 }

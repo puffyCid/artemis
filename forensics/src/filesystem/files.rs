@@ -1,6 +1,5 @@
-use crate::accessor::io::reader::AccessorReader;
-
 use super::{directory::is_directory, error::FileSystemError, metadata::get_metadata};
+use crate::accessor::io::reader::AccessorReader;
 use base16ct::lower::encode_str;
 use common::files::Hashes;
 use digest_io::IoWrapper;
