@@ -579,7 +579,7 @@ pub(crate) fn collect(mut collector: ArtemisToml) -> Result<(), CollectionError>
                 };
                 let results = triage(&mut manager, options);
                 match results {
-                    Ok(_) => info!("Collected connections"),
+                    Ok(_) => info!("Collected triage"),
                     Err(err) => {
                         error!("Failed to collect triage: {err:?}");
                         manager.write_failed_artifact(artifact, options);

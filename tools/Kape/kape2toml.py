@@ -48,10 +48,10 @@ def parseTKape(kape, quiet, output=None):
         'directory': './tmp',
         'format': 'json',
         'compress': False,
-        'timeline': False,
         'endpoint_id': data.get('Id'),
         'collection_id': 1,
-        'output': 'local'
+        'destination': 'local',
+        'logging': 'info',
     }
 
     recreate = data.get('RecreateDirectories')
