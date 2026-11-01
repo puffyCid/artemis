@@ -1,10 +1,21 @@
+use std::cell::RefCell;
+
 use crate::{
-    runtime::helper::string_arg,
+    accessor::access::Accessor,
+    runtime::{
+        filesystem::accessor::return_file_handle_object,
+        helper::{string_arg, value_arg},
+    },
     utils::{encoding::base64_encode_standard, strings::extract_ascii_utf16_string},
 };
-use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
+use boa_engine::{
+    Context, JsData, JsError, JsObject, JsResult, JsValue, NativeFunction,
+    class::{Class, ClassBuilder},
+    js_string,
+};
+use boa_gc::{Finalize, Trace};
 use rusqlite::{
-    Connection, OpenFlags,
+    Connection, MAIN_DB, OpenFlags,
     types::{FromSql, FromSqlError, ValueRef},
 };
 use serde_json::json;
@@ -34,7 +45,137 @@ pub(crate) fn js_query_sqlite(
         }
     };
 
-    let statement = conn.prepare(&query);
+    execute_query(&conn, &query, &path, context)
+}
+
+/// Register the `Sqlite` as a JavaScript class
+#[derive(Trace, Finalize, JsData)]
+pub(super) struct JsSqlite {
+    /// An exposed `Sqlite` to the `BoaJS` run time
+    ///
+    /// `unsafe_ignore_trace` is used to tell the `BoaJS` garbage
+    /// collector not to touch our `Sqlite` file we read into memory.
+    /// The garbage collector cannot trace this
+    #[unsafe_ignore_trace]
+    db: RefCell<Option<Connection>>,
+    /// An exposed `Sqlite` to the `BoaJS` run time
+    ///
+    /// `unsafe_ignore_trace` is used to tell the `BoaJS` garbage
+    /// collector not to touch our `Sqlite` file we read into memory.
+    /// The garbage collector cannot trace this
+    #[unsafe_ignore_trace]
+    target: RefCell<Option<String>>,
+}
+
+impl Class for JsSqlite {
+    const NAME: &'static str = "JsSqlite";
+    const LENGTH: usize = 1;
+
+    fn init(class: &mut ClassBuilder<'_>) -> JsResult<()> {
+        class.method(
+            js_string!("query"),
+            1,
+            NativeFunction::from_fn_ptr(Self::query),
+        );
+
+        Ok(())
+    }
+
+    /// Initial the structure of the `JsAccessor` class
+    /// This is the `constructor` method when coding in JavaScript
+    fn data_constructor(
+        _new_target: &JsValue,
+        args: &[JsValue],
+        context: &mut Context,
+    ) -> JsResult<Self> {
+        let value = value_arg(args, 0, context)?;
+
+        let handle = return_file_handle_object(value)?;
+        let mut accessor = Accessor::with_defaults();
+
+        let bytes = match accessor.read_file_handle(&handle) {
+            Ok(results) => results,
+            Err(err) => {
+                let issue = format!(
+                    "Could not read sqlite file at {}: {err:?}",
+                    handle.display_path()
+                );
+                error!(issue);
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
+
+        let mut conn = match Connection::open_in_memory() {
+            Ok(result) => result,
+            Err(err) => {
+                let issue = format!("Could not open sqlite in memory: {err:?}");
+                error!(issue);
+                return Err(JsError::from_opaque(js_string!(issue).into()));
+            }
+        };
+
+        if let Err(err) = conn.deserialize_read_exact(MAIN_DB, &bytes[..], bytes.len(), true) {
+            let issue = format!("Failed to deserialize ExecPolicy SQLITE file {err:?}");
+            error!(issue);
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+
+        let js_sqlite = JsSqlite {
+            db: RefCell::new(Some(conn)),
+            target: RefCell::new(Some(handle.display_path())),
+        };
+
+        Ok(js_sqlite)
+    }
+}
+
+impl JsSqlite {
+    /// Query a sqlite database in memory
+    fn query(this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
+        let query = string_arg(args, 0)?;
+        let db_object = return_sqlite_connection(this)?;
+
+        let js_db = match db_object.downcast_mut::<Self>() {
+            Some(result) => result,
+            None => {
+                return Err(JsError::from_opaque(
+                    js_string!("Not a JsSqlite Object").into(),
+                ));
+            }
+        };
+
+        let db_ref = js_db.db.borrow();
+        let conn = match db_ref.as_ref() {
+            Some(result) => result,
+            None => {
+                return Err(JsError::from_opaque(
+                    js_string!("Could not sqlite connection").into(),
+                ));
+            }
+        };
+
+        let path_ref = js_db.target.borrow();
+        let path = match path_ref.as_ref() {
+            Some(result) => result,
+            None => {
+                return Err(JsError::from_opaque(
+                    js_string!("Could not target path").into(),
+                ));
+            }
+        };
+
+        execute_query(conn, &query, path, context)
+    }
+}
+
+/// Execute the sqlite query and return serialized results
+fn execute_query(
+    conn: &Connection,
+    query: &str,
+    path: &str,
+    context: &mut Context,
+) -> JsResult<JsValue> {
+    let statement = conn.prepare(query);
     let mut stmt = match statement {
         Ok(query) => query,
         Err(err) => {
@@ -112,6 +253,17 @@ pub(crate) fn js_query_sqlite(
     let results = serde_json::to_value(&data).unwrap_or_default();
     let value = JsValue::from_json(&results, context)?;
     Ok(value)
+}
+
+fn return_sqlite_connection(this: &JsValue) -> JsResult<JsObject> {
+    let obj_accessor = match this.as_object() {
+        Some(result) => result,
+        None => {
+            return Err(JsError::from_opaque(js_string!("Not an Object").into()));
+        }
+    };
+
+    Ok(obj_accessor)
 }
 
 #[cfg(test)]

@@ -162,12 +162,6 @@ pub(crate) fn unixepoch_to_iso_with_nano(timestamp: i64, nanoseconds: i64) -> St
     }
 }
 
-/// Convert `UnixEpoch` nanoseconds to ISO8601 format
-pub(crate) fn unixepoch_nanoseconds_to_iso(timestamp: i64) -> String {
-    Utc.timestamp_nanos(timestamp)
-        .to_rfc3339_opts(chrono::SecondsFormat::Nanos, true)
-}
-
 /// Convert `UnixEpoch` to ISO8601 format
 pub(crate) fn unixepoch_microseconds_to_iso(timestamp: i64) -> String {
     let iso_opt = DateTime::from_timestamp_micros(timestamp);

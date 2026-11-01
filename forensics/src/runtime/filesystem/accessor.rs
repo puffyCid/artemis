@@ -1121,7 +1121,7 @@ pub(super) struct JsAccessorReader {
 
 impl Class for JsAccessorReader {
     const NAME: &'static str = "JsAccessorReader";
-    //const LENGTH: usize = 1;
+    const LENGTH: usize = 0;
 
     fn init(class: &mut ClassBuilder<'_>) -> JsResult<()> {
         class.method(
