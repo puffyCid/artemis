@@ -1,4 +1,5 @@
 use super::sqlite::js_query_sqlite;
+use crate::runtime::application::sqlite::JsSqlite;
 use boa_engine::{Context, JsString, NativeFunction};
 
 /// Link application functions `BoaJS`
@@ -8,6 +9,7 @@ pub(crate) fn application_functions(context: &mut Context) {
         2,
         NativeFunction::from_fn_ptr(js_query_sqlite),
     );
+    let _ = context.register_global_class::<JsSqlite>();
 }
 
 #[cfg(test)]
