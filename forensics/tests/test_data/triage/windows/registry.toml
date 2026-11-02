@@ -10,7 +10,10 @@ destination = "local"
 [[artifacts]]
 artifact_name = "triage"
 
-[[artifacts.triage]]
+[artifacts.triage]
+source = "ntfs:C:"
+
+[[artifacts.triage.targets]]
 name = "SOFTWARE registry hive"
 path = "C:\\Windows\\System32\\config\\"
 file_mask = "SOFTWARE"

@@ -1,7 +1,7 @@
 use super::error::ArtemisError;
 use super::nom_helper::nom_unsigned_two_bytes;
 use crate::utils::nom_helper::Endian;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, SecondsFormat, Utc};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::error;
 

@@ -141,7 +141,7 @@ pub struct Artifacts {
     pub outlook: Option<OutlookOptions>,
     pub mft: Option<MftOptions>,
     pub connections: Option<()>,
-    pub triage: Option<Vec<TriageOptions>>,
+    pub triage: Option<TriageOptions>,
 
     // Scripts to run in BoaJS
     pub script: Option<JSScript>,
