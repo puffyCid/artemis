@@ -10,14 +10,17 @@ destination = "local"
 [[artifacts]]
 artifact_name = "triage"
 
-[[artifacts.triage]]
+[artifacts.triage]
+source = "ntfs:C:"
+
+[[artifacts.triage.targets]]
 name = "NTUSER.DAT registry hive"
 path = "C:\\Users\\*\\"
 file_mask = "[nN][tT][uU][sS][eE][rR].[dD][aA][tT]"
 recreate_directories = true
 recursive = false
 
-[[artifacts.triage]]
+[[artifacts.triage.targets]]
 name = "UsrClass.dat registry hive"
 path = "C:\\Users\\*\\AppData\\Local\\Microsoft\\Windows\\"
 file_mask = "[uU][sS][rR][cC][lL][aA][sS][sS].[dD][aA][tT]"

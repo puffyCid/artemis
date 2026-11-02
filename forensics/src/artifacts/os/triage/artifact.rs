@@ -11,7 +11,7 @@ use crate::{
         },
     },
     output::{manager::OutputManager, record::serialize_records_to_stream},
-    structs::artifacts::triage::TriageOptions,
+    structs::artifacts::triage::{TargetOptions, TriageOptions},
     utils::regex_options::{create_regex, regex_check},
 };
 use glob::Pattern;
@@ -24,7 +24,7 @@ use zip::ZipWriter;
 /// Triage a system by acquiring files
 pub(crate) fn triage(
     manager: &mut OutputManager,
-    options: &Vec<TriageOptions>,
+    options: &TriageOptions,
 ) -> Result<(), TriageError> {
     let full_path = manager.config.directory.join(&manager.config.name);
     let zip_output = full_path.to_str().unwrap_or_default();
@@ -47,7 +47,7 @@ pub(crate) fn triage(
     // For now this Triage artifact is inspired by KAPE
     // Which supports running on a live system
     // Maybe in future the Triage artifact can support other accessor types (ex: disk images)
-    let source = match accessor.open_source("host:") {
+    let source = match accessor.open_source(&options.source) {
         Ok(result) => result,
         Err(err) => {
             error!("Could not open host source: {err:?}");
@@ -56,7 +56,7 @@ pub(crate) fn triage(
     };
 
     // Loop through all triage targets
-    for target in options {
+    for target in &options.targets {
         acquire_files(target, &mut report, &mut accessor, &source, &mut zip)?;
     }
     let mut bytes = serde_json::to_vec(&report).unwrap_or_default();
@@ -96,7 +96,7 @@ struct TriageReport {
 
 /// Copy the targeted files
 fn acquire_files(
-    target: &TriageOptions,
+    target: &TargetOptions,
     report: &mut Vec<TriageReport>,
     accessor: &mut Accessor,
     source: &SourceHandle,
@@ -311,6 +311,7 @@ mod tests {
     use crate::accessor::access::Accessor;
     use crate::accessor::entry::handle::FileHandle;
     use crate::accessor::walk::WalkAccessor;
+    use crate::structs::artifacts::triage::TargetOptions;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::{
         artifacts::os::triage::artifact::{acquire_files, read_file, triage, walking},
@@ -342,13 +343,16 @@ mod tests {
     #[test]
     fn test_triage() {
         let mut output = output_options("triage_test", "./tmp", false);
-        let options = vec![TriageOptions {
-            name: String::from("Linux Journal files"),
-            path: String::from("/var/log/journal/"),
-            file_mask: String::from("*user*"),
-            recursive: true,
-            recreate_directories: true,
-        }];
+        let options = TriageOptions {
+            source: String::from("host:"),
+            targets: vec![TargetOptions {
+                name: String::from("Linux Journal files"),
+                path: String::from("/var/log/journal/"),
+                file_mask: String::from("*user*"),
+                recursive: true,
+                recreate_directories: true,
+            }],
+        };
 
         triage(&mut output, &options).unwrap();
     }
@@ -356,13 +360,16 @@ mod tests {
     #[test]
     fn test_triage_linux() {
         let mut output = output_options("triage_test", "./tmp", false);
-        let options = vec![TriageOptions {
-            name: String::from("Linux Journal files"),
-            path: String::from("/var/log/journal/"),
-            file_mask: String::from("*user*"),
-            recursive: false,
-            recreate_directories: true,
-        }];
+        let options = TriageOptions {
+            source: String::from("host:"),
+            targets: vec![TargetOptions {
+                name: String::from("Linux Journal files"),
+                path: String::from("/var/log/journal/"),
+                file_mask: String::from("*user*"),
+                recursive: false,
+                recreate_directories: true,
+            }],
+        };
 
         triage(&mut output, &options).unwrap();
     }
@@ -370,13 +377,16 @@ mod tests {
     #[test]
     fn test_triage_linux_recursive() {
         let mut output = output_options("triage_test_recursive", "./tmp", false);
-        let options = vec![TriageOptions {
-            name: String::from("Linux Journal files"),
-            path: String::from("/var/log/journal/"),
-            file_mask: String::from("*user*"),
-            recursive: true,
-            recreate_directories: false,
-        }];
+        let options = TriageOptions {
+            source: String::from("host:"),
+            targets: vec![TargetOptions {
+                name: String::from("Linux Journal files"),
+                path: String::from("/var/log/journal/"),
+                file_mask: String::from("*user*"),
+                recursive: true,
+                recreate_directories: true,
+            }],
+        };
 
         triage(&mut output, &options).unwrap();
     }
@@ -386,7 +396,7 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/macos/");
 
-        let target = TriageOptions {
+        let target = TargetOptions {
             name: String::from("test"),
             recursive: false,
             file_mask: String::from("*.toml"),
@@ -561,7 +571,7 @@ mod tests {
     #[test]
     fn test_acquire_files_recursive_mask_and_depth() {
         let dir = setup_tree("triage_mask");
-        let target = TriageOptions {
+        let target = TargetOptions {
             name: String::from("mask"),
             path: format!("{}/", dir.display()),
             file_mask: String::from("*.log"),
@@ -590,7 +600,7 @@ mod tests {
     #[test]
     fn test_acquire_files_regex_prefix() {
         let dir = setup_tree("triage_regex");
-        let target = TriageOptions {
+        let target = TargetOptions {
             name: String::from("regex"),
             path: format!("{}/", dir.display()),
             file_mask: String::from(r"regex:keep\..*"),
@@ -615,7 +625,7 @@ mod tests {
     #[test]
     fn test_acquire_files_missing_path_ok() {
         let dir = setup_tree("triage_missing");
-        let missing = TriageOptions {
+        let missing = TargetOptions {
             name: String::from("missing"),
             path: String::from("/no/such/triage_dir/"),
             file_mask: String::from("*.log"),
@@ -623,7 +633,7 @@ mod tests {
             recreate_directories: true,
         };
 
-        let present = TriageOptions {
+        let present = TargetOptions {
             name: String::from("present"),
             path: format!("{}/", dir.display()),
             file_mask: String::from("*.log"),

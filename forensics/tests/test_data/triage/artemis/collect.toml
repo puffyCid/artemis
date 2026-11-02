@@ -10,14 +10,17 @@ logging = "info"
 
 [[artifacts]]
 artifact_name = "triage"
-[[artifacts.triage]]
+[artifacts.triage]
+source = "host:"
+
+[[artifacts.triage.targets]]
 name = "Default journal location"
 path = "/var/log/journal/"
 file_mask = "*.journal*"
 recursive = true
 recreate_directories = true
 
-[[artifacts.triage]]
+[[artifacts.triage.targets]]
 name = "Auth File"
 path = "/var/log/"
 file_mask = "auth.log*"

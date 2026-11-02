@@ -9,7 +9,10 @@ destination = "local"
 
 [[artifacts]]
 artifact_name = "triage"
-[[artifacts.triage]]
+[artifacts.triage]
+source = "host:"
+
+[[artifacts.triage.targets]]
 name = "Default bash location"
 category = "Shell"
 path = "/home/*/"
