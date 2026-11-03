@@ -2,12 +2,14 @@ use crate::{
     accessor::{
         error::AccessorResult,
         filesystem::ext4::format::{
-            checksum::{crc16_check, crc32c_check},
             layout::Ext4Layout,
             superblock::{SuperBlock, combine_u16, combine_u32, ext4_error},
         },
     },
-    utils::nom_helper::{nom_u16, nom_u32},
+    utils::{
+        checksum::{crc16_check, crc32c_check},
+        nom_helper::{nom_u16, nom_u32},
+    },
 };
 
 /// Block `GroupDescriptor` value

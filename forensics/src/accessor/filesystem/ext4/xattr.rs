@@ -139,14 +139,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::read_extended_attribute;
-    use crate::accessor::filesystem::ext4::{
-        format::{
-            checksum::crc32c_check,
-            inode::parse_inode,
-            xattr::{ExtendedAttribute, parse_inline_attributes},
+    use crate::{
+        accessor::filesystem::ext4::{
+            format::{
+                inode::parse_inode,
+                xattr::{ExtendedAttribute, parse_inline_attributes},
+            },
+            volume::Ext4Volume,
+            xattr::attribute_list,
         },
-        volume::Ext4Volume,
-        xattr::attribute_list,
+        utils::checksum::crc32c_check,
     };
     use std::{
         fs::{File, read},

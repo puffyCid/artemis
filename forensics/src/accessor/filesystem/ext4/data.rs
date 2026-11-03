@@ -125,19 +125,17 @@ where
 #[cfg(test)]
 mod tests {
     use super::read_file_at;
-    use crate::accessor::{
-        error::{AccessorError, AccessorResult},
-        filesystem::ext4::{
-            format::{
-                checksum::crc32c_check,
-                inode::{Inode, parse_inode},
+    use crate::{
+        accessor::{
+            error::{AccessorError, AccessorResult},
+            filesystem::ext4::{
+                format::inode::{Inode, parse_inode},
+                volume::Ext4Volume,
             },
-            volume::Ext4Volume,
         },
+        utils::checksum::crc32c_check,
     };
     use std::{fs::read, io::Cursor, path::PathBuf};
-
-    const BLOCK: usize = 4096;
 
     fn fixture() -> Vec<u8> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -178,7 +176,7 @@ mod tests {
         let mut image = one_group_image(&group0()).into_inner();
 
         for (block, contents) in blocks {
-            let offset = usize::try_from(*block).unwrap() * BLOCK;
+            let offset = usize::try_from(*block).unwrap() * 4096;
             let end = offset + contents.len();
             if image.len() < end {
                 image.resize(end, 0);
@@ -187,7 +185,7 @@ mod tests {
         }
 
         let volume = Ext4Volume::open(Cursor::new(image), "bookworm").unwrap();
-        assert_eq!(volume.layout().block_size, BLOCK as u32);
+        assert_eq!(volume.layout().block_size, 4096 as u32);
         volume
     }
 
@@ -268,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_read_file_at_reads_the_middle_of_a_block() {
-        let mut block = vec![0_u8; BLOCK];
+        let mut block = vec![0_u8; 4096];
         block[100..105].copy_from_slice(b"abcde");
         let volume = plant(&[(50, &block)]);
         let inode = file_inode(&leaf_root(0, 1, 50), 200);
@@ -279,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_read_file_at_stops_at_the_file_size() {
-        let mut block = vec![0_u8; BLOCK];
+        let mut block = vec![0_u8; 4096];
         block[..16].copy_from_slice(b"hello\nSLACK!!!!!");
         let volume = plant(&[(50, &block)]);
         let inode = file_inode(&leaf_root(0, 1, 50), 6);
@@ -310,21 +308,21 @@ mod tests {
 
     #[test]
     fn test_read_file_at_zero_fills_a_hole_and_then_reads_data() {
-        let mut block = vec![0_u8; BLOCK];
+        let mut block = vec![0_u8; 4096];
         block[..6].copy_from_slice(b"abcdef");
         let volume = plant(&[(50, &block)]);
-        let inode = file_inode(&leaf_root(1, 1, 50), BLOCK as u64 + 6);
+        let inode = file_inode(&leaf_root(1, 1, 50), 4096 as u64 + 6);
 
         assert_eq!(read_bytes(&volume, &inode, 0, 4).unwrap(), [0, 0, 0, 0]);
         assert_eq!(
-            read_bytes(&volume, &inode, BLOCK as u64, 10).unwrap(),
+            read_bytes(&volume, &inode, 4096 as u64, 10).unwrap(),
             b"abcdef"
         );
     }
 
     #[test]
     fn test_read_file_at_zero_fills_an_unwritten_extent() {
-        let block = vec![0xff_u8; BLOCK];
+        let block = vec![0xff_u8; 4096];
         let volume = plant(&[(80, &block)]);
         let inode = file_inode(&leaf_root(0, 0x8001, 80), 8);
 
@@ -342,21 +340,21 @@ mod tests {
 
     #[test]
     fn test_read_file_at_spans_initialized_data_into_a_hole() {
-        let block = vec![b'A'; BLOCK];
+        let block = vec![b'A'; 4096];
         let volume = plant(&[(50, &block)]);
-        let inode = file_inode(&leaf_root(0, 1, 50), BLOCK as u64 + 4);
+        let inode = file_inode(&leaf_root(0, 1, 50), 4096 as u64 + 4);
 
         assert_eq!(
-            read_bytes(&volume, &inode, BLOCK as u64 - 2, 8).unwrap(),
+            read_bytes(&volume, &inode, 4096 as u64 - 2, 8).unwrap(),
             [b'A', b'A', 0, 0, 0, 0]
         );
     }
 
     #[test]
     fn test_read_file_at_reads_across_a_block_boundary() {
-        let mut first = vec![0_u8; BLOCK];
-        let mut second = vec![0_u8; BLOCK];
-        first[BLOCK - 6..].fill(b'A');
+        let mut first = vec![0_u8; 4096];
+        let mut second = vec![0_u8; 4096];
+        first[4096 - 6..].fill(b'A');
         second[..14].fill(b'B');
         let volume = plant(&[(50, &first), (51, &second)]);
         let inode = file_inode(&leaf_root(0, 2, 50), 8192);
@@ -364,14 +362,14 @@ mod tests {
         let mut expected = vec![b'A'; 6];
         expected.extend(vec![b'B'; 14]);
         assert_eq!(
-            read_bytes(&volume, &inode, BLOCK as u64 - 6, 20).unwrap(),
+            read_bytes(&volume, &inode, 4096 as u64 - 6, 20).unwrap(),
             expected
         );
     }
 
     #[test]
     fn test_read_file_at_reads_a_directory() {
-        let mut block = vec![0_u8; BLOCK];
+        let mut block = vec![0_u8; 4096];
         block[..4].copy_from_slice(b"dir!");
         let volume = plant(&[(50, &block)]);
         let mut inode = file_inode(&leaf_root(0, 1, 50), 4);

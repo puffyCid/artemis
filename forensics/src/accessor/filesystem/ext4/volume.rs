@@ -451,14 +451,16 @@ fn ext4_path_error(label: &str, reason: impl Into<String>) -> AccessorError {
 #[cfg(test)]
 mod tests {
     use super::Ext4Volume;
-    use crate::accessor::{
-        error::AccessorError,
-        filesystem::ext4::format::{
-            checksum::crc32c_check,
-            group::group_descriptor_crc32c,
-            inode::{Inode, inode_crc32c},
-            superblock::SuperBlock,
+    use crate::{
+        accessor::{
+            error::AccessorError,
+            filesystem::ext4::format::{
+                group::group_descriptor_crc32c,
+                inode::{Inode, inode_crc32c},
+                superblock::SuperBlock,
+            },
         },
+        utils::checksum::crc32c_check,
     };
     use common::files::EntryKind;
     use std::{fs::read, io::Cursor, path::PathBuf};

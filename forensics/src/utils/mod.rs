@@ -1,4 +1,5 @@
 pub(crate) mod artemis_toml;
+pub(crate) mod checksum;
 pub(crate) mod compression;
 pub(crate) mod decryption;
 pub(crate) mod encoding;

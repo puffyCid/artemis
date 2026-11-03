@@ -1,9 +1,7 @@
 use crate::{
-    accessor::{
-        error::{AccessorError, AccessorResult},
-        filesystem::ext4::format::checksum::crc32c_check,
-    },
+    accessor::error::{AccessorError, AccessorResult},
     utils::{
+        checksum::crc32c_check,
         nom_helper::{nom_take, nom_u8, nom_u16, nom_u32, nom_u64},
         strings::extract_utf8_string,
         uuid::format_guid_be_bytes,
