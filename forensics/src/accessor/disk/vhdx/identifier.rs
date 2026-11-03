@@ -10,12 +10,12 @@ use crate::{
 ///
 /// <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc>
 #[derive(Debug, PartialEq, Clone)]
-pub(super) struct VhdxHeader {
+pub(super) struct VhdxIdentifier {
     /// UTF16 encoded application creator for the VHDX file
     creator: Vec<u8>,
 }
 
-impl VhdxHeader {
+impl VhdxIdentifier {
     /// Return the human readable creator string
     pub(super) fn creator(&self) -> String {
         extract_utf16_string(&self.creator)
@@ -23,7 +23,7 @@ impl VhdxHeader {
 }
 
 /// Parse the VHDX header. It only contains creator value
-pub(super) fn parse_header(data: &[u8]) -> AccessorResult<VhdxHeader> {
+pub(super) fn parse_header(data: &[u8]) -> AccessorResult<VhdxIdentifier> {
     let (input, sig) = nom_u64(data, "VHDX header signature truncated")?;
 
     let magic = 0x656c696678646876;
@@ -38,14 +38,14 @@ pub(super) fn parse_header(data: &[u8]) -> AccessorResult<VhdxHeader> {
 
     // Remaining bytes are reserved
 
-    Ok(VhdxHeader {
+    Ok(VhdxIdentifier {
         creator: creator.to_vec(),
     })
 }
 
 #[cfg(test)]
 mod test {
-    use crate::accessor::disk::vhdx::header::parse_header;
+    use crate::accessor::disk::vhdx::identifier::parse_header;
 
     #[test]
     fn test_parse_header() {
