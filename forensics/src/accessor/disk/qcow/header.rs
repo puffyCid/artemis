@@ -1,9 +1,8 @@
-use serde::Serialize;
-
 use crate::{
     accessor::error::{AccessorError, AccessorResult},
     utils::nom_helper::{nom_bu8, nom_bu32, nom_bu64, nom_take},
 };
+use serde::Serialize;
 
 /// Header info for QCOW file
 ///
