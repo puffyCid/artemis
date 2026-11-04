@@ -11,27 +11,29 @@ use uuid::Uuid;
 /// Parsed VHDX Image header
 ///
 /// Two copies are stored in a VHDX file
+///
+/// <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc#3-image-header>
 pub(super) struct VhdxHeader {
     /// Sequence number for the image header
-    sequence: u64,
+    pub(super) sequence: u64,
     /// File write ID
-    file_write: Uuid,
+    pub(super) file_write: Uuid,
     /// Data write ID
-    data_write: Uuid,
+    pub(super) data_write: Uuid,
     /// Log ID
-    log: Uuid,
+    pub(super) log: Uuid,
     /// Log format version
-    log_version: u16,
+    pub(super) log_version: u16,
     /// VHDX format version. Only version 1 has been seen
-    version: u16,
+    pub(super) version: u16,
     /// Log size
     ///
     /// Will be a multitude of 1 MB
-    log_length: u32,
+    pub(super) log_length: u32,
     /// Offset to the log
     ///
     /// Will be a multitude of 1 MB
-    log_offset: u64,
+    pub(super) log_offset: u64,
 }
 
 impl VhdxHeader {
@@ -63,7 +65,7 @@ pub(super) fn parse_image_header(data: &[u8]) -> AccessorResult<VhdxHeader> {
     let (input, checksum) = nom_u32(input, "VHDX image header checksum truncated")?;
 
     let block = &data[..head_length];
-    let value = vhdx_crc32c(block);
+    let value = vhdx_crc32c(block, head_length);
     if checksum != value {
         return Err(AccessorError::volume(format!(
             "VHDX image head checksum incorrect. Wanted {value:#0x}, got: {checksum:#0x}",
@@ -138,8 +140,7 @@ pub(super) fn active_head(first: &[u8], second: &[u8]) -> AccessorResult<VhdxHea
 }
 
 /// Return CRC32C checksum for image head
-fn vhdx_crc32c(data: &[u8]) -> u32 {
-    let length = 4096;
+pub(super) fn vhdx_crc32c(data: &[u8], length: usize) -> u32 {
     let mut bytes = data[..length].to_vec();
     bytes[4..8].fill(0);
 
@@ -186,7 +187,7 @@ mod test {
         put_u32(&mut bytes, 68, 1048576);
         put_u64(&mut bytes, 72, 0x100000);
 
-        let checksum = vhdx_crc32c(&bytes);
+        let checksum = vhdx_crc32c(&bytes, 4096);
         put_u32(&mut bytes, 4, checksum);
         bytes
     }
