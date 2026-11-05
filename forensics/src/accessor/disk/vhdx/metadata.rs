@@ -256,7 +256,7 @@ fn validate_flags(entries: &[MetadataEntry]) -> AccessorResult<()> {
 
         let is_user = entry.flags & IS_USER != 0;
         let is_virtual = entry.flags & IS_VIRTUAL_DISK != 0;
-        if is_user && is_virtual {
+        if is_user == is_virtual {
             return Err(AccessorError::volume(format!(
                 "VHDX metadata entry {} flags {:#x} must set one of IsUser or IsVirtualDisk",
                 entry.index, entry.flags
@@ -649,7 +649,7 @@ mod test {
 
         items[1].flags = 0x4;
         let reason = volume_reason(parse_metadata(&metadata_bytes(&items)));
-        assert!(reason.contains("required virtual disk item"), "{reason}");
+        assert!(reason.contains("IsVirtualDisk"), "{reason}");
     }
 
     #[test]
