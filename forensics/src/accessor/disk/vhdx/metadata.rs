@@ -94,7 +94,7 @@ pub(super) fn parse_metadata(data: &[u8]) -> AccessorResult<VhdxMetadata> {
     }
 
     let (input, count) = nom_u16(input, "VHDX metadata entry count truncated")?;
-    let max_entries = 247;
+    let max_entries = 2047;
     if count > max_entries {
         return Err(AccessorError::volume(format!(
             "VHDX metadata entry count {count} is above {max_entries}"
@@ -665,7 +665,7 @@ mod test {
         let mut count = metadata_bytes(&standard_items());
         put_u16(&mut count, 10, 2048);
         let reason = volume_reason(parse_metadata(&count));
-        assert!(reason.contains("247"), "{reason}");
+        assert!(reason.contains("2047"), "{reason}");
 
         let mut items = standard_items();
         items.push(item(
