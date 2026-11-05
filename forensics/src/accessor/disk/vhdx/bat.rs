@@ -126,6 +126,9 @@ pub(super) fn parse_bat(
                     &mut present,
                 )?);
             }
+            let raw = entry_raw(data, index)?;
+            parse_bitmap(raw, index, file_len, occupied, &mut present)?;
+            remaining -= chunk;
         }
     }
 
@@ -477,10 +480,7 @@ mod test {
         let reason = volume_reason(parse_bat(&bytes, &one_block, file_len, &[]));
         assert!(reason.contains("partially present"), "{reason}");
 
-        let bytes = bat_bytes(&[
-            bat_entry(6, block_size as u64) | (1 << 3),
-            bat_entry(0, 0),
-        ]);
+        let bytes = bat_bytes(&[bat_entry(6, block_size as u64) | (1 << 3), bat_entry(0, 0)]);
 
         let reason = volume_reason(parse_bat(&bytes, &one_block, file_len, &[]));
         assert!(reason.contains("reserved"), "{reason}");
