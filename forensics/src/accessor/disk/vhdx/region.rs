@@ -11,17 +11,17 @@ use uuid::Uuid;
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct VhdxRegion {
     /// Region ID
-    guid: Uuid,
+    pub(super) guid: Uuid,
     /// Offset to the region
     ///
     /// Multitude of 1MB
-    file_offset: u64,
+    pub(super) file_offset: u64,
     /// Length of region in bytes
     ///
     /// Multitude of 1MB
-    length: u32,
+    pub(super) length: u32,
     /// Determine if the region is required
-    required: bool,
+    pub(super) required: bool,
 }
 
 /// Parsed locations from the active region table
@@ -32,9 +32,9 @@ pub(super) struct VhdxRegionTable {
     /// Block allocation table
     ///
     /// Contains the blocks containing a sector bitmap
-    bat: VhdxRegion,
+    pub(super) bat: VhdxRegion,
     /// Parsed VHDX metadata region
-    metadata: VhdxRegion,
+    pub(super) metadata: VhdxRegion,
 }
 
 /// Parse the VHDX region table
@@ -104,8 +104,7 @@ pub(super) fn active_regions(first: &[u8], second: &[u8]) -> AccessorResult<Vhdx
                 "VHDX region table copies do not match",
             ));
         }
-        (Ok(first_table), Ok(_)) => first_table,
-        (Ok(first_table), Err(_)) => first_table,
+        (Ok(first_table), Ok(_) | Err(_)) => first_table,
         (Err(_), Ok(second_table)) => second_table,
         (Err(first_err), Err(second_err)) => {
             return Err(AccessorError::volume(format!(
@@ -146,13 +145,13 @@ fn parse_entry(index: u32, data: &[u8], seen: &[VhdxRegion]) -> AccessorResult<V
     }
 
     let bytes_aligned = 1024 * 1024;
-    if file_offset < bytes_aligned || file_offset % bytes_aligned != 0 {
+    if file_offset < bytes_aligned || !file_offset.is_multiple_of(bytes_aligned) {
         return Err(AccessorError::volume(format!(
             "VHDX region entry {index} offset {file_offset} is not 1 MiB aligned"
         )));
     }
 
-    if length == 0 || length as u64 % bytes_aligned != 0 {
+    if length == 0 || !(length as u64).is_multiple_of(bytes_aligned) {
         return Err(AccessorError::volume(format!(
             "VHDX region entry {index} length {length} is not a non-zero multiple of 1 MiB"
         )));
