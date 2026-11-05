@@ -6,26 +6,52 @@ use crate::{
     utils::nom_helper::nom_u64,
 };
 
+/// Map reads to VHDX guest
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum VhdxMapping {
-    Zero { length: u64 },
-    Data { file_offset: u64, length: u64 },
+    /// The next guest read are zeros
+    Zero {
+        /// Guest bytes covered
+        ///
+        /// These values are zeros
+        length: u64,
+    },
+    /// The next guest read bytes return data
+    Data {
+        /// Offset in the VHDX file
+        file_offset: u64,
+        /// Guest bytes covered
+        length: u64,
+    },
 }
 
+/// Sector bitmap block values
 #[derive(Debug, Clone, PartialEq)]
 enum PayloadBlock {
+    /// Block is new and not stored in the file
     Absent,
-    Present { file_offset: u64 },
+    /// Block is stored in the file
+    Present {
+        /// Offset to the block
+        file_offset: u64,
+    },
 }
 
+/// Parsed Block allocation table (BAT)
+///
+/// <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc#6-block-allocation-table-bat-region>
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct VhdxBat {
+    /// Size of the block
     block_size: u64,
+    /// Size of the virtal disk
     virtual_disk_size: u64,
+    /// Parsed blocks
     blocks: Vec<PayloadBlock>,
 }
 
 impl VhdxBat {
+    /// Map guest byte offset to VDHX file offset
     pub(super) fn map_offset(&self, guest_offset: u64) -> AccessorResult<VhdxMapping> {
         if guest_offset >= self.virtual_disk_size {
             return Err(AccessorError::volume(format!(
@@ -61,6 +87,7 @@ impl VhdxBat {
     }
 }
 
+/// Parse a BAT entry
 pub(super) fn parse_bat(
     data: &[u8],
     metadata: &VhdxMetadata,
@@ -125,9 +152,11 @@ pub(super) fn parse_bat(
                     occupied,
                     &mut present,
                 )?);
+                index += 1;
             }
             let raw = entry_raw(data, index)?;
             parse_bitmap(raw, index, file_len, occupied, &mut present)?;
+            index += 1;
             remaining -= chunk;
         }
     }
@@ -145,6 +174,7 @@ pub(super) fn parse_bat(
     })
 }
 
+/// Number of BAT chunks
 fn bat_entry_count(metadata: &VhdxMetadata, payload_blocks: u64) -> AccessorResult<u64> {
     if metadata.leave_blocks_allocated {
         return Ok(payload_blocks);
