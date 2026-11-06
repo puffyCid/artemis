@@ -13,6 +13,7 @@ use uuid::Uuid;
 /// Two copies are stored in a VHDX file
 ///
 /// <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc#3-image-header>
+#[derive(Debug)]
 pub(super) struct VhdxHeader {
     /// Sequence number for the image header
     pub(super) sequence: u64,

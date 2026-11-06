@@ -27,6 +27,16 @@ pub(crate) struct VhdxImageMetadata {
     pub(crate) leave_blocks_allocated: bool,
     /// Disk ID GUID
     pub(crate) disk_id: String,
+    /// File write ID
+    pub(crate) file_write: String,
+    /// Data write ID
+    pub(crate) data_write: String,
+    /// Log ID
+    pub(crate) log: String,
+    /// VHDX format version
+    pub(crate) version: u16,
+    /// Log format version
+    pub(crate) log_version: u16,
     /// Logical sector size in bytes
     pub(crate) logical_sector_size: u32,
     /// Physical sector size in bytes
@@ -54,6 +64,8 @@ pub(crate) struct VhdxReader<R> {
     bat: VhdxBat,
     /// Creator application of the VHDX file
     creator: String,
+    /// Parsed VHDX header info
+    header: VhdxHeader,
 }
 
 impl<R: Read + Seek> VhdxReader<R> {
@@ -114,6 +126,7 @@ impl<R: Read + Seek> VhdxReader<R> {
             metadata,
             bat,
             creator: identifier.creator(),
+            header,
         })
     }
 
@@ -122,6 +135,11 @@ impl<R: Read + Seek> VhdxReader<R> {
             block_size: self.metadata.block_size,
             leave_blocks_allocated: self.metadata.leave_blocks_allocated,
             disk_id: self.metadata.disk_id.to_string(),
+            file_write: self.header.file_write.to_string(),
+            data_write: self.header.data_write.to_string(),
+            log: self.header.log.to_string(),
+            log_version: self.header.log_version,
+            version: self.header.version,
             logical_sector_size: self.metadata.logical_sector_size,
             physical_sector_size: self.metadata.physical_sector_size,
             chunk_ratio: self.metadata.chunk_ratio,

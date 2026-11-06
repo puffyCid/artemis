@@ -787,6 +787,17 @@ mod tests {
     }
 
     #[test]
+    fn test_glob_vhdx_partition_directory() {
+        let (loc, pattern) =
+            Location::split_glob_pattern("vhdx:/tmp/ntfs.vhdx!hello/*.txt").unwrap();
+
+        assert_eq!(pattern, "*.txt");
+        assert_eq!(loc.scheme, Scheme::Vhdx);
+        assert_eq!(loc.source.unwrap().display(), "/tmp/ntfs.vhdx");
+        assert_eq!(loc.inner_path.display(), "hello");
+    }
+
+    #[test]
     fn test_parse_source_qcow_relative_is_error() {
         let err = Location::parse_source("qcow:image.qcow").unwrap_err();
 

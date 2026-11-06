@@ -51,6 +51,7 @@ impl VhdxDisk {
         self.format
     }
 
+    /// Return `DiskImageMetadata` info about VHDX file
     pub(crate) fn image(&self) -> AccessorResult<DiskImageMetadata> {
         let reader = self.open_reader()?;
 
