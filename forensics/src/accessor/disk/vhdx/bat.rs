@@ -127,7 +127,7 @@ pub(super) fn parse_bat(
     let mut input = data;
     if metadata.leave_blocks_allocated {
         for _ in 0..payload_blocks {
-            let (remaining, raw) = nom_u64(input, &format!("VHDX BAT entry truncated"))?;
+            let (remaining, raw) = nom_u64(input, "VHDX BAT entry truncated")?;
             blocks.push(parse_payload(
                 raw,
                 index,
@@ -145,7 +145,7 @@ pub(super) fn parse_bat(
         while remaining > 0 {
             let chunk = remaining.min(chunk_ratio);
             for _ in 0..chunk {
-                let (remaining_input, raw) = nom_u64(input, &format!("VHDX BAT entry truncated"))?;
+                let (remaining_input, raw) = nom_u64(input, "VHDX BAT entry truncated")?;
                 blocks.push(parse_payload(
                     raw,
                     index,
