@@ -124,9 +124,10 @@ pub(super) fn parse_bat(
     let mut present = Vec::new();
     let mut index = 0;
 
+    let mut input = data;
     if metadata.leave_blocks_allocated {
-        for _ in 0..payload_blocks {
-            let raw = entry_raw(data, index)?;
+        for i in 0..payload_blocks {
+            let (remaining, raw) = nom_u64(input, &format!("VHDX BAT entry {i} truncated"))?;
             blocks.push(parse_payload(
                 raw,
                 index,
@@ -136,14 +137,16 @@ pub(super) fn parse_bat(
                 &mut present,
             )?);
             index += 1;
+            input = remaining;
         }
     } else {
         let chunk_ratio = metadata.chunk_ratio as u64;
         let mut remaining = payload_blocks;
         while remaining > 0 {
             let chunk = remaining.min(chunk_ratio);
-            for _ in 0..chunk {
-                let raw = entry_raw(data, index)?;
+            for i in 0..chunk {
+                let (remaining_input, raw) =
+                    nom_u64(input, &format!("VHDX BAT entry {i} truncated"))?;
                 blocks.push(parse_payload(
                     raw,
                     index,
@@ -153,11 +156,13 @@ pub(super) fn parse_bat(
                     &mut present,
                 )?);
                 index += 1;
+                input = remaining_input;
             }
-            let raw = entry_raw(data, index)?;
+            let (remaining_input, raw) = nom_u64(input, "VHDX BAT entry truncated")?;
             parse_bitmap(raw, index, file_len, occupied, &mut present)?;
             index += 1;
             remaining -= chunk;
+            input = remaining_input;
         }
     }
 
@@ -191,17 +196,12 @@ fn bat_entry_count(metadata: &VhdxMetadata, payload_blocks: u64) -> AccessorResu
         .ok_or_else(|| AccessorError::volume("VHDX BAT entry count overflows"))
 }
 
-fn entry_raw(data: &[u8], index: u64) -> AccessorResult<u64> {
-    let start = usize::try_from(index.saturating_mul(8)).unwrap_or(usize::MAX);
-    let bytes = data
-        .get(start..start + 8)
-        .ok_or_else(|| AccessorError::volume(format!("VHDX BAT entry {index} is truncated")))?;
-
-    let (_, raw) = nom_u64(bytes, "VHDX BAT entry truncated")?;
-    Ok(raw)
-}
-
+/// Determine BAT payload and bitmap entry based on bits
+///
+/// <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc#61-block-allocation-table-bat-entry>
 fn split_entry(raw: u64, index: u64) -> AccessorResult<(u64, u64)> {
+    // block state
+    // 6 types <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc#61-block-allocation-table-bat-entry>
     let state = raw & 7;
     let reserved = (raw >> 3) & 0x1ffff;
     if reserved != 0 {
@@ -213,6 +213,7 @@ fn split_entry(raw: u64, index: u64) -> AccessorResult<(u64, u64)> {
     Ok((state, raw & !0xfffff))
 }
 
+/// Parse BAT payload data
 fn parse_payload(
     raw: u64,
     index: u64,
@@ -221,9 +222,17 @@ fn parse_payload(
     occupied: &[(u64, u64)],
     present: &mut Vec<(u64, u64)>,
 ) -> AccessorResult<PayloadBlock> {
+    // Determine state of block and file offset
     let (state, file_offset) = split_entry(raw, index)?;
     match state {
-        0 | 1 | 2 | 3 => {
+        /*
+         * All absent or unused payload data
+         * 0 - Not Present
+         * 1 - Undefined
+         * 2 - Zero
+         * 3 - Unampped
+         */
+        0..=3 => {
             if file_offset != 0 {
                 return Err(AccessorError::volume(format!(
                     "VHDX BAT entry {index} offset {file_offset} must be zero"
@@ -231,10 +240,12 @@ fn parse_payload(
             }
             Ok(PayloadBlock::Absent)
         }
+        // 6 - Fully Present
         6 => {
             validate_present(index, file_offset, block_size, file_len, occupied, present)?;
             Ok(PayloadBlock::Present { file_offset })
         }
+        // Partially present
         7 => Err(AccessorError::volume(format!(
             "VHDX BAT entry {index} is partially present"
         ))),
@@ -244,6 +255,9 @@ fn parse_payload(
     }
 }
 
+/// Parse BAT bitmap states
+///
+/// <https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc#61-block-allocation-table-bat-entry>
 fn parse_bitmap(
     raw: u64,
     index: u64,
@@ -253,6 +267,7 @@ fn parse_bitmap(
 ) -> AccessorResult<()> {
     let (state, file_offset) = split_entry(raw, index)?;
     match state {
+        // Block is new and not stored
         0 => {
             if file_offset != 0 {
                 return Err(AccessorError::volume(format!(
@@ -262,6 +277,7 @@ fn parse_bitmap(
 
             Ok(())
         }
+        // Block is stored in file
         6 => validate_present(index, file_offset, 1048576, file_len, occupied, present),
         _ => Err(AccessorError::volume(format!(
             "VHDX BAT bitmap entry {index} state {state} is invalid"
@@ -269,6 +285,9 @@ fn parse_bitmap(
     }
 }
 
+/// Make sure a fully present payload state (6)
+/// is at least 1MB in size, within the file size, and
+/// does not overlap with other sections
 fn validate_present(
     index: u64,
     file_offset: u64,
@@ -309,6 +328,7 @@ fn validate_present(
     Ok(())
 }
 
+/// Compare section ranges
 fn ranges_overlap(start: u64, length: u64, other: u64, other_length: u64) -> bool {
     let Some(end) = start.checked_add(length) else {
         return true;
