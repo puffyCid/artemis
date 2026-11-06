@@ -231,14 +231,7 @@ fn parse_payload(
          * 2 - Zero
          * 3 - Unampped
          */
-        0..=3 => {
-            if file_offset != 0 {
-                return Err(AccessorError::volume(format!(
-                    "VHDX BAT entry {index} offset {file_offset} must be zero"
-                )));
-            }
-            Ok(PayloadBlock::Absent)
-        }
+        0..=3 => Ok(PayloadBlock::Absent),
         // 6 - Fully Present
         6 => {
             validate_present(index, file_offset, block_size, file_len, occupied, present)?;
@@ -267,15 +260,7 @@ fn parse_bitmap(
     let (state, file_offset) = split_entry(raw, index)?;
     match state {
         // Block is new and not stored
-        0 => {
-            if file_offset != 0 {
-                return Err(AccessorError::volume(format!(
-                    "VHDX BAT entry {index} offset {file_offset} must be zero"
-                )));
-            }
-
-            Ok(())
-        }
+        0 => Ok(()),
         // Block is stored in file
         6 => validate_present(index, file_offset, 1048576, file_len, occupied, present),
         _ => Err(AccessorError::volume(format!(
