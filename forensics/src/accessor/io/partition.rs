@@ -12,6 +12,14 @@ pub(crate) struct PartitionReader<R> {
     /// Current position of `PartitionReader` relative to
     /// the start of the partition
     position: u64,
+    /// Has the reader parsed the bootsector data
+    ///
+    /// If we are parsing a NTFS partition
+    /// the NTFS crate requires the boot sector signature
+    /// at the end.
+    ///
+    /// Otherwise we get an error :(
+    boot_signature_done: bool,
 }
 
 impl<R: Read + Seek> PartitionReader<R> {
@@ -29,6 +37,7 @@ impl<R: Read + Seek> PartitionReader<R> {
             byte_offset,
             byte_length,
             position: 0,
+            boot_signature_done: false,
         })
     }
 
@@ -68,6 +77,48 @@ impl<R: Read + Seek> PartitionReader<R> {
             Err(_err) => buf_len,
         }
     }
+
+    fn oem_is_ntfs(&mut self, start: u64, buf: &[u8]) -> io::Result<bool> {
+        if start <= 3 && start + buf.len() as u64 >= 11 {
+            let oem_start = (3 - start) as usize;
+            return Ok(&buf[oem_start..oem_start + 8] == b"NTFS    ");
+        }
+
+        let restore = self.disk_position(self.position)?;
+        let oem_at = self.disk_position(3)?;
+        self.inner.seek(SeekFrom::Start(oem_at))?;
+
+        let mut oem = [0u8; 8];
+        self.inner.read_exact(&mut oem)?;
+        self.inner.seek(SeekFrom::Start(restore))?;
+
+        Ok(&oem == b"NTFS    ")
+    }
+
+    /// Some tools will create a NTFS filesystem but not include the
+    /// boot signature 0x55AA.
+    ///
+    /// The NTFS crate requires the boot signature. So we inject it if
+    /// its missing
+    fn check_missing_ntfs_sig(&mut self, start: u64, buf: &mut [u8]) -> io::Result<()> {
+        let end = start as usize + buf.len();
+        if start >= 512 || end <= 510 || !self.oem_is_ntfs(start, buf)? {
+            return Ok(());
+        }
+
+        for i in 512u64..512 {
+            if !(start as usize..end).contains(&(i as usize)) {
+                continue;
+            }
+
+            let index = (i - start) as usize;
+            if buf[index] == 0 {
+                buf[index] = if i == 512 { 0x55 } else { 0xAA };
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl<R: Read + Seek> Read for PartitionReader<R> {
@@ -76,6 +127,7 @@ impl<R: Read + Seek> Read for PartitionReader<R> {
             return Ok(0);
         }
 
+        let start = self.position;
         let remaining = self.byte_length - self.position;
         let length = Self::read_len(remaining, buf.len());
         let disk_position = self.disk_position(self.position)?;
@@ -84,6 +136,15 @@ impl<R: Read + Seek> Read for PartitionReader<R> {
         let read = self.inner.read(&mut buf[..length])?;
 
         self.position += read as u64;
+
+        // If open partition for first time
+        // Check if NTFS and it has the boot signature
+        if !self.boot_signature_done {
+            self.check_missing_ntfs_sig(start, &mut buf[..read])?;
+            if start <= 510 && self.position >= 512 {
+                self.boot_signature_done = true;
+            }
+        }
 
         Ok(read)
     }

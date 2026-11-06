@@ -299,4 +299,14 @@ mod tests {
         assert!(matches!(found[0].partition.kind, PartitionKind::Ext4Image));
         assert_eq!(found[0].partition.byte_offset, 0);
     }
+
+    #[test]
+    fn test_identify_ntfs_without_boot_signature() {
+        let mut sector = vec![0u8; 512];
+        sector[3..11].copy_from_slice(b"NTFS    ");
+        sector[11..13].copy_from_slice(&512u16.to_le_bytes());
+
+        let kind = identify_partition(&mut Cursor::new(sector), &gpt_partition(0, 512)).unwrap();
+        assert_eq!(kind, FilesystemKind::Ntfs);
+    }
 }

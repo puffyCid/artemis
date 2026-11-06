@@ -270,9 +270,12 @@ fn logic_partition(length: u64, kind: PartitionKind, sector_size: u64) -> DiskPa
 
 /// Check for logical NTFS disk
 pub(super) fn is_logical_ntfs(sector: &[u8]) -> bool {
-    sector.len() >= 512
-        && &sector[3..11] == b"NTFS    "
-        && u16::from_le_bytes([sector[510], sector[511]]) == 0xaa55
+    if sector.len() < 512 || &sector[3..11] != b"NTFS    " {
+        return false;
+    }
+
+    let bytes_per_sector = u16::from_le_bytes([sector[11], sector[12]]);
+    matches!(bytes_per_sector, 256 | 512 | 1024 | 2048 | 4096)
 }
 
 /// Check for logical EXT4 disk
@@ -618,6 +621,22 @@ mod tests {
         assert!(matches!(
             error,
             AccessorError::Volume { reason } if reason.contains("not 512 or 4096")
+        ));
+    }
+
+    #[test]
+    fn test_inspect_logic_ntfs_without_boot_signature() {
+        let mut disk = vec![0u8; 1024];
+        disk[3..11].copy_from_slice(b"NTFS    ");
+        disk[11..13].copy_from_slice(&512u16.to_le_bytes());
+
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
+
+        assert_eq!(layout.table, PartitionTableKind::None);
+        assert_eq!(layout.partitions.len(), 1);
+        assert!(matches!(
+            layout.partitions[0].kind,
+            PartitionKind::NtfsImage
         ));
     }
 }
