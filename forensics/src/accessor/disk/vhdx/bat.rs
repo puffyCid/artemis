@@ -520,8 +520,13 @@ mod test {
         assert!(reason.contains("reserved"), "{reason}");
 
         let bytes = bat_bytes(&[bat_entry(0, block_size as u64), bat_entry(0, 0)]);
-        let reason = volume_reason(parse_bat(&bytes, &one_block, file_len, &[]));
-        assert!(reason.contains("must be zero"), "{reason}");
+        let bat = parse_bat(&bytes, &one_block, file_len, &[]).unwrap();
+        assert_eq!(
+            bat.map_offset(0).unwrap(),
+            VhdxMapping::Zero {
+                length: block_size as u64,
+            }
+        );
 
         let bytes = bat_bytes(&[bat_entry(6, 0), bat_entry(0, 0)]);
         let reason = volume_reason(parse_bat(&bytes, &one_block, file_len, &[]));
