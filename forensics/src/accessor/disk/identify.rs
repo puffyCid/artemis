@@ -106,6 +106,7 @@ mod tests {
     fn boot_sector(oem: &[u8], extra: &[(usize, &[u8])]) -> Vec<u8> {
         let mut sector = vec![0u8; 512];
         sector[3..11].copy_from_slice(oem);
+        sector[11..13].copy_from_slice(&512u16.to_le_bytes());
 
         for &(offset, value) in extra {
             sector[offset..offset + value.len()].copy_from_slice(value);

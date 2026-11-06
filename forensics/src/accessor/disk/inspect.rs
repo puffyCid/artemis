@@ -468,6 +468,7 @@ mod tests {
     fn test_inspect_logic_ntfs() {
         let mut disk = vec![0u8; 1024];
         disk[3..11].copy_from_slice(b"NTFS    ");
+        disk[11..13].copy_from_slice(&512u16.to_le_bytes());
         disk[510] = 0x55;
         disk[511] = 0xAA;
         let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
