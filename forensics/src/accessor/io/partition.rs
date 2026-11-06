@@ -140,8 +140,9 @@ impl<R: Read + Seek> Read for PartitionReader<R> {
         // If open partition for first time
         // Check if NTFS and it has the boot signature
         if !self.boot_signature_done {
+            println!("only once? {start}: {}", self.position);
             self.check_missing_ntfs_sig(start, &mut buf[..read])?;
-            if start <= 510 && self.position >= 512 {
+            if start < 512 && self.position >= 512 {
                 self.boot_signature_done = true;
             }
         }
@@ -293,5 +294,27 @@ mod tests {
         let mut first = [0u8; 512];
         assert_eq!(partition.read(&mut first).unwrap(), 512);
         assert_eq!(&first[510..512], &[0x55, 0xAA]);
+    }
+
+    #[test]
+    fn test_missing_ntfs_signature_survives_byte_reads() {
+        let disk = discutils_ntfs_boot();
+        let mut partition = reader(&disk, 0, disk.len() as u64);
+        let mut byte = [0u8; 1];
+
+        for offset in 0..512 {
+            assert_eq!(partition.read(&mut byte).unwrap(), 1);
+            let expected = match offset {
+                510 => 0x55,
+                511 => 0xAA,
+                _ => disk[offset],
+            };
+            assert_eq!(byte[0], expected);
+        }
+
+        partition.seek(SeekFrom::Start(510)).unwrap();
+        let mut again = [0u8; 2];
+        assert_eq!(partition.read(&mut again).unwrap(), 2);
+        assert_eq!(&again, &[0, 0]);
     }
 }
