@@ -179,6 +179,13 @@ mod tests {
         PartitionReader::new(Cursor::new(disk.to_vec()), byte_offset, byte_length).unwrap()
     }
 
+    fn discutils_ntfs_boot() -> Vec<u8> {
+        let mut sector = vec![0u8; 1024];
+        sector[3..11].copy_from_slice(b"NTFS    ");
+        sector[11..13].copy_from_slice(&512u16.to_le_bytes());
+        sector
+    }
+
     #[test]
     fn test_partition_reader() {
         let disk = b"DISK-HEADER-HELLO-AFTER";
@@ -258,5 +265,33 @@ mod tests {
         assert_eq!(partition.read(&mut buf).unwrap(), 0);
         assert_eq!(partition.seek(SeekFrom::End(0)).unwrap(), 0);
         assert!(PartitionReader::new(Cursor::new(Vec::<u8>::new()), u64::MAX, 1).is_err());
+    }
+
+    #[test]
+    fn test_missing_ntfs_signature_is_filled_once() {
+        let disk = discutils_ntfs_boot();
+        let mut partition = reader(&disk, 0, disk.len() as u64);
+
+        let mut first = [0u8; 512];
+        assert_eq!(partition.read(&mut first).unwrap(), 512);
+        assert_eq!(&first[3..11], b"NTFS    ");
+        assert_eq!(&first[510..512], &[0x55, 0xAA]);
+
+        partition.seek(SeekFrom::Start(510)).unwrap();
+        let mut again = [0u8; 2];
+        assert_eq!(partition.read(&mut again).unwrap(), 2);
+        assert_eq!(&again, &[0, 0]);
+    }
+
+    #[test]
+    fn test_existing_ntfs_signature_is_unchanged() {
+        let mut disk = discutils_ntfs_boot();
+        disk[510] = 0x55;
+        disk[511] = 0xAA;
+        let mut partition = reader(&disk, 0, disk.len() as u64);
+
+        let mut first = [0u8; 512];
+        assert_eq!(partition.read(&mut first).unwrap(), 512);
+        assert_eq!(&first[510..512], &[0x55, 0xAA]);
     }
 }
