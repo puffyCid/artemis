@@ -223,7 +223,7 @@ def main():
     parser.add_argument('-i', '--input', help="Path to the KapeFiles folder", required=True)
     parser.add_argument('-o', '--output', help="Path to output the TOML files", required=True)
     parser.add_argument('-a', '--accessor', help="Accessor to leverage when acquiring files", 
-        choices=["host", "qcow", "qcow2", "raw", "ntfs", "ext4"], default="host")
+        choices=["host", "qcow", "qcow2", "raw", "ntfs", "ext4", "vhdx"], default="host")
     parser.add_argument('-e', '--enable', help="Include the disabled KAPE files", action="store_true")
     parser.add_argument('-q', '--quiet', help="Suppress log messages", action="store_true")
 

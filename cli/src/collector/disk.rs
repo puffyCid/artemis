@@ -247,7 +247,7 @@ mod tests {
                     compress: false,
                 },
             },
-            output("image.raw"),
+            output("disk_cli_relative"),
         );
     }
 }
