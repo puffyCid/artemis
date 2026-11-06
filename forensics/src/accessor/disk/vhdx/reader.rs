@@ -222,26 +222,6 @@ impl<R: Read + Seek> Seek for VhdxReader<R> {
     }
 }
 
-/*
-fn read_at<R: Read + Seek>(image: &mut R, offset: u64, length: u64) -> AccessorResult<Vec<u8>> {
-    let length_usize = usize::try_from(length).map_err(|err| {
-        AccessorError::volume(format!(
-            "VHDX read of {length} bytes at offset {offset} does not fit in memory: {err:?}"
-        ))
-    })?;
-
-    let mut buf = vec![0_u8; length_usize];
-    image.seek(SeekFrom::Start(offset))?;
-
-    match image.read_exact(&mut buf) {
-        Ok(()) => Ok(buf),
-        Err(err) if err.kind() == ErrorKind::UnexpectedEof => Err(AccessorError::volume(format!(
-            "VHDX read of {length} bytes at offset {offset} extends past the image"
-        ))),
-        Err(err) => Err(err.into()),
-    }
-}*/
-
 /// Return size of the VHDX file
 fn image_size<R: Seek>(image: &mut R) -> AccessorResult<u64> {
     let len = image.seek(SeekFrom::End(0))?;
@@ -307,8 +287,8 @@ fn log_range(
     if overlaps(
         offset,
         length,
-        regions.bat.file_offset,
-        regions.bat.length as u64,
+        regions.metadata.file_offset,
+        regions.metadata.length as u64,
     ) {
         return Err(AccessorError::volume(
             "VHDX log overlaps the metadata region",
@@ -320,7 +300,10 @@ fn log_range(
 
 /// Make sure BAT value does not overlap other parsed sections
 fn occupied_ranges(regions: &VhdxRegionTable, log: Option<(u64, u64)>) -> Vec<(u64, u64)> {
-    let mut ranges = vec![(regions.metadata.file_offset, regions.metadata.length as u64)];
+    let mut ranges = vec![
+        (regions.metadata.file_offset, regions.metadata.length as u64),
+        (regions.bat.file_offset, regions.bat.length as u64),
+    ];
     if let Some(log) = log {
         ranges.push(log)
     }
