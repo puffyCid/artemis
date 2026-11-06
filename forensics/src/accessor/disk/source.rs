@@ -4,7 +4,7 @@ use crate::{
         disk::{
             format::{DiskFormat, DiskReader, disk_display_path, disk_root_display},
             identify::{FilesystemKind, IdentifiedPartition, identify_disk},
-            inspect::{DiskLayout, DiskPartition, inspect_disk},
+            inspect::{DiskLayout, DiskPartition, LOGIC_SECTOR_SIZE, inspect_disk},
             metadata::DiskImageMetadata,
         },
         entry::{
@@ -87,7 +87,7 @@ impl DiskSource {
     /// Inspect and get basic metadata about the disk image
     pub(crate) fn inspect(&self) -> AccessorResult<DiskInspection> {
         let mut reader = self.open_disk()?;
-        let layout = inspect_disk(&mut reader)?;
+        let layout = inspect_disk(&mut reader, LOGIC_SECTOR_SIZE)?;
 
         let partitions = identify_disk(&mut reader, &layout)?;
         Ok(DiskInspection {

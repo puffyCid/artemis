@@ -91,7 +91,10 @@ fn check_filesystem<R: Read + Seek>(
 mod tests {
     use crate::accessor::disk::{
         identify::{FilesystemKind, check_filesystem, identify_disk, identify_partition},
-        inspect::{DiskLayout, DiskPartition, PartitionKind, PartitionTableKind, inspect_disk},
+        inspect::{
+            DiskLayout, DiskPartition, LOGIC_SECTOR_SIZE, PartitionKind, PartitionTableKind,
+            inspect_disk,
+        },
     };
     use std::{
         fs::File,
@@ -200,7 +203,7 @@ mod tests {
         let offset = 4 * 512;
 
         disk[offset..offset + ntfs.len()].copy_from_slice(&ntfs);
-        let layout = inspect_disk(&mut Cursor::new(disk.clone())).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk.clone()), LOGIC_SECTOR_SIZE).unwrap();
         let found = identify_disk(&mut Cursor::new(disk), &layout).unwrap();
 
         assert_eq!(found.len(), 2);
@@ -253,7 +256,7 @@ mod tests {
         let magic_at = start_lba as usize * 512 + 1024 + 56;
         disk[magic_at..magic_at + 2].copy_from_slice(&0xef53u16.to_le_bytes());
 
-        let layout = inspect_disk(&mut Cursor::new(disk.clone())).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk.clone()), LOGIC_SECTOR_SIZE).unwrap();
         let found = identify_disk(&mut Cursor::new(disk), &layout).unwrap();
 
         assert_eq!(found.len(), 1);
@@ -287,7 +290,7 @@ mod tests {
         path.push("tests/test_data/images/ext4/test.img");
 
         let mut file = File::open(&path).unwrap();
-        let layout = inspect_disk(&mut file).unwrap();
+        let layout = inspect_disk(&mut file, LOGIC_SECTOR_SIZE).unwrap();
         file.seek(SeekFrom::Start(0)).unwrap();
         let found = identify_disk(&mut file, &layout).unwrap();
 

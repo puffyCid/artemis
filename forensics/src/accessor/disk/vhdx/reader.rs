@@ -305,7 +305,7 @@ fn occupied_ranges(regions: &VhdxRegionTable, log: Option<(u64, u64)>) -> Vec<(u
         (regions.bat.file_offset, regions.bat.length as u64),
     ];
     if let Some(log) = log {
-        ranges.push(log)
+        ranges.push(log);
     }
 
     ranges
