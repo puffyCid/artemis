@@ -18,6 +18,8 @@ pub(crate) enum Scheme {
     Raw,
     /// QCOW disk image
     Qcow,
+    /// VHDX disk image
+    Vhdx,
 }
 
 impl Scheme {
@@ -30,6 +32,7 @@ impl Scheme {
             Self::Zip => "zip",
             Self::Raw => "raw",
             Self::Qcow => "qcow",
+            Self::Vhdx => "vhdx",
         }
     }
 
@@ -42,6 +45,7 @@ impl Scheme {
             "zip" => Ok(Self::Zip),
             "raw" => Ok(Self::Raw),
             "qcow" | "qcow2" => Ok(Self::Qcow),
+            "vhdx" => Ok(Self::Vhdx),
             _ => Err(AccessorError::unsupported_scheme(value)),
         }
     }
@@ -66,7 +70,7 @@ pub(crate) fn location_scheme(input: &str) -> Option<Scheme> {
 
     match scheme {
         Scheme::Host | Scheme::Ntfs => is_absolute_host_path(remainder).then_some(scheme),
-        Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 => {
+        Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 | Scheme::Vhdx => {
             let archive = remainder
                 .split_once('!')
                 .map_or(remainder, |(archive, _)| archive);
@@ -113,10 +117,12 @@ mod tests {
     use super::{Scheme, location_scheme, strip_scheme};
 
     #[test]
-    fn test_parse_qcow_aliases() {
+    fn test_parse_disk_aliases() {
         assert_eq!(Scheme::parse("qcow").unwrap(), Scheme::Qcow);
         assert_eq!(Scheme::parse("QCOW2").unwrap(), Scheme::Qcow);
         assert_eq!(Scheme::Qcow.as_str(), "qcow");
+        assert_eq!(Scheme::parse("VHDX").unwrap(), Scheme::Vhdx);
+        assert_eq!(Scheme::Vhdx.as_str(), "vhdx");
     }
 
     #[test]

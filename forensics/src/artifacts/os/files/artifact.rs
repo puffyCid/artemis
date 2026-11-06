@@ -26,6 +26,7 @@ pub(crate) fn files_output_name(source: &str) -> &'static str {
         Ok(Scheme::Raw) => "files_raw",
         Ok(Scheme::Qcow) => "files_qcow",
         Ok(Scheme::Ext4) => "files_ext4",
+        Ok(Scheme::Vhdx) => "files_vhdx",
         Err(_err) => "files",
     }
 }

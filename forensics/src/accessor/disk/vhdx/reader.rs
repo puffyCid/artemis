@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 use crate::accessor::{
     disk::{
         inspect::read_at,
@@ -15,6 +17,25 @@ use std::{
     cmp::min,
     io::{self, ErrorKind, Read, Seek, SeekFrom},
 };
+
+/// Basic metadata about a VHDX file
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub(crate) struct VhdxImageMetadata {
+    /// Payload block size in bytes
+    pub(crate) block_size: u32,
+    /// Whether the VHDX file is fixed type
+    pub(crate) leave_blocks_allocated: bool,
+    /// Disk ID GUID
+    pub(crate) disk_id: String,
+    /// Logical sector size in bytes
+    pub(crate) logical_sector_size: u32,
+    /// Physical sector size in bytes
+    pub(crate) physical_sector_size: u32,
+    /// Payload BAT entries between sector bitmap entries
+    pub(crate) chunk_ratio: u32,
+    /// Application that created the VHDX file
+    pub(crate) creator: String,
+}
 
 /// Guest reader for a VHDX file
 ///
@@ -94,6 +115,18 @@ impl<R: Read + Seek> VhdxReader<R> {
             bat,
             creator: identifier.creator(),
         })
+    }
+
+    pub(super) fn image_metadata(&self) -> VhdxImageMetadata {
+        VhdxImageMetadata {
+            block_size: self.metadata.block_size,
+            leave_blocks_allocated: self.metadata.leave_blocks_allocated,
+            disk_id: self.metadata.disk_id.to_string(),
+            logical_sector_size: self.metadata.logical_sector_size,
+            physical_sector_size: self.metadata.physical_sector_size,
+            chunk_ratio: self.metadata.chunk_ratio,
+            creator: self.creator.clone(),
+        }
     }
 
     /// Size of the virtual disk in bytes

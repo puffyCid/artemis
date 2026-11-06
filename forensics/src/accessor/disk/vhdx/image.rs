@@ -4,7 +4,11 @@ use std::{
 };
 
 use crate::accessor::{
-    disk::{format::DiskImage, vhdx::reader::VhdxReader},
+    disk::{
+        format::{DiskFormat, DiskImage},
+        metadata::{DiskImageDetails, DiskImageMetadata},
+        vhdx::reader::VhdxReader,
+    },
     error::{AccessorError, AccessorResult},
     location::path::is_absolute_host_path,
 };
@@ -14,6 +18,8 @@ use crate::accessor::{
 pub(crate) struct VhdxDisk {
     /// Path to VHDX file
     path: PathBuf,
+    /// `DiskFormat` type
+    format: DiskFormat,
 }
 
 impl VhdxDisk {
@@ -29,12 +35,31 @@ impl VhdxDisk {
             ));
         }
 
-        Ok(Self { path })
+        Ok(Self {
+            path,
+            format: DiskFormat::Vhdx,
+        })
     }
 
     /// Path to the VHDX file
     pub(crate) fn path(&self) -> &Path {
         &self.path
+    }
+
+    /// `DiskFormat` type
+    pub(crate) fn format(&self) -> DiskFormat {
+        self.format
+    }
+
+    pub(crate) fn image(&self) -> AccessorResult<DiskImageMetadata> {
+        let reader = self.open_reader()?;
+
+        Ok(DiskImageMetadata {
+            format: self.format,
+            file_size: reader.file_size(),
+            virtual_size: reader.virtual_size(),
+            details: DiskImageDetails::Vhdx(reader.image_metadata()),
+        })
     }
 }
 
@@ -51,7 +76,13 @@ impl DiskImage for VhdxDisk {
 #[cfg(test)]
 mod tests {
     use super::VhdxDisk;
-    use crate::accessor::{disk::format::DiskImage, error::AccessorError};
+    use crate::accessor::{
+        disk::{
+            format::{DiskFormat, DiskImage},
+            metadata::DiskImageDetails,
+        },
+        error::AccessorError,
+    };
     use std::{
         io::{Read, Seek, SeekFrom},
         path::PathBuf,
@@ -140,5 +171,27 @@ mod tests {
         let err = image.open_reader().unwrap_err();
 
         assert!(matches!(err, AccessorError::Volume { .. }));
+    }
+
+    #[test]
+    fn test_vhdx_image_metadata() {
+        let image = VhdxDisk::new(test_image()).unwrap().image().unwrap();
+
+        assert_eq!(image.format, DiskFormat::Vhdx);
+        assert_eq!(image.file_size, 16 * 1024 * 1024);
+        assert_eq!(image.virtual_size, 8000000);
+
+        let DiskImageDetails::Vhdx(details) = image.details else {
+            panic!("expected VHDX metadata");
+        };
+
+        assert_eq!(details.block_size, 0x800000);
+        assert!(!details.leave_blocks_allocated);
+        assert_eq!(details.logical_sector_size, 512);
+
+        assert_eq!(details.physical_sector_size, 512);
+        assert_eq!(details.chunk_ratio, 512);
+        assert_eq!(details.creator, "QEMU v11.1.0");
+        assert_eq!(details.disk_id, "b08fa519-976f-2548-bb04-0866698648b6");
     }
 }

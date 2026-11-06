@@ -4,7 +4,7 @@ use crate::{
         disk::{
             format::{DiskFormat, DiskReader, disk_display_path, disk_root_display},
             identify::{FilesystemKind, IdentifiedPartition, identify_disk},
-            inspect::{DiskLayout, DiskPartition, LOGIC_SECTOR_SIZE, inspect_disk},
+            inspect::{DiskLayout, DiskPartition, inspect_disk},
             metadata::DiskImageMetadata,
         },
         entry::{
@@ -87,7 +87,8 @@ impl DiskSource {
     /// Inspect and get basic metadata about the disk image
     pub(crate) fn inspect(&self) -> AccessorResult<DiskInspection> {
         let mut reader = self.open_disk()?;
-        let layout = inspect_disk(&mut reader, LOGIC_SECTOR_SIZE)?;
+        let sector_size = reader.logical_sector_size();
+        let layout = inspect_disk(&mut reader, sector_size)?;
 
         let partitions = identify_disk(&mut reader, &layout)?;
         Ok(DiskInspection {
@@ -1407,6 +1408,16 @@ mod tests {
         path
     }
 
+    fn vhdx_image() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/disks/vhdx/ntfs.vhdx");
+        path
+    }
+
+    fn vhdx_source() -> DiskSource {
+        DiskSource::open(&AccessorConfig::default(), DiskFormat::Vhdx, vhdx_image()).unwrap()
+    }
+
     #[test]
     fn test_read_file_logical_ntfs() {
         let bytes = source(&test_image())
@@ -2063,5 +2074,17 @@ mod tests {
             "unconfined_u:object_r:unlabeled_t:s0"
         );
         assert!(rows.iter().any(|row| row["full_path"] == "test/hello.txt"));
+    }
+
+    #[test]
+    fn test_inspect_vhdx_ntfs() {
+        let inspection = vhdx_source().inspect().unwrap();
+        assert_eq!(inspection.format, DiskFormat::Vhdx);
+        assert_eq!(inspection.layout.image_size, 8_000_000);
+
+        assert_eq!(inspection.layout.logical_sector_size, 512);
+        assert!(matches!(inspection.layout.table, PartitionTableKind::None));
+        assert_eq!(inspection.partitions.len(), 1);
+        assert_eq!(inspection.partitions[0].filesystem, FilesystemKind::Ntfs);
     }
 }
