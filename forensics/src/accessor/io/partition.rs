@@ -140,7 +140,6 @@ impl<R: Read + Seek> Read for PartitionReader<R> {
         // If open partition for first time
         // Check if NTFS and it has the boot signature
         if !self.boot_signature_done {
-            println!("only once? {start}: {}", self.position);
             self.check_missing_ntfs_sig(start, &mut buf[..read])?;
             if start < 512 && self.position >= 512 {
                 self.boot_signature_done = true;
