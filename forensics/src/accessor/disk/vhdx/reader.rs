@@ -188,9 +188,9 @@ impl<R: Read + Seek> VhdxReader<R> {
                     path: None,
                     source: err,
                 });
-            } else {
-                buf[..bytes].fill(0);
             }
+        } else {
+            buf[..bytes].fill(0);
         }
 
         let advance = u64::try_from(bytes).map_err(|err| {
