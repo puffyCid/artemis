@@ -204,6 +204,9 @@ def selectSource(accessor):
         case "raw": 
             disk = input("Provide full path to raw disk> ")
             return f"raw:{disk}"
+        case "vhdx":
+            disk = input("Provide full path to vhdx disk> ")
+            return f"vhdx:{disk}"
         case _: return "host:"
 
 '''
