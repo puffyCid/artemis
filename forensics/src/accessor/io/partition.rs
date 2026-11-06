@@ -106,14 +106,14 @@ impl<R: Read + Seek> PartitionReader<R> {
             return Ok(());
         }
 
-        for i in 512u64..512 {
+        for i in 510u64..512 {
             if !(start as usize..end).contains(&(i as usize)) {
                 continue;
             }
 
             let index = (i - start) as usize;
             if buf[index] == 0 {
-                buf[index] = if i == 512 { 0x55 } else { 0xAA };
+                buf[index] = if i == 510 { 0x55 } else { 0xAA };
             }
         }
 
