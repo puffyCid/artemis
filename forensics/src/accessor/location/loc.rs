@@ -102,7 +102,7 @@ impl Location {
         // 'zip:test.zip!*' or in future 'raw:image.raw!/users/*/*.txt'
         if matches!(
             location_scheme(input),
-            Some(Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4)
+            Some(Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 | Scheme::Vhdx)
         ) && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
