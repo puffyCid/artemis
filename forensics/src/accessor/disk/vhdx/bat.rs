@@ -563,6 +563,16 @@ mod test {
         ));
         assert!(reason.contains("overlaps"), "{reason}");
 
+        let multi = metadata(block_size, block_size as u64 * 3, false, 2);
+        let bytes = bat_bytes(&[
+            bat_entry(0, 0),
+            bat_entry(0, 0),
+            bat_entry(1, 0),
+            bat_entry(0, 0),
+        ]);
+        let reason = volume_reason(parse_bat(&bytes, &multi, file_len, &[]));
+        assert!(reason.contains("bitmap"), "{reason}");
+
         let huge = metadata(1024 * 1024, 64 * 1024 * 1024 * 1024 * 1024, false, 4096);
         let reason = volume_reason(parse_bat(&[], &huge, 0, &[]));
         assert!(reason.contains("32 MiB"), "{reason}");
@@ -570,5 +580,27 @@ mod test {
         let zero_chunk = metadata(block_size, block_size as u64, false, 0);
         let reason = volume_reason(parse_bat(&[], &zero_chunk, 0, &[]));
         assert!(reason.contains("chunk ratio"), "{reason}");
+    }
+
+    #[test]
+    fn test_parse_bat_fixed_disk_crosses_a_chunk() {
+        let block_size = 1024 * 1024;
+        let fixed = metadata(block_size, block_size as u64 * 3, true, 2);
+        let bytes = bat_bytes(&[
+            bat_entry(6, block_size as u64),
+            bat_entry(6, block_size as u64 * 2),
+            bat_entry(0, 0),
+            bat_entry(6, block_size as u64 * 3),
+        ]);
+
+        let bat = parse_bat(&bytes, &fixed, block_size as u64 * 4, &[]).unwrap();
+
+        assert_eq!(
+            bat.map_offset(block_size as u64 * 2).unwrap(),
+            VhdxMapping::Data {
+                file_offset: block_size as u64 * 3,
+                length: block_size as u64,
+            }
+        );
     }
 }
