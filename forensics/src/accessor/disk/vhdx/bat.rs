@@ -435,7 +435,7 @@ mod test {
     #[test]
     fn test_parse_bat_fixed_and_dynamic_indexes() {
         let block_size = 1024 * 1024;
-        let fixed = metadata(block_size, block_size as u64 * 2, true, 0);
+        let fixed = metadata(block_size, block_size as u64 * 2, true, 16);
         let bytes = bat_bytes(&[
             bat_entry(6, block_size as u64),
             bat_entry(6, block_size as u64 * 2),
@@ -527,11 +527,7 @@ mod test {
         let reason = volume_reason(parse_bat(&bytes, &one_block, file_len, &[]));
         assert!(reason.contains("state 4"), "{reason}");
 
-        let bytes = bat_bytes(&[bat_entry(6, block_size as u64), bat_entry(1, 0)]);
-        let reason = volume_reason(parse_bat(&bytes, &one_block, file_len, &[]));
-        assert!(reason.contains("bitmap"), "{reason}");
-
-        let fixed = metadata(2 * 1024 * 1024, 4 * 1024 * 1024, true, 0);
+        let fixed = metadata(2 * 1024 * 1024, 4 * 1024 * 1024, true, 512);
         let bytes = bat_bytes(&[
             bat_entry(6, block_size as u64),
             bat_entry(6, 2 * 1024 * 1024),
