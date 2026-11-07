@@ -1,8 +1,3 @@
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-};
-
 use crate::accessor::{
     disk::{
         format::{DiskFormat, DiskImage},
@@ -11,6 +6,10 @@ use crate::accessor::{
     },
     error::{AccessorError, AccessorResult},
     location::path::is_absolute_host_path,
+};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
 };
 
 /// Open VHDX on disk

@@ -33,6 +33,8 @@ pub(crate) struct VhdxImageMetadata {
     pub(crate) data_write: String,
     /// Log ID
     pub(crate) log: String,
+    /// Log data needs to be replayed
+    pub(crate) pending_log: bool,
     /// VHDX format version
     pub(crate) version: u16,
     /// Log format version
@@ -144,6 +146,7 @@ impl<R: Read + Seek> VhdxReader<R> {
             physical_sector_size: self.metadata.physical_sector_size,
             chunk_ratio: self.metadata.chunk_ratio,
             creator: self.creator.clone(),
+            pending_log: self.header.has_pending_log(),
         }
     }
 
