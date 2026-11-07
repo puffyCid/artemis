@@ -162,6 +162,8 @@ pub(super) fn parse_bat(
         ));
     }
 
+    check_present_overlaps(&present)?;
+
     Ok(VhdxBat {
         block_size,
         virtual_disk_size: metadata.virtual_disk_size,
@@ -206,7 +208,7 @@ fn parse_payload(
     block_size: u64,
     file_len: u64,
     occupied: &[(u64, u64)],
-    present: &mut Vec<(u64, u64)>,
+    present: &mut Vec<(u64, u64, u64)>,
 ) -> AccessorResult<PayloadBlock> {
     // Determine state of block and file offset
     let (state, file_offset) = split_entry(raw, index)?;
@@ -242,7 +244,7 @@ fn parse_bitmap(
     index: u64,
     file_len: u64,
     occupied: &[(u64, u64)],
-    present: &mut Vec<(u64, u64)>,
+    present: &mut Vec<(u64, u64, u64)>,
 ) -> AccessorResult<()> {
     let (state, file_offset) = split_entry(raw, index)?;
     match state {
@@ -265,7 +267,7 @@ fn validate_present(
     length: u64,
     file_len: u64,
     occupied: &[(u64, u64)],
-    present: &mut Vec<(u64, u64)>,
+    present: &mut Vec<(u64, u64, u64)>,
 ) -> AccessorResult<()> {
     if file_offset < 1048576 {
         return Err(AccessorError::volume(format!(
@@ -283,18 +285,34 @@ fn validate_present(
         )));
     }
 
-    let overlaps = occupied
+    if occupied
         .iter()
-        .chain(present.iter())
-        .any(|&(start, len)| ranges_overlap(file_offset, length, start, len));
-
-    if overlaps {
+        .any(|&(start, len)| ranges_overlap(file_offset, length, start, len))
+    {
         return Err(AccessorError::volume(format!(
             "VHDX BAT entry {index} overlaps another range"
         )));
     }
 
-    present.push((file_offset, length));
+    present.push((file_offset, length, index));
+
+    Ok(())
+}
+
+fn check_present_overlaps(present: &[(u64, u64, u64)]) -> AccessorResult<()> {
+    let mut ordered = present.to_vec();
+    ordered.sort_unstable_by_key(|&(offset, _, index)| (offset, index));
+
+    for pair in ordered.windows(2) {
+        let (start, length, index) = pair[0];
+        let (next_start, next_length, next_index) = pair[1];
+        if ranges_overlap(start, length, next_start, next_length) {
+            let index = index.max(next_index);
+            return Err(AccessorError::volume(format!(
+                "VHDX BAT entry {index} overlaps another range"
+            )));
+        }
+    }
 
     Ok(())
 }
