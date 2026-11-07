@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VHDX parser and format</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.7in 0.7in 0.75in 0.7in;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: #1c1c1c;
+    background: #fff;
+    font-family: "Noto Serif", "Liberation Serif", serif;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  h1, h2, h3, th, .kicker, .caption, code, .mono {
+    font-family: Inter, "Noto Sans", sans-serif;
+  }
+  h1 {
+    font-size: 22pt;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    line-height: 1.15;
+  }
+  h2 {
+    font-size: 14pt;
+    font-weight: 650;
+    margin: 22px 0 8px;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    font-weight: 650;
+    margin: 14px 0 6px;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  p { margin: 0 0 8px; orphans: 3; widows: 3; }
+  .kicker {
+    font-size: 9pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #5c5c5c;
+    margin: 0 0 6px;
+  }
+  .lede { font-size: 12pt; margin-bottom: 12px; }
+  .note {
+    border: 1px solid #d0d0d0;
+    padding: 8px 12px;
+    margin: 12px 0 4px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .note strong { font-family: Inter, "Noto Sans", sans-serif; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 10px;
+    page-break-inside: auto;
+    font-family: Inter, "Noto Sans", sans-serif;
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; break-inside: avoid; }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 5px 7px;
+    border-bottom: 1px solid #d8d8d8;
+  }
+  th {
+    font-weight: 650;
+    border-bottom: 1.5px solid #1c1c1c;
+    background: #fff;
+  }
+  td.num, th.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  code, .mono {
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: 0.92em;
+  }
+  .formula {
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: 9.5pt;
+    background: #f4f4f4;
+    padding: 6px 8px;
+    margin: 6px 0 10px;
+    page-break-inside: avoid;
+  }
+  .caption {
+    font-size: 9pt;
+    color: #4a4a4a;
+    margin: -4px 0 10px;
+  }
+  a { color: #1c1c1c; }
+  .download {
+    font-family: Inter, "Noto Sans", sans-serif;
+    margin: 0 0 18px;
+  }
+  .download a {
+    display: inline-block;
+    background: #1c1c1c;
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 14px;
+    font-size: 11pt;
+  }
+  @media print {
+    .download { display: none; }
+  }
+  ul { margin: 4px 0 10px; padding-left: 1.2em; }
+  li { margin: 0 0 4px; }
+</style>
+</head>
+<body>
+  <p class="download"><a href="vhdx-parser-and-format.pdf" download>Download the PDF</a></p>
+  <p class="kicker">Artemis disk accessor</p>
+  <h1>VHDX parser and format</h1>
+  <p class="lede">How Artemis opens a VHDX and turns it into a guest disk. The parser lives under <code>forensics/src/accessor/disk/vhdx</code> and follows Microsoft MS-VHDX. libyal’s libvhdi notes are the references cited in the source comments. This describes the <code>accessor-vhdx</code> branch.</p>
+
+  <div class="note">
+    <strong>Version 1 scope.</strong>
+    Fixed and dynamic disks are read. Differencing disks are rejected. A non-empty log is reported as <code>pending_log</code> and is not replayed. A damaged BAT entry fails the open. The virtual disk may be up to 64 TiB.
+  </div>
+
+  <h2>Module map</h2>
+  <p><code>vhdx/mod.rs</code> declares the modules. <code>format.rs</code> turns <code>DiskFormat::Vhdx</code> into a <code>DiskReader::Vhdx</code>. <code>image.rs</code> is the path wrapper. <code>reader.rs</code> is the only type that implements <code>Read</code> and <code>Seek</code> for the guest.</p>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Role</th><th>Entry points</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>identifier.rs</td><td>File type identifier at offset 0</td><td><code>parse_header</code></td></tr>
+      <tr><td>header.rs</td><td>The two 4 KiB image headers</td><td><code>parse_image_header</code>, <code>active_head</code>, <code>vhdx_crc32c</code></td></tr>
+      <tr><td>region.rs</td><td>The two 64 KiB region tables</td><td><code>parse_region_table</code>, <code>active_regions</code>, <code>parse_entry</code></td></tr>
+      <tr><td>metadata.rs</td><td>Virtual disk parameters</td><td><code>parse_metadata</code>, <code>chunk_ratio</code>, <code>validate_flags</code></td></tr>
+      <tr><td>bat.rs</td><td>Block allocation table and guest mapping</td><td><code>bat_table_bytes</code>, <code>parse_bat</code>, <code>VhdxBat::map_offset</code></td></tr>
+      <tr><td>reader.rs</td><td>Open, log check, guest Read and Seek</td><td><code>VhdxReader::open</code>, <code>read_mapping</code>, <code>log_range</code></td></tr>
+      <tr><td>image.rs</td><td>Absolute path and DiskImage</td><td><code>VhdxDisk::new</code>, <code>open_reader</code>, <code>image</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>First megabyte of the file</h2>
+  <p>MS-VHDX 2.2 fixes the layout of the first 1 MiB. Everything the parser needs to find the BAT and the metadata is inside it. <code>VhdxReader::open</code> refuses a file shorter than 320 KiB, which is the end of the second region table.</p>
+  <table>
+    <thead>
+      <tr><th class="num">Offset</th><th class="num">Size</th><th>Object</th><th>Read by</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="num">0</td><td class="num">64 KiB</td><td>File identifier</td><td><code>parse_header</code>, 520 bytes</td></tr>
+      <tr><td class="num">64 KiB</td><td class="num">64 KiB</td><td>Header copy 1</td><td><code>active_head</code>, first 4 KiB</td></tr>
+      <tr><td class="num">128 KiB</td><td class="num">64 KiB</td><td>Header copy 2</td><td><code>active_head</code>, first 4 KiB</td></tr>
+      <tr><td class="num">192 KiB</td><td class="num">64 KiB</td><td>Region table copy 1</td><td><code>active_regions</code></td></tr>
+      <tr><td class="num">256 KiB</td><td class="num">64 KiB</td><td>Region table copy 2</td><td><code>active_regions</code></td></tr>
+      <tr><td class="num">320 KiB</td><td class="num">rest of 1 MiB</td><td>Reserved</td><td>not read</td></tr>
+    </tbody>
+  </table>
+  <p class="caption">Source: MS-VHDX 2.2. The header and region copies are the updates described in 2.3 and 2.4. Payload blocks, the log, the BAT, and the metadata region all start at or after 1 MiB.</p>
+
+  <h2>Open sequence</h2>
+  <p><code>VhdxReader::open</code> in <code>reader.rs</code> is the whole parse. Each later step uses only what the previous step returned. A failure here is a volume error and the image does not open.</p>
+  <table>
+    <thead>
+      <tr><th class="num">Step</th><th>Function</th><th>What it decides</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="num">1</td><td><code>image_size</code></td><td>File length. Seek to the end, then back to 0.</td></tr>
+      <tr><td class="num">2</td><td><code>parse_header</code></td><td>Signature <code>vhdxfile</code> and the UTF-16 creator.</td></tr>
+      <tr><td class="num">3</td><td><code>active_head</code></td><td>The header copy with the higher sequence number.</td></tr>
+      <tr><td class="num">4</td><td><code>active_regions</code></td><td>BAT and metadata region locations. Copies must match.</td></tr>
+      <tr><td class="num">5</td><td><code>region_in_file</code></td><td>Both regions fit in the file.</td></tr>
+      <tr><td class="num">6</td><td><code>log_range</code></td><td>Log is 1 MiB aligned and does not overlap either region.</td></tr>
+      <tr><td class="num">7</td><td><code>parse_metadata</code></td><td>Block size, virtual size, sector sizes, disk id, chunk ratio.</td></tr>
+      <tr><td class="num">8</td><td><code>bat_table_bytes</code> then <code>parse_bat</code></td><td>How many BAT bytes to read, then the block map.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>File identifier</h2>
+  <p>MS-VHDX 2.2.1 and libyal section 2. The first 8 bytes are the little-endian signature <code>0x656c696678646876</code>, the ASCII bytes <code>vhdxfile</code>. <code>parse_header</code> in <code>identifier.rs</code> checks that with <code>nom_u64</code>, then takes the next 512 bytes as a UTF-16LE creator string. <code>extract_utf16_string</code> turns that into <code>VhdxReader::creator</code>. The rest of the 64 KiB identifier area is reserved and is not parsed.</p>
+
+  <h2>Image header</h2>
+  <p>MS-VHDX 2.3.1. Two copies, at 64 KiB and 128 KiB. <code>parse_image_header</code> requires 4096 bytes, signature <code>0x64616568</code> (“head”), format version 1, and log version 0. <code>vhdx_crc32c</code> zeros bytes 4 through 7 and computes the Castagnoli CRC the spec stores in the checksum field. A mismatched checksum rejects that copy.</p>
+  <p><code>active_head</code> keeps the copy with the greater sequence number. One invalid copy is ignored. Both invalid is an error. Equal sequence numbers are an error, which matches the spec and rejects a header pair that was copied mid-update. The fields kept on <code>VhdxHeader</code> are <code>sequence</code>, <code>file_write</code>, <code>data_write</code>, <code>log</code>, <code>log_version</code>, <code>version</code>, <code>log_length</code>, and <code>log_offset</code>. <code>image_metadata</code> copies the three GUIDs out as strings.</p>
+  <p><code>has_pending_log</code> is true when the log GUID is not nil. MS-VHDX 2.3.1 says a zero log GUID means the log is empty and must not be replayed. <code>active_head</code> emits a tracing warning and still returns the header. Nothing in <code>open</code> replays log entries. The flag is published as <code>VhdxImageMetadata.pending_log</code>.</p>
+
+  <h2>Region table</h2>
+  <p>MS-VHDX 2.4. Copies at 192 KiB and 256 KiB, each 64 KiB. <code>parse_region_table</code> checks signature <code>0x69676572</code> (“regi”), the same CRC as the header, a reserved field of zero, and an entry count of at most 2047. Each entry is 32 bytes: GUID, file offset, length, flags. <code>parse_entry</code> requires a 1 MiB aligned offset at or past 1 MiB, a non-zero 1 MiB aligned length, no overflow, and no duplicate GUID. The required bit is flags bit 0. Any other flag bit is an error. <code>check_overlaps</code> rejects intersecting ranges.</p>
+  <p><code>active_regions</code> requires the two known regions and returns them on <code>VhdxRegionTable</code>. An unknown region is accepted when its required bit is clear and rejected when the bit is set. If both copies parse and differ, the file is rejected. One bad copy is ignored.</p>
+  <table>
+    <thead>
+      <tr><th>Region</th><th>GUID</th><th>Constant use</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>BAT</td><td class="mono">2DC27766-F623-4200-9D64-115E9BFD4A08</td><td><code>active_regions</code>, <code>bat_guid</code></td></tr>
+      <tr><td>Metadata</td><td class="mono">8B7CA206-4790-4B9A-B8FE-575F050F886E</td><td><code>active_regions</code>, <code>meta_guid</code></td></tr>
+    </tbody>
+  </table>
+  <p class="caption">Source: MS-VHDX 2.4. The GUIDs are constructed with <code>Uuid::from_u128</code> in <code>region.rs</code>. libyal section 4 describes the same table.</p>
+
+  <h2>Metadata region</h2>
+  <p>MS-VHDX 2.6. <code>open</code> reads <code>min(region length, 1 MiB)</code> from the metadata file offset and passes that buffer to <code>parse_metadata</code>. The table itself occupies the first 64 KiB. Item values start at offset 65536 or later, which is why a 64 KiB read is not enough.</p>
+  <p>The signature is <code>0x617461646174656d</code> (“metadata”). The reserved 16-bit field must be zero. At most 2047 entries. Each entry is a GUID, offset, length, and flags. <code>parse_entry</code> rejects a zero length, an offset inside the 64 KiB table, a range past the buffer, a duplicate GUID, a non-zero reserved field, and flag bits outside <code>IsUser</code>, <code>IsVirtualDisk</code>, and <code>IsRequired</code>.</p>
+
+  <h3>Required items</h3>
+  <p><code>required_item</code> fails the open if any of these five GUIDs is missing. <code>is_required_virtual_item</code> requires <code>IsVirtualDisk</code> and <code>IsRequired</code> on each of them. File parameters are the exception: flags equal to <code>IsRequired</code> alone (<code>0x4</code>) are accepted, which is what QEMU writes. <code>IsUser</code> and <code>IsVirtualDisk</code> are independent. An entry may set both, one, or neither.</p>
+  <table>
+    <thead>
+      <tr><th>Item</th><th>GUID</th><th>Parser</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>File parameters</td><td class="mono">CAA16737-FA36-4D43-B3B6-33F0AA44E76B</td><td><code>parse_file_parameters</code></td><td>Block size and LeaveBlocksAllocated</td></tr>
+      <tr><td>Virtual disk size</td><td class="mono">2FA54224-CD1B-4876-B211-5DBED83BF4B8</td><td><code>parse_virtual_disk_size</code></td><td>Guest size in bytes</td></tr>
+      <tr><td>Page 83 data</td><td class="mono">BECA12AB-B2E6-4523-93EF-C309E000C746</td><td><code>parse_disk_id</code></td><td>16-byte disk identifier</td></tr>
+      <tr><td>Logical sector size</td><td class="mono">8141BF1D-A96F-4709-BA47-F233A8FAAB5F</td><td><code>parse_sector_size</code></td><td>512 or 4096</td></tr>
+      <tr><td>Physical sector size</td><td class="mono">CDA348C7-445D-4471-9CC9-E9885251C556</td><td><code>parse_sector_size</code></td><td>512 or 4096</td></tr>
+      <tr><td>Parent locator</td><td class="mono">A8D35F2D-B30B-454D-ABF7-D3D84834AB0C</td><td><code>validate_flags</code></td><td>Rejected. Differencing is not supported.</td></tr>
+    </tbody>
+  </table>
+  <p class="caption">Source: MS-VHDX 2.6.2. libyal section 5.2.2 is the comment on <code>parse_file_parameters</code>. An unknown item with <code>IsRequired</code> set is rejected. An unknown item without that bit is ignored.</p>
+
+  <h3>Derived values</h3>
+  <p>Block size must be a power of two from 1 MiB through 256 MiB. Virtual size must be non-zero, at most 64 TiB, and a multiple of the logical sector size. <code>LeaveBlocksAllocated</code> comes from bit 0 of the file-parameters flags and means the disk is fixed. Bit 1, <code>HasParent</code>, is a second differencing check and is rejected.</p>
+  <p><code>chunk_ratio</code> implements the spec definition. One sector-bitmap block describes 2<sup>23</sup> logical sectors, so the chunk size is 2<sup>23</sup> times the logical sector size. The chunk ratio is how many payload blocks fit in that chunk:</p>
+  <div class="formula">chunk_ratio = (1 &lt;&lt; 23) * logical_sector_size / block_size</div>
+  <p>For 512-byte sectors and 1 MiB blocks the ratio is 4096, and one chunk is 4 GiB of guest data. For 512-byte sectors and 32 MiB blocks the ratio is 128.</p>
+
+  <h2>Block allocation table</h2>
+  <p>MS-VHDX 2.5 and 2.5.1. libyal section 6. The BAT is an array of 64-bit entries. <code>split_entry</code> takes the low 3 bits as the state, the next 17 bits as reserved (must be zero), and the high 44 bits as <code>FileOffsetMB</code>. Masking with <code>!0xfffff</code> leaves the byte offset, because the field is already in 1 MiB units shifted 20 bits.</p>
+  <p>The layout is the same for fixed and dynamic disks. A sector-bitmap entry follows every chunk except the last one. The last entry is the last payload block. <code>bat_entry_count</code> is:</p>
+  <div class="formula">payload_blocks + floor((payload_blocks - 1) / chunk_ratio)</div>
+  <p><code>payload_blocks</code> is <code>virtual_disk_size</code> divided by <code>block_size</code>, rounded up. <code>parse_bat</code> walks that pattern once. There is no separate path for <code>LeaveBlocksAllocated</code>. A bitmap entry is read only while payload blocks remain after the chunk.</p>
+
+  <h3>Payload states</h3>
+  <table>
+    <thead>
+      <tr><th class="num">State</th><th>Name</th><th><code>parse_payload</code></th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="num">0</td><td>Not present</td><td><code>PayloadBlock::Absent</code>, reads as zeros</td></tr>
+      <tr><td class="num">1</td><td>Undefined</td><td>Absent. The file offset is ignored.</td></tr>
+      <tr><td class="num">2</td><td>Zero</td><td>Absent, reads as zeros</td></tr>
+      <tr><td class="num">3</td><td>Unmapped</td><td>Absent, reads as zeros</td></tr>
+      <tr><td class="num">4, 5</td><td>Reserved</td><td>Error</td></tr>
+      <tr><td class="num">6</td><td>Fully present</td><td><code>PayloadBlock::Present</code> after <code>validate_present</code></td></tr>
+      <tr><td class="num">7</td><td>Partially present</td><td>Error. Differencing only.</td></tr>
+    </tbody>
+  </table>
+  <p class="caption">Source: MS-VHDX 2.5.1, payload BAT entry states. States 1 and 3 may carry a stale <code>FileOffsetMB</code>. Hyper-V does this after TRIM. The parser does not return those bytes.</p>
+
+  <h3>Sector bitmap states</h3>
+  <p><code>parse_bitmap</code> runs on the entries between chunks. State 0 is not present and its offset is ignored. State 6 is present: the parser checks a 1 MiB range with <code>validate_present</code> and then discards the bitmap, because a non-differencing disk has no parent to consult. The spec marks state 6 invalid for fixed and dynamic files. Any other state is an error.</p>
+
+  <h3>How much of the BAT is read</h3>
+  <p><code>bat_table_bytes</code> returns the entry count times 8. It rejects a table larger than 67,125,247 entries, which is 537,001,976 bytes. That is a 64 TiB disk with 1 MiB blocks and 512-byte sectors: 67,108,864 payload entries plus 16,383 bitmap entries. <code>open</code> reads <code>min(region length, that size)</code> from the BAT file offset. <code>parse_bat</code> then requires the buffer to be at least that long.</p>
+  <p><code>validate_present</code> checks each present payload or bitmap block. The file offset must be at least 1 MiB, the range must fit in the file, and it must not overlap the metadata region, the BAT region, or the log. Those occupied ranges come from <code>occupied_ranges</code>. After the walk, <code>check_present_overlaps</code> sorts the present ranges by file offset and compares neighbors. Two sorted ranges overlap only when an adjacent pair overlaps.</p>
+  <p><code>VhdxBat</code> stores one <code>PayloadBlock</code> per payload block, in guest order. <code>map_offset</code> divides the guest offset by the block size, clips the returned length at the end of the block and at the end of the virtual disk, and returns <code>VhdxMapping::Zero</code> or <code>VhdxMapping::Data</code>.</p>
+
+  <h2>Log</h2>
+  <p>MS-VHDX 2.3.2 and 2.3.3 describe the log and require replay before guest I/O when the log GUID is not zero. This parser does not implement replay. <code>log_range</code> still checks the geometry: a zero <code>log_length</code> means there is no region. Otherwise the offset and length must be 1 MiB aligned, the offset must be at least 1 MiB, the range must fit in the file, and <code>ranges_overlap</code> must say it misses both the BAT and the metadata region. The log is then added to the occupied list so a payload block cannot point into it.</p>
+  <p>Guest bytes for blocks written while the log was active can differ from what the host last flushed. <code>pending_log</code> on the image metadata is the signal for that. The on-disk BAT and metadata are what get parsed.</p>
+
+  <h2>Guest reads</h2>
+  <p><code>VhdxReader</code> implements <code>Read</code> and <code>Seek</code>. The seek position is a guest offset, not a file offset. <code>seek_guest</code> handles <code>Start</code>, <code>Current</code>, and <code>End</code> against <code>virtual_size</code> through <code>checked_seek</code>. Seeking does not move the underlying file.</p>
+  <p><code>read_guest</code> stops at the end of the virtual disk. It fills the caller’s buffer by calling <code>read_mapping</code> once per block boundary. <code>read_mapping</code> asks <code>map_offset</code> for the current guest position. A zero mapping fills the buffer. A data mapping seeks the file to <code>file_offset</code> plus the offset within the block, then <code>read_exact</code>. <code>file_position</code> remembers where that read finished. The next present read skips the seek when the file cursor is already there. A failed seek or read clears <code>file_position</code>. A zero mapping does not, because it does not move the file.</p>
+
+  <h2>Where the guest disk goes</h2>
+  <p><code>VhdxDisk::new</code> requires an absolute host path. <code>open_reader</code> opens the file and calls <code>VhdxReader::open</code>. <code>image</code> builds <code>DiskImageMetadata</code> with format, <code>file_size</code>, <code>virtual_size</code>, and <code>DiskImageDetails::Vhdx(VhdxImageMetadata)</code>.</p>
+  <p><code>DiskFormat::open_reader</code> in <code>format.rs</code> boxes that reader as <code>DiskReader::Vhdx</code>. <code>logical_sector_size</code>, <code>read</code>, and <code>seek</code> on <code>DiskReader</code> forward to it. <code>DiskSource::inspect</code> opens the disk, takes that sector size, and runs <code>inspect_disk</code> and <code>identify_disk</code>. NTFS and ext4 are then opened through <code>PartitionReader</code> at the partition’s byte offset. The scheme name is <code>vhdx</code>, parsed in <code>accessor/location/scheme.rs</code>.</p>
+
+  <h2>References</h2>
+  <ul>
+    <li>[MS-VHDX] Virtual Hard Disk v2 (VHDX) File Format, Microsoft Open Specifications. Sections used above: 2.2 file layout and identifier, 2.3 headers and log, 2.3.3 log replay, 2.4 region table, 2.5 BAT, 2.5.1 entry states, 2.6 metadata. Document set: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-vhdx/. BAT: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-vhdx/af7334e6-ad2c-4378-9b81-afc1334a6ee7. Bitmap states: https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-vhdx/61251993-f2da-47af-b6ab-e8a8bd299094.</li>
+    <li>libvhdi, Virtual Hard Disk version 2 (VHDX) image format: https://github.com/libyal/libvhdi/blob/main/documentation/Virtual%20Hard%20Disk%20version%202%20(VHDX)%20image%20format.asciidoc. The source comments point at section 3 (image header), section 4 (region table), section 5 and 5.2.2 (metadata and file parameters), and section 6 and 6.1 (BAT and BAT entry).</li>
+  </ul>
+</body>
+</html>
