@@ -12,14 +12,6 @@ pub(crate) struct PartitionReader<R> {
     /// Current position of `PartitionReader` relative to
     /// the start of the partition
     position: u64,
-    /// Has the reader parsed the bootsector data
-    ///
-    /// If we are parsing a NTFS partition
-    /// the NTFS crate requires the boot sector signature
-    /// at the end.
-    ///
-    /// Otherwise we get an error :(
-    boot_signature_done: bool,
 }
 
 impl<R: Read + Seek> PartitionReader<R> {
@@ -37,7 +29,6 @@ impl<R: Read + Seek> PartitionReader<R> {
             byte_offset,
             byte_length,
             position: 0,
-            boot_signature_done: false,
         })
     }
 
@@ -77,48 +68,6 @@ impl<R: Read + Seek> PartitionReader<R> {
             Err(_err) => buf_len,
         }
     }
-
-    fn oem_is_ntfs(&mut self, start: u64, buf: &[u8]) -> io::Result<bool> {
-        if start <= 3 && start + buf.len() as u64 >= 11 {
-            let oem_start = (3 - start) as usize;
-            return Ok(&buf[oem_start..oem_start + 8] == b"NTFS    ");
-        }
-
-        let restore = self.disk_position(self.position)?;
-        let oem_at = self.disk_position(3)?;
-        self.inner.seek(SeekFrom::Start(oem_at))?;
-
-        let mut oem = [0u8; 8];
-        self.inner.read_exact(&mut oem)?;
-        self.inner.seek(SeekFrom::Start(restore))?;
-
-        Ok(&oem == b"NTFS    ")
-    }
-
-    /// Some tools will create a NTFS filesystem but not include the
-    /// boot signature 0x55AA.
-    ///
-    /// The NTFS crate requires the boot signature. So we inject it if
-    /// its missing
-    fn check_missing_ntfs_sig(&mut self, start: u64, buf: &mut [u8]) -> io::Result<()> {
-        let end = start as usize + buf.len();
-        if start >= 512 || end <= 510 || !self.oem_is_ntfs(start, buf)? {
-            return Ok(());
-        }
-
-        for i in 510u64..512 {
-            if !(start as usize..end).contains(&(i as usize)) {
-                continue;
-            }
-
-            let index = (i - start) as usize;
-            if buf[index] == 0 {
-                buf[index] = if i == 510 { 0x55 } else { 0xAA };
-            }
-        }
-
-        Ok(())
-    }
 }
 
 impl<R: Read + Seek> Read for PartitionReader<R> {
@@ -127,7 +76,6 @@ impl<R: Read + Seek> Read for PartitionReader<R> {
             return Ok(0);
         }
 
-        let start = self.position;
         let remaining = self.byte_length - self.position;
         let length = Self::read_len(remaining, buf.len());
         let disk_position = self.disk_position(self.position)?;
@@ -136,15 +84,6 @@ impl<R: Read + Seek> Read for PartitionReader<R> {
         let read = self.inner.read(&mut buf[..length])?;
 
         self.position += read as u64;
-
-        // If open partition for first time
-        // Check if NTFS and it has the boot signature
-        if !self.boot_signature_done {
-            self.check_missing_ntfs_sig(start, &mut buf[..read])?;
-            if start < 512 && self.position >= 512 {
-                self.boot_signature_done = true;
-            }
-        }
 
         Ok(read)
     }
@@ -177,13 +116,6 @@ mod tests {
 
     fn reader(disk: &[u8], byte_offset: u64, byte_length: u64) -> PartitionReader<Cursor<Vec<u8>>> {
         PartitionReader::new(Cursor::new(disk.to_vec()), byte_offset, byte_length).unwrap()
-    }
-
-    fn discutils_ntfs_boot() -> Vec<u8> {
-        let mut sector = vec![0u8; 1024];
-        sector[3..11].copy_from_slice(b"NTFS    ");
-        sector[11..13].copy_from_slice(&512u16.to_le_bytes());
-        sector
     }
 
     #[test]
@@ -265,55 +197,5 @@ mod tests {
         assert_eq!(partition.read(&mut buf).unwrap(), 0);
         assert_eq!(partition.seek(SeekFrom::End(0)).unwrap(), 0);
         assert!(PartitionReader::new(Cursor::new(Vec::<u8>::new()), u64::MAX, 1).is_err());
-    }
-
-    #[test]
-    fn test_missing_ntfs_signature_is_filled_once() {
-        let disk = discutils_ntfs_boot();
-        let mut partition = reader(&disk, 0, disk.len() as u64);
-
-        let mut first = [0u8; 512];
-        assert_eq!(partition.read(&mut first).unwrap(), 512);
-        assert_eq!(&first[3..11], b"NTFS    ");
-        assert_eq!(&first[510..512], &[0x55, 0xAA]);
-
-        partition.seek(SeekFrom::Start(510)).unwrap();
-        let mut again = [0u8; 2];
-        assert_eq!(partition.read(&mut again).unwrap(), 2);
-        assert_eq!(&again, &[0, 0]);
-    }
-
-    #[test]
-    fn test_existing_ntfs_signature_is_unchanged() {
-        let mut disk = discutils_ntfs_boot();
-        disk[510] = 0x55;
-        disk[511] = 0xAA;
-        let mut partition = reader(&disk, 0, disk.len() as u64);
-
-        let mut first = [0u8; 512];
-        assert_eq!(partition.read(&mut first).unwrap(), 512);
-        assert_eq!(&first[510..512], &[0x55, 0xAA]);
-    }
-
-    #[test]
-    fn test_missing_ntfs_signature_survives_byte_reads() {
-        let disk = discutils_ntfs_boot();
-        let mut partition = reader(&disk, 0, disk.len() as u64);
-        let mut byte = [0u8; 1];
-
-        for offset in 0..512 {
-            assert_eq!(partition.read(&mut byte).unwrap(), 1);
-            let expected = match offset {
-                510 => 0x55,
-                511 => 0xAA,
-                _ => disk[offset],
-            };
-            assert_eq!(byte[0], expected);
-        }
-
-        partition.seek(SeekFrom::Start(510)).unwrap();
-        let mut again = [0u8; 2];
-        assert_eq!(partition.read(&mut again).unwrap(), 2);
-        assert_eq!(&again, &[0, 0]);
     }
 }
