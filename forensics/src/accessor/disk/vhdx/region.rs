@@ -1,6 +1,6 @@
 use crate::{
     accessor::{
-        disk::vhdx::header::vhdx_crc32c,
+        disk::vhdx::{bat::ranges_overlap, header::vhdx_crc32c},
         error::{AccessorError, AccessorResult},
     },
     utils::nom_helper::{nom_guid, nom_u32, nom_u64},
@@ -180,11 +180,13 @@ fn parse_entry(index: u32, data: &[u8], seen: &[VhdxRegion]) -> AccessorResult<V
 /// Validate that the BAT and Metadata values do not overlap
 fn check_overlaps(entries: &[VhdxRegion]) -> AccessorResult<()> {
     for (index, entry) in entries.iter().enumerate() {
-        let end = entry.file_offset + entry.length as u64;
         for other in &entries[index + 1..] {
-            let other_end = other.file_offset + other.length as u64;
-
-            if entry.file_offset < other_end && other.file_offset < end {
+            if ranges_overlap(
+                entry.file_offset,
+                entry.length as u64,
+                other.file_offset,
+                other.length as u64,
+            ) {
                 return Err(AccessorError::volume("VHDX region table entries overlap"));
             }
         }

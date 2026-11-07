@@ -11,6 +11,7 @@ use std::{
     fs::File,
     path::{Path, PathBuf},
 };
+use tracing::info;
 
 /// Open VHDX on disk
 #[derive(Debug)]
@@ -67,6 +68,11 @@ impl DiskImage for VhdxDisk {
     type Reader = VhdxReader<File>;
 
     fn open_reader(&self) -> AccessorResult<Self::Reader> {
+        info!(
+            "Opening VHDX file '{}' as DiskFormat: '{:?}",
+            self.path().as_os_str().display(),
+            self.format()
+        );
         let file = File::open(&self.path).map_err(|err| AccessorError::io_path(&self.path, err))?;
 
         VhdxReader::open(file)

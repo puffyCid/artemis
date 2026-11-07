@@ -5,7 +5,7 @@ use crate::{
         nom_helper::{nom_guid, nom_u16, nom_u32, nom_u64},
     },
 };
-use tracing::warn;
+use tracing::{debug, warn};
 use uuid::Uuid;
 
 /// Parsed VHDX Image header
@@ -82,6 +82,13 @@ pub(super) fn parse_image_header(data: &[u8]) -> AccessorResult<VhdxHeader> {
     let (input, version) = nom_u16(input, "VHDX image header version truncated")?;
     let (input, log_length) = nom_u32(input, "VHDX image header log length truncated")?;
     let (_, log_offset) = nom_u64(input, "VHDX image header log offset truncated")?;
+
+    debug!(
+        "Image header sequence: '{sequence}'. File Write: '{}'. Data Write: '{}'. Log: '{}'\nLog Version: '{log_version}'. Image Version: '{version}'. Log Length: '{log_length}'. Log Offset: '{log_offset}'",
+        file_write.to_string(),
+        data_write.to_string(),
+        log.to_string()
+    );
 
     if version != 1 {
         return Err(AccessorError::volume(format!(

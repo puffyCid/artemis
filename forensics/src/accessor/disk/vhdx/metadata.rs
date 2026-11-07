@@ -1,5 +1,8 @@
 use crate::{
-    accessor::error::{AccessorError, AccessorResult},
+    accessor::{
+        disk::vhdx::bat::ranges_overlap,
+        error::{AccessorError, AccessorResult},
+    },
     utils::nom_helper::{nom_guid, nom_take, nom_u16, nom_u32, nom_u64},
 };
 use uuid::Uuid;
@@ -228,11 +231,13 @@ fn parse_entry(
 /// Validate each Metadata entry does not overlap with each other
 fn check_overlap(entries: &[MetadataEntry]) -> AccessorResult<()> {
     for (index, entry) in entries.iter().enumerate() {
-        let end = entry.offset + entry.length;
-
         for other in &entries[index + 1..] {
-            let other_end = other.offset + other.length;
-            if entry.offset < other_end && other.offset < end {
+            if ranges_overlap(
+                entry.offset as u64,
+                entry.length as u64,
+                other.offset as u64,
+                other.length as u64,
+            ) {
                 return Err(AccessorError::volume("VHDX metadata entries overlap"));
             }
         }

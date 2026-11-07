@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 use crate::accessor::{
     disk::{
         inspect::read_at,
@@ -13,6 +11,7 @@ use crate::accessor::{
     },
     error::{AccessorError, AccessorResult},
 };
+use serde::Serialize;
 use std::{
     cmp::min,
     io::{self, ErrorKind, Read, Seek, SeekFrom},
@@ -133,6 +132,7 @@ impl<R: Read + Seek> VhdxReader<R> {
         })
     }
 
+    /// Return some basic metadata about the VHDX file
     pub(super) fn image_metadata(&self) -> VhdxImageMetadata {
         VhdxImageMetadata {
             block_size: self.metadata.block_size,
@@ -144,9 +144,9 @@ impl<R: Read + Seek> VhdxReader<R> {
             log_version: self.header.log_version,
             version: self.header.version,
             logical_sector_size: self.metadata.logical_sector_size,
-            physical_sector_size: self.metadata.physical_sector_size,
+            physical_sector_size: self.physical_sector_size(),
             chunk_ratio: self.metadata.chunk_ratio,
-            creator: self.creator.clone(),
+            creator: self.creator().to_string(),
             pending_log: self.header.has_pending_log(),
         }
     }

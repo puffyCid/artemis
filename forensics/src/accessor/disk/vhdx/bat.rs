@@ -87,7 +87,9 @@ impl VhdxBat {
     }
 }
 
-/// Parse a BAT entry
+/// Parse a Block Allocation Table (BAT) entry
+///
+/// The blocks contain the guest OS bytes
 pub(super) fn parse_bat(
     data: &[u8],
     metadata: &VhdxMetadata,
@@ -312,6 +314,7 @@ fn validate_present(
     Ok(())
 }
 
+/// Check if BAT payloads overlap with each other
 fn check_present_overlaps(present: &[(u64, u64, u64)]) -> AccessorResult<()> {
     let mut ordered = present.to_vec();
     ordered.sort_unstable_by_key(|&(offset, _, index)| (offset, index));
