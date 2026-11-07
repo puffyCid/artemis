@@ -4,7 +4,7 @@ use crate::accessor::{
     disk::{
         inspect::read_at,
         vhdx::{
-            bat::{VhdxBat, VhdxMapping, bat_table_bytes, parse_bat},
+            bat::{VhdxBat, VhdxMapping, bat_table_bytes, parse_bat, ranges_overlap},
             header::{VhdxHeader, active_head},
             identifier::parse_header,
             metadata::{VhdxMetadata, parse_metadata},
@@ -239,7 +239,7 @@ impl<R: Read + Seek> VhdxReader<R> {
         if let Some(file_offset) = file_offset {
             if self.file_position != Some(file_offset) {
                 self.file_position = None;
-                self.image.seek(SeekFrom::Start(file_offset));
+                self.image.seek(SeekFrom::Start(file_offset))?;
             }
 
             if let Err(err) = self.image.read_exact(&mut buf[..bytes]) {
@@ -336,7 +336,7 @@ fn log_range(
         )));
     }
 
-    if overlaps(
+    if ranges_overlap(
         offset,
         length,
         regions.bat.file_offset,
@@ -345,7 +345,7 @@ fn log_range(
         return Err(AccessorError::volume("VHDX log overlaps the BAT region"));
     }
 
-    if overlaps(
+    if ranges_overlap(
         offset,
         length,
         regions.metadata.file_offset,
@@ -370,19 +370,6 @@ fn occupied_ranges(regions: &VhdxRegionTable, log: Option<(u64, u64)>) -> Vec<(u
     }
 
     ranges
-}
-
-/// Compare two byte ranges
-fn overlaps(start: u64, length: u64, other: u64, other_length: u64) -> bool {
-    let Some(end) = start.checked_add(length) else {
-        return true;
-    };
-
-    let Some(other_end) = other.checked_add(other_length) else {
-        return true;
-    };
-
-    start < other_end && other < end
 }
 
 /// Validate seeks in the guest VHDX

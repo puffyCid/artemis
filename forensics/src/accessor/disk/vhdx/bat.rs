@@ -331,7 +331,7 @@ fn check_present_overlaps(present: &[(u64, u64, u64)]) -> AccessorResult<()> {
 }
 
 /// Compare section ranges
-fn ranges_overlap(start: u64, length: u64, other: u64, other_length: u64) -> bool {
+pub(super) fn ranges_overlap(start: u64, length: u64, other: u64, other_length: u64) -> bool {
     let Some(end) = start.checked_add(length) else {
         return true;
     };

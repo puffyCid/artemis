@@ -642,7 +642,7 @@ mod test {
 
         items[1].flags = 0x4;
         let reason = volume_reason(parse_metadata(&metadata_bytes(&items)));
-        assert!(reason.contains("IsVirtualDisk"), "{reason}");
+        assert!(reason.contains("required virtual disk item"), "{reason}");
     }
 
     #[test]
