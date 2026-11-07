@@ -104,10 +104,11 @@ impl<R: Read + Seek> VhdxReader<R> {
 
         let log = log_range(&header, &regions, file_len)?;
 
+        let meta_limit = 1024 * 1024;
         let metadata = parse_metadata(&read_at(
             &mut image,
             regions.metadata.file_offset,
-            min(regions.bat.length as usize, region_length),
+            min(regions.bat.length as usize, meta_limit),
         )?)?;
 
         let bat = parse_bat(

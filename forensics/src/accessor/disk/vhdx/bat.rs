@@ -100,20 +100,9 @@ pub(super) fn parse_bat(
     }
 
     let payload_blocks = metadata.virtual_disk_size.div_ceil(block_size);
-    let entry_count = bat_entry_count(metadata, payload_blocks)?;
-    let table_bytes = entry_count
-        .checked_mul(8)
-        .ok_or_else(|| AccessorError::volume("VHDX BAT entry count overflows"))?;
+    let table_bytes = bat_table_bytes(metadata)?;
 
-    let max_bat_bytes = 32 * 1024 * 1024;
-    if table_bytes > max_bat_bytes {
-        return Err(AccessorError::volume(format!(
-            "VHDX BAT is {table_bytes} bytes, above 32 MiB"
-        )));
-    }
-
-    let data_len = u64::try_from(data.len())
-        .map_err(|err| AccessorError::volume(format!("VHDX BAT is too large to parse: {err:?}")))?;
+    let data_len = data.len();
     if data_len < table_bytes {
         return Err(AccessorError::volume(format!(
             "VHDX BAT is {data_len} bytes. Wanted at least {table_bytes}"
@@ -156,7 +145,8 @@ pub(super) fn parse_bat(
         }
     }
 
-    if index != entry_count {
+    let entry_count = table_bytes / 8;
+    if index != entry_count as u64 {
         return Err(AccessorError::volume(
             "VHDX BAT entry count does not match the virtual disk",
         ));
@@ -169,6 +159,29 @@ pub(super) fn parse_bat(
         virtual_disk_size: metadata.virtual_disk_size,
         blocks,
     })
+}
+
+/// BAT length in bytes associated with the VHDX file
+fn bat_table_bytes(meta: &VhdxMetadata) -> AccessorResult<usize> {
+    let block_size = meta.block_size as u64;
+    if block_size == 0 {
+        return Err(AccessorError::volume("VHDX block size 0 is invalid"));
+    }
+
+    let payload_blocks = meta.virtual_disk_size.div_ceil(block_size);
+    let table_bytes = bat_entry_count(meta, payload_blocks)?
+        .checked_mul(8)
+        .ok_or_else(|| AccessorError::volume("VHDX BAT entry count overflows"))?;
+
+    let max_bat_bytes = 67125247 * 8;
+    if table_bytes > max_bat_bytes {
+        return Err(AccessorError::volume(format!(
+            "VHDX BAT is {table_bytes} bytes, above{max_bat_bytes}"
+        )));
+    }
+
+    usize::try_from(table_bytes)
+        .map_err(|err| AccessorError::volume(format!("VHDX BAT is too large to parse: {err:?}")))
 }
 
 /// Number of BAT chunks
