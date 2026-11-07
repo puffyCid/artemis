@@ -124,10 +124,16 @@ pub(super) fn parse_bat(
     let mut present = Vec::new();
     let mut index = 0;
 
+    let chunk_ratio = metadata.chunk_ratio as u64;
+    if chunk_ratio == 0 {
+        return Err(AccessorError::volume("VHDX chunk ratio is zero"));
+    }
     let mut input = data;
-    if metadata.leave_blocks_allocated {
-        for _ in 0..payload_blocks {
-            let (remaining, raw) = nom_u64(input, "VHDX BAT entry truncated")?;
+    let mut remaining = payload_blocks;
+    while remaining > 0 {
+        let chunk = remaining.min(chunk_ratio);
+        for _ in 0..chunk {
+            let (remaining_input, raw) = nom_u64(input, "VHDX BAT entry chunk truncated")?;
             blocks.push(parse_payload(
                 raw,
                 index,
@@ -136,31 +142,16 @@ pub(super) fn parse_bat(
                 occupied,
                 &mut present,
             )?);
+
             index += 1;
-            input = remaining;
+            input = remaining_input;
         }
-    } else {
-        let chunk_ratio = metadata.chunk_ratio as u64;
-        let mut remaining = payload_blocks;
-        while remaining > 0 {
-            let chunk = remaining.min(chunk_ratio);
-            for _ in 0..chunk {
-                let (remaining_input, raw) = nom_u64(input, "VHDX BAT entry truncated")?;
-                blocks.push(parse_payload(
-                    raw,
-                    index,
-                    block_size,
-                    file_len,
-                    occupied,
-                    &mut present,
-                )?);
-                index += 1;
-                input = remaining_input;
-            }
+        remaining -= chunk;
+
+        if remaining > 0 {
             let (remaining_input, raw) = nom_u64(input, "VHDX BAT entry truncated")?;
             parse_bitmap(raw, index, file_len, occupied, &mut present)?;
             index += 1;
-            remaining -= chunk;
             input = remaining_input;
         }
     }
@@ -180,16 +171,12 @@ pub(super) fn parse_bat(
 
 /// Number of BAT chunks
 fn bat_entry_count(metadata: &VhdxMetadata, payload_blocks: u64) -> AccessorResult<u64> {
-    if metadata.leave_blocks_allocated {
-        return Ok(payload_blocks);
-    }
-
     let chunk_ratio = metadata.chunk_ratio as u64;
     if chunk_ratio == 0 {
         return Err(AccessorError::volume("VHDX chunk ratio is zero"));
     }
 
-    let bitmap_blocks = payload_blocks.div_ceil(chunk_ratio);
+    let bitmap_blocks = payload_blocks.saturating_sub(1) / chunk_ratio;
     payload_blocks
         .checked_add(bitmap_blocks)
         .ok_or_else(|| AccessorError::volume("VHDX BAT entry count overflows"))
