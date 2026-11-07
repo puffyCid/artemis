@@ -254,14 +254,7 @@ fn validate_flags(entries: &[MetadataEntry]) -> AccessorResult<()> {
             continue;
         }
 
-        let is_user = entry.flags & IS_USER != 0;
         let is_virtual = entry.flags & IS_VIRTUAL_DISK != 0;
-        if is_user == is_virtual {
-            return Err(AccessorError::volume(format!(
-                "VHDX metadata entry {} flags {:#x} must set one of IsUser or IsVirtualDisk",
-                entry.index, entry.flags
-            )));
-        }
 
         if is_required_virtual_item(entry.guid) {
             if !is_virtual || entry.flags & IS_REQUIRED == 0 {

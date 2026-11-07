@@ -161,7 +161,7 @@ pub(super) fn parse_bat(
     })
 }
 
-/// BAT length in bytes associated with the VHDX file
+/// BAT length in bytes associated with the VHDX file. Includes bitmap entries
 pub(super) fn bat_table_bytes(meta: &VhdxMetadata) -> AccessorResult<usize> {
     let block_size = meta.block_size as u64;
     if block_size == 0 {

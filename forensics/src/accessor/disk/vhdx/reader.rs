@@ -68,6 +68,8 @@ pub(crate) struct VhdxReader<R> {
     creator: String,
     /// Parsed VHDX header info
     header: VhdxHeader,
+    /// Offset of VHDX file
+    file_position: Option<u64>,
 }
 
 impl<R: Read + Seek> VhdxReader<R> {
@@ -127,6 +129,7 @@ impl<R: Read + Seek> VhdxReader<R> {
             bat,
             creator: identifier.creator(),
             header,
+            file_position: None,
         })
     }
 
@@ -234,13 +237,19 @@ impl<R: Read + Seek> VhdxReader<R> {
         }
 
         if let Some(file_offset) = file_offset {
-            self.image.seek(SeekFrom::Start(file_offset))?;
+            if self.file_position != Some(file_offset) {
+                self.file_position = None;
+                self.image.seek(SeekFrom::Start(file_offset));
+            }
+
             if let Err(err) = self.image.read_exact(&mut buf[..bytes]) {
+                self.file_position = None;
                 return Err(AccessorError::Io {
                     path: None,
                     source: err,
                 });
             }
+            self.file_position = file_offset.checked_add(bytes as u64);
         } else {
             buf[..bytes].fill(0);
         }
