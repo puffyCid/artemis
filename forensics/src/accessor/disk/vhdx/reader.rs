@@ -4,7 +4,7 @@ use crate::accessor::{
     disk::{
         inspect::read_at,
         vhdx::{
-            bat::{VhdxBat, VhdxMapping, parse_bat},
+            bat::{VhdxBat, VhdxMapping, bat_table_bytes, parse_bat},
             header::{VhdxHeader, active_head},
             identifier::parse_header,
             metadata::{VhdxMetadata, parse_metadata},
@@ -108,15 +108,12 @@ impl<R: Read + Seek> VhdxReader<R> {
         let metadata = parse_metadata(&read_at(
             &mut image,
             regions.metadata.file_offset,
-            min(regions.bat.length as usize, meta_limit),
+            min(regions.metadata.length as usize, meta_limit),
         )?)?;
 
+        let bat_length = min(regions.bat.length as usize, bat_table_bytes(&metadata)?);
         let bat = parse_bat(
-            &read_at(
-                &mut image,
-                regions.bat.file_offset,
-                min(regions.bat.length as usize, region_length),
-            )?,
+            &read_at(&mut image, regions.bat.file_offset, bat_length)?,
             &metadata,
             file_len,
             &occupied_ranges(&regions, log),

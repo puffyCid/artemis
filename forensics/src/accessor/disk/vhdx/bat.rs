@@ -162,7 +162,7 @@ pub(super) fn parse_bat(
 }
 
 /// BAT length in bytes associated with the VHDX file
-fn bat_table_bytes(meta: &VhdxMetadata) -> AccessorResult<usize> {
+pub(super) fn bat_table_bytes(meta: &VhdxMetadata) -> AccessorResult<usize> {
     let block_size = meta.block_size as u64;
     if block_size == 0 {
         return Err(AccessorError::volume("VHDX block size 0 is invalid"));
@@ -176,7 +176,7 @@ fn bat_table_bytes(meta: &VhdxMetadata) -> AccessorResult<usize> {
     let max_bat_bytes = 67125247 * 8;
     if table_bytes > max_bat_bytes {
         return Err(AccessorError::volume(format!(
-            "VHDX BAT is {table_bytes} bytes, above{max_bat_bytes}"
+            "VHDX BAT is {table_bytes} bytes, above {max_bat_bytes}"
         )));
     }
 
@@ -586,9 +586,14 @@ mod test {
         let reason = volume_reason(parse_bat(&bytes, &multi, file_len, &[]));
         assert!(reason.contains("bitmap"), "{reason}");
 
-        let huge = metadata(1024 * 1024, 64 * 1024 * 1024 * 1024 * 1024, false, 4096);
+        let huge = metadata(
+            1024 * 1024,
+            64 * 1024 * 1024 * 1024 * 1024 + 1024 * 1024,
+            false,
+            4096,
+        );
         let reason = volume_reason(parse_bat(&[], &huge, 0, &[]));
-        assert!(reason.contains("32 MiB"), "{reason}");
+        assert!(reason.contains("above"), "{reason}");
 
         let zero_chunk = metadata(block_size, block_size as u64, false, 0);
         let reason = volume_reason(parse_bat(&[], &zero_chunk, 0, &[]));
