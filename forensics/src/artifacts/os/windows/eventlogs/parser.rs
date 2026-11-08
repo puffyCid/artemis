@@ -458,7 +458,6 @@ mod tests {
             alt_file: None,
             include_templates: false,
             dump_templates: false,
-            alt_dir: None,
             alt_template_file: None,
             only_templates: false,
         };
@@ -477,7 +476,6 @@ mod tests {
             alt_file: None,
             include_templates: false,
             dump_templates: false,
-            alt_dir: None,
             alt_template_file: None,
             only_templates: false,
         };
@@ -496,7 +494,6 @@ mod tests {
             alt_file: None,
             include_templates: false,
             dump_templates: false,
-            alt_dir: None,
             alt_template_file: None,
             only_templates: false,
         };

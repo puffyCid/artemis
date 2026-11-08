@@ -640,7 +640,6 @@ mod tests {
     fn test_eventlogs() {
         let evt = EventLogsOptions {
             alt_file: None,
-            alt_dir: None,
             dump_templates: false,
             include_templates: false,
             alt_template_file: None,
