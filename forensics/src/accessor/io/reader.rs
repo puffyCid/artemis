@@ -1,6 +1,9 @@
 use crate::accessor::location::scheme::{Scheme, location_scheme, strip_scheme};
 use std::{
-    fmt::Debug, fs::File, io::{self, BufRead, BufReader, Cursor, Read, Seek, SeekFrom}, path::Path,
+    fmt::Debug,
+    fs::File,
+    io::{self, BufRead, BufReader, Cursor, Read, Seek, SeekFrom},
+    path::Path,
 };
 
 /// Combines Read + Seek + Debug into a single trait object
@@ -195,7 +198,7 @@ pub(crate) enum SourceReader {
     /// `AccessorReader` for a file read into memory
     Memory(Cursor<Vec<u8>>),
     /// Stream a large file without reading the entire file into memory
-    Stream(Box<dyn ReadSeek + Send>),
+    Stream(BufReader<Box<dyn ReadSeek + Send>>),
 }
 
 /// An abstract reader that can be used to read data
@@ -229,11 +232,19 @@ impl Seek for AccessorReader {
 
 impl BufRead for AccessorReader {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        todo!()
+        match &mut self.source {
+            SourceReader::Host(file) => file.fill_buf(),
+            SourceReader::Memory(cursor) => cursor.fill_buf(),
+            SourceReader::Stream(stream) => stream.fill_buf(),
+        }
     }
 
     fn consume(&mut self, amount: usize) {
-        todo!()
+        match &mut self.source {
+            SourceReader::Host(file) => file.consume(amount),
+            SourceReader::Memory(cursor) => cursor.consume(amount),
+            SourceReader::Stream(stream) => stream.consume(amount),
+        }
     }
 }
 
@@ -266,7 +277,7 @@ impl AccessorReader {
     /// Create host file reader
     pub(crate) fn host(file: File, location: ReaderLocation) -> Self {
         Self {
-            source: SourceReader::Host(BufReader::new( file)),
+            source: SourceReader::Host(BufReader::new(file)),
             location,
         }
     }
@@ -284,7 +295,7 @@ impl AccessorReader {
     /// Used for raw disk access
     pub(crate) fn stream(reader: impl ReadSeek + Send + 'static, location: ReaderLocation) -> Self {
         Self {
-            source: SourceReader::Stream(Box::new(reader)),
+            source: SourceReader::Stream(BufReader::new(Box::new(reader))),
             location,
         }
     }
