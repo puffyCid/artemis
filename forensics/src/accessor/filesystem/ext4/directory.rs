@@ -237,16 +237,18 @@ where
 #[cfg(test)]
 mod tests {
     use super::{lookup_name, read_directory, read_symlink, resolve_path};
-    use crate::accessor::{
-        error::AccessorError,
-        filesystem::ext4::{
-            format::{
-                checksum::crc32c_check,
-                directory::parse_directory_block,
-                inode::{Inode, parse_inode},
+    use crate::{
+        accessor::{
+            error::AccessorError,
+            filesystem::ext4::{
+                format::{
+                    directory::parse_directory_block,
+                    inode::{Inode, parse_inode},
+                },
+                volume::Ext4Volume,
             },
-            volume::Ext4Volume,
         },
+        utils::checksum::crc32c_check,
     };
     use std::{
         fs::{File, read},

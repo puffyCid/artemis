@@ -241,17 +241,19 @@ fn hole_run(logical: u32, next: Option<u32>) -> AccessorResult<ExtentRun> {
 #[cfg(test)]
 mod tests {
     use super::{ExtentRun, map_extent};
-    use crate::accessor::{
-        error::AccessorError,
-        filesystem::ext4::{
-            format::{
-                checksum::crc32c_check,
-                extent::extent_crc32c,
-                inode::{Inode, parse_inode},
-                superblock::SuperBlock,
+    use crate::{
+        accessor::{
+            error::AccessorError,
+            filesystem::ext4::{
+                format::{
+                    extent::extent_crc32c,
+                    inode::{Inode, parse_inode},
+                    superblock::SuperBlock,
+                },
+                volume::Ext4Volume,
             },
-            volume::Ext4Volume,
         },
+        utils::checksum::crc32c_check,
     };
     use std::{fs::read, io::Cursor, path::PathBuf};
 

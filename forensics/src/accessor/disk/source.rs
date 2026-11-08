@@ -40,6 +40,7 @@ use std::{
 use tracing::info;
 
 /// The opened disk image
+#[derive(Debug)]
 pub(crate) struct DiskSource {
     /// Format of the disk image
     format: DiskFormat,
@@ -70,7 +71,6 @@ impl DiskSource {
         path: impl Into<PathBuf>,
     ) -> AccessorResult<Self> {
         let path = path.into();
-        format.open_reader(&path)?;
 
         Ok(Self {
             format,
@@ -87,7 +87,8 @@ impl DiskSource {
     /// Inspect and get basic metadata about the disk image
     pub(crate) fn inspect(&self) -> AccessorResult<DiskInspection> {
         let mut reader = self.open_disk()?;
-        let layout = inspect_disk(&mut reader)?;
+        let sector_size = reader.logical_sector_size();
+        let layout = inspect_disk(&mut reader, sector_size)?;
 
         let partitions = identify_disk(&mut reader, &layout)?;
         Ok(DiskInspection {
@@ -1407,6 +1408,16 @@ mod tests {
         path
     }
 
+    fn vhdx_image() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/test_data/disks/vhdx/ntfs.vhdx");
+        path
+    }
+
+    fn vhdx_source() -> DiskSource {
+        DiskSource::open(&AccessorConfig::default(), DiskFormat::Vhdx, vhdx_image()).unwrap()
+    }
+
     #[test]
     fn test_read_file_logical_ntfs() {
         let bytes = source(&test_image())
@@ -1900,8 +1911,12 @@ mod tests {
 
     #[test]
     fn test_open_qcow_rejects_raw_image() {
-        let result = DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, test_image());
-        assert!(matches!(result, Err(AccessorError::Volume { .. })));
+        let result =
+            DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, test_image()).unwrap();
+        let err = result.open_disk().unwrap_err();
+        assert!(
+            matches!(err, AccessorError::Volume { reason,.. } if reason == "Invalid QCOW magic [235, 82, 144, 78]. Wanted QFI\\xfb")
+        )
     }
 
     #[test]
@@ -2063,5 +2078,17 @@ mod tests {
             "unconfined_u:object_r:unlabeled_t:s0"
         );
         assert!(rows.iter().any(|row| row["full_path"] == "test/hello.txt"));
+    }
+
+    #[test]
+    fn test_inspect_vhdx_ntfs() {
+        let inspection = vhdx_source().inspect().unwrap();
+        assert_eq!(inspection.format, DiskFormat::Vhdx);
+        assert_eq!(inspection.layout.image_size, 8_000_000);
+
+        assert_eq!(inspection.layout.logical_sector_size, 512);
+        assert!(matches!(inspection.layout.table, PartitionTableKind::None));
+        assert_eq!(inspection.partitions.len(), 1);
+        assert_eq!(inspection.partitions[0].filesystem, FilesystemKind::Ntfs);
     }
 }

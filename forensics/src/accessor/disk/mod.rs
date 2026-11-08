@@ -5,3 +5,4 @@ pub(crate) mod metadata;
 pub(super) mod qcow;
 pub(super) mod raw;
 pub(crate) mod source;
+pub(super) mod vhdx;

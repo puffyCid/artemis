@@ -8,8 +8,10 @@ use crate::accessor::{
 use std::io::{Read, Seek, SeekFrom};
 use uuid::Uuid;
 
-/// Logical sector size for disk layout
-const LOGIC_SECTOR_SIZE: u64 = 512;
+/// Logical sector size for disk layout for 512 byte disk
+pub(super) const LOGIC_SECTOR_SIZE: u64 = 512;
+/// Logical sector size for disk layout for 4096 byte disk
+pub(super) const LOGIC_SECTOR_SIZE_4K: u64 = 4096;
 
 /// The partition layout of a logical disk
 #[derive(Debug, Clone, PartialEq)]
@@ -94,27 +96,43 @@ pub(crate) enum PartitionKind {
 }
 
 /// Parse the disk partition and determine the layout
-pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<DiskLayout> {
-    let sector = read_at(reader, 0, LOGIC_SECTOR_SIZE as usize)?;
+pub(super) fn inspect_disk<R: Read + Seek>(
+    reader: &mut R,
+    sector_size: u64,
+) -> AccessorResult<DiskLayout> {
+    if sector_size != LOGIC_SECTOR_SIZE && sector_size != LOGIC_SECTOR_SIZE_4K {
+        return Err(AccessorError::Volume {
+            reason: format!("Logical sector size {sector_size} is not 512 or 4096"),
+        });
+    }
+    let sector = read_at(reader, 0, sector_size as usize)?;
     let image_size = reader_length(reader)?;
 
     // We support logical NTFS images
     if is_logical_ntfs(&sector) {
         return Ok(DiskLayout {
-            logical_sector_size: LOGIC_SECTOR_SIZE,
+            logical_sector_size: sector_size,
             table: PartitionTableKind::None,
             image_size,
-            partitions: vec![logic_partition(image_size, PartitionKind::NtfsImage)],
+            partitions: vec![logic_partition(
+                image_size,
+                PartitionKind::NtfsImage,
+                sector_size,
+            )],
         });
     }
 
     // Ext4 filesystem first 1024 bytes will either be boot sector or zeros (logical image)
     if missing_boot_sig(&sector) && is_logical_ext4(reader, 0, image_size)? {
         return Ok(DiskLayout {
-            logical_sector_size: LOGIC_SECTOR_SIZE,
+            logical_sector_size: sector_size,
             table: PartitionTableKind::None,
             image_size,
-            partitions: vec![logic_partition(image_size, PartitionKind::Ext4Image)],
+            partitions: vec![logic_partition(
+                image_size,
+                PartitionKind::Ext4Image,
+                sector_size,
+            )],
         });
     }
 
@@ -127,24 +145,28 @@ pub(super) fn inspect_disk<R: Read + Seek>(reader: &mut R) -> AccessorResult<Dis
     }
 
     if mbr.is_protective_gpt() {
-        return inspect_gpt(reader, image_size);
+        return inspect_gpt(reader, image_size, sector_size);
     }
 
     Ok(DiskLayout {
-        logical_sector_size: LOGIC_SECTOR_SIZE,
+        logical_sector_size: sector_size,
         image_size,
         table: PartitionTableKind::Mbr {
             disk_id: mbr.disk_id,
         },
-        partitions: mbr_partitions(&mbr.entries)?,
+        partitions: mbr_partitions(&mbr.entries, sector_size)?,
     })
 }
 
 /// If we have GPT bootsector
 ///
 /// Then parse GPT data
-fn inspect_gpt<R: Read + Seek>(reader: &mut R, image_size: u64) -> AccessorResult<DiskLayout> {
-    let header_sector = read_at(reader, LOGIC_SECTOR_SIZE, LOGIC_SECTOR_SIZE as usize)?;
+fn inspect_gpt<R: Read + Seek>(
+    reader: &mut R,
+    image_size: u64,
+    sector_size: u64,
+) -> AccessorResult<DiskLayout> {
+    let header_sector = read_at(reader, sector_size, sector_size as usize)?;
     let header = parse_gpt_header(&header_sector)?;
 
     if header.current_lba != 1 {
@@ -162,7 +184,7 @@ fn inspect_gpt<R: Read + Seek>(reader: &mut R, image_size: u64) -> AccessorResul
         )));
     }
 
-    let array_offset = header.partition_array_offset(LOGIC_SECTOR_SIZE)?;
+    let array_offset = header.partition_array_offset(sector_size)?;
     let array_len = array_size as usize;
 
     let array_bytes = read_at(reader, array_offset, array_len)?;
@@ -170,11 +192,11 @@ fn inspect_gpt<R: Read + Seek>(reader: &mut R, image_size: u64) -> AccessorResul
 
     let mut partitions = Vec::with_capacity(entries.len());
     for entry in entries {
-        partitions.push(gpt_partition(&entry)?);
+        partitions.push(gpt_partition(&entry, sector_size)?);
     }
 
     Ok(DiskLayout {
-        logical_sector_size: LOGIC_SECTOR_SIZE,
+        logical_sector_size: sector_size,
         table: PartitionTableKind::Gpt {
             disk_guid: header.disk_guid,
         },
@@ -184,19 +206,22 @@ fn inspect_gpt<R: Read + Seek>(reader: &mut R, image_size: u64) -> AccessorResul
 }
 
 /// Loop through all MBR entries
-fn mbr_partitions(entries: &[MbrEntry]) -> AccessorResult<Vec<DiskPartition>> {
-    entries.iter().map(mbr_partition).collect()
+fn mbr_partitions(entries: &[MbrEntry], sector_size: u64) -> AccessorResult<Vec<DiskPartition>> {
+    entries
+        .iter()
+        .map(|entry| mbr_partition(entry, sector_size))
+        .collect()
 }
 
 /// Assemble `DiskPartition` from a MBR
-fn mbr_partition(entry: &MbrEntry) -> AccessorResult<DiskPartition> {
+fn mbr_partition(entry: &MbrEntry, sector_size: u64) -> AccessorResult<DiskPartition> {
     Ok(DiskPartition {
         id: partition_id(entry.slot as u32),
         slot: entry.slot as u32,
         start_lba: entry.start_lba as u64,
         sector_count: entry.sector_count as u64,
-        byte_offset: entry.byte_offset(LOGIC_SECTOR_SIZE),
-        byte_length: entry.byte_length(LOGIC_SECTOR_SIZE),
+        byte_offset: entry.byte_offset(sector_size),
+        byte_length: entry.byte_length(sector_size),
         kind: PartitionKind::Mbr {
             partition_type_raw: entry.partition_type_raw,
             partition_type: entry.partition_type.clone(),
@@ -206,20 +231,17 @@ fn mbr_partition(entry: &MbrEntry) -> AccessorResult<DiskPartition> {
 }
 
 /// Parse each identified GPT entry
-fn gpt_partition(entry: &GptEntry) -> AccessorResult<DiskPartition> {
-    let byte_length = entry.byte_length(LOGIC_SECTOR_SIZE)?;
-    let byte_offset = entry
-        .start_lba
-        .checked_mul(LOGIC_SECTOR_SIZE)
-        .ok_or_else(|| {
-            AccessorError::volume(format!("GPT partition {} byte offset overflow", entry.slot))
-        })?;
+fn gpt_partition(entry: &GptEntry, sector_size: u64) -> AccessorResult<DiskPartition> {
+    let byte_length = entry.byte_length(sector_size)?;
+    let byte_offset = entry.start_lba.checked_mul(sector_size).ok_or_else(|| {
+        AccessorError::volume(format!("GPT partition {} byte offset overflow", entry.slot))
+    })?;
 
     Ok(DiskPartition {
         id: partition_id(entry.slot),
         slot: entry.slot,
         start_lba: entry.start_lba,
-        sector_count: byte_length / LOGIC_SECTOR_SIZE,
+        sector_count: byte_length / sector_size,
         byte_offset,
         byte_length,
         kind: PartitionKind::Gpt {
@@ -234,12 +256,12 @@ fn gpt_partition(entry: &GptEntry) -> AccessorResult<DiskPartition> {
 /// If we have a logical disk
 ///
 /// Assemble a `DiskPartition` from logical disk
-fn logic_partition(length: u64, kind: PartitionKind) -> DiskPartition {
+fn logic_partition(length: u64, kind: PartitionKind, sector_size: u64) -> DiskPartition {
     DiskPartition {
         id: partition_id(0),
         slot: 0,
         start_lba: 0,
-        sector_count: length / LOGIC_SECTOR_SIZE,
+        sector_count: length / sector_size,
         byte_offset: 0,
         byte_length: length,
         kind,
@@ -248,9 +270,12 @@ fn logic_partition(length: u64, kind: PartitionKind) -> DiskPartition {
 
 /// Check for logical NTFS disk
 pub(super) fn is_logical_ntfs(sector: &[u8]) -> bool {
-    sector.len() >= 512
-        && &sector[3..11] == b"NTFS    "
-        && u16::from_le_bytes([sector[510], sector[511]]) == 0xaa55
+    if sector.len() < 512 || &sector[3..11] != b"NTFS    " {
+        return false;
+    }
+
+    let bytes_per_sector = u16::from_le_bytes([sector[11], sector[12]]);
+    matches!(bytes_per_sector, 256 | 512 | 1024 | 2048 | 4096)
 }
 
 /// Check for logical EXT4 disk
@@ -317,7 +342,7 @@ pub(super) fn read_at<R: Read + Seek>(
 mod tests {
     use crate::accessor::{
         bootsector::mbr::PartitionType,
-        disk::inspect::{PartitionKind, PartitionTableKind, inspect_disk},
+        disk::inspect::{LOGIC_SECTOR_SIZE, PartitionKind, PartitionTableKind, inspect_disk},
         error::AccessorError,
     };
     use std::{fs::File, io::Cursor, path::PathBuf};
@@ -391,7 +416,7 @@ mod tests {
         disk[440..444].copy_from_slice(&0x1234_5678u32.to_le_bytes());
         disk[446] = 0x80;
 
-        let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
         assert_eq!(layout.logical_sector_size, 512);
         assert_eq!(layout.table, PartitionTableKind::Mbr { disk_id: 305419896 });
         assert_eq!(layout.partitions.len(), 1);
@@ -420,7 +445,7 @@ mod tests {
     #[test]
     fn test_inspect_mbr_preserves_table_slot() {
         let disk = mbr_sector(&[(0, 0x83, 2048, 100), (2, 0x07, 4096, 200)]);
-        let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
 
         assert_eq!(layout.partitions.len(), 2);
         assert_eq!(layout.partitions[0].id, "Partition0");
@@ -432,7 +457,7 @@ mod tests {
     #[test]
     fn test_inspect_extended_mbr_is_rejected() {
         let disk = mbr_sector(&[(0, 0x0F, 100, 50)]);
-        let error = inspect_disk(&mut Cursor::new(disk)).unwrap_err();
+        let error = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap_err();
         assert!(matches!(
             error,
             AccessorError::Volume { reason } if reason.contains("Extended MBR")
@@ -443,9 +468,10 @@ mod tests {
     fn test_inspect_logic_ntfs() {
         let mut disk = vec![0u8; 1024];
         disk[3..11].copy_from_slice(b"NTFS    ");
+        disk[11..13].copy_from_slice(&512u16.to_le_bytes());
         disk[510] = 0x55;
         disk[511] = 0xAA;
-        let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
 
         assert_eq!(layout.table, PartitionTableKind::None);
         assert_eq!(layout.partitions.len(), 1);
@@ -467,7 +493,7 @@ mod tests {
         let partition_guid = Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap();
         let used = gpt_entry(2048, 4095, "Windows", type_guid, partition_guid, 1);
         let disk = gpt_disk(&used, disk_guid);
-        let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
 
         assert_eq!(layout.table, PartitionTableKind::Gpt { disk_guid });
         assert_eq!(layout.partitions.len(), 1);
@@ -501,7 +527,7 @@ mod tests {
 
     #[test]
     fn test_inspect_missing_boot_signature() {
-        let error = inspect_disk(&mut Cursor::new(vec![0u8; 512])).unwrap_err();
+        let error = inspect_disk(&mut Cursor::new(vec![0u8; 512]), LOGIC_SECTOR_SIZE).unwrap_err();
         assert!(matches!(
             error,
             AccessorError::Volume { reason } if reason.contains("Invalid MBR sig")
@@ -512,7 +538,7 @@ mod tests {
     fn test_inspect_logic_ext4() {
         let mut disk = vec![0u8; 2048];
         disk[1024 + 56..1024 + 58].copy_from_slice(&0xef53u16.to_le_bytes());
-        let layout = inspect_disk(&mut Cursor::new(disk)).unwrap();
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
 
         assert_eq!(layout.table, PartitionTableKind::None);
         assert_eq!(layout.partitions.len(), 1);
@@ -533,7 +559,7 @@ mod tests {
 
         let mut file = File::open(&path).unwrap();
         let size = file.metadata().unwrap().len();
-        let layout = inspect_disk(&mut file).unwrap();
+        let layout = inspect_disk(&mut file, LOGIC_SECTOR_SIZE).unwrap();
 
         assert_eq!(layout.table, PartitionTableKind::None);
         assert_eq!(layout.image_size, size);
@@ -550,10 +576,68 @@ mod tests {
 
     #[test]
     fn test_inspect_zeros_past_superblock_offset_is_invalid_mbr() {
-        let error = inspect_disk(&mut Cursor::new(vec![0u8; 2048])).unwrap_err();
+        let error = inspect_disk(&mut Cursor::new(vec![0u8; 2048]), LOGIC_SECTOR_SIZE).unwrap_err();
         assert!(matches!(
             error,
             AccessorError::Volume { reason } if reason.contains("Invalid MBR sig")
+        ));
+    }
+
+    #[test]
+    fn test_inspect_gpt_uses_4096_sectors() {
+        let sector_size = 4096_u64;
+        let type_guid = Uuid::parse_str("ebd0a0a2-b9e5-4433-87c0-68b6b72699c7").unwrap();
+        let disk_guid = Uuid::parse_str("11111111-2222-3333-4444-555555555555").unwrap();
+        let partition_guid = Uuid::parse_str("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee").unwrap();
+
+        let mut disk = vec![0_u8; sector_size as usize * 3];
+        let mbr = mbr_sector(&[(0, 0xEE, 1, 100)]);
+        disk[..mbr.len()].copy_from_slice(&mbr);
+
+        let header = gpt_header(2, 2, disk_guid);
+        let header_at = sector_size as usize;
+        disk[header_at..header_at + header.len()].copy_from_slice(&header);
+
+        let entry = gpt_entry(34, 41, "Windows", type_guid, partition_guid, 0);
+        let array_at = 2 * sector_size as usize;
+        disk[array_at + 128..array_at + 256].copy_from_slice(&entry);
+
+        let layout = inspect_disk(&mut Cursor::new(disk), sector_size).unwrap();
+        assert_eq!(layout.logical_sector_size, sector_size);
+        assert!(matches!(layout.table, PartitionTableKind::Gpt { .. }));
+        assert_eq!(layout.partitions.len(), 1);
+
+        let partition = &layout.partitions[0];
+
+        assert_eq!(partition.id, "Partition1");
+        assert_eq!(partition.start_lba, 34);
+        assert_eq!(partition.sector_count, 8);
+        assert_eq!(partition.byte_offset, 34 * sector_size);
+        assert_eq!(partition.byte_length, 8 * sector_size);
+    }
+
+    #[test]
+    fn test_inspect_rejects_unsupported_sector_size() {
+        let error = inspect_disk(&mut Cursor::new(vec![0_u8; 512]), 256).unwrap_err();
+        assert!(matches!(
+            error,
+            AccessorError::Volume { reason } if reason.contains("not 512 or 4096")
+        ));
+    }
+
+    #[test]
+    fn test_inspect_logic_ntfs_without_boot_signature() {
+        let mut disk = vec![0u8; 1024];
+        disk[3..11].copy_from_slice(b"NTFS    ");
+        disk[11..13].copy_from_slice(&512u16.to_le_bytes());
+
+        let layout = inspect_disk(&mut Cursor::new(disk), LOGIC_SECTOR_SIZE).unwrap();
+
+        assert_eq!(layout.table, PartitionTableKind::None);
+        assert_eq!(layout.partitions.len(), 1);
+        assert!(matches!(
+            layout.partitions[0].kind,
+            PartitionKind::NtfsImage
         ));
     }
 }

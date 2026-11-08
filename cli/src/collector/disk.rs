@@ -104,9 +104,9 @@ mod tests {
         path
     }
 
-    fn output() -> OutputConfig {
+    fn output(name: &str) -> OutputConfig {
         OutputConfig {
-            name: String::from("disk_cli"),
+            name: name.to_string(),
             directory: PathBuf::from("./tmp"),
             format: OutputFormat::Json,
             compress: false,
@@ -116,8 +116,8 @@ mod tests {
         }
     }
 
-    fn json_contains(stem: &str, expected: &str) {
-        let output_dir = PathBuf::from("./tmp/disk_cli");
+    fn json_contains(name: &str, stem: &str, expected: &str) {
+        let output_dir = PathBuf::from("./tmp").join(name);
         let mut json = String::new();
 
         for entry in fs::read_dir(&output_dir).unwrap() {
@@ -129,6 +129,12 @@ mod tests {
         }
 
         assert!(json.contains(expected), "{stem} missing {expected}");
+    }
+
+    fn vhdx_image() -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("../forensics/tests/test_data/disks/vhdx/ntfs.vhdx");
+        path
     }
 
     #[test]
@@ -168,13 +174,67 @@ mod tests {
         ];
 
         for command in &commands {
-            run_disk(command, output());
+            run_disk(command, output("disk_cli"));
         }
 
-        json_contains("disk_partition_", "Partition0");
-        json_contains("disk_boot_", "\"boot_type\":\"none\"");
-        json_contains("disk_filesystem_ntfs_", "\"volume_name\":\"test\"");
-        json_contains("disk_image_", "\"format\":\"Raw\"");
+        json_contains("disk_cli", "disk_partition_", "Partition0");
+        json_contains("disk_cli", "disk_boot_", "\"boot_type\":\"none\"");
+        json_contains(
+            "disk_cli",
+            "disk_filesystem_ntfs_",
+            "\"volume_name\":\"test\"",
+        );
+        json_contains("disk_cli", "disk_image_", "\"format\":\"Raw\"");
+    }
+
+    #[test]
+    fn test_run_disk_vhdx_commands() {
+        let source = format!("vhdx:{}", vhdx_image().display());
+        let _ = fs::remove_dir_all("./tmp/disk_cli_vhdx");
+
+        let commands = [
+            DiskCommands::Partition {
+                source: source.clone(),
+                output: super::DiskOutput {
+                    output_dir: String::from("./tmp"),
+                    compress: false,
+                },
+            },
+            DiskCommands::Bootloader {
+                source: source.clone(),
+                output: super::DiskOutput {
+                    output_dir: String::from("./tmp"),
+                    compress: false,
+                },
+            },
+            DiskCommands::Filesystem {
+                source: source.clone(),
+                output: super::DiskOutput {
+                    output_dir: String::from("./tmp"),
+                    compress: false,
+                },
+            },
+            DiskCommands::Image {
+                source,
+                output: super::DiskOutput {
+                    output_dir: String::from("./tmp"),
+                    compress: false,
+                },
+            },
+        ];
+
+        for command in &commands {
+            run_disk(command, output("disk_cli_vhdx"));
+        }
+
+        json_contains("disk_cli_vhdx", "disk_partition_", "Partition0");
+        json_contains("disk_cli_vhdx", "disk_boot_", "\"boot_type\":\"none\"");
+        json_contains(
+            "disk_cli_vhdx",
+            "disk_filesystem_ntfs_",
+            "\"volume_name\":\"test\"",
+        );
+        json_contains("disk_cli_vhdx", "disk_image_", "\"format\":\"Vhdx\"");
     }
 
     #[test]
@@ -187,7 +247,7 @@ mod tests {
                     compress: false,
                 },
             },
-            output(),
+            output("disk_cli_relative"),
         );
     }
 }

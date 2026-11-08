@@ -1,12 +1,12 @@
 use crate::{
     accessor::{
         error::AccessorResult,
-        filesystem::ext4::format::{
-            checksum::crc32c_check,
-            superblock::{SuperBlock, ext4_error},
-        },
+        filesystem::ext4::format::superblock::{SuperBlock, ext4_error},
     },
-    utils::nom_helper::{nom_u16, nom_u32},
+    utils::{
+        checksum::crc32c_check,
+        nom_helper::{nom_u16, nom_u32},
+    },
 };
 
 /// Limts for one `Extent` node

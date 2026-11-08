@@ -1,4 +1,6 @@
-use crate::accessor::disk::{format::DiskFormat, qcow::reader::QcowImageMetadata};
+use crate::accessor::disk::{
+    format::DiskFormat, qcow::reader::QcowImageMetadata, vhdx::reader::VhdxImageMetadata,
+};
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -20,4 +22,6 @@ pub(crate) enum DiskImageDetails {
     Raw,
     /// QCOW metadata
     Qcow(QcowImageMetadata),
+    /// VHDX metadata
+    Vhdx(VhdxImageMetadata),
 }

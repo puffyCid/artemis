@@ -90,6 +90,7 @@ pub(crate) fn source_id_from_location(location: &Location) -> AccessorResult<Sou
         }
         Scheme::Raw => disk_source_id(location, DiskFormat::Raw),
         Scheme::Qcow => disk_source_id(location, DiskFormat::Qcow),
+        Scheme::Vhdx => disk_source_id(location, DiskFormat::Vhdx),
     }
 }
 

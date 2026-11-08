@@ -1,8 +1,10 @@
 use crate::accessor::{
     disk::{
+        inspect::LOGIC_SECTOR_SIZE,
         metadata::DiskImageMetadata,
         qcow::{image::QcowDisk, reader::QcowReader},
         raw::RawDisk,
+        vhdx::{image::VhdxDisk, reader::VhdxReader},
     },
     error::AccessorResult,
 };
@@ -20,16 +22,22 @@ pub(crate) enum DiskFormat {
     Raw,
     /// QCOW disk image
     Qcow,
+    /// VHDX disk image
+    Vhdx,
 }
 
 /// Reader for one logical disk. Each container format adds a variant.
+#[derive(Debug)]
 pub(super) enum DiskReader {
     /// Reader for a `Raw` disk image
     ///
     /// We can just use a normal `BufReader` since raw disk files
     /// have no disk format
     Raw(BufReader<File>),
+    /// Reader for a `QCOW` disk image
     Qcow(Box<QcowReader<File>>),
+    /// Reader for a `VHDX` disk image
+    Vhdx(Box<VhdxReader<File>>),
 }
 
 impl DiskFormat {
@@ -40,6 +48,9 @@ impl DiskFormat {
             Self::Qcow => Ok(DiskReader::Qcow(Box::new(
                 QcowDisk::new(path)?.open_reader()?,
             ))),
+            Self::Vhdx => Ok(DiskReader::Vhdx(Box::new(
+                VhdxDisk::new(path)?.open_reader()?,
+            ))),
         }
     }
 
@@ -48,6 +59,7 @@ impl DiskFormat {
         match self {
             Self::Raw => "raw",
             Self::Qcow => "qcow",
+            Self::Vhdx => "vhdx",
         }
     }
 
@@ -56,6 +68,17 @@ impl DiskFormat {
         match self {
             Self::Raw => RawDisk::new(path)?.image(),
             Self::Qcow => QcowDisk::new(path)?.image(),
+            Self::Vhdx => VhdxDisk::new(path)?.image(),
+        }
+    }
+}
+
+impl DiskReader {
+    /// Logical sector size of a disk in bytes
+    pub(super) fn logical_sector_size(&self) -> u64 {
+        match self {
+            Self::Raw(_) | Self::Qcow(_) => LOGIC_SECTOR_SIZE,
+            Self::Vhdx(reader) => reader.logical_sector_size() as u64,
         }
     }
 }
@@ -76,6 +99,7 @@ impl Read for DiskReader {
         match self {
             Self::Raw(reader) => reader.read(buf),
             Self::Qcow(reader) => reader.read(buf),
+            Self::Vhdx(reader) => reader.read(buf),
         }
     }
 }
@@ -85,6 +109,7 @@ impl Seek for DiskReader {
         match self {
             Self::Raw(reader) => reader.seek(pos),
             Self::Qcow(reader) => reader.seek(pos),
+            Self::Vhdx(reader) => reader.seek(pos),
         }
     }
 }

@@ -82,7 +82,7 @@ const fn crc16_table() -> [u16; 256] {
 
 #[cfg(test)]
 mod tests {
-    use crate::accessor::filesystem::ext4::format::checksum::{crc16_check, crc32c_check};
+    use crate::utils::checksum::{crc16_check, crc32c_check};
 
     #[test]
     fn test_crc32c_check() {

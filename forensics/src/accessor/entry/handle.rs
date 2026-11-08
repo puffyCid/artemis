@@ -146,6 +146,7 @@ impl FileHandle {
             FileLocator::Disk { format, .. } => match format {
                 DiskFormat::Raw => Scheme::Raw,
                 DiskFormat::Qcow => Scheme::Qcow,
+                DiskFormat::Vhdx => Scheme::Vhdx,
             },
         }
     }
@@ -250,6 +251,7 @@ impl DirHandle {
             DirLocator::Disk { format, .. } => match format {
                 DiskFormat::Raw => Scheme::Raw,
                 DiskFormat::Qcow => Scheme::Qcow,
+                DiskFormat::Vhdx => Scheme::Vhdx,
             },
         }
     }

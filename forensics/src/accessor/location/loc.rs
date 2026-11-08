@@ -44,7 +44,7 @@ impl Location {
                         parse_schemed_location(input, None)
                     }
                 }
-                Scheme::Raw | Scheme::Qcow => parse_disk_location(input),
+                Scheme::Raw | Scheme::Qcow | Scheme::Vhdx => parse_disk_location(input),
             };
         }
 
@@ -102,7 +102,7 @@ impl Location {
         // 'zip:test.zip!*' or in future 'raw:image.raw!/users/*/*.txt'
         if matches!(
             location_scheme(input),
-            Some(Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4)
+            Some(Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 | Scheme::Vhdx)
         ) && let Some((source_path, inner_glob)) = input.split_once('!')
         {
             let (directory, pattern) = Self::parse_glob_pattern(inner_glob)?;
@@ -265,7 +265,7 @@ fn parse_source_path(scheme: Scheme, remainder: &str) -> AccessorResult<Option<S
             }
             Ok(Some(SourcePath::new(PathBuf::from(remainder))))
         }
-        Scheme::Raw | Scheme::Qcow => {
+        Scheme::Raw | Scheme::Qcow | Scheme::Vhdx => {
             if remainder.is_empty() || !is_absolute_host_path(remainder) {
                 return Err(AccessorError::location(
                     remainder,
@@ -352,7 +352,9 @@ fn parse_inner_path(scheme: Scheme, remainder: &str) -> AccessorResult<InnerPath
             }
             Ok(InnerPath::new(PathBuf::from(remainder)))
         }
-        Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 => Ok(InnerPath::empty()),
+        Scheme::Zip | Scheme::Raw | Scheme::Qcow | Scheme::Ext4 | Scheme::Vhdx => {
+            Ok(InnerPath::empty())
+        }
     }
 }
 
@@ -781,6 +783,17 @@ mod tests {
         assert_eq!(pattern, "*.txt");
         assert_eq!(loc.scheme, Scheme::Qcow);
         assert_eq!(loc.source.unwrap().display(), "/tmp/image.qcow");
+        assert_eq!(loc.inner_path.display(), "hello");
+    }
+
+    #[test]
+    fn test_glob_vhdx_partition_directory() {
+        let (loc, pattern) =
+            Location::split_glob_pattern("vhdx:/tmp/ntfs.vhdx!hello/*.txt").unwrap();
+
+        assert_eq!(pattern, "*.txt");
+        assert_eq!(loc.scheme, Scheme::Vhdx);
+        assert_eq!(loc.source.unwrap().display(), "/tmp/ntfs.vhdx");
         assert_eq!(loc.inner_path.display(), "hello");
     }
 

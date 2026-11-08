@@ -101,6 +101,7 @@ pub(super) fn disk_format(scheme: Scheme) -> Result<DiskFormat, AccessorError> {
     match scheme {
         Scheme::Raw => Ok(DiskFormat::Raw),
         Scheme::Qcow => Ok(DiskFormat::Qcow),
+        Scheme::Vhdx => Ok(DiskFormat::Vhdx),
         Scheme::Host | Scheme::Ntfs | Scheme::Zip | Scheme::Ext4 => {
             Err(AccessorError::UnsupportedScheme {
                 scheme: scheme.as_str().to_string(),

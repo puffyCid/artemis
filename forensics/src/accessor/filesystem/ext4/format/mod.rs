@@ -1,4 +1,3 @@
-pub(super) mod checksum;
 pub(super) mod directory;
 pub(super) mod extent;
 pub(super) mod group;
