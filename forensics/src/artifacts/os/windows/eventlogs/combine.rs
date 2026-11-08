@@ -40,7 +40,7 @@ pub(crate) fn add_message_strings(
     message.provider = get_provider(&log.data)?.to_string();
     let guid_opt = get_guid(&log.data);
     message.guid = match guid_opt {
-        Some(result) => result.to_lowercase().replace(['{', '}'], ""),
+        Some(result) => result.to_lowercase(),
         None => String::new(),
     };
 

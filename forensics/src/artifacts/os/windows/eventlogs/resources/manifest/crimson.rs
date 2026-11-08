@@ -37,7 +37,7 @@ pub(crate) fn parse_crimson(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, 
             definitions: HashMap::new(),
         };
 
-        templates.insert(guid, template);
+        templates.insert(format!("{{{}}}", guid.to_lowercase()), template);
         input = remaining;
         count += 1;
     }
