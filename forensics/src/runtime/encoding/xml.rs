@@ -19,7 +19,7 @@ pub(crate) fn js_read_xml(
     let xml = match read_xml_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to create XML reader: {err:?}");
+            let issue = format!("Failed to get FileHandle to XML: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
@@ -55,7 +55,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
 
         match value {
             Event::Start(bytes_start) => {
-                let tag_name = bytes_start.name().0.to_string();
+                let tag_name = bytes_start.name().into_inner().to_string();
                 let mut current_map = Map::new();
                 for attr_value in bytes_start.attributes().flatten() {
                     let key = format!("@{}", attr_value.key.0);
