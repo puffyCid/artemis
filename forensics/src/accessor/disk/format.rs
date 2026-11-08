@@ -27,6 +27,7 @@ pub(crate) enum DiskFormat {
 }
 
 /// Reader for one logical disk. Each container format adds a variant.
+#[derive(Debug)]
 pub(super) enum DiskReader {
     /// Reader for a `Raw` disk image
     ///

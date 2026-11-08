@@ -69,7 +69,7 @@ impl DiskImage for VhdxDisk {
 
     fn open_reader(&self) -> AccessorResult<Self::Reader> {
         info!(
-            "Opening VHDX file '{}' as DiskFormat: '{:?}",
+            "Opening VHDX file '{}' as DiskFormat: '{:?}'",
             self.path().as_os_str().display(),
             self.format()
         );

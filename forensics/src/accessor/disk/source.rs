@@ -40,6 +40,7 @@ use std::{
 use tracing::info;
 
 /// The opened disk image
+#[derive(Debug)]
 pub(crate) struct DiskSource {
     /// Format of the disk image
     format: DiskFormat,
@@ -70,7 +71,6 @@ impl DiskSource {
         path: impl Into<PathBuf>,
     ) -> AccessorResult<Self> {
         let path = path.into();
-        format.open_reader(&path)?;
 
         Ok(Self {
             format,
@@ -1911,8 +1911,12 @@ mod tests {
 
     #[test]
     fn test_open_qcow_rejects_raw_image() {
-        let result = DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, test_image());
-        assert!(matches!(result, Err(AccessorError::Volume { .. })));
+        let result =
+            DiskSource::open(&AccessorConfig::default(), DiskFormat::Qcow, test_image()).unwrap();
+        let err = result.open_disk().unwrap_err();
+        assert!(
+            matches!(err, AccessorError::Volume { reason,.. } if reason == "Invalid QCOW magic [235, 82, 144, 78]. Wanted QFI\\xfb")
+        )
     }
 
     #[test]
