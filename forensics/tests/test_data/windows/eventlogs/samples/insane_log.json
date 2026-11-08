@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-Resource-Exhaustion-Detector",
-                        "Guid": "9988748E-C2E8-4054-85F6-0C3E1CAD2470"
+                        "Guid": "{9988748e-c2e8-4054-85f6-0c3e1cad2470}"
                     }
                 },
                 "EventID": 2004,

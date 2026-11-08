@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-AppReadiness",
-                        "Guid": "F0BE35F8-237B-4814-86B5-ADE51192E503"
+                        "Guid": "{f0be35f8-237b-4814-86b5-ade51192e503}"
                     }
                 },
                 "EventID": 103,

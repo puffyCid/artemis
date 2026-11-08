@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-Servicing",
-                        "Guid": "BD12F3B8-FC40-4A61-A307-B7A013A069C1"
+                        "Guid": "{bd12f3b8-fc40-4a61-a307-b7a013a069c1}"
                     }
                 },
                 "EventID": 2,

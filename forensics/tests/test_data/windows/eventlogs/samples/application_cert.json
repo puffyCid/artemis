@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-CertificateServicesClient-CertEnroll",
-                        "Guid": "{54164045-7C50-4905-963F-E5BC1EEF0CCA}",
+                        "Guid": "{54164045-7c50-4905-963f-e5bc1eef0cca}",
                         "EventSourceName": "CertEnroll"
                     }
                 },

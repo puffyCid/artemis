@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-Configuration-Change-Monitor",
-                        "Guid": "A148CF02-BE6D-5F08-94E3-B68DE60D8422"
+                        "Guid": "{a148cf02-be6d-5f08-94e3-b68de60d8422}"
                     }
                 },
                 "EventID": 1,

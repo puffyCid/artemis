@@ -62,7 +62,7 @@ mod tests {
 
         assert_eq!(
             result
-                .get("9799276c-fb04-47e8-845e-36946045c218")
+                .get("{9799276c-fb04-47e8-845e-36946045c218}")
                 .unwrap()
                 .offset,
             36

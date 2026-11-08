@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-Store",
-                        "Guid": "9C2A37F3-E5FD-5CAE-BCD1-43DAFEEE1FF0"
+                        "Guid": "{9c2a37f3-e5fd-5cae-bcd1-43dafeee1ff0}"
                     }
                 },
                 "EventID": 8001,
