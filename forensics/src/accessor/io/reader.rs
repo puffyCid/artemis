@@ -1,9 +1,6 @@
 use crate::accessor::location::scheme::{Scheme, location_scheme, strip_scheme};
 use std::{
-    fmt::Debug,
-    fs::File,
-    io::{self, Cursor, Read, Seek, SeekFrom},
-    path::Path,
+    fmt::Debug, fs::File, io::{self, BufRead, BufReader, Cursor, Read, Seek, SeekFrom}, path::Path,
 };
 
 /// Combines Read + Seek + Debug into a single trait object
@@ -194,7 +191,7 @@ pub(crate) fn extension_from_filename(name: &str) -> String {
 #[derive(Debug)]
 pub(crate) enum SourceReader {
     /// `AccessorReader` for a file on a live host
-    Host(File),
+    Host(BufReader<File>),
     /// `AccessorReader` for a file read into memory
     Memory(Cursor<Vec<u8>>),
     /// Stream a large file without reading the entire file into memory
@@ -230,6 +227,16 @@ impl Seek for AccessorReader {
     }
 }
 
+impl BufRead for AccessorReader {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        todo!()
+    }
+
+    fn consume(&mut self, amount: usize) {
+        todo!()
+    }
+}
+
 impl AccessorReader {
     /// Read all bytes from current position
     pub(crate) fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
@@ -259,7 +266,7 @@ impl AccessorReader {
     /// Create host file reader
     pub(crate) fn host(file: File, location: ReaderLocation) -> Self {
         Self {
-            source: SourceReader::Host(file),
+            source: SourceReader::Host(BufReader::new( file)),
             location,
         }
     }

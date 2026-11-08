@@ -1,5 +1,9 @@
 use crate::{
-    runtime::helper::string_arg,
+    accessor::access::Accessor,
+    runtime::{
+        filesystem::accessor::return_file_handle_object,
+        helper::{string_arg, value_arg},
+    },
     utils::{encoding::read_xml, strings::extract_utf8_string},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
@@ -13,20 +17,23 @@ pub(crate) fn js_read_xml(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
+    let value = value_arg(args, 0, context)?;
+    let handle = return_file_handle_object(value)?;
 
-    // read_xml supports UTF16 and UTF8 encodings
-    let xml = match read_xml(&path) {
+    let mut reader = match Accessor::with_defaults().open_reader_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Could not get read xml at '{path}': {err:?}");
+            let issue = format!("Failed to create XML reader: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    let xml_json = xml_to_json(&xml)?;
-    let value = JsValue::from_json(&xml_json, context)?;
 
-    Ok(value)
+    todo!("Make bufread");
+   // let xml_json = xml_to_json(&xml)?;
+    //let value = JsValue::from_json(&xml_json, context)?;
+
+    //Ok(value)
+    
 }
 
 // Parse XML string into generic serde Value
