@@ -411,7 +411,6 @@ function main() {
     console.log(JSON.stringify(results));
     return;
   }
-  console.log(results.length);
   for (const entry of results) {
     if (entry.meta.kind !== "File" /* File */) {
       continue;
