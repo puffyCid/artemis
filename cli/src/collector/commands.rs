@@ -72,9 +72,6 @@ pub(crate) enum CommandArgs {
         /// Alternative full path to an EventLog
         #[arg(long, default_value = None)]
         alt_file: Option<String>,
-        /// Alternative directory containing EventLog files
-        #[arg(long, default_value = None)]
-        alt_dir: Option<String>,
         /// Alternative full path to template file. Can create one using `--dump_templates`
         #[arg(long, default_value = None)]
         alt_template_file: Option<String>,

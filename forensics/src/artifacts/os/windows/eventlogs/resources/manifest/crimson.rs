@@ -37,7 +37,7 @@ pub(crate) fn parse_crimson(data: &[u8]) -> nom::IResult<&[u8], HashMap<String, 
             definitions: HashMap::new(),
         };
 
-        templates.insert(guid, template);
+        templates.insert(format!("{{{}}}", guid.to_lowercase()), template);
         input = remaining;
         count += 1;
     }
@@ -62,7 +62,7 @@ mod tests {
 
         assert_eq!(
             result
-                .get("9799276c-fb04-47e8-845e-36946045c218")
+                .get("{9799276c-fb04-47e8-845e-36946045c218}")
                 .unwrap()
                 .offset,
             36

@@ -275,14 +275,12 @@ fn setup_artifact(artifact: &CommandArgs) -> Artifacts {
         CommandArgs::Eventlogs {
             alt_file,
             include_templates,
-            alt_dir,
             alt_template_file,
             dump_templates,
             only_templates,
         } => {
             let options = EventLogsOptions {
                 alt_file: alt_file.clone(),
-                alt_dir: alt_dir.clone(),
                 alt_template_file: alt_template_file.clone(),
                 include_templates: *include_templates,
                 dump_templates: *dump_templates,
@@ -720,7 +718,6 @@ mod tests {
                 alt_file: None,
                 include_templates: false,
                 dump_templates: false,
-                alt_dir: None,
                 alt_template_file: None,
                 only_templates: false,
             }),

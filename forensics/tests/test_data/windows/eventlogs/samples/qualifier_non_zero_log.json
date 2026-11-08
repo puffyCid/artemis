@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-Security-SPP",
-                        "Guid": "{E23B33B0-C8C9-472C-A5F9-F2BDFEA0F156}",
+                        "Guid": "{e23b33b0-c8c9-472c-a5f9-f2bdfea0f156}",
                         "EventSourceName": "Software Protection Platform Service"
                     }
                 },

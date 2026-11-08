@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-TerminalServices-ClientActiveXCore",
-                        "Guid": "28AA95BB-D444-4719-A36F-40462168127E"
+                        "Guid": "{28aa95bb-d444-4719-a36f-40462168127e}"
                     }
                 },
                 "EventID": 1024,

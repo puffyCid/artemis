@@ -40,7 +40,7 @@ pub(crate) fn add_message_strings(
     message.provider = get_provider(&log.data)?.to_string();
     let guid_opt = get_guid(&log.data);
     message.guid = match guid_opt {
-        Some(result) => result.to_lowercase().replace(['{', '}'], ""),
+        Some(result) => result.to_lowercase(),
         None => String::new(),
     };
 
@@ -1174,7 +1174,7 @@ mod tests {
                     assert_eq!(message.source_name, "");
                     assert_eq!(message.computer, "DESKTOP-9FSUKAJ");
                     assert_eq!(message.generated, "2024-08-03T06:50:04.072688000Z");
-                    assert_eq!(message.guid, "9988748e-c2e8-4054-85f6-0c3e1cad2470");
+                    assert_eq!(message.guid, "{9988748e-c2e8-4054-85f6-0c3e1cad2470}");
                     assert_eq!(message.event_id, 2004);
                     assert_eq!(message.level, EventLevel::Warning);
                     assert_eq!(
@@ -1349,7 +1349,7 @@ mod tests {
         let log: EventLogRecord = serde_json::from_slice(&data).unwrap();
 
         let result = get_guid(&log.data).unwrap();
-        assert_eq!(result, "BD12F3B8-FC40-4A61-A307-B7A013A069C1");
+        assert_eq!(result, "{bd12f3b8-fc40-4a61-a307-b7a013a069c1}");
     }
 
     #[test]

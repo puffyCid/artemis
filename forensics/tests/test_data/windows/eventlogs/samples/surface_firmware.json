@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Surface-SurfaceCFUOverHid",
-                        "Guid": "48589A65-4EC1-45EC-BDC1-5693DF02043C"
+                        "Guid": "{48589a65-4ec1-45ec-bdc1-5693df02043c}"
                     }
                 },
                 "EventID": 7,

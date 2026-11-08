@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-SMBServer",
-                        "Guid": "D48CE617-33A2-4BC3-A5C7-11AA4F29619E"
+                        "Guid": "{d48ce617-33a2-4bc3-a5c7-11aa4f29619e}"
                     }
                 },
                 "EventID": 1034,

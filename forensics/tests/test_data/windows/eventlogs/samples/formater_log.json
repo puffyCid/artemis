@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-Perflib",
-                        "Guid": "13B197BD-7CEE-4B4E-8DD0-59314CE374CE"
+                        "Guid": "{13b197bd-7cee-4b4e-8dd0-59314ce374ce}"
                     }
                 },
                 "EventID": 1008,

@@ -10,7 +10,7 @@
                 "Provider": {
                     "#attributes": {
                         "Name": "Microsoft-Windows-StorPort",
-                        "Guid": "C4636A1E-7986-4646-BF10-7BC3B4A76E8E"
+                        "Guid": "{c4636a1e-7986-4646-bf10-7bc3b4a76e8e}"
                     }
                 },
                 "EventID": 504,

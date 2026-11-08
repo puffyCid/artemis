@@ -129,7 +129,7 @@ mod tests {
         let (_, manifest) = parse_manifest(&data).unwrap();
 
         let value = manifest
-            .get("9799276c-fb04-47e8-845e-36946045c218")
+            .get("{9799276c-fb04-47e8-845e-36946045c218}")
             .unwrap();
         assert_eq!(value.offset, 36);
         assert_eq!(value.definitions.len(), 16);
@@ -145,7 +145,7 @@ mod tests {
         let data = read_file(test_location.to_str().unwrap()).unwrap();
         let (_, manifest) = parse_manifest(&data).unwrap();
         let value = manifest
-            .get("c8517e09-bea2-5bb6-bef3-50b4c91c431e")
+            .get("{c8517e09-bea2-5bb6-bef3-50b4c91c431e}")
             .unwrap();
         assert_eq!(value.offset, 36);
         assert_eq!(value.definitions.len(), 7);
@@ -167,7 +167,7 @@ mod tests {
         let (_, manifest) = parse_manifest(&data).unwrap();
 
         let value = manifest
-            .get("bd12f3b8-fc40-4a61-a307-b7a013a069c1")
+            .get("{bd12f3b8-fc40-4a61-a307-b7a013a069c1}")
             .unwrap();
 
         assert_eq!(value.offset, 36);

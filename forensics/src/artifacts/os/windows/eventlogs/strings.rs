@@ -359,10 +359,7 @@ fn registry_paths(
                 provider.parameter_file.push(value.data.clone());
             }
         }
-        providers.insert(
-            provider.name.to_lowercase().replace(['{', '}'], ""),
-            provider,
-        );
+        providers.insert(provider.name.to_lowercase(), provider);
     }
 }
 
