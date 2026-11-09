@@ -23,7 +23,7 @@ pub(crate) fn parse_pe_file(path: &str) -> Result<PeInfo, pelite::Error> {
 
 pub(crate) fn parse_pe_reader(reader: &mut AccessorReader) -> Result<PeInfo, pelite::Error> {
     let mut buff = [0; 2];
-    if reader.read(&mut buff).is_err() {
+    if reader.read_exact(&mut buff).is_err() {
         return Err(pelite::Error::Invalid);
     }
 

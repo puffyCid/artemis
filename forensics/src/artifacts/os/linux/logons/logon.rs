@@ -28,22 +28,11 @@ pub(crate) fn logon_reader(
     evidence: &FileHandle,
 ) -> Vec<Logon> {
     let mut logon_buff = [0; 384];
-    let mut logon_size = logon_buff.len();
     let mut logons = Vec::new();
 
-    while logon_size == logon_buff.len() {
-        let read_result = reader.read(&mut logon_buff);
-        let read_size = match read_result {
-            Ok(result) => result,
-            Err(err) => {
-                error!("Could not read logon data: {err:?}");
-                break;
-            }
-        };
-        logon_size = read_size;
-
-        // Check to make we read 384 bytes
-        if logon_size != logon_buff.len() {
+    loop {
+        if let Err(err) = reader.read_exact(&mut logon_buff) {
+            error!("Could not read logon data: {err:?}");
             break;
         }
 

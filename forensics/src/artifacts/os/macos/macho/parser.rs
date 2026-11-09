@@ -35,7 +35,7 @@ pub(crate) fn parse_macho_reader(
 ) -> Result<Vec<MachoInfo>, MachoError> {
     let mut buff = [0; 4];
 
-    if reader.read(&mut buff).is_err() {
+    if reader.read_exact(&mut buff).is_err() {
         return Err(MachoError::Buffer);
     }
     let fat_binary = [202, 254, 186, 190];

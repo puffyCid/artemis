@@ -110,7 +110,7 @@ pub(crate) fn parse_long_value<'a>(
             )));
         }
         let mut buf = vec![0; page_lv_data.len()];
-        if let Err(err) = reader.read(&mut buf) {
+        if let Err(err) = reader.read_exact(&mut buf) {
             error!("Failed to read bytes for long value child data: {err:?}");
             return Err(nom::Err::Failure(nom::error::Error::new(
                 &[],

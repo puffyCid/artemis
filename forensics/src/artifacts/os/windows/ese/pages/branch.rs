@@ -141,7 +141,7 @@ impl BranchPage {
                 )));
             }
             let mut buf = vec![0; data.len()];
-            if let Err(err) = reader.read(&mut buf) {
+            if let Err(err) = reader.read_exact(&mut buf) {
                 error!("Could not read child page data: {err:?}");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     &[],
@@ -229,7 +229,7 @@ impl BranchPage {
                 )));
             }
             let mut buf = vec![0; page_branch_data.len()];
-            if let Err(err) = reader.read(&mut buf) {
+            if let Err(err) = reader.read_exact(&mut buf) {
                 error!("Failed to read bytes for child data: {err:?}");
                 return Err(nom::Err::Failure(nom::error::Error::new(
                     &[],

@@ -33,7 +33,7 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, ParseError> {
 
     // Read a few bytes to check for magic signature
     let mut buff = [0; 4];
-    if reader.read(&mut buff).is_err() {
+    if reader.read_exact(&mut buff).is_err() {
         return Err(elf::ParseError::IOError(Error::new(
             ErrorKind::InvalidInput,
             "",
@@ -72,7 +72,7 @@ pub(crate) fn parse_elf_file(path: &str) -> Result<ElfInfo, ParseError> {
 pub(crate) fn parse_elf_reader(reader: &mut AccessorReader) -> Result<ElfInfo, ParseError> {
     // Read a few bytes to check for magic signature
     let mut buff = [0; 4];
-    if reader.read(&mut buff).is_err() {
+    if reader.read_exact(&mut buff).is_err() {
         return Err(elf::ParseError::IOError(Error::new(
             ErrorKind::InvalidInput,
             "",

@@ -43,7 +43,7 @@ pub(crate) fn parse_store(
         }
 
         let mut prop_header_data = vec![0; prop_header_size];
-        if reader.read(&mut prop_header_data).is_err() {
+        if reader.read_exact(&mut prop_header_data).is_err() {
             return Err(SpotlightError::StoreRead);
         };
 
@@ -57,7 +57,7 @@ pub(crate) fn parse_store(
         };
 
         let mut prop_data = vec![0; prop_header.page_size as usize - prop_header_size];
-        if reader.read(&mut prop_data).is_err() {
+        if reader.read_exact(&mut prop_data).is_err() {
             return Err(SpotlightError::StoreRead);
         }
 
@@ -147,7 +147,7 @@ pub(crate) fn parse_store_blocks(
         }
 
         let mut prop_header_data = vec![0; prop_header_size];
-        if reader.read(&mut prop_header_data).is_err() {
+        if reader.read_exact(&mut prop_header_data).is_err() {
             return Err(SpotlightError::StoreRead);
         };
 
@@ -161,7 +161,7 @@ pub(crate) fn parse_store_blocks(
         };
 
         let mut prop_data = vec![0; prop_header.page_size as usize - prop_header_size];
-        if reader.read(&mut prop_data).is_err() {
+        if reader.read_exact(&mut prop_data).is_err() {
             return Err(SpotlightError::StoreRead);
         }
 
@@ -186,7 +186,7 @@ pub(crate) fn get_blocks(
 ) -> Result<(Vec<u32>, String), SpotlightError> {
     let header_size = 4096;
     let mut header_data = vec![0; header_size];
-    if reader.read(&mut header_data).is_err() {
+    if reader.read_exact(&mut header_data).is_err() {
         return Err(SpotlightError::StoreRead);
     }
 
@@ -200,7 +200,7 @@ pub(crate) fn get_blocks(
     };
 
     let mut map_data = vec![0; header.map_size as usize];
-    if reader.read(&mut map_data).is_err() {
+    if reader.read_exact(&mut map_data).is_err() {
         return Err(SpotlightError::StoreRead);
     }
 

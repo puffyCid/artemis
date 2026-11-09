@@ -201,7 +201,7 @@ fn open_ese_handle(handle: &FileHandle) -> Result<AccessorReader, EseError> {
 fn ese_page_size(reader: &mut AccessorReader) -> Result<u32, EseError> {
     let header_size = 668;
     let mut buf = vec![0; header_size];
-    if let Err(err) = reader.read(&mut buf) {
+    if let Err(err) = reader.read_exact(&mut buf) {
         error!("Failed to reader header bytes: {err:?}");
         return Err(EseError::ParseEse);
     };
@@ -233,7 +233,7 @@ fn get_pages(
         return Err(EseError::ParseEse);
     }
     let mut buf = vec![0; page_size as usize];
-    if let Err(err) = reader.read(&mut buf) {
+    if let Err(err) = reader.read_exact(&mut buf) {
         error!("Failed to read bytes for page start: {err:?}");
         return Err(EseError::ParseEse);
     };
@@ -312,7 +312,7 @@ fn get_pages(
         }
 
         let mut buf = vec![0; page_size as usize];
-        if let Err(err) = reader.read(&mut buf) {
+        if let Err(err) = reader.read_exact(&mut buf) {
             error!("Failed to read bytes for child data: {err:?}");
             return Err(EseError::ParseEse);
         };
@@ -347,7 +347,7 @@ fn page_data(
     }
 
     let mut buf = vec![0; page_size as usize];
-    if let Err(err) = reader.read(&mut buf) {
+    if let Err(err) = reader.read_exact(&mut buf) {
         error!("Failed to read bytes for page start: {err:?}");
         return Err(EseError::ParseEse);
     };
@@ -478,7 +478,7 @@ fn row_data(
         return Err(EseError::ParseEse);
     }
     let mut buf = vec![0; page_size as usize];
-    if let Err(err) = reader.read(&mut buf) {
+    if let Err(err) = reader.read_exact(&mut buf) {
         error!("Failed to read bytes for child data: {err:?}");
         return Err(EseError::ParseEse);
     };
