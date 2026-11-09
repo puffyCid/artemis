@@ -115,7 +115,7 @@ mod tests {
     use crate::{
         accessor::entry::handle::FileHandle,
         artifacts::os::windows::tasks::xml::{parse_xml, process_xml},
-        utils::encoding::read_xml,
+        utils::encoding::read_xml_handle,
     };
     use std::path::PathBuf;
 
@@ -177,13 +177,14 @@ mod tests {
     fn test_process_xml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
+        let handle = FileHandle::host(test_location);
 
-        let xml = read_xml(&test_location.display().to_string()).unwrap();
-        let result = process_xml(&xml, &test_location.display().to_string()).unwrap();
+        let xml = read_xml_handle(&handle).unwrap();
+        let result = process_xml(&xml, &handle.display_path()).unwrap();
 
         assert_ne!(result.principals, None);
         assert_eq!(result.actions.exec.len(), 1);
-        assert_eq!(result.evidence, test_location.display().to_string())
+        assert_eq!(result.evidence, handle.display_path());
     }
 
     #[test]

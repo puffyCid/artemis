@@ -5,7 +5,6 @@ use super::{
     ese::{js_filter_page_data, js_get_catalog, js_get_pages, js_get_table_columns, js_page_data},
     eventlogs::js_eventlogs,
     jumplists::js_jumplists,
-    ntfs::{js_read_ads, js_read_raw_file},
     outlook::{
         js_folder_meta, js_message_store, js_name_map, js_read_attachment, js_read_folder,
         js_read_messages, js_root_folder,
@@ -92,18 +91,6 @@ pub(crate) fn windows_functions(context: &mut Context) {
         JsString::from("js_jumplists"),
         1,
         NativeFunction::from_fn_ptr(js_jumplists),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_read_raw_file"),
-        1,
-        NativeFunction::from_fn_ptr(js_read_raw_file),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_read_ads"),
-        2,
-        NativeFunction::from_fn_ptr(js_read_ads),
     );
 
     let _ = context.register_global_callable(

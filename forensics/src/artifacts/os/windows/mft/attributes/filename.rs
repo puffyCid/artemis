@@ -1,5 +1,5 @@
 use crate::{
-    filesystem::ntfs::attributes::file_attribute_flags,
+    artifacts::os::windows::mft::attributes::attribute::file_attribute_flags,
     utils::{
         nom_helper::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_one_byte,

@@ -4,7 +4,6 @@ use super::{
 };
 use crate::{
     accessor::{access::Accessor, entry::handle::FileHandle},
-    filesystem::files::read_file,
     utils::error::ArtemisError,
 };
 use base64::{DecodeError, Engine, engine::general_purpose};
@@ -20,20 +19,6 @@ pub(crate) fn base64_encode_standard(data: &[u8]) -> String {
 /// Base64 decode data use the STANDARD engine (alphabet along with "+" and "/")
 pub(crate) fn base64_decode_standard(data: &str) -> Result<Vec<u8>, DecodeError> {
     general_purpose::STANDARD.decode(data)
-}
-
-/// Read a XML file. This function will check for UTF16 encoding via Byte Order Mark (BOM)
-pub(crate) fn read_xml(path: &str) -> Result<String, ArtemisError> {
-    let bytes_result = read_file(path);
-    let bytes = match bytes_result {
-        Ok(result) => result,
-        Err(err) => {
-            error!("Could not read XML file at {path}: {err:?}");
-            return Err(ArtemisError::ReadXml);
-        }
-    };
-
-    parse_xml(&bytes, path)
 }
 
 /// Read a XML file by `FileHandle`. This function will check for UTF16 encoding via Byte Order Mark (BOM)
@@ -91,8 +76,11 @@ pub(crate) fn parse_protobuf(data: &[u8]) -> Result<HashMap<usize, ProtoTag>, Ar
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::encoding::{
-        base64_decode_standard, base64_encode_standard, parse_protobuf, read_xml,
+    use crate::{
+        accessor::entry::handle::FileHandle,
+        utils::encoding::{
+            base64_decode_standard, base64_encode_standard, parse_protobuf, read_xml_handle,
+        },
     };
     use std::path::PathBuf;
 
@@ -111,11 +99,12 @@ mod tests {
     }
 
     #[test]
-    fn test_read_xml() {
+    fn test_read_xml_handle() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
+        let handle = FileHandle::host(test_location);
 
-        let result = read_xml(&test_location.display().to_string()).unwrap();
+        let result = read_xml_handle(&handle).unwrap();
         assert!(result.starts_with("<?xml version=\"1.0\" encoding=\"UTF-16\"?>"));
         assert!(result.contains("<URI>\\Microsoft\\VisualStudio\\VSIX Auto Update</URI>"));
         assert_eq!(result.len(), 1356);

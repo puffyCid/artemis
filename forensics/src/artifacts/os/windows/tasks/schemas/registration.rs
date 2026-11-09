@@ -63,7 +63,7 @@ pub(crate) fn parse_registration(reader: &mut Reader<&[u8]>) -> RegistrationInfo
 #[cfg(test)]
 mod tests {
     use super::parse_registration;
-    use crate::utils::encoding::read_xml;
+    use crate::{accessor::entry::handle::FileHandle, utils::encoding::read_xml_handle};
     use quick_xml::{Reader, events::Event};
     use std::path::PathBuf;
 
@@ -72,7 +72,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win10/VSIX Auto Update");
 
-        let xml = read_xml(&test_location.display().to_string()).unwrap();
+        let handle = FileHandle::host(test_location);
+
+        let xml = read_xml_handle(&handle).unwrap();
         let mut reader = Reader::from_str(&xml);
         reader.config_mut().trim_text(true);
 
@@ -106,7 +108,9 @@ mod tests {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         test_location.push("tests/test_data/windows/tasks/win11/SoftLandingCreativeManagementTask");
 
-        let xml = read_xml(&test_location.display().to_string()).unwrap();
+        let handle = FileHandle::host(test_location);
+
+        let xml = read_xml_handle(&handle).unwrap();
         let mut reader = Reader::from_str(&xml);
         reader.config_mut().trim_text(true);
 

@@ -17,6 +17,7 @@ use crate::{
     },
     utils::{encoding::base64_encode_standard, strings::extract_utf16_string},
 };
+use common::windows::AttributeFlags;
 use nom::bytes::complete::take;
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -192,6 +193,71 @@ pub(crate) fn grab_attributes<'a>(
     Ok((entry_data, entry_attributes))
 }
 
+/// Determine attribute flags of a file
+pub(crate) fn file_attribute_flags(data: u32) -> Vec<AttributeFlags> {
+    let mut attrs = Vec::new();
+
+    if (data & 0x1) == 0x1 {
+        attrs.push(AttributeFlags::ReadOnly);
+    }
+    if (data & 0x2) == 0x2 {
+        attrs.push(AttributeFlags::Hidden);
+    }
+    if (data & 0x4) == 0x4 {
+        attrs.push(AttributeFlags::System);
+    }
+    if (data & 0x8) == 0x8 {
+        attrs.push(AttributeFlags::Volume);
+    }
+    if (data & 0x10) == 0x10 {
+        attrs.push(AttributeFlags::Directory);
+    }
+    if (data & 0x20) == 0x20 {
+        attrs.push(AttributeFlags::Archive);
+    }
+    if (data & 0x40) == 0x40 {
+        attrs.push(AttributeFlags::Device);
+    }
+    if (data & 0x80) == 0x80 {
+        attrs.push(AttributeFlags::Normal);
+    }
+    if (data & 0x100) == 0x100 {
+        attrs.push(AttributeFlags::Temporary);
+    }
+    if (data & 0x200) == 0x200 {
+        attrs.push(AttributeFlags::Sparse);
+    }
+    if (data & 0x400) == 0x400 {
+        attrs.push(AttributeFlags::Reparse);
+    }
+    if (data & 0x800) == 0x800 {
+        attrs.push(AttributeFlags::Compressed);
+    }
+    if (data & 0x1000) == 0x1000 {
+        attrs.push(AttributeFlags::Offline);
+    }
+    if (data & 0x2000) == 0x2000 {
+        attrs.push(AttributeFlags::NotIndexed);
+    }
+    if (data & 0x4000) == 0x4000 {
+        attrs.push(AttributeFlags::Encrypted);
+    }
+    if (data & 0x8000) == 0x8000 {
+        attrs.push(AttributeFlags::Unknown);
+    }
+    if (data & 0x10000) == 0x10000 {
+        attrs.push(AttributeFlags::Virtual);
+    }
+    if (data & 0x10000000) == 0x10000000 {
+        attrs.push(AttributeFlags::Directory);
+    }
+    if (data & 0x20000000) == 0x20000000 {
+        attrs.push(AttributeFlags::IndexView);
+    }
+
+    attrs
+}
+
 // Check if Attribute List contains any FILENAME or STANDARD attributes. Sometimes they are stored here
 fn check_list(attribs: &mut [AttributeList], entries: &mut EntryAttributes) {
     for entry in attribs {
@@ -206,8 +272,13 @@ fn check_list(attribs: &mut [AttributeList], entries: &mut EntryAttributes) {
 
 #[cfg(test)]
 mod tests {
+    use common::windows::AttributeFlags;
+
     use super::grab_attributes;
-    use crate::accessor::access::Accessor;
+    use crate::{
+        accessor::access::Accessor,
+        artifacts::os::windows::mft::attributes::attribute::file_attribute_flags,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -232,5 +303,13 @@ mod tests {
         assert_eq!(result.standard[0].accessed, 133665165395720108);
         assert_eq!(result.standard[0].changed, 133665165395720108);
         assert_eq!(result.standard[0].sid_id, 257);
+    }
+
+    #[test]
+    fn test_file_attribute_flags() {
+        let test = 1;
+        let flag = file_attribute_flags(test);
+        assert_eq!(flag.len(), 1);
+        assert_eq!(flag[0], AttributeFlags::ReadOnly)
     }
 }

@@ -1,28 +1,13 @@
-use crate::runtime::filesystem::{
-    accessor::{JsAccessor, JsAccessorReader},
-    reader::JsBufReader,
-};
+use crate::runtime::filesystem::accessor::{JsAccessor, JsAccessorReader};
 
 use super::{
     directory::js_read_dir,
-    files::{js_glob, js_hash_file, js_read_file, js_read_lines, js_read_text_file, js_stat},
+    files::{js_hash_file, js_read_lines, js_read_text_file},
 };
 use boa_engine::{Context, JsString, NativeFunction};
 
 /// Link filesystem functions `BoaJS`
 pub(crate) fn filesystem_functions(context: &mut Context) {
-    let _ = context.register_global_callable(
-        JsString::from("js_stat"),
-        1,
-        NativeFunction::from_fn_ptr(js_stat),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_glob"),
-        1,
-        NativeFunction::from_fn_ptr(js_glob),
-    );
-
     let _ = context.register_global_callable(
         JsString::from("js_hash_file"),
         4,
@@ -33,12 +18,6 @@ pub(crate) fn filesystem_functions(context: &mut Context) {
         JsString::from("js_read_text_file"),
         1,
         NativeFunction::from_fn_ptr(js_read_text_file),
-    );
-
-    let _ = context.register_global_callable(
-        JsString::from("js_read_file"),
-        1,
-        NativeFunction::from_fn_ptr(js_read_file),
     );
 
     let _ = context.register_global_callable(
@@ -53,7 +32,6 @@ pub(crate) fn filesystem_functions(context: &mut Context) {
         NativeFunction::from_fn_ptr(js_read_lines),
     );
 
-    let _ = context.register_global_class::<JsBufReader>();
     let _ = context.register_global_class::<JsAccessor>();
     let _ = context.register_global_class::<JsAccessorReader>();
 }
