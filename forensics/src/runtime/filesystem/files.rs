@@ -2,13 +2,14 @@ use super::directory::JsFileInfo;
 use crate::{
     accessor::access::Accessor,
     filesystem::{
-        files::{file_extension, file_lines, get_filename, hash_reader, read_file, read_text_file},
+        files::{file_extension, get_filename, hash_reader, read_file},
         metadata::{get_metadata, get_timestamps, glob_paths},
     },
     runtime::{
         filesystem::accessor::return_file_handle_object,
         helper::{boolean_arg, number_arg, string_arg, value_arg},
     },
+    utils::strings::extract_utf8_string_lossy,
 };
 use boa_engine::{
     Context, JsError, JsResult, JsString, JsValue, js_string, object::builtins::JsUint8Array,
@@ -146,17 +147,21 @@ pub(crate) fn js_hash_file(
 pub(crate) fn js_read_text_file(
     _this: &JsValue,
     args: &[JsValue],
-    _context: &mut Context,
+    context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
-    let data = match read_text_file(&path) {
+    let value = value_arg(args, 0, context)?;
+    let handle = return_file_handle_object(value)?;
+    let bytes = match Accessor::with_defaults().read_file_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Could not read text {path}: {err:?}");
+            let issue = format!("Could not read text {}: {err:?}", handle.display_path());
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
-    Ok(JsValue::new::<JsString>(data.into()))
+
+    Ok(JsValue::new::<JsString>(
+        extract_utf8_string_lossy(&bytes).into(),
+    ))
 }
 
 /// Read a specified number of lines from a text file
