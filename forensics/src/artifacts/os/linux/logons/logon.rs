@@ -15,7 +15,7 @@ use nom::{
     bytes::complete::{take, take_until},
 };
 use std::{
-    io::Read,
+    io::{ErrorKind, Read},
     mem::size_of,
     net::{Ipv4Addr, Ipv6Addr},
 };
@@ -31,9 +31,13 @@ pub(crate) fn logon_reader(
     let mut logons = Vec::new();
 
     loop {
-        if let Err(err) = reader.read_exact(&mut logon_buff) {
-            error!("Could not read logon data: {err:?}");
-            break;
+        match reader.read_exact(&mut logon_buff) {
+            Ok(()) => {}
+            Err(err) if err.kind() == ErrorKind::UnexpectedEof => break,
+            Err(err) => {
+                error!("Could not read logon data: {err:?}");
+                break;
+            }
         }
 
         let result = parse_logon(&logon_buff, status, &mut logons, evidence);
