@@ -8,14 +8,6 @@ pub(crate) enum FileSystemError {
     ReadFile,
     NotFile,
     BadGlob,
-    NtfsSectorReader,
-    NtfsNew,
-    RootDirectory,
-    NoFilenameAttr,
-    NoAttribute,
-    IndexDirectory,
-    FileData,
-    NoDataAttributeValue,
     LargeFile,
 }
 
@@ -30,17 +22,7 @@ impl fmt::Display for FileSystemError {
             FileSystemError::OpenFile => write!(f, "Could not open file"),
             FileSystemError::ReadFile => write!(f, "Could not read file"),
             FileSystemError::NotFile => write!(f, "Not a file"),
-            FileSystemError::NtfsSectorReader => write!(f, "Failed to setup NTFS sector reader"),
-            FileSystemError::NtfsNew => write!(f, "Failed to start NTFS parser"),
-            FileSystemError::RootDirectory => write!(f, "Failed to get NTFS root directory"),
-            FileSystemError::NoFilenameAttr => write!(f, "Failed to get NTFS $FILENAME info"),
-            FileSystemError::IndexDirectory => write!(f, "Failed to get NTFS index directory info"),
-            FileSystemError::FileData => write!(f, "Failed to get NTFS file data"),
             FileSystemError::LargeFile => write!(f, "File larger than 2GB"),
-            FileSystemError::NoDataAttributeValue => {
-                write!(f, "Failed to get NTFS $DATA attribute")
-            }
-            FileSystemError::NoAttribute => write!(f, "No attribute for entry"),
         }
     }
 }

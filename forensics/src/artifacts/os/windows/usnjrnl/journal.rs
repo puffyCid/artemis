@@ -1,7 +1,9 @@
 use crate::{
     accessor::{access::Accessor, io::reader::AccessorReader},
-    artifacts::os::windows::mft::master::{Lookups, lookup_parent},
-    filesystem::ntfs::attributes::file_attribute_flags,
+    artifacts::os::windows::mft::{
+        attributes::attribute::file_attribute_flags,
+        master::{Lookups, lookup_parent},
+    },
     utils::{
         nom_helper::{
             Endian, nom_unsigned_eight_bytes, nom_unsigned_four_bytes, nom_unsigned_two_bytes,

@@ -101,15 +101,6 @@ pub(crate) fn file_reader(path: &str) -> Result<File, FileSystemError> {
     Ok(reader)
 }
 
-/// Read a file that is less than the provided size in bytes
-/// Use `read_file_large` to read a file of any size or use `read_file` to use the the default size limit of 2GB
-pub(crate) fn read_file_custom(path: &str, size: u64) -> Result<Vec<u8>, FileSystemError> {
-    if file_too_large_custom(path, size) {
-        return Err(FileSystemError::LargeFile);
-    }
-    file_read(path)
-}
-
 /// Read a file into memory
 fn file_read(path: &str) -> Result<Vec<u8>, FileSystemError> {
     // Verify provided path is a file
@@ -342,15 +333,6 @@ pub(crate) fn file_too_large(path: &str) -> bool {
     true
 }
 
-/// Check if a provided file is too large than the a custom acceptable size
-fn file_too_large_custom(path: &str, max_size: u64) -> bool {
-    let size = get_file_size(path);
-    if size < max_size {
-        return false;
-    }
-    true
-}
-
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined
 pub(crate) fn get_filename(path: &str) -> String {
     // Check for accessor separator too "!"
@@ -375,9 +357,9 @@ pub(crate) fn get_filename(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::filesystem::files::{
-        file_extension, file_read_text, file_reader, file_too_large, file_too_large_custom,
-        get_file_size, get_filename, hash_file, hash_file_data, is_file, list_files,
-        list_files_directories, read_file, read_file_custom, read_text_file,
+        file_extension, file_read_text, file_reader, file_too_large, get_file_size, get_filename,
+        hash_file, hash_file_data, is_file, list_files, list_files_directories, read_file,
+        read_text_file,
     };
     use common::files::Hashes;
     use std::path::PathBuf;
@@ -527,26 +509,6 @@ mod tests {
 
         let result = file_too_large(&test_location.display().to_string());
         assert_eq!(result, false)
-    }
-
-    #[test]
-
-    fn test_file_too_large_custom() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let result = file_too_large_custom(&test_location.display().to_string(), 10000);
-        assert_eq!(result, false)
-    }
-
-    #[test]
-
-    fn test_read_file_custom() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/system/files/test.txt");
-
-        let result = read_file_custom(&test_location.display().to_string(), 10000).unwrap();
-        assert_eq!(result.len(), 23);
     }
 
     #[test]
