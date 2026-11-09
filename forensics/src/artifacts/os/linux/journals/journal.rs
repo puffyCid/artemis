@@ -35,7 +35,7 @@ pub(crate) fn parse_journal(
 
     // We technically only need first 232 bytes but version 252 is 264 bytes in size
     let mut header_buff = [0; 264];
-    if reader.read(&mut header_buff).is_err() {
+    if reader.read_exact(&mut header_buff).is_err() {
         error!("Could not read file header {}", file.display_path());
         return Err(JournalError::ReadError);
     }
@@ -78,7 +78,7 @@ pub(crate) fn parse_journal_file(
 ) -> Result<Vec<Journal>, JournalError> {
     // We technically only need first 232 bytes but version 252 is 264 bytes in size
     let mut header_buff = [0; 264];
-    if reader.read(&mut header_buff).is_err() {
+    if reader.read_exact(&mut header_buff).is_err() {
         error!("Could not read file header {}", file.display_path());
         return Err(JournalError::ReadError);
     }

@@ -1,6 +1,6 @@
 use crate::{
-    runtime::helper::string_arg,
-    utils::{encoding::read_xml, strings::extract_utf8_string},
+    runtime::{filesystem::accessor::return_file_handle_object, helper::value_arg},
+    utils::{encoding::read_xml_handle, strings::extract_utf8_string},
 };
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use quick_xml::{Reader, XmlVersion, events::Event};
@@ -13,16 +13,17 @@ pub(crate) fn js_read_xml(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
+    let value = value_arg(args, 0, context)?;
+    let handle = return_file_handle_object(value)?;
 
-    // read_xml supports UTF16 and UTF8 encodings
-    let xml = match read_xml(&path) {
+    let xml = match read_xml_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Could not get read xml at '{path}': {err:?}");
+            let issue = format!("Failed to read FileHandle XML: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
+
     let xml_json = xml_to_json(&xml)?;
     let value = JsValue::from_json(&xml_json, context)?;
 
@@ -54,7 +55,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
 
         match value {
             Event::Start(bytes_start) => {
-                let tag_name = bytes_start.name().0.to_string();
+                let tag_name = bytes_start.name().into_inner().to_string();
                 let mut current_map = Map::new();
                 for attr_value in bytes_start.attributes().flatten() {
                     let key = format!("@{}", attr_value.key.0);
@@ -71,7 +72,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 json_stack.push((tag_name, current_map));
             }
             Event::End(bytes_end) => {
-                let tag_name = bytes_end.name().0.to_string();
+                let tag_name = bytes_end.name().into_inner().to_string();
                 if let Some((popped_tag, mut popped_map)) = json_stack.pop() {
                     if popped_tag != tag_name {
                         let issue = format!("Got unexpected closing XML tag '{tag_name}'");
@@ -94,7 +95,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 }
             }
             Event::Empty(bytes_start) => {
-                let tag_name = bytes_start.name().0.to_string();
+                let tag_name = bytes_start.name().into_inner().to_string();
                 let mut current_map = Map::new();
 
                 for attr_value in bytes_start.attributes().flatten() {
@@ -172,10 +173,12 @@ fn insert_into_json(map: &mut Map<String, Value>, key: String, value: Value) {
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::utils::encoding::base64_encode_standard;
     use crate::{
         output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
+    use std::fs;
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
@@ -192,21 +195,13 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "windows")]
     fn test_js_read_xml() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dsb2IocGF0dGVybik7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYWluL3NyYy9lbmNvZGluZy94bWwudHMKZnVuY3Rpb24gcmVhZFhtbChwYXRoKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfcmVhZF94bWwocGF0aCk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGhzID0gZ2xvYigiQzpcXCpcXCoueG1sIik7CiAgaWYgKHBhdGhzIGluc3RhbmNlb2YgRXJyb3IpIHsKICAgIGNvbnNvbGUuZXJyb3IoYEZhaWxlZCB0byBnbG9iIHBhdGg6ICR7cGF0aHN9YCk7CiAgICByZXR1cm4gcGF0aHM7CiAgfQogIGZvciAoY29uc3QgZW50cnkgb2YgcGF0aHMpIHsKICAgIGlmICghZW50cnkuaXNfZmlsZSkgewogICAgICBjb250aW51ZTsKICAgIH0KICAgIGNvbnN0IHJldXNsdCA9IHJlYWRYbWwoZW50cnkuZnVsbF9wYXRoKTsKICAgIHJldHVybiByZXVzbHQ7CiAgfQp9Cm1haW4oKTsK";
-        let mut output = output_options("runtime_test", "./tmp", false);
-        let script = JSScript {
-            name: String::from("xml_test"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/encoding/xml.js");
 
-    #[test]
-    #[cfg(target_family = "unix")]
-    fn test_js_read_xml() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21haW4vc3JjL2ZpbGVzeXN0ZW0vZmlsZXMudHMKZnVuY3Rpb24gZ2xvYihwYXR0ZXJuKSB7CiAgY29uc3QgZGF0YSA9IGpzX2dsb2IocGF0dGVybik7CiAgcmV0dXJuIGRhdGE7Cn0KCi8vIGh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9wdWZmeWNpZC9hcnRlbWlzLWFwaS9tYWluL3NyYy9lbmNvZGluZy94bWwudHMKZnVuY3Rpb24gcmVhZFhtbChwYXRoKSB7CiAgY29uc3QgcmVzdWx0ID0ganNfcmVhZF94bWwocGF0aCk7CiAgcmV0dXJuIHJlc3VsdDsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGhzID0gZ2xvYigiLyovKi54bWwiKTsKICBpZiAocGF0aHMgaW5zdGFuY2VvZiBFcnJvcikgewogICAgY29uc29sZS5lcnJvcihgRmFpbGVkIHRvIGdsb2IgcGF0aDogJHtwYXRoc31gKTsKICAgIHJldHVybiBwYXRoczsKICB9CiAgZm9yIChjb25zdCBlbnRyeSBvZiBwYXRocykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgcmV1c2x0ID0gcmVhZFhtbChlbnRyeS5mdWxsX3BhdGgpOwogICAgcmV0dXJuIHJldXNsdDsKICB9Cn0KbWFpbigpOwo=";
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
+
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("xml_test"),

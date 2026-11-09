@@ -15,7 +15,7 @@ use nom::{
     bytes::complete::{take, take_until},
 };
 use std::{
-    io::Read,
+    io::{ErrorKind, Read},
     mem::size_of,
     net::{Ipv4Addr, Ipv6Addr},
 };
@@ -28,23 +28,16 @@ pub(crate) fn logon_reader(
     evidence: &FileHandle,
 ) -> Vec<Logon> {
     let mut logon_buff = [0; 384];
-    let mut logon_size = logon_buff.len();
     let mut logons = Vec::new();
 
-    while logon_size == logon_buff.len() {
-        let read_result = reader.read(&mut logon_buff);
-        let read_size = match read_result {
-            Ok(result) => result,
+    loop {
+        match reader.read_exact(&mut logon_buff) {
+            Ok(()) => {}
+            Err(err) if err.kind() == ErrorKind::UnexpectedEof => break,
             Err(err) => {
                 error!("Could not read logon data: {err:?}");
                 break;
             }
-        };
-        logon_size = read_size;
-
-        // Check to make we read 384 bytes
-        if logon_size != logon_buff.len() {
-            break;
         }
 
         let result = parse_logon(&logon_buff, status, &mut logons, evidence);

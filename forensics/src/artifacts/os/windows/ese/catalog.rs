@@ -152,7 +152,7 @@ impl Catalog {
         }
 
         let mut buf = vec![0; page_size as usize];
-        if let Err(err) = reader.read(&mut buf) {
+        if let Err(err) = reader.read_exact(&mut buf) {
             error!("Failed to read bytes for catalog: {err:?}");
             return Err(EseError::ReadFile);
         };
@@ -245,7 +245,7 @@ impl Catalog {
                 continue;
             }
             let mut buf = vec![0; page_size as usize];
-            if let Err(err) = reader.read(&mut buf) {
+            if let Err(err) = reader.read_exact(&mut buf) {
                 error!("Could not read child page data: {err:?}");
                 continue;
             };

@@ -7,7 +7,6 @@ use md5::{Digest, Md5};
 use sha1::Sha1;
 use sha2::Sha256;
 use std::fs::read_to_string;
-use std::io::{BufRead, BufReader, Lines};
 use std::{
     fs::{File, read, read_dir},
     io::{Read, copy},
@@ -81,16 +80,6 @@ pub(crate) fn read_text_file(path: &str) -> Result<String, FileSystemError> {
         return Err(FileSystemError::LargeFile);
     }
     file_read_text(path)
-}
-
-/// Return a `Lines<BufReader>` to iterate through a text file smaller than 2GB
-pub(crate) fn file_lines(path: &str) -> Result<Lines<BufReader<File>>, FileSystemError> {
-    if file_too_large(path) {
-        return Err(FileSystemError::LargeFile);
-    }
-    let reader = file_reader(path)?;
-    let buf_reader = BufReader::new(reader);
-    Ok(buf_reader.lines())
 }
 
 /// Create a `File` object that can be used to read a file
@@ -386,9 +375,9 @@ pub(crate) fn get_filename(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::filesystem::files::{
-        file_extension, file_lines, file_read_text, file_reader, file_too_large,
-        file_too_large_custom, get_file_size, get_filename, hash_file, hash_file_data, is_file,
-        list_files, list_files_directories, read_file, read_file_custom, read_text_file,
+        file_extension, file_read_text, file_reader, file_too_large, file_too_large_custom,
+        get_file_size, get_filename, hash_file, hash_file_data, is_file, list_files,
+        list_files_directories, read_file, read_file_custom, read_text_file,
     };
     use common::files::Hashes;
     use std::path::PathBuf;
@@ -412,15 +401,6 @@ mod tests {
 
         assert_eq!(ntfs, true);
         assert_eq!(test_data, true);
-    }
-
-    #[test]
-    fn test_file_lines() {
-        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/dfir/LICENSE");
-
-        let results = file_lines(&test_location.display().to_string()).unwrap();
-        assert_eq!(results.count(), 21);
     }
 
     #[test]

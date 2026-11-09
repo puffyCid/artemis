@@ -2,7 +2,7 @@ use crate::accessor::location::scheme::{Scheme, location_scheme, strip_scheme};
 use std::{
     fmt::Debug,
     fs::File,
-    io::{self, Cursor, Read, Seek, SeekFrom},
+    io::{self, BufRead, BufReader, Cursor, Read, Seek, SeekFrom},
     path::Path,
 };
 
@@ -194,11 +194,11 @@ pub(crate) fn extension_from_filename(name: &str) -> String {
 #[derive(Debug)]
 pub(crate) enum SourceReader {
     /// `AccessorReader` for a file on a live host
-    Host(File),
+    Host(BufReader<File>),
     /// `AccessorReader` for a file read into memory
     Memory(Cursor<Vec<u8>>),
     /// Stream a large file without reading the entire file into memory
-    Stream(Box<dyn ReadSeek + Send>),
+    Stream(BufReader<Box<dyn ReadSeek + Send>>),
 }
 
 /// An abstract reader that can be used to read data
@@ -226,6 +226,24 @@ impl Seek for AccessorReader {
             SourceReader::Host(file) => file.seek(pos),
             SourceReader::Memory(cursor) => cursor.seek(pos),
             SourceReader::Stream(stream) => stream.seek(pos),
+        }
+    }
+}
+
+impl BufRead for AccessorReader {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        match &mut self.source {
+            SourceReader::Host(file) => file.fill_buf(),
+            SourceReader::Memory(cursor) => cursor.fill_buf(),
+            SourceReader::Stream(stream) => stream.fill_buf(),
+        }
+    }
+
+    fn consume(&mut self, amount: usize) {
+        match &mut self.source {
+            SourceReader::Host(file) => file.consume(amount),
+            SourceReader::Memory(cursor) => cursor.consume(amount),
+            SourceReader::Stream(stream) => stream.consume(amount),
         }
     }
 }
@@ -259,7 +277,7 @@ impl AccessorReader {
     /// Create host file reader
     pub(crate) fn host(file: File, location: ReaderLocation) -> Self {
         Self {
-            source: SourceReader::Host(file),
+            source: SourceReader::Host(BufReader::new(file)),
             location,
         }
     }
@@ -277,7 +295,7 @@ impl AccessorReader {
     /// Used for raw disk access
     pub(crate) fn stream(reader: impl ReadSeek + Send + 'static, location: ReaderLocation) -> Self {
         Self {
-            source: SourceReader::Stream(Box::new(reader)),
+            source: SourceReader::Stream(BufReader::new(Box::new(reader))),
             location,
         }
     }

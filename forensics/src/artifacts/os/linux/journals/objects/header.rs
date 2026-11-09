@@ -48,7 +48,7 @@ impl ObjectHeader {
         }
 
         let mut header_buff = [0; 16];
-        if reader.read(&mut header_buff).is_err() {
+        if reader.read_exact(&mut header_buff).is_err() {
             error!("Could not read minimum object header size");
             return Err(JournalError::ReadError);
         }
@@ -75,7 +75,7 @@ impl ObjectHeader {
         }
         let mut payload_data: Vec<u8> = vec![0; (header.size - header_meta_size) as usize];
 
-        if reader.read(&mut payload_data).is_err() {
+        if reader.read_exact(&mut payload_data).is_err() {
             error!("Could not read payload datafrom object header");
             return Err(JournalError::ReadError);
         }
