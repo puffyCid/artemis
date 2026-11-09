@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn test_js_read_xml() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/runtime/filesystem/xml.js");
+        test_location.push("tests/test_data/runtime/encoding/xml.js");
 
         let bytes = fs::read(test_location).unwrap();
         let test = base64_encode_standard(&bytes);

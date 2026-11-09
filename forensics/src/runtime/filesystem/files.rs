@@ -1,10 +1,14 @@
 use super::directory::JsFileInfo;
 use crate::{
+    accessor::access::Accessor,
     filesystem::{
-        files::{file_extension, file_lines, get_filename, hash_file, read_file, read_text_file},
+        files::{file_extension, file_lines, get_filename, hash_reader, read_file, read_text_file},
         metadata::{get_metadata, get_timestamps, glob_paths},
     },
-    runtime::helper::{boolean_arg, number_arg, string_arg},
+    runtime::{
+        filesystem::accessor::return_file_handle_object,
+        helper::{boolean_arg, number_arg, string_arg, value_arg},
+    },
 };
 use boa_engine::{
     Context, JsError, JsResult, JsString, JsValue, js_string, object::builtins::JsUint8Array,
@@ -107,13 +111,23 @@ pub(crate) fn js_hash_file(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
+    let value = value_arg(args, 0, context)?;
     let hashes = Hashes {
         md5: boolean_arg(args, 1)?,
         sha1: boolean_arg(args, 2)?,
         sha256: boolean_arg(args, 3)?,
     };
-    let (md5_value, sha1_value, sha256_value) = hash_file(&hashes, &path);
+
+    let handle = return_file_handle_object(value)?;
+    let mut reader = match Accessor::with_defaults().open_reader_handle(&handle) {
+        Ok(results) => results,
+        Err(err) => {
+            let issue = format!("Could open reader for {}: {err:?}", handle.display_path());
+            return Err(JsError::from_opaque(js_string!(issue).into()));
+        }
+    };
+
+    let (md5_value, sha1_value, sha256_value) = hash_reader(&hashes, &mut reader);
     let info = HashInfo {
         md5: md5_value,
         sha1: sha1_value,
@@ -198,10 +212,12 @@ pub(crate) fn js_read_file(
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::utils::encoding::base64_encode_standard;
     use crate::{
         output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
+    use std::fs;
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
@@ -254,21 +270,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_family = "unix")]
     fn test_js_hash_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIGhhc2gocGF0aCwgbWQ1LCBzaGExLCBzaGEyNTYpIHsKICBjb25zdCBkYXRhID0ganNfaGFzaF9maWxlKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIi9iaW4iOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "./tmp", false);
-        let script = JSScript {
-            name: String::from("hash_files"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/filesystem/hash.js");
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
 
-    #[test]
-    #[cfg(target_os = "windows")]
-    fn test_js_hash_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9kaXJlY3RvcnkudHMKYXN5bmMgZnVuY3Rpb24gcmVhZERpcihwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGF3YWl0IGpzX3JlYWRfZGlyKHBhdGgpOwogIHJldHVybiBkYXRhOwp9CgovLyBodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vcHVmZnljaWQvYXJ0ZW1pcy1hcGkvbWFzdGVyL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCmZ1bmN0aW9uIGhhc2gocGF0aCwgbWQ1LCBzaGExLCBzaGEyNTYpIHsKICBjb25zdCBkYXRhID0ganNfaGFzaF9maWxlKHBhdGgsIG1kNSwgc2hhMSwgc2hhMjU2KTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwphc3luYyBmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHN0YXJ0ID0gIkM6XFwiOwogIGNvbnN0IGZpbGVzID0gYXdhaXQgcmVhZERpcihzdGFydCk7CiAgZm9yIChjb25zdCBlbnRyeSBvZiBmaWxlcykgewogICAgaWYgKCFlbnRyeS5pc19maWxlKSB7CiAgICAgIGNvbnRpbnVlOwogICAgfQogICAgY29uc3QgaGFzaGVzID0gaGFzaChlbnRyeS5mdWxsX3BhdGgsIHRydWUsIGZhbHNlLCBmYWxzZSk7CiAgICByZXR1cm4gaGFzaGVzOwogIH0KfQptYWluKCk7Cg==";
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("hash_files"),
