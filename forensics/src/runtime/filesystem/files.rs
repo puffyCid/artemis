@@ -15,7 +15,7 @@ use boa_engine::{
 };
 use common::files::Hashes;
 use serde::Serialize;
-use std::path::Path;
+use std::{io::BufRead, path::Path};
 
 /// Return metadata about provided path or file
 pub(crate) fn js_stat(
@@ -122,7 +122,10 @@ pub(crate) fn js_hash_file(
     let mut reader = match Accessor::with_defaults().open_reader_handle(&handle) {
         Ok(results) => results,
         Err(err) => {
-            let issue = format!("Could open reader for {}: {err:?}", handle.display_path());
+            let issue = format!(
+                "Could not open reader for {}: {err:?}",
+                handle.display_path()
+            );
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
@@ -156,26 +159,32 @@ pub(crate) fn js_read_text_file(
     Ok(JsValue::new::<JsString>(data.into()))
 }
 
+/// Read a specified number of lines from a text file
 pub(crate) fn js_read_lines(
     _this: &JsValue,
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
+    let value = value_arg(args, 0, context)?;
     let offset = number_arg(args, 1)? as usize;
     let limit = number_arg(args, 2)? as u64;
 
-    let reader = match file_lines(&path) {
+    let handle = return_file_handle_object(value)?;
+
+    let reader = match Accessor::with_defaults().open_reader_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Could not read text {path} lines: {err:?}");
+            let issue = format!(
+                "Could not open reader for {} for file lines: {err:?}",
+                handle.display_path()
+            );
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
 
     let mut lines = Vec::new();
     let mut count = 0;
-    let mut start_reader = reader.skip(offset);
+    let mut start_reader = reader.lines().skip(offset);
     while let Some(Ok(line)) = start_reader.next() {
         if count == limit {
             break;
@@ -279,6 +288,21 @@ mod tests {
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("hash_files"),
+            script: test.to_string(),
+        };
+        execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_js_read_lines() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/filesystem/text.js");
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
+
+        let mut output = output_options("runtime_test", "./tmp", false);
+        let script = JSScript {
+            name: String::from("text_files"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

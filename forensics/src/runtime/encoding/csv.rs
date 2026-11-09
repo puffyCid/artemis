@@ -1,4 +1,10 @@
-use crate::runtime::helper::{number_arg, string_arg};
+use crate::{
+    accessor::access::Accessor,
+    runtime::{
+        filesystem::accessor::return_file_handle_object,
+        helper::{number_arg, value_arg},
+    },
+};
 use boa_engine::{Context, JsError, JsResult, JsValue, js_string};
 use serde_json::{Value, json};
 use tracing::warn;
@@ -9,17 +15,21 @@ pub(crate) fn js_read_csv(
     args: &[JsValue],
     context: &mut Context,
 ) -> JsResult<JsValue> {
-    let path = string_arg(args, 0)?;
+    let value = value_arg(args, 0, context)?;
     let offset = number_arg(args, 1)?;
     let limit = number_arg(args, 2)?;
 
-    let mut reader = match csv::Reader::from_path(&path) {
+    let handle = return_file_handle_object(value)?;
+    let path = handle.display_path();
+    let mut reader = match Accessor::with_defaults().open_reader_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
             let issue = format!("Could not create reader for {path}: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
+
+    let mut reader = csv::Reader::from_reader(&mut reader);
     let headers = match reader.headers().cloned() {
         Ok(result) => result,
         Err(err) => {
@@ -63,10 +73,12 @@ pub(crate) fn js_read_csv(
 #[cfg(test)]
 mod tests {
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
+    use crate::utils::encoding::base64_encode_standard;
     use crate::{
         output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
+    use std::fs;
     use std::path::PathBuf;
 
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
@@ -84,7 +96,12 @@ mod tests {
 
     #[test]
     fn test_js_read_csv() {
-        let test = "KCgpID0+IHsKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKICB2YXIgRXJyb3JCYXNlID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7CiAgICBuYW1lOwogICAgbWVzc2FnZTsKICAgIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgICAgc3VwZXIoKTsKICAgICAgdGhpcy5uYW1lID0gbmFtZTsKICAgICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICAgIH0KICB9OwoKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZW5jb2RpbmcvZXJyb3JzLnRzCiAgdmFyIEVuY29kaW5nRXJyb3IgPSBjbGFzcyBleHRlbmRzIEVycm9yQmFzZSB7CiAgfTsKCiAgLy8gLi4vUHJvamVjdHMvYXJ0ZW1pcy1hcGkvc3JjL2VuY29kaW5nL2Nzdi50cwogIGZ1bmN0aW9uIHJlYWRDc3YocGF0aCwgb2Zmc2V0ID0gMCwgbGltaXQgPSAxMDApIHsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3VsdCA9IGpzX3JlYWRfY3N2KHBhdGgsIG9mZnNldCwgbGltaXQpOwogICAgICByZXR1cm4gcmVzdWx0OwogICAgfSBjYXRjaCAoZXJyKSB7CiAgICAgIHJldHVybiBuZXcgRW5jb2RpbmdFcnJvcigiQ1NWIiwgYGZhaWxlZCB0byByZWFkIENTViAke3BhdGh9OiAke2Vycn1gKTsKICAgIH0KICB9CgogIC8vIG1haW4udHMKICBmdW5jdGlvbiBtYWluKCkgewogICAgY29uc3QgZGF0YSA9IHJlYWRDc3YoInRlc3QuY3N2Iik7CiAgICBjb25zb2xlLmxvZyhKU09OLnN0cmluZ2lmeShkYXRhKSk7CiAgfQogIG1haW4oKTsKfSkoKTsK";
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/encoding/xml.js");
+
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
+
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("csv_test_failed"),

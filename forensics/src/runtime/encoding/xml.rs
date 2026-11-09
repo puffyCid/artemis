@@ -19,7 +19,7 @@ pub(crate) fn js_read_xml(
     let xml = match read_xml_handle(&handle) {
         Ok(result) => result,
         Err(err) => {
-            let issue = format!("Failed to get FileHandle to XML: {err:?}");
+            let issue = format!("Failed to read FileHandle XML: {err:?}");
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }
     };
@@ -72,7 +72,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 json_stack.push((tag_name, current_map));
             }
             Event::End(bytes_end) => {
-                let tag_name = bytes_end.name().0.to_string();
+                let tag_name = bytes_end.name().into_inner().to_string();
                 if let Some((popped_tag, mut popped_map)) = json_stack.pop() {
                     if popped_tag != tag_name {
                         let issue = format!("Got unexpected closing XML tag '{tag_name}'");
@@ -95,7 +95,7 @@ fn xml_to_json(xml_string: &str) -> JsResult<Value> {
                 }
             }
             Event::Empty(bytes_start) => {
-                let tag_name = bytes_start.name().0.to_string();
+                let tag_name = bytes_start.name().into_inner().to_string();
                 let mut current_map = Map::new();
 
                 for attr_value in bytes_start.attributes().flatten() {
