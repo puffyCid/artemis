@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn test_js_read_lines() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/runtime/filesystem/text.js");
+        test_location.push("tests/test_data/runtime/filesystem/lines.js");
         let bytes = fs::read(test_location).unwrap();
         let test = base64_encode_standard(&bytes);
 
@@ -315,35 +315,11 @@ mod tests {
 
     #[test]
     #[cfg(target_family = "unix")]
-    fn test_js_read_text_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkVGV4dEZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19yZWFkX3RleHRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiL2V0Yy9yZXNvbHYuY29uZiI7CiAgY29uc3QgZGF0YSA9IHJlYWRUZXh0RmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQptYWluKCk7Cg==";
-        let mut output = output_options("runtime_test", "./tmp", false);
-        let script = JSScript {
-            name: String::from("read_text"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    #[cfg(target_family = "unix")]
     fn test_js_read_file() {
         let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkRmlsZShwYXRoKSB7CiAgY29uc3QgZGF0YSA9IGpzX3JlYWRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiL2V0Yy9yZXNvbHYuY29uZiI7CiAgY29uc3QgZGF0YSA9IHJlYWRGaWxlKHBhdGgpOwogIHJldHVybiBBcnJheS5mcm9tKGRhdGEpOwp9Cm1haW4oKTsK";
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
             name: String::from("read_file"),
-            script: test.to_string(),
-        };
-        execute_script(&mut output, &script).unwrap();
-    }
-
-    #[test]
-    #[cfg(target_os = "windows")]
-    fn test_js_read_text_file() {
-        let test = "Ly8gaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3B1ZmZ5Y2lkL2FydGVtaXMtYXBpL21hc3Rlci9zcmMvZmlsZXN5c3RlbS9maWxlcy50cwpmdW5jdGlvbiByZWFkVGV4dEZpbGUocGF0aCkgewogIGNvbnN0IGRhdGEgPSBqc19yZWFkX3RleHRfZmlsZShwYXRoKTsKICByZXR1cm4gZGF0YTsKfQoKLy8gbWFpbi50cwpmdW5jdGlvbiBtYWluKCkgewogIGNvbnN0IHBhdGggPSAiQzpcXFdpbmRvd3NcXHdpbi5pbmkiOwogIGNvbnN0IGRhdGEgPSByZWFkVGV4dEZpbGUocGF0aCk7CiAgcmV0dXJuIGRhdGE7Cn0KbWFpbigpOwo=";
-        let mut output = output_options("runtime_test", "./tmp", false);
-        let script = JSScript {
-            name: String::from("read_text"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();
@@ -387,11 +363,15 @@ mod tests {
     }
 
     #[test]
-    fn test_read_lines() {
-        let test = "KCgpID0+IHsKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvdXRpbHMvZXJyb3IudHMKICB2YXIgRXJyb3JCYXNlID0gY2xhc3MgZXh0ZW5kcyBFcnJvciB7CiAgICBuYW1lOwogICAgbWVzc2FnZTsKICAgIGNvbnN0cnVjdG9yKG5hbWUsIG1lc3NhZ2UpIHsKICAgICAgc3VwZXIoKTsKICAgICAgdGhpcy5uYW1lID0gbmFtZTsKICAgICAgdGhpcy5tZXNzYWdlID0gbWVzc2FnZTsKICAgIH0KICB9OwoKICAvLyAuLi9Qcm9qZWN0cy9hcnRlbWlzLWFwaS9zcmMvZmlsZXN5c3RlbS9lcnJvcnMudHMKICB2YXIgRmlsZUVycm9yID0gY2xhc3MgZXh0ZW5kcyBFcnJvckJhc2UgewogIH07CgogIC8vIC4uL1Byb2plY3RzL2FydGVtaXMtYXBpL3NyYy9maWxlc3lzdGVtL2ZpbGVzLnRzCiAgZnVuY3Rpb24gcmVhZExpbmVzKHBhdGgsIG9mZnNldCA9IDAsIGxpbWl0ID0gMTAwKSB7CiAgICBpZiAob2Zmc2V0IDwgMCB8fCBsaW1pdCA8IDApIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIlJFQURfTElORVMiLCBgbmVpdGhlciBvZmZzZXQgKCR7b2Zmc2V0fSkgb3IgbGltaXQgKCR7bGltaXR9KSBjYW4gYmUgbGVzcyB0aGFuIDBgKTsKICAgIH0KICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlc3VsdCA9IGpzX3JlYWRfbGluZXMocGF0aCwgb2Zmc2V0LCBsaW1pdCk7CiAgICAgIHJldHVybiByZXN1bHQ7CiAgICB9IGNhdGNoIChlcnIpIHsKICAgICAgcmV0dXJuIG5ldyBGaWxlRXJyb3IoIlJFQURfTElORVMiLCBgZmFpbGVkIHRvIHJlYWQgbGluZXMgZm9yICR7cGF0aH06ICR7ZXJyfWApOwogICAgfQogIH0KCiAgLy8gbWFpbi50cwogIGZ1bmN0aW9uIG1haW4oKSB7CiAgICBjb25zdCBwYXRoID0gIi9ldGMvcmVzb2x2LmNvbmYiOwogICAgY29uc3QgbGluZXMgPSByZWFkTGluZXMocGF0aCk7CiAgICBpZiAobGluZXMgaW5zdGFuY2VvZiBGaWxlRXJyb3IpIHsKICAgICAgcmV0dXJuOwogICAgfQogICAgY29uc29sZS5sb2coYHJlYWQ6ICR7bGluZXMubGVuZ3RofWApOwogIH0KICBtYWluKCk7Cn0pKCk7Cg==";
+    fn test_js_read_text_file() {
+        let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        test_location.push("tests/test_data/runtime/filesystem/text.js");
+        let bytes = fs::read(test_location).unwrap();
+        let test = base64_encode_standard(&bytes);
+
         let mut output = output_options("runtime_test", "./tmp", false);
         let script = JSScript {
-            name: String::from("read_lines"),
+            name: String::from("text_files"),
             script: test.to_string(),
         };
         execute_script(&mut output, &script).unwrap();

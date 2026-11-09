@@ -376,9 +376,9 @@ pub(crate) fn get_filename(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::filesystem::files::{
-        file_extension, file_read_text, file_reader, file_too_large,
-        file_too_large_custom, get_file_size, get_filename, hash_file, hash_file_data, is_file,
-        list_files, list_files_directories, read_file, read_file_custom, read_text_file,
+        file_extension, file_read_text, file_reader, file_too_large, file_too_large_custom,
+        get_file_size, get_filename, hash_file, hash_file_data, is_file, list_files,
+        list_files_directories, read_file, read_file_custom, read_text_file,
     };
     use common::files::Hashes;
     use std::path::PathBuf;

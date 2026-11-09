@@ -14,15 +14,15 @@ var FileError = class extends ErrorBase {
 };
 
 // ../../../artemis-api/src/filesystem/files.ts
-function readLines(handle, offset = 0, limit = 100) {
-  if (offset < 0 || limit < 0) {
-    return new FileError("READ_LINES", `neither offset (${offset}) or limit (${limit}) can be less than 0`);
-  }
+function readTextFile(handle) {
   try {
-    const result = js_read_lines(handle.File, offset, limit);
+    const result = js_read_text_file(handle.File);
     return result;
   } catch (err) {
-    return new FileError("READ_LINES", `failed to read lines for ${JSON.stringify(handle.File)}: ${err}`);
+    return new FileError(
+      "READ_TEXT_FILE",
+      `failed to read text file ${JSON.stringify(handle.File)}: ${err}`
+    );
   }
 }
 
@@ -415,11 +415,11 @@ function main() {
     if (entry.meta.kind !== "File" /* File */) {
       continue;
     }
-    const value = readLines(entry.handle, 0, max);
+    const value = readTextFile(entry.handle);
     if (value instanceof FileError) {
       return;
     }
-    console.log(`JS Accessor Text Lines length: ${value.length}. Wanted ${max}`);
+    console.log(`JS Accessor Text Lines length: ${value.length}`);
     break;
   }
 }
