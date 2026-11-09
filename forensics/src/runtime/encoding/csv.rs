@@ -41,7 +41,7 @@ pub(crate) fn js_read_csv(
     let mut csv_value = Vec::new();
     let mut count = 0;
     while let Some(Ok(value)) = iter.next() {
-        if count > limit as u64 {
+        if count == limit as u64 {
             break;
         }
         if value.len() != headers.len() {
@@ -97,7 +97,7 @@ mod tests {
     #[test]
     fn test_js_read_csv() {
         let mut test_location = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        test_location.push("tests/test_data/runtime/encoding/xml.js");
+        test_location.push("tests/test_data/runtime/encoding/csv.js");
 
         let bytes = fs::read(test_location).unwrap();
         let test = base64_encode_standard(&bytes);

@@ -7,7 +7,6 @@ use md5::{Digest, Md5};
 use sha1::Sha1;
 use sha2::Sha256;
 use std::fs::read_to_string;
-use std::io::{BufRead, BufReader, Lines};
 use std::{
     fs::{File, read, read_dir},
     io::{Read, copy},
