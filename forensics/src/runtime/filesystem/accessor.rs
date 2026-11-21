@@ -1319,16 +1319,21 @@ pub(crate) fn return_file_handle_object(value: Value) -> JsResult<FileHandle> {
 
 #[cfg(test)]
 mod tests {
+    use boa_engine::{Context, Source};
+
+    use crate::accessor::entry::handle::FileHandle;
+    use crate::accessor::entry::locator::{DiskEntryRef, FileLocator};
     use crate::runtime::filesystem::accessor::return_file_handle_object;
+    use crate::runtime::helper::value_arg;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::utils::encoding::base64_encode_standard;
     use crate::{
         output::manager::OutputManager, runtime::run::execute_script,
         structs::artifacts::runtime::script::JSScript,
     };
-
     use std::fs;
     use std::path::PathBuf;
+
     fn output_options(name: &str, directory: &str, compress: bool) -> OutputManager {
         let config = OutputConfig {
             name: name.to_string(),
@@ -1340,6 +1345,15 @@ mod tests {
             ..Default::default()
         };
         OutputManager::new(config).unwrap()
+    }
+
+    fn handle_from_boa(script: &str) -> FileHandle {
+        let mut context = Context::default();
+        let js_value = context.eval(Source::from_bytes(script)).unwrap();
+        let args = [js_value];
+        let json = value_arg(&args, 0, &mut context).unwrap();
+
+        return_file_handle_object(json).unwrap()
     }
 
     #[test]
@@ -1388,5 +1402,83 @@ mod tests {
 
         let handle = return_file_handle_object(value).unwrap();
         assert_eq!(handle.filename(), "session_state.xml");
+    }
+
+    #[test]
+    fn test_boa_ext4_numbers_above_i32_max() {
+        let handle = handle_from_boa(
+            r#"({
+            locator: { Disk: {
+                image: "/tmp/ubuntu24.04",
+                format: "Qcow",
+                partition_id: "Partition1",
+                filesystem_path: "home/ubu/.local/share/epiphany/session_state.xml",
+                entry: { Ext4: { inode: 3722112, generation: 3747804916 } }
+            } }
+        })"#,
+        );
+
+        let FileLocator::Disk {
+            entry: DiskEntryRef::Ext4(entry),
+            ..
+        } = handle.locator
+        else {
+            panic!("expected Disk Ext4 locator");
+        };
+
+        assert_eq!(entry.inode, 3722112);
+        assert_eq!(entry.generation, 3747804916);
+    }
+
+    #[test]
+    fn test_boa_ext4_inode_above_i32_max() {
+        let handle = handle_from_boa(
+            r#"({
+            locator: { Disk: {
+                image: "/tmp/ubuntu24.04",
+                format: "Qcow",
+                partition_id: "Partition1",
+                filesystem_path: "home/ubu/big.txt",
+                entry: { Ext4: { inode: 5000000000, generation: 1 } }
+            } }
+        })"#,
+        );
+
+        let FileLocator::Disk {
+            entry: DiskEntryRef::Ext4(entry),
+            ..
+        } = handle.locator
+        else {
+            panic!("expected Disk Ext4 locator");
+        };
+
+        assert_eq!(entry.inode, 5000000000);
+        assert_eq!(entry.generation, 1);
+    }
+
+    #[test]
+    fn test_boa_ntfs_numbers_above_i32_max() {
+        let handle = handle_from_boa(
+            r#"({
+            locator: { Disk: {
+                image: "/tmp/disk.raw",
+                format: "Raw",
+                partition_id: "Partition1",
+                filesystem_path: "Users/dev/test.txt",
+                entry: { Ntfs: { file_record_number: 3000000000, sequence_number: 9 } }
+            } }
+        })"#,
+        );
+
+        let FileLocator::Disk {
+            entry: DiskEntryRef::Ntfs(entry),
+            ..
+        } = handle.locator
+        else {
+            panic!("expected Disk Ntfs locator");
+        };
+
+        assert_eq!(entry.file_record_number, 3_000_000_000);
+        assert_eq!(entry.sequence_number, 9);
     }
 }
