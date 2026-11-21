@@ -171,10 +171,7 @@ pub(crate) fn extract_ascii_utf16_string(data: &[u8]) -> String {
 
 /// Check if either string contains the other
 pub(crate) fn strings_contains(input1: &str, input2: &str) -> bool {
-    if input1.contains(input2) || input2.contains(input1) {
-        return true;
-    }
-    false
+    input1.contains(input2) || input2.contains(input1)
 }
 
 #[cfg(test)]

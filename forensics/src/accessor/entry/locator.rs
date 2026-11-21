@@ -1,4 +1,5 @@
 use crate::accessor::disk::format::DiskFormat;
+use crate::accessor::entry::deserialize::deserialize_uint;
 use ntfs::NtfsFileReference;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -41,8 +42,10 @@ impl SourceId {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct NtfsEntryRef {
     /// NTFS File Record Number
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) file_record_number: u64,
     /// NTFS Sequence Number
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) sequence_number: u16,
 }
 
@@ -61,8 +64,10 @@ pub(crate) enum DiskEntryRef {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Ext4EntryRef {
     /// Inode value
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) inode: u64,
     /// Generation value for the inode
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) generation: u32,
 }
 
@@ -107,6 +112,7 @@ pub(crate) enum FileLocator {
         /// Path to the zip archive
         archive: PathBuf,
         /// Index to the file in the zip archive
+        #[serde(deserialize_with = "deserialize_uint")]
         entry_index: u32,
         /// Path to the file in the zip
         entry: String,
@@ -155,6 +161,7 @@ pub(crate) enum DirLocator {
         /// Path to the zip archive
         archive: PathBuf,
         /// Index to the directory in the zip archive
+        #[serde(deserialize_with = "deserialize_uint")]
         entry_index: u32,
         /// Path to the directory in the zip
         prefix: String,
@@ -172,4 +179,133 @@ pub(crate) enum DirLocator {
         /// Reference to directory location
         entry: DiskEntryRef,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DirLocator, FileLocator};
+    use serde_json::json;
+
+    #[test]
+    fn test_ntfs_file_ref_numbers() {
+        let value = json!({
+            "Ntfs": {
+                "drive": "C",
+                "file_ref": {"file_record_number": 3722112.0, "sequence_number": "3"},
+                "display_path": "C:\\Users\\dev\\test.txt"
+            }
+        });
+
+        let locator: FileLocator = serde_json::from_value(value).unwrap();
+        let FileLocator::Ntfs { file_ref, .. } = locator else {
+            panic!("expected Ntfs locator");
+        };
+
+        assert_eq!(file_ref.file_record_number, 3722112);
+        assert_eq!(file_ref.sequence_number, 3);
+    }
+
+    #[test]
+    fn test_ntfs_dir_ref_numbers() {
+        let value = json!({
+            "Ntfs": {
+                "drive": "C",
+                "dir_ref": {"file_record_number": 5000000000u64, "sequence_number": 65535},
+                "display_path": "C:\\Users\\dev"
+            }
+        });
+
+        let locator: DirLocator = serde_json::from_value(value).unwrap();
+        let DirLocator::Ntfs { dir_ref, .. } = locator else {
+            panic!("expected Ntfs locator");
+        };
+
+        assert_eq!(dir_ref.file_record_number, 5000000000);
+        assert_eq!(dir_ref.sequence_number, 65535);
+    }
+
+    #[test]
+    fn test_ext4_file_ref_numbers() {
+        let value = json!({
+            "Ext4": {
+                "label": "/dev/sda2",
+                "entry": {"inode": 3722112.0, "generation": 3747804916.0},
+                "display_path": "/home/ubu/test.txt"
+            }
+        });
+
+        let locator: FileLocator = serde_json::from_value(value).unwrap();
+        let FileLocator::Ext4 { entry, .. } = locator else {
+            panic!("expected Ext4 locator");
+        };
+
+        assert_eq!(entry.inode, 3722112);
+        assert_eq!(entry.generation, 3747804916);
+    }
+
+    #[test]
+    fn test_ext4_dir_ref_numbers() {
+        let value = json!({
+            "Ext4": {
+                "label": "/dev/sda2",
+                "entry": {"inode": "5000000000", "generation": 4294967295u32},
+                "display_path": "/home/ubu"
+            }
+        });
+
+        let locator: DirLocator = serde_json::from_value(value).unwrap();
+        let DirLocator::Ext4 { entry, .. } = locator else {
+            panic!("expected Ext4 locator");
+        };
+
+        assert_eq!(entry.inode, 5000000000);
+        assert_eq!(entry.generation, u32::MAX);
+    }
+
+    #[test]
+    fn test_zip_file_entry_index() {
+        let value = json!({
+            "Zip": {"archive": "/tmp/a.zip", "entry_index": 4.0, "entry": "a.txt"}
+        });
+        let locator: FileLocator = serde_json::from_value(value).unwrap();
+
+        let FileLocator::Zip {
+            entry_index, entry, ..
+        } = locator
+        else {
+            panic!("expected Zip locator");
+        };
+
+        assert_eq!(entry_index, 4);
+        assert_eq!(entry, "a.txt");
+    }
+
+    #[test]
+    fn test_zip_dir_entry_index() {
+        let value = json!({
+            "Zip": {"archive": "/tmp/a.zip", "entry_index": "7", "prefix": "docs/"}
+        });
+        let locator: DirLocator = serde_json::from_value(value).unwrap();
+
+        let DirLocator::Zip {
+            entry_index,
+            prefix,
+            ..
+        } = locator
+        else {
+            panic!("expected Zip locator");
+        };
+
+        assert_eq!(entry_index, 7);
+        assert_eq!(prefix, "docs/");
+    }
+
+    #[test]
+    fn test_zip_entry_index_rejects_overflow() {
+        let value = json!({
+            "Zip": {"archive": "/tmp/a.zip", "entry_index": 4294967296u64, "entry": "a.txt"}
+        });
+        let err = serde_json::from_value::<FileLocator>(value).unwrap_err();
+        assert!(format!("{err:?}").contains("integer 4294967296 is out of range"));
+    }
 }

@@ -191,11 +191,7 @@ pub(crate) fn compare_timestamps(time1: &str, time2: &str) -> Result<bool, Artem
         }
     };
 
-    if timestamp1 > timestamp2 {
-        return Ok(true);
-    }
-
-    Ok(false)
+    Ok(timestamp1 > timestamp2)
 }
 
 /// Parse the bits in FAT timestamp

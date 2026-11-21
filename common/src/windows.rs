@@ -629,7 +629,7 @@ pub enum AttributeFlags {
  * modified: FAT timestamp, only found on directory, file `ShellItems`
  * `mft_entry`: The MFT entry for a file or directory `ShellItem`
  * `mft_sequence`: The MFT sequence for a file or directory `ShellItem`
-*/
+ */
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ShellItem {
     pub value: String,

@@ -108,10 +108,10 @@ pub(crate) fn parse_store(
 }
 
 /**
-* Parse the Spotlight database in blocks. This allows for a **little** more flexible JS scripting.
-* Instead of returning all Spotlight data (potentially 5GB+)
-* This function instead will parse 10 blocks at a time and return the Spotlight data
-*/
+ * Parse the Spotlight database in blocks. This allows for a **little** more flexible JS scripting.
+ * Instead of returning all Spotlight data (potentially 5GB+)
+ * This function instead will parse 10 blocks at a time and return the Spotlight data
+ */
 pub(crate) fn parse_store_blocks(
     reader: &mut AccessorReader,
     meta: &SpotlightMeta,
