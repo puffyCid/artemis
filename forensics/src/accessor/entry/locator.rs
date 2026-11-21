@@ -305,6 +305,7 @@ mod tests {
         let value = json!({
             "Zip": {"archive": "/tmp/a.zip", "entry_index": 4294967296u64, "entry": "a.txt"}
         });
-        assert!(serde_json::from_value::<FileLocator>(value).is_err());
+        let err = serde_json::from_value::<FileLocator>(value).unwrap_err();
+        assert!(format!("{err:?}").contains("integer 4294967296 is out of range"));
     }
 }
