@@ -1,4 +1,5 @@
 use crate::accessor::disk::format::DiskFormat;
+use crate::accessor::entry::serialize::deserialize_uint;
 use ntfs::NtfsFileReference;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -41,8 +42,10 @@ impl SourceId {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct NtfsEntryRef {
     /// NTFS File Record Number
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) file_record_number: u64,
     /// NTFS Sequence Number
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) sequence_number: u16,
 }
 
@@ -61,8 +64,10 @@ pub(crate) enum DiskEntryRef {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Ext4EntryRef {
     /// Inode value
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) inode: u64,
     /// Generation value for the inode
+    #[serde(deserialize_with = "deserialize_uint")]
     pub(crate) generation: u32,
 }
 
@@ -107,6 +112,7 @@ pub(crate) enum FileLocator {
         /// Path to the zip archive
         archive: PathBuf,
         /// Index to the file in the zip archive
+        #[serde(deserialize_with = "deserialize_uint")]
         entry_index: u32,
         /// Path to the file in the zip
         entry: String,
@@ -155,6 +161,7 @@ pub(crate) enum DirLocator {
         /// Path to the zip archive
         archive: PathBuf,
         /// Index to the directory in the zip archive
+        #[serde(deserialize_with = "deserialize_uint")]
         entry_index: u32,
         /// Path to the directory in the zip
         prefix: String,

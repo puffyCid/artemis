@@ -1319,6 +1319,7 @@ pub(crate) fn return_file_handle_object(value: Value) -> JsResult<FileHandle> {
 
 #[cfg(test)]
 mod tests {
+    use crate::runtime::filesystem::accessor::return_file_handle_object;
     use crate::structs::toml::{OutputConfig, OutputDestination, OutputFormat};
     use crate::utils::encoding::base64_encode_standard;
     use crate::{
@@ -1355,5 +1356,21 @@ mod tests {
             script: test,
         };
         execute_script(&mut output, &script).unwrap();
+    }
+
+    #[test]
+    fn test_return_file_handle_object() {
+        let value = serde_json::json!({
+            "locator": {"Disk": {
+                "image": "/tmp/ubuntu24.04",
+                "format": "Qcow",
+                "partition_id": "Partition1",
+                "filesystem_path": "home/ubu/.local/share/epiphany/session_state.xml",
+                "entry": {"Ext4": {"inode": 3722112, "generation": 3747804916.0}}
+            }}
+        });
+
+        let handle = return_file_handle_object(value).unwrap();
+        assert_eq!(handle.filename(), "session_state.xml");
     }
 }
