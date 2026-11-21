@@ -64,7 +64,7 @@ fn write_row<W: Write>(
 ) -> OutputResult<()> {
     let row = headers
         .iter()
-        .map(|header| fields.get(header).map(value_to_cell).unwrap_or_default())
+        .map(|header| fields.get(header).map_or_default(value_to_cell))
         .collect::<Vec<_>>();
 
     writer.write_record(row)?;

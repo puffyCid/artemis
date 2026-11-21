@@ -327,10 +327,8 @@ pub(crate) fn get_file_size(path: &str) -> u64 {
 pub(crate) fn file_too_large(path: &str) -> bool {
     let size = get_file_size(path);
     let max_size = 2147483648; // 2GB
-    if size < max_size {
-        return false;
-    }
-    true
+
+    size >= max_size
 }
 
 /// Get last component of provided path. Will be filename or directory or empty string if final component cannot be determined

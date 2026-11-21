@@ -1,18 +1,18 @@
 /**
-* Windows `Outlook` is a popular email client. Outlook on Windows stores messages in OST or PST files
-* PST was used by older Outlook versions (prior to Outlook 2013)
-* OST is used by Outlook 2013+*
-*
-* *Outlook was re-written in 2022 (New Outlook for Windows). Which is a online only web app. This parser does not support that version
-*
-* References:
-* `https://www.forensafe.com/blogs/outlook.html`
-* `https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc`
-*
-* Other parsers:
-* `https://github.com/libyal/libpff`
-*
-*/
+ * Windows `Outlook` is a popular email client. Outlook on Windows stores messages in OST or PST files
+ * PST was used by older Outlook versions (prior to Outlook 2013)
+ * OST is used by Outlook 2013+*
+ *
+ * *Outlook was re-written in 2022 (New Outlook for Windows). Which is a online only web app. This parser does not support that version
+ *
+ * References:
+ * `https://www.forensafe.com/blogs/outlook.html`
+ * `https://github.com/libyal/libpff/blob/main/documentation/Personal%20Folder%20File%20(PFF)%20format.asciidoc`
+ *
+ * Other parsers:
+ * `https://github.com/libyal/libpff`
+ *
+ */
 use super::{
     error::OutlookError,
     header::FormatType,

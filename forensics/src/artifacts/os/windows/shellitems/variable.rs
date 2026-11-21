@@ -222,12 +222,7 @@ pub(crate) fn check_zip(data: &[u8]) -> bool {
     // Check for presence of "/"
     let slash = 47;
     let adjust_vec_start = 1;
-    if data[min_size_date - adjust_vec_start] == slash
-        || data[min_size_na - adjust_vec_start] == slash
-    {
-        return true;
-    }
-    false
+    data[min_size_date - adjust_vec_start] == slash || data[min_size_na - adjust_vec_start] == slash
 }
 
 /// Scan for a provided `0xbeefXXXX` bytes signature
