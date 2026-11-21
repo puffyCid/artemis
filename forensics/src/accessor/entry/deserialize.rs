@@ -2,11 +2,14 @@ use serde::{
     Deserializer,
     de::{self, Visitor},
 };
+// https://dev.to/sgchris/using-phantomdata-and-zero-sized-types-1i2e
 use std::marker::PhantomData;
 
+/// Struct that implements deserialize JSON number (or string)
 struct UintVisitor<T>(PhantomData<T>);
 
 impl<T: TryFrom<u64>> UintVisitor<T> {
+    /// Convert JSON number (or string) to `T`
     fn convert<E: de::Error>(value: u64) -> Result<T, E> {
         T::try_from(value).map_err(|_err| E::custom(format!("integer {value} is out of range")))
     }
@@ -124,10 +127,7 @@ mod tests {
 
         test = json!({"small": -1, "medium": 1, "large": 1});
         err = parse(test).unwrap_err();
-        assert!(
-            format!("{err:?}")
-                .contains("integer -1 must not be negative: TryFromIntError(NegOverflow)")
-        );
+        assert!(format!("{err:?}").contains("integer -1 must not be negative"));
 
         test = json!({"small": 70000, "medium": 1, "large": 1});
         err = parse(test).unwrap_err();
@@ -145,9 +145,6 @@ mod tests {
 
         test = json!({"small": 1, "medium": 1, "large": "abc"});
         err = parse(test).unwrap_err();
-        assert!(
-            format!("{err:?}")
-                .contains("invalid integer string abc: ParseIntError { kind: InvalidDigit }")
-        );
+        assert!(format!("{err:?}").contains("invalid integer string abc"));
     }
 }

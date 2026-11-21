@@ -1373,4 +1373,20 @@ mod tests {
         let handle = return_file_handle_object(value).unwrap();
         assert_eq!(handle.filename(), "session_state.xml");
     }
+
+    #[test]
+    fn test_return_file_handle_object_ntfs() {
+        let value = serde_json::json!({
+            "locator": {"Disk": {
+                "image": "/tmp/ubuntu24.04",
+                "format": "Qcow",
+                "partition_id": "Partition1",
+                "filesystem_path": "home/ubu/.local/share/epiphany/session_state.xml",
+                "entry": {"Ntfs": {"file_record_number": 3722112, "sequence_number": 12}}
+            }}
+        });
+
+        let handle = return_file_handle_object(value).unwrap();
+        assert_eq!(handle.filename(), "session_state.xml");
+    }
 }

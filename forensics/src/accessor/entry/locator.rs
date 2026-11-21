@@ -1,5 +1,5 @@
 use crate::accessor::disk::format::DiskFormat;
-use crate::accessor::entry::serialize::deserialize_uint;
+use crate::accessor::entry::deserialize::deserialize_uint;
 use ntfs::NtfsFileReference;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
