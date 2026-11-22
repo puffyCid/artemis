@@ -160,10 +160,7 @@ pub(crate) fn spotlight(data: &mut Value, start: &Option<String>, end: &Option<S
         }
     }
     // unwrap is safe since we check for string type
-    if filter_data(data["datetime"].as_str().unwrap(), start, end) {
-        return false;
-    }
-    true
+    !filter_data(data["datetime"].as_str().unwrap(), start, end)
 }
 
 pub(crate) fn unifiedlogs(data: &mut Value, start: &Option<String>, end: &Option<String>) -> bool {

@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use crate::{
     accessor::access::Accessor,
     runtime::{
@@ -19,7 +17,8 @@ use rusqlite::{
     types::{FromSql, FromSqlError, ValueRef},
 };
 use serde_json::json;
-use tracing::error;
+use std::cell::RefCell;
+use tracing::{error, warn};
 
 /// Query a sqlite file
 pub(crate) fn js_query_sqlite(
@@ -93,7 +92,7 @@ impl Class for JsSqlite {
         let handle = return_file_handle_object(value)?;
         let mut accessor = Accessor::with_defaults();
 
-        let bytes = match accessor.read_file_handle(&handle) {
+        let mut bytes = match accessor.read_file_handle(&handle) {
             Ok(results) => results,
             Err(err) => {
                 let issue = format!(
@@ -105,6 +104,22 @@ impl Class for JsSqlite {
             }
         };
 
+        if bytes.len() >= 20
+            && (bytes.get(18).is_some_and(|i| *i == 2) || bytes.get(19).is_some_and(|i| *i == 2))
+        {
+            warn!(
+                "{} is in WAL mode. Currently we do not replay WAL rows. Some rows may be missing!",
+                handle.display_path()
+            );
+
+            if let Some(index) = bytes.get_mut(18) {
+                *index = 1;
+            }
+            if let Some(index) = bytes.get_mut(19) {
+                *index = 1;
+            }
+        }
+
         let mut conn = match Connection::open_in_memory() {
             Ok(result) => result,
             Err(err) => {
@@ -115,7 +130,7 @@ impl Class for JsSqlite {
         };
 
         if let Err(err) = conn.deserialize_read_exact(MAIN_DB, &bytes[..], bytes.len(), true) {
-            let issue = format!("Failed to deserialize ExecPolicy SQLITE file {err:?}");
+            let issue = format!("Failed to deserialize SQLITE file {err:?}");
             error!(issue);
             return Err(JsError::from_opaque(js_string!(issue).into()));
         }

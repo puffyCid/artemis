@@ -11,7 +11,7 @@ pub(crate) fn http_functions(context: &mut Context) {
 
     let _ = context.register_global_callable(
         JsString::from("js_url_parse"),
-        2,
+        1,
         NativeFunction::from_fn_ptr(js_url_parse),
     );
 }

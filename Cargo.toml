@@ -27,7 +27,7 @@ description = "A cross platform forensic parser"
 serde = { version = "1.0.229", features = ["derive"] }
 tracing = "0.1.44"
 serde_json = "1.0.154"
-toml = "1.2.1"
+toml = "1.2.2"
 base64 = "0.23.1"
 tokio = { version = "1.54.1", features = ["full"] }
 flate2 = "1.1.11"
@@ -38,9 +38,9 @@ reqwest = { version = "0.13.5", features = [
     "multipart",
     "form",
 ] }
-sysinfo = "0.40.1"
-uuid = { version = "1.29.1", features = ["v4"] }
-rusqlite = { version = "0.41.1", features = [
+sysinfo = "0.40.4"
+uuid = { version = "1.29.3", features = ["v4"] }
+rusqlite = { version = "0.43.0", features = [
     "bundled",
     "serde_json",
     "serialize",
