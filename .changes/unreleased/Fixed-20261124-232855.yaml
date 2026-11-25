@@ -1,0 +1,3 @@
+kind: Fixed
+body: Issue where artemis would return error when encountering SIP protected files when globbing
+time: 2026-11-24T23:28:55.713869-05:00

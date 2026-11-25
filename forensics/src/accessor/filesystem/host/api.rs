@@ -28,7 +28,7 @@ use std::{
     io::{ErrorKind, Read},
     path::{Path, PathBuf},
 };
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[cfg(target_family = "unix")]
 use crate::utils::time::unixepoch_to_iso_with_nano;
@@ -125,6 +125,7 @@ impl HostFs {
 
         for entry_result in read_dir_value {
             let entry = entry_result.map_err(|err| AccessorError::io_path(&path, err))?;
+
             let file_type = entry
                 .file_type()
                 .map_err(|err| AccessorError::io_path(entry.path(), err))?;
@@ -144,9 +145,16 @@ impl HostFs {
                 | EntryKind::Unsupported => ItemHandle::Unsupported(FileHandle::host(&child_path)),
             };
 
-            let metadata = entry
-                .metadata()
-                .map_err(|err| AccessorError::io_path(&child_path, err))?;
+            let metadata = match entry.metadata() {
+                Ok(results) => results,
+                Err(err) => {
+                    warn!(
+                        "Could not get metadata for {}: {err:?}",
+                        entry.path().display()
+                    );
+                    continue;
+                }
+            };
 
             let times = if kind == EntryKind::File || kind == EntryKind::Directory {
                 HostFs::host_times(&metadata)

@@ -297,10 +297,10 @@ fn parse_host_binary(bytes: Vec<u8>, display_path: &str) -> Value {
     {
         use crate::artifacts::os::macos::macho::parser::parse_macho_reader;
 
-        return parse_macho_reader(&mut reader)
+        parse_macho_reader(&mut reader)
             .ok()
             .and_then(|macho| serde_json::to_value(macho).ok())
-            .unwrap_or_default();
+            .unwrap_or_default()
     }
 
     #[cfg(all(unix, not(target_os = "macos")))]
